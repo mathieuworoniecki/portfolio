@@ -1135,9 +1135,12 @@ function drag(c, x, y) {
   // le geste décide : vers le haut, on le soulève (par la peau du cou) ; de côté ou vers le bas, on le caresse
   if (!c.held && !c.pet) { const dx = x - (Wd.gx ?? x), dy = y - (Wd.gy ?? y);
     if (Math.hypot(dx, dy) < 12) return;   // le geste n'a pas encore de direction : on attend
-    if (Math.abs(dx) > Math.abs(dy) * 2.2 && dy > -8 && !c.fall && !c.jump) { interrupt(c); c.pet = { n: 0, dir: 0, lx: x, t: Wd.t, run: 0 }; c.q = []; c.task = { k: 'wait', anim: 'caresse', until: c => !c.pet, max: 120, t: 0 }; say(c, '♥'); } }
+    if (Math.abs(dx) > Math.abs(dy) * 2.2 && dy > -8 && !c.fall && !c.jump) { interrupt(c); c.pet = { n: 0, dir: 0, lx: x, t: Wd.t, run: 0, x0: Wd.gx ?? x, y0: Wd.gy ?? y }; c.q = []; c.task = { k: 'wait', anim: 'caresse', until: c => !c.pet, max: 120, t: 0 }; say(c, '♥'); } }
   // la main sort du dos (trop loin sur le côté, ou vers le haut) : on arrête de caresser, on l'attrape
-  if (c.pet) { const b = Chat.where(c, c.body), k = sc(c); if (Math.abs(x - b[0]) > c.D.a * k * 1.3 + 20 || y < b[1] - c.D.h * k * 1.6 - 20) { c.pet = null; c.task = null; } else { pet(c, x, y); return; } }
+  // (sur le dos, le corps descend : la main qui caressait reste plus haut sans qu'on l'ait levée)
+  if (c.pet) { const b = Chat.where(c, c.body), k = sc(c), P = c.pet, mx = c.D.a * k * 1.3 + 20;
+    // (le corps bouge sous la main, il se cambre, roule : on juge aussi par rapport à l'endroit où la caresse a commencé)
+    if ((Math.abs(x - b[0]) > mx && Math.abs(x - P.x0) > mx) || (y < b[1] - c.D.h * k * (P.belly ? 3.4 : 1.6) - 20 && y < P.y0 - c.D.h * k * 1.2 - 20)) { c.pet = null; c.task = null; } else { pet(c, x, y); return; } }
   if (!c.held) { interrupt(c); c.fall = false; c.held = true; c.spin = 0; c.pend = { th: 0, w: 0, px: x, py: y, vx: 0, vy: 0, ax: 0 }; say(c, pick(['mia ?', '…', 'hé !'])); }
   c.hx = x; c.hy = y;
 }

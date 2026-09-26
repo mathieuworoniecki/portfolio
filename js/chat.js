@@ -273,12 +273,12 @@ function apply(c, opts) {
   qa.setFromAxisAngle(AX, VIEW.tilt); qb.setFromAxisAngle(AY, yaw); qa.multiply(qb); c.view.quaternion.copy(qa);
   // le corps : sa place, son tangage, écrasé ou étiré
   const sx = 1 + p[I.stretch] - p[I.sqz] * 0.5, sy = 1 + p[I.sqz], pz = 1 + p[I.puff] * 0.12;
-  c.body.position.set(p[I.x], p[I.y], 0); c.body.rotation.set(0, 0, p[I.pitch] + c.spin);
+  c.body.position.set(p[I.x], p[I.y], 0); c.body.rotation.set(0, 0, p[I.pitch] + c.spin + (c.roll || 0));   // roll : couché sur le dos (js/vie.js)
   c.puffy.scale.set(sx * pz, sy * pz, pz);
   // les pattes : accrochées sous le corps, elles balancent ; la jambe s'allonge ou se replie, la patte garde sa forme (et reste à plat)
   for (const k in c.legs) { const L = c.legs[k], h = L.g.userData.hip, e = Math.max(0.12, p[k === 'fr' ? I.fk2 : I[k[0] === 'f' ? 'fk' : 'hk']]), len = D.ll * e;
     L.g.position.set(h[0] * sx, h[1] * sy, h[2]); L.g.rotation.set(0, 0, p[I[k]]); L.m.scale.set(1, e, 1);
-    L.foot.position.set(0, -len, 0); L.foot.rotation.set(0, 0, -p[I[k]] - p[I.pitch] - c.spin); L.foot.visible = e > 0.15; }
+    L.foot.position.set(0, -len, 0); L.foot.rotation.set(0, 0, -p[I[k]] - p[I.pitch] - c.spin - (c.roll || 0)); L.foot.visible = e > 0.15; }
   // assis : les cuisses sur les côtés, droites
   const st = p[I.seat]; c.seats.forEach(g => { g.visible = st > 0.05; g.position.set(D.seat[0] * sx, D.seat[1] * sy, g.userData.s * D.d * 0.62); g.rotation.set(0, 0, -p[I.pitch]); g.scale.setScalar(Math.max(0.01, st)); });
   // la tête : droite quand le corps penche (tant qu'il ne tourne pas sur lui-même), devant le corps, tournée vers nous (look) ou vers l'avant

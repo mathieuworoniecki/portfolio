@@ -393,9 +393,18 @@ function tombe() {
 ANIMS.splat = (c, p, t) => { Chat.rest(c, p); p[I.sqz] = -0.42; p[I.stretch] = 0.12; p[I.y] = c.D.h * 0.55; p[I.fl] = 1.5; p[I.fr] = 1.25; p[I.hl] = -1.5; p[I.hr] = -1.25; p[I.fk] = p[I.fk2] = p[I.hk] = 0.95; p[I.eyes] = 1; p[I.mouth] = 1; p[I.tailUp] = -0.1; p[I.tailWave] = 0; p[I.look] = 1; };
 ANIMS.secoue = (c, p, t) => { Chat.rest(c, p); const w = Math.sin(t * 38); p[I.htilt] = w * 0.45; p[I.sqz] = w * 0.05; p[I.pitch] = w * 0.04; p[I.puff] = 0.5; p[I.eyes] = 1; p[I.tailWave] = 1.6; p[I.tailPhase] = t * 30; };
 ANIMS.ventre = (c, p, t) => { lieBack(c, p, t); p[I.eyes] = 2; };
-ANIMS.agrippe = (c, p, t) => { lieBack(c, p, t); const k = Math.sin(t * 26); p[I.hl] += k * 0.6; p[I.hr] -= k * 0.6; p[I.fl] = 1.9 + k * 0.3; p[I.fr] = 1.9 - k * 0.3; p[I.fk] = p[I.fk2] = 0.55; p[I.eyes] = 0; p[I.mouth] = 1; p[I.puff] = 0.35; p[I.tailWave] = 1.4; p[I.tailPhase] = t * 16; };
+ANIMS.agrippe = (c, p, t) => { lieBack(c, p, t); const k = Math.sin(t * 26); p[I.hl] += k * 0.6; p[I.hr] -= k * 0.6; p[I.fl] = 0.7 + k * 0.35; p[I.fr] = 0.5 - k * 0.35; p[I.fk] = p[I.fk2] = 0.85; p[I.eyes] = 0; p[I.mouth] = 1; p[I.puff] = 0.35; p[I.tailWave] = 1.4; p[I.tailPhase] = t * 16; };
 // sur le dos (le corps ne roule pas : les quatre pattes en l'air, la tête penchée, la queue qui balaie)
-function lieBack(c, p, t) { K.lie(c, p); p[I.sqz] = -0.12; p[I.y] = c.D.h * 0.85; p[I.fl] = 2.5 + Math.sin(t * 2.5) * 0.15; p[I.fr] = 2.2 - Math.sin(t * 2.5) * 0.15; p[I.hl] = -2.3; p[I.hr] = -2.6; p[I.fk] = p[I.fk2] = 0.7; p[I.hk] = 0.75; p[I.htilt] = 0.65; p[I.hy] = -c.D.h * 0.2; p[I.look] = 1; p[I.tailUp] = -0.2; p[I.tailSide] = 1.4; p[I.tailWave] = 0.8; p[I.tailPhase] = t * 3; }
+function lieBack(c, p, t) {
+  // le corps fait un demi-tour (c.roll, adouci plus bas) : le dos au sol, les quatre pattes en l'air qui pédalent un peu,
+  // la tête presque redressée (penchée, elle nous regarde), la queue qui balaie le sol
+  Chat.rest(c, p); c.rollT = Math.PI; const w = Math.sin(t * 2.5);
+  p[I.y] = c.D.h * 0.8; p[I.sqz] = -0.06; p[I.look] = 1;
+  p[I.fl] = 0.35 + w * 0.2; p[I.fr] = -0.15 - w * 0.2; p[I.hl] = 0.45 - w * 0.12; p[I.hr] = 0.05 + w * 0.12; p[I.fk] = p[I.fk2] = 0.95; p[I.hk] = 1;
+  p[I.htilt] = -2.45; p[I.hnod] = 0.1; p[I.tailUp] = -0.6; p[I.tailSide] = 1.2; p[I.tailCurl] = 0.2; p[I.tailWave] = 0.9; p[I.tailPhase] = t * 3;
+}
+// le demi-tour du corps : vers 0 dès qu'il n'est plus sur le dos
+H.live.push((c, dt) => { const T = c.rollT || 0; c.rollT = 0; if (!c.roll && !T) return; c.roll = (c.roll || 0) + (T - (c.roll || 0)) * Math.min(1, (dt || 0.016) * 7); if (!T && Math.abs(c.roll) < 0.01) c.roll = 0; });
 ANIMS.baille = (c, p, t) => { K.sit(c, p); const u = Math.min(1, t / 1.6), o = u > 0.15 && u < 0.85; p[I.hnod] = -0.35 * Math.sin(u * Math.PI); p[I.mouth] = o ? 1 : 0; p[I.eyes] = 1; p[I.stretch] = 0.04 * Math.sin(u * Math.PI); p[I.sqz] = 0.05 * Math.sin(u * Math.PI); };
 ANIMS.eternue = (c, p, t) => { K.sit(c, p); const u = t % 1.6; if (u < 0.6) { p[I.hnod] = -0.3 * u / 0.6; p[I.eyes] = 1; p[I.mouth] = u > 0.4 ? 1 : 0; } else if (u < 0.8) { p[I.hnod] = 0.45; p[I.eyes] = 1; p[I.mouth] = 1; p[I.sqz] = -0.08; } else { p[I.htilt] = Math.sin(u * 40) * 0.3; p[I.eyes] = 1; } };
 ANIMS.frotte = (c, p, t) => { Chat.rest(c, p); p[I.hx] = 0.04 + Math.sin(t * 3) * 0.02; p[I.htilt] = 0.35 + Math.sin(t * 3) * 0.15; p[I.hnod] = 0.1; p[I.eyes] = 2; p[I.tailUp] = 1.7; p[I.tailCurl] = 0.4; p[I.tailWave] = 0.3; p[I.sqz] = 0.04; };

@@ -3,7 +3,7 @@
    - La mouche : elle bourdonne, tous les yeux la suivent ; les chats la chassent, sautent, claquent des pattes ;
      elle finit par se poser sur un nez (atchoum !) puis s'en va.
    - Le concert : trois ou quatre chats en rang, chacun son miaou, de plus en plus vite… et tous ensemble pour finir.
-   - Le tunnel : trois cartons en file ; un chat fonce dedans, on le voit passer de l'un à l'autre (ça tremble), il ressort au bout.
+   - Le tunnel : trois cartons en file ; un chat fonce dedans. Retiré du tirage (les cartons surgissaient de nulle part et restaient) ; la fonction reste pour plus tard.
    - La vitre : un chat curieux s'approche tout près de l'écran (il grandit), pattes et truffe contre le verre (de la buée), puis repart.
    - Le passager : l'aspirateur passe… un chat lui saute dessus et fait le trajet assis sur le tuyau.
    - Les croquettes au vol : un chat saute et en attrape une en l'air.
@@ -216,6 +216,6 @@ H.pre.push(() => {
 /* ——— la craie d'ici ——— */
 H.draw.push(() => { drawParachutes(); drawFog(); drawFly(); });
 
-K.SCEN.push(colis, mouche, concert, tunnel, vitre);
+K.SCEN.push(colis, mouche, concert, vitre);
 return { colis, mouche, concert, tunnel, vitre };
 })();
