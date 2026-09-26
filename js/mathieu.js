@@ -1,4 +1,4 @@
-/* Mathieu en 3D, décalqué : sa photo, redessinée en noir et blanc (tools/mathieu/build.py), posée sur un relief.
+/* Mathieu en 3D, dessiné au trait d'après sa photo (tools/mathieu/build.py, trait.py), posé sur un relief : des contours seulement, comme les chats.
    Le relief vient de la photo elle-même : les 468 points du visage (MediaPipe) pour le nez, les yeux, la bouche, le menton ;
    un ellipsoïde pour le crâne et les cheveux, un cylindre pour le cou, un tonneau aplati pour le buste (en t-shirt Patagonia).
    C'est une grille de 256 × 256 sommets, texturée : de face et de trois quarts on le reconnaît comme sur la photo ;

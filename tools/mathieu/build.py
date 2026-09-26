@@ -4,8 +4,7 @@
     python3 tools/mathieu/build.py <photo de face> [dossier de sortie : media/mathieu]
 
 La photo n'est pas gardée dans le dépôt : seulement ce qu'on en tire.
-  visage.png   le dessin, à l'encre (gris dans r,g,b ; la silhouette dans a) : la photo décalquée en noir et blanc (XDoG),
-               la tête et le cou ; le buste redessiné en t-shirt (Patagonia) ; 1024 × 1024
+  visage.png   le dessin au trait (gris dans r,g,b ; la silhouette dans a) : la tête et le cou redessinés d'après la photo (trait.py) ; le buste redessiné en t-shirt (Patagonia) ; 1024 × 1024
   dos.png      le dos (quand il tourne) : les cheveux sur toute la tête, le dos du t-shirt ; même cadre
   relief.png   256 × 256, un point par sommet de la grille : r la profondeur, g la mâchoire (ce qui descend quand la bouche s'ouvre),
                b le côté de la ligne des lèvres (0 au-dessus, 255 en dessous) : le trou noir s'ouvre entre les deux
@@ -16,6 +15,7 @@ import sys, json, pathlib
 import numpy as np, cv2, mediapipe as mp
 from scipy.interpolate import griddata
 from PIL import Image, ImageDraw, ImageFont
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import trait
 
 src = sys.argv[1]; out = pathlib.Path(sys.argv[2] if len(sys.argv) > 2 else pathlib.Path(__file__).resolve().parents[2] / 'media' / 'mathieu'); out.mkdir(parents=True, exist_ok=True)
 im = cv2.imread(src); H0, W0 = im.shape[:2]; rgb = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
@@ -34,20 +34,18 @@ neck_line = lambda x: NL['c'][1] + NL['r'][1] * np.sqrt(np.clip(1 - ((x - NL['c'
 
 # ——— les zones ———
 person = cv2.GaussianBlur(seg, (0, 0), 1.5) > 0.5
-head = person & ((yy < 545) | ((xx > NECK[0]) & (xx < NECK[1]) & (yy < neck_line(xx))))
+OVAL = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109]
+fo = np.zeros((H0, W0), np.uint8); cv2.fillPoly(fo, [L[OVAL, :2].astype(np.int32)], 1); fo = cv2.dilate(fo, np.ones((15, 15), np.uint8)) > 0
+# la tête : tout au-dessus de la bouche ; plus bas, le visage (son ovale) et le cou, jusqu'à l'encolure (pas le col de la chemise)
+head = person & ((yy < L[13, 1]) | fo | ((xx > NECK[0]) & (xx < NECK[1]) & (yy < neck_line(xx))))
 torso = person & ~head & (yy > 540)
 
-# ——— le décalque : la photo lissée, puis la différence de gaussiennes (XDoG), comme une gravure en noir et blanc ———
+# ——— la tête, redessinée au trait (tools/mathieu/trait.py) : des contours seulement, comme les chats et les objets ———
 b = im
 for _ in range(3): b = cv2.bilateralFilter(b, 9, 30, 7)
 g = cv2.cvtColor(b, cv2.COLOR_BGR2GRAY).astype(np.float32) / 255
-def xdog(g, s, k=1.6, p=40, eps=0.9, phi=3):
-    a, c = cv2.GaussianBlur(g, (0, 0), s), cv2.GaussianBlur(g, (0, 0), s * k); d = (1 + p) * a - p * c
-    return np.clip(np.where(d >= eps, 1.0, 1 + np.tanh(phi * (d - eps))), 0, 1)
-ink = xdog(g, 1.2)
-# le contour de la tête : un trait franc
-edge = cv2.morphologyEx(head.astype(np.uint8), cv2.MORPH_GRADIENT, np.ones((4, 4), np.uint8)) > 0
-ink[edge & (yy > 330)] = np.minimum(ink[edge & (yy > 330)], 0.15)
+ink, hairm = trait.tete(im, person, L[:, :2], g, head=head)
+edge = cv2.morphologyEx(head.astype(np.uint8), cv2.MORPH_GRADIENT, np.ones((9, 9), np.uint8)) > 0
 
 # ——— le t-shirt : sa silhouette (celle de la photo), l'encolure côtelée, les coutures, quelques plis, le logo Patagonia ———
 shirt = Image.new('L', (W0, H0), 255); d = ImageDraw.Draw(shirt)
@@ -56,49 +54,49 @@ def smooth(c, k=9):
     P = c[:, 0, :].astype(np.float32); P = np.stack([np.convolve(np.r_[P[-k:, i], P[:, i], P[:k, i]], np.ones(2 * k + 1) / (2 * k + 1), 'same')[k:-k] for i in (0, 1)], 1)
     return [tuple(q) for q in P[::2]]
 cnts = [c for c in cnts if cv2.contourArea(c) > 5000]
-for c in cnts: pts = smooth(c); d.line(pts + [pts[0]], fill=20, width=6, joint='curve')
+for c in cnts: pts = smooth(c); d.line(pts + [pts[0]], fill=20, width=10, joint='curve')
 arc = lambda cx, cy, rx, ry, a0, a1: [(cx + rx * np.cos(t), cy + ry * np.sin(t)) for t in np.linspace(a0, a1, 60)]
 cx, cy = NL['c']; rx, ry = NL['r']
-d.line(arc(cx, cy, rx, ry, 0, np.pi), fill=20, width=5)                       # le bord de l'encolure (sous le cou)
-d.line(arc(cx, cy + 4, rx + 22, ry + 26, 0.05, np.pi - 0.05), fill=30, width=5)  # la côte
-d.line(arc(cx, cy - 2, rx + 20, ry * 0.35, np.pi, 2 * np.pi), fill=60, width=4)  # l'encolure derrière le cou
+d.line(arc(cx, cy, rx, ry, 0, np.pi), fill=20, width=9)                       # le bord de l'encolure (sous le cou)
+d.line(arc(cx, cy + 4, rx + 22, ry + 26, 0.05, np.pi - 0.05), fill=30, width=9)  # la côte
+d.line(arc(cx, cy - 2, rx + 20, ry * 0.35, np.pi, 2 * np.pi), fill=60, width=7)  # l'encolure derrière le cou
 for s in (-1, 1):                                                               # les coutures des manches, les plis
     X = lambda x: cx + s * x
-    d.line([(X(330), 690), (X(345), 780), (X(362), 880), (X(372), 1000), (X(378), 1100)], fill=40, width=4, joint='curve')
-    d.line([(X(300), 1020), (X(250), 1070), (X(215), 1150)], fill=110, width=3, joint='curve')
-    d.line([(X(390), 960), (X(330), 1000)], fill=120, width=3)
-    d.line([(X(160), 1150), (X(120), 1250)], fill=130, width=3)
+    d.line([(X(330), 690), (X(345), 780), (X(362), 880), (X(372), 1000), (X(378), 1100)], fill=40, width=7, joint='curve')
+    d.line([(X(300), 1020), (X(250), 1070), (X(215), 1150)], fill=110, width=5, joint='curve')
+    d.line([(X(390), 960), (X(330), 1000)], fill=120, width=5)
+    d.line([(X(160), 1150), (X(120), 1250)], fill=130, width=5)
 # le logo : les pics (le Fitz Roy) en noir sur un ciel rayé, dans un cadre ; le nom dessous
 lx, ly, lw, lh = cx - 95, 800, 190, 92
-d.rectangle([lx, ly, lx + lw, ly + lh], outline=20, width=4)
-for k, yb in enumerate(np.linspace(ly + 14, ly + 50, 4)): d.line([(lx + 6, yb), (lx + lw - 6, yb)], fill=90 + 25 * k, width=6)
+d.rectangle([lx, ly, lx + lw, ly + lh], outline=20, width=7)
+for k, yb in enumerate(np.linspace(ly + 14, ly + 50, 4)): d.line([(lx + 6, yb), (lx + lw - 6, yb)], fill=120, width=5)
 peaks = [(0, 1), (0.08, 0.72), (0.16, 0.8), (0.27, 0.42), (0.33, 0.55), (0.41, 0.3), (0.47, 0.5), (0.55, 0.38), (0.62, 0.62), (0.72, 0.52), (0.82, 0.74), (0.9, 0.66), (1, 0.82), (1, 1)]
-d.polygon([(lx + 4 + (lw - 8) * u, ly + 4 + (lh - 8) * v) for u, v in peaks], fill=15)
+pk = [(lx + 4 + (lw - 8) * u, ly + 4 + (lh - 8) * v) for u, v in peaks]; d.polygon(pk, fill=255); d.line(pk + [pk[0]], fill=20, width=7, joint='curve')
 font = ImageFont.truetype('/usr/share/fonts/truetype/freefont/FreeSerifBoldItalic.ttf', 46)
-tw = d.textlength('patagonia', font=font); d.text((cx - tw / 2, ly + lh + 6), 'patagonia', font=font, fill=15)
+tw = d.textlength('patagonia', font=font); d.text((cx - tw / 2, ly + lh + 6), 'patagonia', font=font, fill=255, stroke_width=3, stroke_fill=20)
 shirt = np.asarray(shirt, np.float32) / 255
 front = np.where(head, ink, np.where(torso, shirt, 1.0))
 alpha = (head | torso)
 
-# ——— le dos : les cheveux sur toute la tête (la bande des cheveux, étirée), le dos du t-shirt (sans le logo) ———
+# ——— le dos : la tête, des mèches au trait ; le dos du t-shirt (sans le logo) ———
 top = int(np.where(head.any(1))[0].min()); nape = 485
-# des mèches dessinées : des traits courbes qui partent du sommet du crâne, serrés, sur un fond gris
-hair = Image.new('L', (W0, H0), 105); dh_ = ImageDraw.Draw(hair); rng = np.random.default_rng(7)
+# des mèches dessinées : des traits courbes qui partent du sommet du crâne
+hair = Image.new('L', (W0, H0), 255); dh_ = ImageDraw.Draw(hair); rng = np.random.default_rng(7)
 crown = (CX, top + 70)
-for i in range(2600):
+for i in range(420):
     x0, y0 = rng.uniform(CX - 230, CX + 230), rng.uniform(top - 10, nape + 10)
     ang = np.arctan2(y0 - crown[1], x0 - crown[0]) + rng.normal(0, 0.25); ln = rng.uniform(18, 46)
     pts = [(x0 + np.cos(ang + 0.02 * t) * ln * t / 6, y0 + np.sin(ang + 0.02 * t) * ln * t / 6) for t in range(7)]
-    dh_.line(pts, fill=int(rng.choice([15, 25, 40, 200, 230], p=[0.35, 0.25, 0.2, 0.12, 0.08])), width=int(rng.integers(2, 5)), joint='curve')
+    dh_.line(pts, fill=int(rng.choice([22, 120], p=[0.3, 0.7])), width=int(rng.integers(3, 5)), joint='curve')
 back = np.asarray(hair, np.float32) / 255
 # la limite des cheveux sur la nuque : un peu irrégulière ; la nuque et le cou en dessous, en clair
 hl = nape + 12 * np.sin(xx[0] / 23) * np.sin(xx[0] / 7)
 back = np.where(yy >= hl[None, :], 1.0, back)
 back = np.where(head, back, 1.0)
-back[edge] = np.minimum(back[edge], 0.15)
+back[edge] = np.minimum(back[edge], 0.09)
 plain = Image.new('L', (W0, H0), 255); d2 = ImageDraw.Draw(plain)
-for c in cnts: pts = smooth(c); d2.line(pts + [pts[0]], fill=20, width=6, joint='curve')
-d2.line(arc(cx, cy - 4, rx + 10, ry * 0.5, 0, np.pi), fill=30, width=5)
+for c in cnts: pts = smooth(c); d2.line(pts + [pts[0]], fill=20, width=10, joint='curve')
+d2.line(arc(cx, cy - 4, rx + 10, ry * 0.5, 0, np.pi), fill=30, width=9)
 back = np.where(torso, np.asarray(plain, np.float32) / 255, back)
 back = back[:, ::-1]; balpha = alpha[:, ::-1]
 
@@ -111,7 +109,6 @@ def ell(c, r):
 dh = ell(HC['c'], HC['r'])
 dh = np.where(dh < -1e8, 0.0, dh)                     # les cheveux qui dépassent : à plat, au bord
 # le visage : les points de MediaPipe, recalés sur l'ellipsoïde par leur bord (l'ovale du visage)
-OVAL = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109]
 eb = np.array([dh[int(L[i, 1]), int(L[i, 0])] for i in OVAL]); off = np.median(eb - L[OVAL, 2])
 face = griddata(L[:, :2], L[:, 2] + off, (xx, yy), method='linear')
 inside = ~np.isnan(face); face = np.nan_to_num(face, nan=-1e9)
