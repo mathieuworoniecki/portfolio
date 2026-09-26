@@ -127,6 +127,7 @@ function silhouettes(p) {
     const s1 = C[i + 6] * dx + C[i + 7] * dy + C[i + 8] * dz, s2 = C[i + 9] * dx + C[i + 10] * dy + C[i + 11] * dz;
     if ((s1 > 0) !== (s2 > 0)) { A[n] = C[i]; A[n + 1] = C[i + 1]; A[n + 2] = C[i + 2]; A[n + 3] = C[i + 3]; A[n + 4] = C[i + 4]; A[n + 5] = C[i + 5]; n += 6; }
   }
+  if (p.sil.fat) { p.sil.fat.userData.ib.needsUpdate = true; p.sil.fat.geometry.instanceCount = n / 6; return; }
   p.sil.sg.attributes.position.needsUpdate = true; p.sil.sg.setDrawRange(0, n / 3);
 }
 
@@ -141,6 +142,8 @@ function piece(key, build) {
   const B = {
     occ(g) { P.occ.push(g); return B; },
     solid(g) { const a = analyse(g); P.occ.push(a.g); for (const v of a.crease) P.crease.push(v); for (const v of a.cand) P.cand.push(v); return B; },
+    // un volume dont seuls les contours se dessinent (ni arêtes vives, ni bords ouverts) : les fûts d'une chaîne (queue, jambes)
+    smooth(g) { const a = analyse(g); P.occ.push(a.g); for (const v of a.cand) P.cand.push(v); return B; },
     lines(arr) { for (const v of arr) P.crease.push(v); return B; },
     soft(arr) { for (const v of arr) P.soft.push(v); return B; }
   };
@@ -149,14 +152,61 @@ function piece(key, build) {
   return (pieces[key] = { occ: P.occ, crease: lineGeo(P.crease), soft: lineGeo(P.soft), cand: new Float32Array(P.cand) });
 }
 // les matériaux d'un pantin : son trait (couleur r,g,b en hexadécimal), ses traits pâles, ses traits cachés
-function mats(color) {
+// o.fat : l'épaisseur du trait en px (un trait de stylo, arrondi aux bouts) ; sans, un trait fin d'un pixel
+function mats(color, o) {
   const c = color ?? inkNow();
+  if (o && o.fat) return { line: fatMat(c, o.fat, 1), soft: fatMat(c, o.fatSoft || o.fat * 0.7, 0.5), hid: null, nohid: true, fat: o.fat };
   return { line: new T.LineBasicMaterial({ color: c, transparent: true, depthWrite: false }), soft: new T.LineBasicMaterial({ color: c, transparent: true, opacity: 0.5, depthWrite: false }),
     hid: new T.LineBasicMaterial({ color: c, transparent: true, opacity: 0, depthWrite: false, depthFunc: T.GreaterDepth }), nohid: true };
+}
+/* ——— les traits épais ———
+   WebGL ne dessine que des traits d'un pixel : chaque segment devient ici un petit rectangle tourné vers l'écran,
+   aux bouts arrondis (le fragment garde ce qui est à moins d'une demi-épaisseur du segment) ; les jointures se recouvrent, comme au stylo.
+   Le trait est un peu avancé vers la caméra (bias) : sur un contour, la moitié intérieure n'est pas cachée par le volume lui-même. */
+const FAT = { res: { value: new T.Vector2(1, 1) }, dpr: { value: 1 } };
+const fatQuad = (() => { const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute([0, -1, 0, 0, 1, 0, 1, -1, 0, 1, 1, 0], 3)); g.setIndex([0, 2, 1, 1, 2, 3]); return g; })();
+function fatMat(color, width, opacity) {
+  const u = { color: { value: new T.Color(color) }, opacity: { value: opacity }, width: { value: width }, res: FAT.res, dpr: FAT.dpr };
+  const m = new T.ShaderMaterial({ uniforms: u, transparent: true, depthWrite: false,
+    vertexShader: `attribute vec3 a; attribute vec3 b; uniform float width; uniform vec2 res; uniform float dpr;
+      varying vec2 vP; varying vec2 vA; varying vec2 vB;
+      void main() {
+        vec4 A = projectionMatrix * modelViewMatrix * vec4(a, 1.0), B = projectionMatrix * modelViewMatrix * vec4(b, 1.0);
+        vec2 sa = (A.xy / A.w * 0.5 + 0.5) * res, sb = (B.xy / B.w * 0.5 + 0.5) * res, d = sb - sa;
+        float L = length(d); vec2 dir = L > 1e-4 ? d / L : vec2(1.0, 0.0), nrm = vec2(-dir.y, dir.x);
+        float h = width * dpr * 0.5 + 1.0; bool e = position.x > 0.5;
+        vec2 p = (e ? sb : sa) + dir * (e ? h : -h) + nrm * position.y * h; vec4 C = e ? B : A;
+        vP = p; vA = sa; vB = sb;
+        gl_Position = vec4((p / res - 0.5) * 2.0, C.z / C.w - 1.2e-5 * width, 1.0);
+      }`,
+    fragmentShader: `uniform vec3 color; uniform float opacity; uniform float width; uniform float dpr;
+      varying vec2 vP; varying vec2 vA; varying vec2 vB;
+      void main() {
+        vec2 ab = vB - vA; float t = clamp(dot(vP - vA, ab) / max(dot(ab, ab), 1e-6), 0.0, 1.0), d = length(vP - vA - ab * t);
+        float al = clamp(width * dpr * 0.5 + 0.5 - d, 0.0, 1.0); if (al <= 0.0) discard;
+        gl_FragColor = vec4(color, opacity * al);
+      }` });
+  // comme un matériau ordinaire : m.opacity, m.color.setHex(…)
+  Object.defineProperty(m, 'opacity', { get: () => u.opacity.value, set: v => { if (u) u.opacity.value = v; } });
+  m.color = u.color.value; m.fat = true;
+  return m;
+}
+// un paquet de segments épais (arr : des paires de points [x,y,z, x,y,z…]) ; n : combien en montrer
+function fatSegs(arr, M) {
+  const g = new T.InstancedBufferGeometry(); g.index = fatQuad.index; g.setAttribute('position', fatQuad.attributes.position);
+  const ib = new T.InstancedInterleavedBuffer(arr, 6); g.setAttribute('a', new T.InterleavedBufferAttribute(ib, 3, 0)); g.setAttribute('b', new T.InterleavedBufferAttribute(ib, 3, 3));
+  g.instanceCount = arr.length / 6; const o = new T.Mesh(g, M); o.userData.ib = ib; return o;
 }
 function mount(pp, M) {
   const g = new T.Group(), add = (o, ord) => { o.renderOrder = ord; o.frustumCulled = false; g.add(o); };
   pp.occ.forEach(o => add(new T.Mesh(o, OCC), 0));
+  if (M.fat) {
+    if (pp.crease) add(fatSegs(pp.crease.attributes.position.array, M.line), 1);
+    if (pp.soft) add(fatSegs(pp.soft.attributes.position.array, M.soft), 1);
+    let sil = null;
+    if (pp.cand.length) { const arr = new Float32Array(pp.cand.length / 2), o = fatSegs(arr, M.line); o.geometry.instanceCount = 0; add(o, 1); sil = { arr, fat: o }; }
+    return { g, pp, sil };
+  }
   // les traits cachés : seulement s'ils se voient (M.hid.opacity) — sinon autant de dessins en moins par image
   if (pp.crease) { add(new T.LineSegments(pp.crease, M.line), 1); if (!M.nohid) add(new T.LineSegments(pp.crease, M.hid), 2); }
   if (pp.soft) { add(new T.LineSegments(pp.soft, M.soft), 1); }
@@ -174,7 +224,7 @@ function init(canvas) {
     scene = new T.Scene(); camera = new T.OrthographicCamera(0, 1, 0, -1, 1, 4e5); camera.position.z = 2e5; ok = true;
   } catch (e) { ok = false; console.error(e); }
 }
-function resize(w, h) { W = w; H = h; if (!renderer) return; renderer.setSize(w, h, false); camera.left = 0; camera.right = w; camera.top = 0; camera.bottom = -h; camera.updateProjectionMatrix(); }
+function resize(w, h) { W = w; H = h; if (!renderer) return; renderer.setSize(w, h, false); renderer.getDrawingBufferSize(FAT.res.value); FAT.dpr.value = renderer.getPixelRatio(); camera.left = 0; camera.right = w; camera.top = 0; camera.bottom = -h; camera.updateProjectionMatrix(); }
 const pc = new T.Vector3(), rq = new T.Quaternion(), AX = new T.Vector3();
 /* attraper un objet (o.grab = sa clé) : glisser le fait tourner sur lui-même ; la rotation donnée reste */
 const grabs = {}; let frameId = 0;
@@ -273,5 +323,5 @@ function frames(name, w, h, rots, size) {
   return out;
 }
 return { frames, get ok() { return ok; }, init, resize, put, render, hit, drag, where, has: n => ok && !!LIB[n], names: () => Object.keys(LIB),
-  piece, mount, mats, rig, unrig, T, kit: { analyse, tf, lathe, latheX, latheZ, ext, topExt, sideExt, tube, box, ball, helixX, helixY, poly, circ, roundPoly, shape } };
+  piece, mount, mats, rig, unrig, fatSegs, T, kit: { analyse, tf, lathe, latheX, latheZ, ext, topExt, sideExt, tube, box, ball, helixX, helixY, poly, circ, roundPoly, shape } };
 })();

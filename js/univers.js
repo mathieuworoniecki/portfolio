@@ -6,6 +6,7 @@
      gamelle  une gamelle et ses croquettes
      pelote   une pelote de laine (sa couleur), qui roule ; le fil qui traîne est dessiné à la craie (js/chats.js)
      caisse   un carton fermé (o.size : 0, 1, 2), scotché, un petit dessin devant : on les empile, les pousse, les fait tomber
+     panier   un lit rond en osier · poisson  un poisson en tissu (un jouet) · plante  une plante en pot · tasse  une tasse (à pousser du bord)
      souris   une souris articulée (corps, tête, oreilles, queue, pattes) qui court
    Tout se modèle en unités chat (la même taille que les chats) : Univers.make(type, { color }) → un objet posé par
    Univers.place(o) (o.x, o.y : son pied à l'écran, o.s : px par unité, o.yaw, o.z, o.a : l'opacité). */
@@ -63,6 +64,29 @@ function pieces() {
       if (i === 2) { const Q = ring(r, 0, 20).map(q => [cx + q[0], cy + q[2] * 0.85, f]); B.lines(segs(Q)); [-1, 1].forEach(sx => B.lines(segs([[cx + sx * r * 0.35, cy + r * 0.8, f], [cx + sx * r * 0.8, cy + r * 1.45, f], [cx + sx * r * 0.95, cy + r * 0.55, f]]))); }
     });
   });
+  // le panier : un lit rond, bord rebondi, quelques brins tressés
+  P.panier2 = Obj3D.piece('u:panier2', B => {
+    B.solid(K.tf(K.lathe([[0, 0], [0.3, 0], [0.345, 0.035], [0.36, 0.11], [0.33, 0.15], [0.29, 0.13], [0.24, 0.07], [0, 0.06]], 36), 0, 0, [1, 1, 0.8]));
+    for (let k = 0; k < 14; k++) { const a = k / 14 * TAU; B.soft([Math.cos(a) * 0.35, 0.05, Math.sin(a) * 0.35 * 0.8, Math.cos(a + 0.12) * 0.36, 0.1, Math.sin(a + 0.12) * 0.36 * 0.8]); }
+  });
+  // le poisson en tissu : un corps en fuseau, une queue en V, un œil, deux coutures
+  P.poisson = Obj3D.piece('u:poisson', B => {
+    B.solid(K.tf(K.latheX([[-0.08, 0], [-0.07, 0.022], [-0.02, 0.04], [0.04, 0.036], [0.08, 0.018], [0.095, 0]], 16), [0, 0.04, 0], 0, [1, 1, 0.55]));
+    B.solid(K.tf(K.ext(K.roundPoly([[-0.075, 0], [-0.13, 0.04], [-0.12, 0], [-0.13, -0.04]], 0.01, 3), 0.012), [0, 0.04, 0]));
+    [-1, 1].forEach(s => { B.lines(segs(ring(0.007, 0, 10).map(q => [0.05 + q[0], 0.048 + q[2], s * 0.018]))); B.soft([0.0, 0.07, s * 0.012, 0.0, 0.012, s * 0.012, 0.03, 0.072, s * 0.01, 0.03, 0.01, s * 0.01]); });
+  });
+  // la plante en pot : un pot évasé, de grandes feuilles (on la fait tomber, bien sûr)
+  P.plante = Obj3D.piece('u:plante', B => {
+    B.solid(K.lathe([[0, 0], [0.08, 0], [0.105, 0.16], [0.115, 0.165], [0.115, 0.19], [0, 0.19]], 24)); B.soft(segs(ring(0.11, 0.16, 24)));
+    const leaf = K.roundPoly([[0, 0], [0.05, 0.1], [0, 0.26], [-0.05, 0.1]], 0.04, 5);
+    [[-0.5, 0.3, 0], [0.45, -0.4, 0.4], [0.05, 1.6, -0.1], [-0.2, 2.6, 0.2], [0.7, 3.8, 0.1]].forEach(([rz, ry, rx]) => { B.solid(K.tf(K.ext(leaf, 0.008), [0, 0.18, 0], [rx, ry, rz])); const v = new T.Vector3(); const Q = [[0, 0.02, 0.005], [0, 0.22, 0.005]].map(q => { v.set(...q).applyEuler(new T.Euler(rx, ry, rz)); return [v.x, v.y + 0.18, v.z]; }); B.soft(segs(Q)); });
+  });
+  // la tasse : sur le bord, un chat la pousse du bout de la patte… une anse, un petit cœur
+  P.tasse = Obj3D.piece('u:tasse', B => {
+    B.solid(K.lathe([[0, 0], [0.05, 0], [0.055, 0.005], [0.055, 0.11], [0.048, 0.11], [0.048, 0.02], [0, 0.02]], 24));
+    B.solid(K.tf(new T.TorusGeometry(0.03, 0.008, 8, 16, Math.PI * 1.1), [0.055, 0.06, 0], [0, 0, -Math.PI * 0.55]));
+    const Q = []; for (let k = 0; k <= 16; k++) { const a = k / 16 * TAU, x = 16 * Math.sin(a) ** 3, y = 13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a); Q.push([x / 16 * 0.016, 0.06 + y / 16 * 0.016, 0.0565]); } B.lines(segs(Q));
+  });
   // le coussin : un pouf aplati, une couture tout autour, un bouton au milieu et ses plis
   P.coussin = Obj3D.piece('u:coussin', B => {
     B.solid(K.tf(K.lathe([[0, 0], [0.3, 0.0], [0.36, 0.035], [0.38, 0.07], [0.35, 0.11], [0.26, 0.14], [0.1, 0.15], [0, 0.13]], 28), 0, 0, [1, 1, 0.78]));
@@ -92,7 +116,7 @@ function pieces() {
 function make(kind, o) {
   o = o || {}; pieces();
   const root = new T.Group(), view = new T.Group(); root.add(view);
-  const M = Obj3D.mats(o.color ?? inkHex()), list = [], parts = {};
+  const M = Obj3D.mats(o.color ?? inkHex(), { fat: 2.4, fatSoft: 1.8 }), list = [], parts = {};
   const put = (pp, parent, m) => { const q = Obj3D.mount(pp, m || M); (parent || view).add(q.g); list.push(q); return q; };
   const it = { kind, root, view, M, mats: [M], list, parts, x: 0, y: 0, s: 160, yaw: -0.45, z: 0, a: 1, spin: new T.Quaternion(), perches: [] };
   if (kind === 'arbre') {
@@ -103,6 +127,10 @@ function make(kind, o) {
     it.post = { x: 0.14, r: 0.065, y0: 0.06, y1: 0.82 };
   } else if (kind === 'carton') { put(P.carton); it.perches = [{ id: 'carton', p: [0, 0.02, 0], w: 0.12, inside: true }]; }
   else if (kind === 'caisse') { const i = o.size ?? 1, D = [[0.3, 0.24, 0.26], [0.38, 0.3, 0.32], [0.46, 0.34, 0.38]][i]; put(P['caisse' + i]); it.box = { w: D[0], h: D[1], d: D[2] }; it.perches = [{ id: 'caisse', p: [0, D[1], 0], w: D[0] * 0.35 }]; it.tilt = 0; }
+  else if (kind === 'panier') { put(P.panier2); it.perches = [{ id: 'panier', p: [0, 0.07, 0], w: 0.2 }]; }
+  else if (kind === 'poisson') { const g = new T.Group(); view.add(g); put(P.poisson, g); parts.ball = g; it.r = 0.04; }
+  else if (kind === 'plante') { put(P.plante); it.tilt = 0; it.box = { w: 0.2, h: 0.19, d: 0.2 }; }
+  else if (kind === 'tasse') { put(P.tasse); it.tilt = 0; it.box = { w: 0.11, h: 0.11, d: 0.11 }; }
   else if (kind === 'coussin') { put(P.coussin); it.perches = [{ id: 'coussin', p: [0, 0.13, 0], w: 0.15 }]; }
   else if (kind === 'gamelle') put(P.gamelle);
   else if (kind === 'pelote') { const g = new T.Group(); g.position.set(0, 0.075, 0); view.add(g); put(P.pelote, g); parts.ball = g; it.r = 0.075; }
