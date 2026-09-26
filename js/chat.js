@@ -201,7 +201,7 @@ let uid = 0;
 function create(id, o) {
   o = o || {}; id = TYPES[id] ? id : IDS[Math.floor(Math.random() * IDS.length)];
   const b = TYPES[id], M = build(id), D = M.D, P = M.P;
-  const mats = Obj3D.mats(o.color ?? b.col ?? undefined, { fat: PEN, fatSoft: PEN * 0.8 }), all = [], G = () => new T.Group();
+  const mats = Obj3D.mats(o.color ?? undefined, { fat: PEN, fatSoft: PEN * 0.8 }), all = [], G = () => new T.Group();
   const put = (pp, parent) => { const q = Obj3D.mount(pp, mats); parent.add(q.g); all.push(q); return q; };
   const root = G(), view = G(), body = G(), puffy = G(), headA = G(), head = G(), pupils = G();
   root.add(view); view.add(body); body.add(puffy); body.add(headA); headA.add(head); head.add(pupils);

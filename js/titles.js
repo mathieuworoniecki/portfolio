@@ -362,9 +362,14 @@ function writeTrace(it, ox, oy, p) {
   const pass = (lw, style, dx, dy) => { ctx.strokeStyle = style; ctx.lineWidth = lw; let used = 0, tip = null;
     for (const P of T.strokes) { if (used >= budget) break; const t = trace(P, Math.min(P.len, budget - used), ox + dx, oy + dy); used += P.len; if (t) tip = t; else tip = null; }
     return tip; };
-  pass(w * 1.5, `rgba(${col},0.12)`, 0.6, 0.8);
-  const tip = pass(w, `rgba(${col},0.92)`, 0, 0);
-  if (WOB) { ctx.setLineDash([w * 2.2, w * 1.1, w * 0.8, w * 1.6]); pass(w * 0.3, `rgba(${lite},0.4)`, -w * 0.12, -w * 0.14); ctx.setLineDash([]); }
+  // une grosse craie : un voile de poudre, le trait, puis des manques (le relief du papier) grattés dedans, et un reflet clair
+  pass(w * 1.7, `rgba(${col},0.1)`, 0.6, 0.8);
+  const tip = pass(w, `rgba(${col},0.82)`, 0, 0);
+  if (WOB) {
+    ctx.save(); ctx.globalCompositeOperation = 'destination-out';
+    ctx.setLineDash([w * 0.3, w * 1.6, w * 0.15, w * 2.4]); pass(w * 0.2, 'rgba(0,0,0,0.6)', w * 0.3, w * 0.22);
+    ctx.setLineDash([w * 0.2, w * 2.1, w * 0.4, w * 1.3]); pass(w * 0.16, 'rgba(0,0,0,0.5)', -w * 0.3, -w * 0.2);
+    ctx.restore(); ctx.setLineDash([w * 2.2, w * 1.1, w * 0.8, w * 1.6]); pass(w * 0.3, `rgba(${lite},0.35)`, -w * 0.12, -w * 0.14); ctx.setLineDash([]); }
   let used = 0; const done = T.strokes.map(P => (used += P.len) <= budget);
   ctx.fillStyle = `rgba(${col},0.5)`; T.dust.forEach(d => { if (done[d[3]]) ctx.fillRect(ox + d[0], oy + d[1], d[2], d[2]); });
   if (q < 0.999) chalkTip(tip, w * 0.55, p, col);

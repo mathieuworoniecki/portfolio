@@ -29,7 +29,7 @@ const STYLES = {
   esquisse: { wobble: 0.75, grain: 0.7, hand: HAND, handScale: 1, handWeight: 600, grid: 'lines', colors: {
     creme: C('#F3EEE2', '#E4DCC8', '#FAF7EF', '52,52,58', '196,64,36', '40,100,170', false, 0.45),
     kraft: C('#C8A77A', '#A98A5E', '#D6B98E', '38,30,22', '150,30,20', '30,70,120', false, 0.4),
-    gris:  C('#DADBD8', '#C4C6C2', '#E8E9E6', '34,36,40', '226,90,20', '30,100,180', false, 0.45) } }
+    gris:  C('#DADBD8', '#C4C6C2', '#E8E9E6', '34,36,40', '72,108,158', '30,100,180', false, 0.45) } }
 };
 // les polices de la page, par style (css/site.css les lit dans --display, --text ; l'écriture à la main dans --hand)
 const FONTS = {

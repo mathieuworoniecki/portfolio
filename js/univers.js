@@ -27,16 +27,22 @@ const P = {};
 function pieces() {
   if (P.done) return P; P.done = true;
   // l'arbre à chat
-  P.socle = Obj3D.piece('u:socle', B => B.solid(K.tf(K.ext(K.roundPoly([[-0.62, -0.34], [0.62, -0.34], [0.62, 0.34], [-0.62, 0.34]], 0.08), 0.06), [0, 0.03, 0], [Math.PI / 2, 0, 0])));
+  // l'arbre à chat, en escalier qui monte vers le bord (il regarde le centre de l'écran) :
+  //   la niche (au bord), une plateforme basse côté centre, une moyenne, une petite console, un panier tout en haut
+  P.socle = Obj3D.piece('u:socle', B => B.solid(K.tf(K.ext(K.roundPoly([[-0.78, -0.36], [0.72, -0.36], [0.72, 0.36], [-0.78, 0.36]], 0.09), 0.07), [0, 0.035, 0], [Math.PI / 2, 0, 0])));
   P.niche = Obj3D.piece('u:niche', B => {
-    const w = 0.46, h = 0.4, d = 0.42, x = -0.3; B.solid(K.tf(K.ext(K.roundPoly([[-w / 2, 0], [w / 2, 0], [w / 2, h], [-w / 2, h]], 0.07, 5), d), [x, 0.06, 0]));
-    B.lines(segs(ring(0.12, 0, 26).map(p => [x + p[0], 0.06 + h * 0.45 + p[2], d / 2 + 0.002])));   // le trou rond, sur le devant
-    B.soft(segs(ring(0.14, 0, 26).map(p => [x + p[0], 0.06 + h * 0.45 + p[2], d / 2 + 0.002])));
+    const w = 0.5, h = 0.42, d = 0.46, x = -0.46; B.solid(K.tf(K.ext(K.roundPoly([[-w / 2, 0], [w / 2, 0], [w / 2, h], [-w / 2, h]], 0.07, 5), d), [x, 0.07, 0]));
+    B.lines(segs(ring(0.13, 0, 26).map(p => [x + 0.04 + p[0], 0.07 + h * 0.45 + p[2], d / 2 + 0.002])));   // le trou rond, sur le devant
+    B.soft(segs(ring(0.155, 0, 26).map(p => [x + 0.04 + p[0], 0.07 + h * 0.45 + p[2], d / 2 + 0.002])));
   });
-  P.poteauA = Obj3D.piece('u:poteauA', B => { B.solid(cyl(0.065, 0.06, 0.82, 14).translate(0.14, 0, 0)); B.soft(helix(0.065, 0.1, 0.78, 0.07, 0.14, 0)); });
-  P.poteauB = Obj3D.piece('u:poteauB', B => { B.solid(cyl(0.06, 0.46, 1.32, 14).translate(-0.3, 0, 0)); B.soft(helix(0.06, 0.5, 1.28, 0.07, -0.3, 0)); });
-  P.plateau = Obj3D.piece('u:plateau', B => { B.solid(K.tf(disc(0.3, 0.84, 0.05), [0.2, 0, 0.02])); B.soft(segs(ring(0.27, 0.866, 28, 0.2, 0.02))); });
-  P.panier = Obj3D.piece('u:panier', B => { B.solid(K.lathe([[0, 1.31], [0.31, 1.31], [0.34, 1.34], [0.35, 1.42], [0.32, 1.44], [0.29, 1.4], [0.27, 1.36], [0, 1.36]], 30).translate(-0.3, 0, 0)); B.soft(segs(ring(0.3, 1.405, 28, -0.3, 0))); });
+  const post = (x, y0, y1, r) => B => { B.solid(cyl(r, y0, y1, 14).translate(x, 0, 0)); B.soft(helix(r, y0 + 0.04, y1 - 0.04, 0.07, x, 0)); };
+  P.poteauA = Obj3D.piece('u:poteauA', post(0.42, 0.07, 0.78, 0.07));
+  P.poteauB = Obj3D.piece('u:poteauB', post(-0.08, 0.07, 1.28, 0.07));
+  P.poteauC = Obj3D.piece('u:poteauC', post(-0.56, 0.49, 1.8, 0.065));
+  P.plateau = Obj3D.piece('u:plateau', B => { B.solid(K.tf(disc(0.3, 0.8, 0.055), [0.4, 0, 0.02])); B.soft(segs(ring(0.27, 0.828, 28, 0.4, 0.02))); });
+  P.plateau2 = Obj3D.piece('u:plateau2', B => { B.solid(K.tf(disc(0.29, 1.3, 0.055), [-0.1, 0, 0.02])); B.soft(segs(ring(0.26, 1.328, 28, -0.1, 0.02))); });
+  P.console = Obj3D.piece('u:console', B => { B.solid(K.tf(disc(0.19, 1.58, 0.05), [0.2, 0, 0.02])); B.solid(cyl(0.035, 1.3, 1.56, 10).translate(0.1, 0, 0)); });
+  P.panier = Obj3D.piece('u:panier', B => { B.solid(K.lathe([[0, 1.8], [0.31, 1.8], [0.34, 1.83], [0.35, 1.91], [0.32, 1.93], [0.29, 1.89], [0.27, 1.85], [0, 1.85]], 30).translate(-0.5, 0, 0)); B.soft(segs(ring(0.3, 1.895, 28, -0.5, 0))); });
   P.fil = Obj3D.piece('u:fil', B => { B.lines([0, 0, 0, 0, -0.22, 0]); B.solid(new T.IcosahedronGeometry(0.045, 1).translate(0, -0.25, 0)); B.soft([-0.03, -0.25, 0.03, 0.03, -0.25, -0.03, -0.03, -0.25, -0.03, 0.03, -0.25, 0.03]); });
   // le carton : quatre parois fines, un fond, quatre rabats ouverts
   P.carton = Obj3D.piece('u:carton', B => {
@@ -139,11 +145,12 @@ function make(kind, o) {
   const put = (pp, parent, m) => { const q = Obj3D.mount(pp, m || M); (parent || view).add(q.g); list.push(q); return q; };
   const it = { kind, root, view, M, mats: [M], list, parts, x: 0, y: 0, s: 160, yaw: -0.45, z: 0, a: 1, spin: new T.Quaternion(), perches: [] };
   if (kind === 'arbre') {
-    ['socle', 'niche', 'poteauA', 'poteauB', 'plateau', 'panier'].forEach(k => put(P[k]));
-    const pv = new T.Group(); pv.position.set(0.44, 0.815, 0.1); view.add(pv); put(P.fil, pv); parts.pompon = pv;
-    // les perchoirs : [x, y, z] du milieu de la surface, et sa demi-largeur (en unités)
-    it.perches = [{ id: 'niche', p: [-0.3, 0.46, 0.05], w: 0.16 }, { id: 'plateau', p: [0.22, 0.87, 0.05], w: 0.16 }, { id: 'panier', p: [-0.3, 1.36, 0.02], w: 0.12 }];
-    it.post = { x: 0.14, r: 0.065, y0: 0.06, y1: 0.82 };
+    ['socle', 'niche', 'poteauA', 'poteauB', 'poteauC', 'plateau', 'plateau2', 'console', 'panier'].forEach(k => put(P[k]));
+    const pv = new T.Group(); pv.position.set(0.66, 0.775, 0.1); view.add(pv); put(P.fil, pv); parts.pompon = pv;
+    // les perchoirs : [x, y, z] du milieu de la surface, sa demi-largeur (en unités), sa hauteur de rang (pour grimper de l'un à l'autre)
+    it.perches = [{ id: 'niche', p: [-0.46, 0.49, 0.05], w: 0.16, lv: 1 }, { id: 'plateau', p: [0.4, 0.83, 0.05], w: 0.16, lv: 1 }, { id: 'plateau2', p: [-0.1, 1.33, 0.05], w: 0.15, lv: 2 },
+      { id: 'console', p: [0.22, 1.61, 0.04], w: 0.08, lv: 3 }, { id: 'panier', p: [-0.5, 1.85, 0.02], w: 0.12, lv: 4 }];
+    it.post = { x: 0.42, r: 0.07, y0: 0.07, y1: 0.78 };
   } else if (kind === 'carton') { put(P.carton); it.perches = [{ id: 'carton', p: [0, 0.02, 0], w: 0.12, inside: true }]; }
   else if (kind === 'caisse') { const i = o.size ?? 1, D = [[0.3, 0.24, 0.26], [0.38, 0.3, 0.32], [0.46, 0.34, 0.38]][i]; put(P['caisse' + i]); it.box = { w: D[0], h: D[1], d: D[2] }; it.perches = [{ id: 'caisse', p: [0, D[1], 0], w: D[0] * 0.35 }]; it.tilt = 0; }
   else if (kind === 'panier') { put(P.panier2); it.perches = [{ id: 'panier', p: [0, 0.07, 0], w: 0.2 }]; }
@@ -173,7 +180,7 @@ function place(it) {
   it.root.position.set(it.x, -it.y, it.z); it.root.scale.setScalar(it.s);
   qa.setFromAxisAngle(AX, Chat.VIEW.tilt); qb.setFromAxisAngle(AY, it.yaw); qa.multiply(qb); it.view.quaternion.copy(qa);
   if (it.parts.ball) it.parts.ball.quaternion.copy(it.spin);
-  if (it.box) { qb.setFromAxisAngle(V(0, 0, 1), it.tilt || 0); it.view.quaternion.multiply(qb); }
+  if (it.tilt) { qb.setFromAxisAngle(V(0, 0, 1), it.tilt); it.view.quaternion.multiply(qb); }
   it.mats.forEach(m => { m.line.opacity = Math.min(1, 0.92 * it.a); m.soft.opacity = 0.42 * it.a; });
   it.root.visible = it.a > 0.01;
 }
