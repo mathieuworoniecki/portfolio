@@ -16,9 +16,9 @@
    Un titre suit l'opacité de sa scène (.scene, posée par js/film.js). */
 window.Titles = (() => {
 const c01 = v => v < 0 ? 0 : v > 1 ? 1 : v, sm = v => { v = c01(v); return v * v * (3 - 2 * v); };
-let INK, HAND, WOB, GR, HS, HW;
+let INK, HAND, WOB, GR, HS, HW, TR;
 // le thème (js/theme.js), relu à chaque changement ; la mise en page des titres est alors refaite (js/film.js → resize)
-const sync = () => { const TH = window.THEME || {}; INK = TH.ink || '238,245,255'; HAND = TH.hand || '"Caveat","Segoe Print",cursive'; WOB = TH.wobble ?? 1; GR = TH.grain ?? 1; HS = TH.handScale || 1; HW = TH.handWeight || 600; };
+const sync = () => { const TH = window.THEME || {}; INK = TH.ink || '238,245,255'; HAND = TH.hand || '"Caveat","Segoe Print",cursive'; WOB = TH.wobble ?? 1; GR = TH.grain ?? 1; HS = TH.handScale || 1; HW = TH.handWeight || 600; TR = !!TH.trace; };
 sync(); addEventListener('themechange', sync);
 let grainA = 0.5, cv, ctx, W = 1, H = 1, dpr = 1, items = [], t0 = 0, reduced = false, grain = null;
 const PASSES = w => WOB ? [[w, 0.9], [w * 0.55, 0.42], [w * 0.35, 0.28]] : [[w * 0.7, 1]];   // la craie : trois passages ; la machine : un trait net
@@ -72,9 +72,77 @@ function hand(P, seed, amp, step) {
 }
 const plen = P => { let L = 0; for (let i = 1; i < P.length; i++) L += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); return L; };
 
+/* ——— le trait unique : l'âme des lettres (squelette), pour les écrire d'un seul trait épais, comme une craie de couleur ———
+   On amincit l'image du texte jusqu'à un pixel (Zhang-Suen, seulement sur les pixels de l'encre), on mesure l'épaisseur
+   des lettres (distance au bord), puis on recoud les pixels en lignes, qu'on écrit de gauche à droite. */
+function skeleton(a, w, h) {
+  const B = new Uint8Array(w * h); let fg = [];
+  for (let i = 0; i < w * h; i++) if (a[i * 4 + 3] > 110) { B[i] = 1; fg.push(i); }
+  // l'épaisseur : distance au bord (chanfrein 3-4), en deux passes
+  const D = new Uint16Array(w * h), INF = 60000;
+  for (let i = 0; i < w * h; i++) D[i] = B[i] ? INF : 0;
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x; if (!D[i]) continue; D[i] = Math.min(D[i], D[i - 1] + 3, D[i - w] + 3, D[i - w - 1] + 4, D[i - w + 1] + 4); }
+  for (let y = h - 2; y > 0; y--) for (let x = w - 2; x > 0; x--) { const i = y * w + x; if (!D[i]) continue; D[i] = Math.min(D[i], D[i + 1] + 3, D[i + w] + 3, D[i + w + 1] + 4, D[i + w - 1] + 4); }
+  // l'amincissement (Zhang-Suen)
+  const nb = i => [B[i - w], B[i - w + 1], B[i + 1], B[i + w + 1], B[i + w], B[i + w - 1], B[i - 1], B[i - w - 1]];
+  fg = fg.filter(i => { const x = i % w, y = (i / w) | 0; return x > 0 && y > 0 && x < w - 1 && y < h - 1; });
+  for (let changed = true, it = 0; changed && it < 80; it++) {
+    changed = false;
+    for (let pass = 0; pass < 2; pass++) {
+      const del = [];
+      for (const i of fg) {
+        if (!B[i]) continue; const P = nb(i); let n = 0, t = 0; for (let k = 0; k < 8; k++) { n += P[k]; if (!P[k] && P[(k + 1) % 8]) t++; }
+        if (n < 2 || n > 6 || t !== 1) continue;
+        if (pass === 0 ? (P[0] * P[2] * P[4] || P[2] * P[4] * P[6]) : (P[0] * P[2] * P[6] || P[0] * P[4] * P[6])) continue;
+        del.push(i);
+      }
+      if (del.length) { changed = true; del.forEach(i => { B[i] = 0; }); }
+    }
+    fg = fg.filter(i => B[i]);
+  }
+  // les marches d'escalier (un pixel de trop dans un coin) : on les retire, pour que chaque pixel n'ait que ses vrais voisins
+  for (const i of fg) { if (!B[i]) continue; const N = B[i - w], E = B[i + 1], S = B[i + w], W = B[i - 1];
+    if ((N && E && !B[i + w - 1] && !S && !W) || (E && S && !B[i - w - 1] && !N && !W) || (S && W && !B[i - w + 1] && !N && !E) || (W && N && !B[i + w + 1] && !S && !E)) B[i] = 0; }
+  fg = fg.filter(i => B[i]);
+  let th = 0; fg.forEach(i => { th += D[i]; }); th = fg.length ? th / fg.length / 3 * 2 : 1;   // l'épaisseur moyenne du trait (px de l'image)
+  // recoudre : partir des bouts (un seul voisin), suivre les voisins encore libres ; puis les boucles qui restent
+  const O = [-w, 1, w, -1, -w + 1, w + 1, w - 1, -w - 1], seen = new Uint8Array(w * h), deg = i => { let n = 0; for (const o of O) n += B[i + o]; return n; };
+  const walk = s0 => { const L = [s0]; seen[s0] = 1; let c = s0;
+    for (;;) { let nx = -1; for (const o of O) { const j = c + o; if (B[j] && !seen[j]) { nx = j; break; } } if (nx < 0) break; seen[nx] = 1; L.push(nx); c = nx; }
+    // refermer une boucle (o, a, e…) : le dernier pixel touche le premier
+    if (L.length > 8) for (const o of O) if (c + o === s0) { L.push(s0); break; }
+    return L.map(i => [i % w, (i / w) | 0]); };
+  const lines = [];
+  fg.filter(i => deg(i) === 1).sort((p, q) => (p % w) - (q % w)).forEach(i => { if (!seen[i]) lines.push(walk(i)); });
+  fg.forEach(i => { if (!seen[i]) lines.push(walk(i)); });
+  return { lines, th };
+}
+// lisser une ligne de pixels (moyenne glissante), puis la simplifier
+function smooth(P, k) { if (P.length < 5) return P; const Q = P.map((p, i) => { let x = 0, y = 0, n = 0; for (let j = Math.max(0, i - k); j <= Math.min(P.length - 1, i + k); j++) { x += P[j][0]; y += P[j][1]; n++; } return [x / n, y / n]; }); Q[0] = P[0]; Q[Q.length - 1] = P[P.length - 1]; return Q; }
+/* un texte, en traits : trace(str, font, size) → { strokes: [[x, y]…], th (épaisseur, px), w, h } (px de la page, texte posé à gauche, milieu en y = lh / 2) */
+function traceText(lines, font, size, lh, width, align, ls) {
+  const S = Math.max(1, Math.min(3, 110 / size)), c = document.createElement('canvas'), x = c.getContext('2d', { willReadFrequently: true });
+  const set = () => { x.font = font.replace(/(\d+(?:\.\d+)?)px/, (m, v) => (v * S) + 'px'); if ('letterSpacing' in x) x.letterSpacing = (ls || 0) * S + 'px'; }; set();
+  const W = width || Math.max(...lines.map(l => x.measureText(l).width / S));
+  c.width = Math.ceil((W + 40) * S); c.height = Math.ceil((lines.length * lh + 40) * S); set();
+  x.textAlign = align || 'left'; x.textBaseline = 'middle'; x.fillStyle = '#000';
+  const ax = align === 'center' ? 20 + W / 2 : align === 'right' ? 20 + W : 20;
+  lines.forEach((l, j) => x.fillText(l, ax * S, (20 + lh * (j + 0.5)) * S));
+  const sk = skeleton(x.getImageData(0, 0, c.width, c.height).data, c.width, c.height);
+  const th = sk.th / S;
+  const strokes = sk.lines.map(l => { let P = smooth(l, Math.round(1.5 * S)).map(p => [p[0] / S - 20, p[1] / S - 20]); P = P.length > 4 ? tidy(P, 0.35) : P;
+    // un point (le point du i, la ponctuation) : un tout petit trait, que l'épaisseur arrondit
+    if (plen(P) < th * 0.9) { const cx = P.reduce((q, p) => q + p[0], 0) / P.length, cy = P.reduce((q, p) => q + p[1], 0) / P.length; P = [[cx - th * 0.22, cy + th * 0.1], [cx + th * 0.22, cy - th * 0.1]]; }
+    // écrire de gauche à droite : chaque trait part de son bout le plus à gauche (le plus haut s'il est vertical)
+    const a = P[0], b = P[P.length - 1]; if (b[0] < a[0] - 2 || (Math.abs(b[0] - a[0]) <= 2 && b[1] < a[1])) P.reverse();
+    P.x = Math.min(...P.map(p => p[0])); P.row = Math.floor(Math.min(...P.map(p => p[1])) / lh); P.len = plen(P); return P; });
+  strokes.sort((p, q) => p.row - q.row || p.x - q.x);
+  return { strokes, th, w: W, h: lines.length * lh };
+}
+
 // la mise en page d'un titre, lue dans la page, son contour à écrire et ses annotations
 function layout(it, idx) {
-  const el = it.el, cs = getComputedStyle(el), r = el.getBoundingClientRect(), S = parseFloat(cs.fontSize) < 50 ? 4 : 2;   // petits titres (téléphone) : un contour plus précis
+  const d0 = it.el.dataset, el = it.el, cs = getComputedStyle(el), r = el.getBoundingClientRect(), S = parseFloat(cs.fontSize) < 50 ? 4 : 2;   // petits titres (téléphone) : un contour plus précis
   const size = parseFloat(cs.fontSize), lh = parseFloat(cs.lineHeight) || size * 0.95;
   const text = cs.textTransform === 'uppercase' ? el.textContent.trim().toUpperCase() : el.textContent.trim();
   const c = document.createElement('canvas'), x = c.getContext('2d', { willReadFrequently: true }), font = `${cs.fontWeight} ${size * S}px ${cs.fontFamily}`;
@@ -104,6 +172,14 @@ function layout(it, idx) {
     return { passes, dash, dust, len: plen(passes[0]) };
   });
   it.total = it.loops.reduce((s, l) => s + l.len, 0); it.size = size; it.w = w; it.box = { w: r.width, h: lines.length * lh };
+  // le trait unique (l'esquisse) : l'âme des lettres, écrite d'un trait épais ; les annotations restent à la craie
+  it.tr = null;
+  if (TR && !d0.morph) {
+    const T = traceText(lines, `${cs.fontWeight} ${size}px ${cs.fontFamily}`, size, lh, r.width, align, ls);
+    T.strokes = T.strokes.map((P, i) => { const Q = hand(P, idx * 31 + i * 7, 0.35 * WOB, 3); Q.len = plen(Q); return Q; });
+    T.dust = []; T.strokes.forEach((P, i) => { for (let k = 0; k < 2 + hash(i, idx) * 3; k++) { const q = P[Math.floor(hash(i * 7 + k, 23) * P.length)]; T.dust.push([q[0] + (hash(i, k * 3) - 0.5) * T.th * 2.4, q[1] + (hash(k, i * 5) - 0.3) * T.th * 2.2, 0.7 + hash(i + k, 4) * 1.3, i]); } });
+    T.total = T.strokes.reduce((q, P) => q + P.len, 0); it.tr = T;
+  }
   // les annotations
   const d = el.dataset, notes = [];
   const scrib = (P, seed, amp) => { const Q = hand(P, seed, amp, 5); return { P: Q, len: plen(Q) }; };
@@ -226,17 +302,18 @@ function trace(P, budget, ox, oy) {
   }
   ctx.stroke(); return tip;
 }
-function chalkTip(tip, w, p) {
-  if (!tip) return;
-  ctx.fillStyle = `rgba(${INK},0.95)`; ctx.beginPath(); ctx.arc(tip[0], tip[1], w * 0.9, 0, Math.PI * 2); ctx.fill();
-  for (let k = 0; k < 6; k++) { const s = (k * 7.31 + p * 97) % 1; ctx.fillStyle = `rgba(${INK},${0.45 * (1 - s)})`; ctx.fillRect(tip[0] + Math.sin(k * 2.1 + p * 40) * 6, tip[1] + s * 16, 1.3, 1.3); }
+function chalkTip(tip, w, p, col) {
+  if (!tip) return; col = col || INK;
+  ctx.fillStyle = `rgba(${col},0.95)`; ctx.beginPath(); ctx.arc(tip[0], tip[1], w * 0.9, 0, Math.PI * 2); ctx.fill();
+  for (let k = 0; k < 6; k++) { const s = (k * 7.31 + p * 97) % 1; ctx.fillStyle = `rgba(${col},${0.45 * (1 - s)})`; ctx.fillRect(tip[0] + Math.sin(k * 2.1 + p * 40) * 6, tip[1] + s * 16, 1.3, 1.3); }
 }
 function write(it, r, p) {
   if (p <= 0.001) return;
   const ox = r.left, oy = r.top;
   // les traces d'effaçage (un voile de craie étalée), qui apparaissent avec le titre
   ctx.lineCap = 'round';
-  if (WOB) it.smudge.forEach((s, k) => { ctx.strokeStyle = `rgba(${INK},${(0.035 * sm(p * 3)).toFixed(3)})`; ctx.lineWidth = s[3]; ctx.beginPath(); ctx.moveTo(ox + s[0], oy + s[1]); ctx.lineTo(ox + s[0] + s[2], oy + s[1] + (hash(k, 3) - 0.5) * 10); ctx.stroke(); });
+  if (WOB && !it.tr) it.smudge.forEach((s, k) => { ctx.strokeStyle = `rgba(${INK},${(0.035 * sm(p * 3)).toFixed(3)})`; ctx.lineWidth = s[3]; ctx.beginPath(); ctx.moveTo(ox + s[0], oy + s[1]); ctx.lineTo(ox + s[0] + s[2], oy + s[1] + (hash(k, 3) - 0.5) * 10); ctx.stroke(); });
+  if (it.tr) writeTrace(it, ox, oy, p); else {
   // le titre : trois passages de craie, avec des sauts
   const q = c01((p - it.delay) / (1 - it.delay) / 0.82), budget = it.total * q, w = it.w;
   let tip = null; ctx.lineJoin = 'round';
@@ -254,6 +331,8 @@ function write(it, r, p) {
   let used = 0;
   for (const l of it.loops) { if (used > budget) break; used += l.len; l.dust.forEach(d => { ctx.fillStyle = `rgba(${INK},0.4)`; ctx.fillRect(ox + d[0], oy + d[1], d[2], d[2]); }); }
   if (q < 0.999) chalkTip(tip, w, p);
+  }
+  const w = it.w;
   // les annotations à la main
   it.notes.forEach(n => {
     const a = c01((p - n.from) / ((n.to || Math.min(1, n.from + 0.14)) - n.from)); if (a <= 0) return;
@@ -272,7 +351,23 @@ function write(it, r, p) {
     }
   });
   // quelques points de craie, tapés en fin de titre
-  if (p > 0.96) it.dots.forEach(d => { ctx.fillStyle = `rgba(${INK},0.8)`; ctx.beginPath(); ctx.arc(ox + d[0], oy + d[1], d[2], 0, Math.PI * 2); ctx.fill(); });
+  if (p > 0.96 && !it.tr) it.dots.forEach(d => { ctx.fillStyle = `rgba(${INK},0.8)`; ctx.beginPath(); ctx.arc(ox + d[0], oy + d[1], d[2], 0, Math.PI * 2); ctx.fill(); });
+}
+/* le trait unique, à la craie de couleur épaisse (data-ink="accent" : la couleur d'accent du thème) :
+   un voile de poudre autour, le trait plein, un reflet plus clair au milieu ; la poussière tombe le long des lettres écrites */
+function writeTrace(it, ox, oy, p) {
+  const T = it.tr, col = it.el.dataset.ink === 'accent' ? ((window.THEME && THEME.accent) || INK) : INK, lite = col.split(',').map(v => Math.round(+v + (255 - v) * 0.45)).join(',');
+  const q = c01((p - it.delay) / (1 - it.delay) / 0.9), budget = T.total * q, w = Math.max(2.2, T.th * 1.12);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const pass = (lw, style, dx, dy) => { ctx.strokeStyle = style; ctx.lineWidth = lw; let used = 0, tip = null;
+    for (const P of T.strokes) { if (used >= budget) break; const t = trace(P, Math.min(P.len, budget - used), ox + dx, oy + dy); used += P.len; if (t) tip = t; else tip = null; }
+    return tip; };
+  pass(w * 1.5, `rgba(${col},0.12)`, 0.6, 0.8);
+  const tip = pass(w, `rgba(${col},0.92)`, 0, 0);
+  if (WOB) { ctx.setLineDash([w * 2.2, w * 1.1, w * 0.8, w * 1.6]); pass(w * 0.3, `rgba(${lite},0.4)`, -w * 0.12, -w * 0.14); ctx.setLineDash([]); }
+  let used = 0; const done = T.strokes.map(P => (used += P.len) <= budget);
+  ctx.fillStyle = `rgba(${col},0.5)`; T.dust.forEach(d => { if (done[d[3]]) ctx.fillRect(ox + d[0], oy + d[1], d[2], d[2]); });
+  if (q < 0.999) chalkTip(tip, w * 0.55, p, col);
 }
 // back : ce que les scènes dessinent derrière les titres ; front : par-dessus (même toile, même grain de craie)
 function frame(back, front) {
@@ -292,5 +387,5 @@ function frame(back, front) {
   if (grain) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'destination-out'; ctx.globalAlpha = grainA; ctx.fillStyle = grain; ctx.fillRect(0, 0, cv.width, cv.height); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
 }
 function restart() { t0 = performance.now(); }
-return { init, resize, frame, restart, progress };
+return { init, resize, frame, restart, progress, traceText, hand };
 })();

@@ -36,9 +36,10 @@ const FONTS = {
   blueprint: ['"Barlow Condensed","Arial Narrow","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif', '"Barlow",system-ui,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif'],
   ardoise:   ['"Barlow Condensed","Arial Narrow","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif', '"Barlow",system-ui,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif'],
   cao:       ['"Space Grotesk","Barlow Condensed","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif', '"Space Grotesk",system-ui,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif'],
-  esquisse:  ['"Barlow Condensed","Arial Narrow","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif', '"Barlow",system-ui,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif'],
+  // l'esquisse : les titres à la main (Caveat), tracés d'un seul trait épais (js/titles.js : trace)
+  esquisse:  ['"Barlow Condensed","Arial Narrow","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif', '"Barlow",system-ui,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif', `"Caveat",${CJK},cursive`],
 };
-STYLES.esquisse.hand = ARCH; STYLES.esquisse.handScale = 0.78; STYLES.esquisse.handWeight = 400;
+STYLES.esquisse.hand = ARCH; STYLES.esquisse.handScale = 0.78; STYLES.esquisse.handWeight = 400; STYLES.esquisse.trace = true;
 // par défaut : l'esquisse, sur papier gris
 const DEFAULT = { style: 'esquisse', color: 'gris' };
 // pour l'instant un seul thème : le choix retenu est ignoré et le sélecteur est caché (css/site.css) ; false pour le rendre
@@ -57,7 +58,7 @@ function read() {
 }
 function fill(style, color) {
   const S = STYLES[style], K = S.colors[color];
-  Object.assign(th, { style, color, wobble: S.wobble, grain: S.grain, hand: S.hand, handScale: S.handScale, handWeight: S.handWeight, grid: S.grid,
+  Object.assign(th, { style, color, wobble: S.wobble, grain: S.grain, trace: !!S.trace, hand: S.hand, handScale: S.handScale, handWeight: S.handWeight, grid: S.grid,
     ink: K.ink, accent: K.accent, cold: K.cold, dark: K.dark, gridA: K.gridA, glow: K.dark ? 'lighter' : 'multiply',
     fog: parseInt(K.bp.slice(1), 16), lens: `rgba(${rgb(K.bp)},0.95)`, sheetFill: `rgba(${K.ink},${K.dark ? 0.07 : 0.05})` });
   th.inkHex = hex(th.ink); th.accentHex = hex(th.accent);
@@ -68,7 +69,7 @@ function css() {
   const neon = STYLES[th.style].glow === 'neon', F = FONTS[th.style];
   const glow = neon ? `drop-shadow(0 0 3px rgba(${K.ink},.85)) drop-shadow(0 0 10px rgba(${K.ink},.35))` : K.dark ? `drop-shadow(0 0 1.2px rgba(${K.ink},.5))` : 'none';
   return `--bp:${K.bp};--bp-deep:${K.deep};--bp-hi:${K.hi};--ink:${K.ink};--accent:${K.accent};--vig:${K.dark ? 'rgba(0,0,0,.45)' : 'rgba(90,80,60,.14)'};` +
-    `--glow-f:${glow};--glow-t:${neon ? `drop-shadow(0 0 4px rgba(${K.ink},.6))` : 'none'};--display:${F[0]};--text:${F[1]};--hand:${STYLES[th.style].hand};color-scheme:${K.dark ? 'dark' : 'light'}`;
+    `--glow-f:${glow};--glow-t:${neon ? `drop-shadow(0 0 4px rgba(${K.ink},.6))` : 'none'};--display:${F[0]};--text:${F[1]};--title:${F[2] || F[0]};--hand:${STYLES[th.style].hand};color-scheme:${K.dark ? 'dark' : 'light'}`;
 }
 function paint() {
   const d = document.documentElement, v = css();
@@ -87,7 +88,7 @@ function set(o) {
   const go = () => dispatchEvent(new CustomEvent('themechange', { detail: { styleChanged } }));
   go();
   // la police du style : une fois chargée, les titres sont recalculés
-  if (styleChanged && document.fonts && document.fonts.load) Promise.all(['600 40px "Space Grotesk"', '500 20px "IBM Plex Mono"', '600 26px "Caveat"', '400 26px "Architects Daughter"', '600 40px "Barlow Condensed"'].map(f => document.fonts.load(f))).then(go, go);
+  if (styleChanged && document.fonts && document.fonts.load) Promise.all(['600 40px "Space Grotesk"', '500 20px "IBM Plex Mono"', '700 26px "Caveat"', '400 26px "Architects Daughter"', '600 40px "Barlow Condensed"'].map(f => document.fonts.load(f))).then(go, go);
 }
 const cur = read(); fill(cur.style, cur.color);
 if (document.documentElement) paint();
