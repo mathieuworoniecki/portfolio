@@ -62,7 +62,9 @@ const essai = {
     C.text(L('essai.note'), nx, ny, c01((s - 3.2) / 0.6), { size: 24, rot: -0.05, align: S.wide ? 'right' : 'center' });
     // une flèche du titre vers l'objet
     const h = this.titles[0] && this.titles[0].getBoundingClientRect();
-    if (h && S.wide) C.arrow([[h.right + 20, h.top + h.height * 0.45], [(h.right + o.x - o.r) / 2, h.top - 10], [o.x - o.r * 1.05, o.y - o.r * 0.55]], c01((s - 2.5) / 0.8), { seed: 31, w: 2.2 });
+    if (h && S.wide) { const A = [h.right + 20, h.top + h.height * 0.45], B = [o.x - o.r * 1.05, o.y - o.r * 0.55], M = [(A[0] + B[0]) / 2, Math.min(A[1], B[1]) - 60 * S.K], P = [];
+      for (let k = 0; k <= 16; k++) { const t = k / 16, u = 1 - t; P.push([u * u * A[0] + 2 * u * t * M[0] + t * t * B[0], u * u * A[1] + 2 * u * t * M[1] + t * t * B[1]]); }   /* une courbe, pas un angle */
+      C.arrow(P, c01((s - 2.5) / 0.8), { seed: 31, w: 2.2 }); }
   }
 };
 

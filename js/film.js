@@ -237,7 +237,7 @@ addEventListener('touchend', e => {
 /* ——— les scènes, à chaque image ——— */
 function state(sc) {
   const s = story(T), o = { s, dt: 0, clock, W: vw, H: vh, K, wide, reduced, playing: playing && !wait, frame: frameId };
-  if (sc) Object.assign(o, { u: c01((s - sc.t0) / Math.max(1e-6, sc.t1 - sc.t0)), a: sc.a || 0, since: clock - (sc.born || clock), waiting: wait === sc });
+  if (sc) Object.assign(o, { u: c01((s - sc.t0) / Math.max(1e-6, sc.t1 - sc.t0)), a: sc.a || 0, since: clock - (sc.born ?? clock), waiting: wait === sc });
   return o;
 }
 // l'opacité d'une scène : un fondu enchaîné autour de ses bornes (la première n'a pas d'entrée, la dernière pas de sortie)
