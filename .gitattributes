@@ -1,0 +1,3 @@
+# fins de ligne Unix partout (le projet se travaille aussi sous WSL)
+* text=auto eol=lf
+*.png binary

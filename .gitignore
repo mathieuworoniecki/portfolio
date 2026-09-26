@@ -1,16 +1,14 @@
 # fichiers ajoutés par Windows en copiant depuis l'explorateur
 *Zone.Identifier
-# documents internes Look (présentation GTM…) : gardés en local, jamais dans le dépôt
+# les projets d'origine (LookAnimation, HUman), posés là pour référence : jamais dans le dépôt
+example/
+# documents de travail : gardés en local, jamais dans le dépôt
 *.pdf
 *.pptx
 *.docx
 *.xlsx
-# sources d'images (rendus CAO, photos) : seuls les dessins convertis sont publiés
-media/src/
-
-# ressources fournies par LOOK (14 Go) : jamais dans le dépôt ni en ligne
-media/keo/OneDrive*/
-
-# caches Python
+# caches
 __pycache__/
+node_modules/
 .vercel/
+.env*

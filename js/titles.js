@@ -1,21 +1,23 @@
-/* Les titres, écrits à la craie sur le plan, au fil du défilement.
-   Chaque titre est tracé le long du contour de ses lettres, de gauche à droite, pendant qu'il monte dans l'écran
-   (en remontant, il s'efface). Le premier s'écrit tout seul à l'arrivée.
+/* Les titres, écrits à la craie sur le plan, au fil du film.
+   Chaque titre est tracé le long du contour de ses lettres, de gauche à droite. Rien ne défile : c'est la scène
+   qui dit où en est l'écriture, Titles.progress(el, p) avec p de 0 (rien) à 1 (écrit) ; en revenant en arrière
+   sur la ligne du temps, il s'efface.
    Pour que ce soit vraiment de la craie : un trait irrégulier qui saute par endroits, du grain, de la poussière,
    des traces d'effaçage, et des annotations à la main (data-chalk sur le titre) :
      data-chalk="underline"        un double soulignement griffonné
      data-chalk="circle"           le dernier mot entouré
-     data-chalk="arrow"            une flèche vers la pédale
+     data-chalk="arrow"            une flèche vers la droite ("arrow-left" : vers la gauche)
      data-chalk-strike="texte"     un premier jet écrit au-dessus, puis barré
      data-chalk-note="texte"       une note à côté, cerclée
      data-morph="Mot"              le titre s'écrit, puis son premier mot est barré ; « Mot » tombe dessus et le chasse,
                                    le deuxième mot s'efface, le reste se resserre (« Rien ne change. » → « Tout change. »)
    Tout est fixé une fois pour toutes (rien ne tremble) ; seule la pointe de craie bouge pendant qu'elle écrit.
-   Les titres restent dans la page (h1, h2) pour la lecture et le référencement, transparents : cette toile les dessine. */
+   Les titres restent dans la page (h1, h2) pour la lecture et le référencement, transparents : cette toile les dessine.
+   Un titre suit l'opacité de sa scène (.scene, posée par js/film.js). */
 window.Titles = (() => {
 const c01 = v => v < 0 ? 0 : v > 1 ? 1 : v, sm = v => { v = c01(v); return v * v * (3 - 2 * v); };
 let INK, HAND, WOB, GR, HS, HW;
-// le thème (js/theme.js), relu à chaque changement ; la mise en page des titres est alors refaite (js/scroll.js → resize)
+// le thème (js/theme.js), relu à chaque changement ; la mise en page des titres est alors refaite (js/film.js → resize)
 const sync = () => { const TH = window.THEME || {}; INK = TH.ink || '238,245,255'; HAND = TH.hand || '"Caveat","Segoe Print",cursive'; WOB = TH.wobble ?? 1; GR = TH.grain ?? 1; HS = TH.handScale || 1; HW = TH.handWeight || 600; };
 sync(); addEventListener('themechange', sync);
 let grainA = 0.5, cv, ctx, W = 1, H = 1, dpr = 1, items = [], t0 = 0, reduced = false, grain = null;
@@ -170,8 +172,8 @@ function scribble(n, a, ox, oy, w, p) { if (a <= 0) return; ctx.strokeStyle = `r
 const backOut = v => { v = c01(v); const s = 1.7; return 1 + (s + 1) * Math.pow(v - 1, 3) + s * Math.pow(v - 1, 2); };
 function writeMorph(it, r, now) {
   const M = it.morph, w = it.w, lh = it.lh;
-  // l'écriture, puis la transformation, au fil du défilement ; la chute et la poussée suivent leur propre horloge
-  const p = reduced ? 1 : c01((H * 0.97 - r.top) / (H * 0.33)), m = reduced ? 1 : c01((H * 0.64 - r.top) / (H * 0.3));
+  // l'écriture (le premier 60 % de la progression), puis la transformation ; la chute et la poussée suivent leur propre horloge
+  const p = reduced ? 1 : c01(it.p / 0.6), m = reduced ? 1 : c01((it.p - 0.55) / 0.45);
   if (m >= 0.34 && M.t === null) M.t = now; if (m < 0.12) M.t = null;
   const tau = reduced ? 9 : M.t === null ? -1 : (now - M.t) / 1000;
   // les mots d'origine s'écrivent l'un après l'autre
@@ -199,7 +201,9 @@ function writeMorph(it, r, now) {
     M.under.forEach((n, j) => scribble(n, c01((tau - 1.45 - j * 0.18) / 0.3), x, y, w, p));
   }
 }
-function init(canvas, els, isReduced) { cv = canvas; ctx = cv.getContext('2d'); if (window.Chalk) Chalk.ctx = ctx; reduced = isReduced; t0 = performance.now(); items = els.map(el => ({ el })); }
+function init(canvas, els, isReduced) { cv = canvas; ctx = cv.getContext('2d'); if (window.Chalk) Chalk.ctx = ctx; reduced = isReduced; t0 = performance.now(); items = els.map(el => ({ el, p: 0 })); }
+// la progression d'écriture d'un titre (0 → 1), donnée par sa scène à chaque image
+function progress(el, p) { const it = items.find(i => i.el === el); if (it) it.p = p; }
 function resize(w, h) {
   // pleine densité (jusqu'à 3×) : sinon le navigateur agrandit la toile et la craie devient floue
   W = w; H = h; dpr = Math.min(window.devicePixelRatio || 1, 3); cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
@@ -270,26 +274,23 @@ function write(it, r, p) {
   // quelques points de craie, tapés en fin de titre
   if (p > 0.96) it.dots.forEach(d => { ctx.fillStyle = `rgba(${INK},0.8)`; ctx.beginPath(); ctx.arc(ox + d[0], oy + d[1], d[2], 0, Math.PI * 2); ctx.fill(); });
 }
-function frame() {
+// back : ce que les scènes dessinent derrière les titres ; front : par-dessus (même toile, même grain de craie)
+function frame(back, front) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalCompositeOperation = 'source-over'; ctx.clearRect(0, 0, W, H);
   const now = performance.now();
-  // ce que les scènes dessinent derrière les titres
-  if (window.Scenes && Scenes.drawBack) { ctx.save(); Scenes.drawBack(); ctx.restore(); ctx.globalAlpha = 1; }
-  items.forEach((it, i) => {
+  if (back) { ctx.save(); back(ctx); ctx.restore(); ctx.globalAlpha = 1; }
+  items.forEach(it => {
+    if (it.p <= 0.001 || !it.loops) return;
     const r = it.el.getBoundingClientRect();
-    if (r.bottom < -120 || r.top > H + 80 || !it.loops) return;
-    // le premier titre s'écrit seul à l'arrivée ; les autres au fil du défilement, entre le bas et le milieu de l'écran
-    // un titre suit l'opacité de son bloc quand une scène l'efface (écran 5)
-    if (it.wrap === undefined) it.wrap = it.el.closest('[data-reveal]');
+    if (r.bottom < -120 || r.top > H + 80) return;
+    // un titre suit l'opacité de sa scène (js/film.js)
+    if (it.wrap === undefined) it.wrap = it.el.closest('.scene');
     const bo = it.wrap && it.wrap.style.opacity !== '' ? parseFloat(it.wrap.style.opacity) : 1; if (bo < 0.01) return; ctx.globalAlpha = bo;
-    // le titre de l'accueil s'écrit juste après le logo LOOK et « présente la nouvelle »
-    const p = reduced ? 1 : i === 0 ? sm((now - t0 - 1900) / 2200) : c01((H * 0.97 - r.top) / (H * 0.45));
-    if (it.morph) writeMorph(it, r, now); else write(it, r, p); ctx.globalAlpha = 1;
+    if (it.morph) writeMorph(it, r, now); else write(it, r, reduced ? 1 : c01(it.p)); ctx.globalAlpha = 1;
   });
-  // les scènes dessinent à la craie autour de la pédale, sur la même toile (même grain)
-  if (window.Scenes) { ctx.save(); Scenes.draw(); ctx.restore(); ctx.globalAlpha = 1; }
+  if (front) { ctx.save(); front(ctx); ctx.restore(); ctx.globalAlpha = 1; }
   if (grain) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'destination-out'; ctx.globalAlpha = grainA; ctx.fillStyle = grain; ctx.fillRect(0, 0, cv.width, cv.height); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
 }
 function restart() { t0 = performance.now(); }
-return { init, resize, frame, restart };
+return { init, resize, frame, restart, progress };
 })();

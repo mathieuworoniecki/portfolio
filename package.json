@@ -1,8 +1,8 @@
 {
-  "name": "look-power-rs",
+  "name": "portfolio-mathieu",
   "private": true,
   "type": "module",
-  "description": "Page de présentation LOOK Power RS (site statique ; middleware.js protège l'accès côté serveur)",
+  "description": "Le portfolio de Mathieu (site statique ; middleware.js protège l'accès côté serveur pendant le développement)",
   "dependencies": {
     "@vercel/functions": "^3.9.9"
   }

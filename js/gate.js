@@ -1,16 +1,18 @@
 /* L'accès réservé : tant que le site n'est pas public, un code est demandé à l'arrivée.
-   Même plan bleu ; le logo LOOK se trace à la craie, le cadre de saisie se dessine à la main.
+   Même fond que le site ; le nom se trace à la craie, le cadre de saisie se dessine à la main.
    Bon code : le cadre se coche, l'écran s'efface et le site commence. Mauvais code : le cadre tremble.
    Le code n'est pas écrit en clair : on compare son empreinte (SHA-256). Une fois entré, il est retenu.
    Attention : c'est une porte d'entrée, pas un coffre-fort — les fichiers restent lisibles par qui les cherche. */
 window.Gate = (() => {
-const HASH = '477e7fff325547e32debefef972a7016ee25b42fd92297166f7449c7383aef90', KEY = 'look-power-rs-access';
+// le code provisoire du développement (à changer : même empreinte dans middleware.js et index.html)
+const HASH = '0e6a8e0b849ed9b064c5a25e1ee5592f427e3eb9d250e42069ce46147d00e8d4', KEY = 'pf-access';
 // les autres codes acceptés ; une fois entré, on retient toujours la même marque (HASH)
-const OK = [HASH, '484bd46cac06c8b099e0892f3a4ab7f681d46ffb4aa2c1a03bd6331e63d5838f', 'd71a4c4918cfa3653fe500f1b7ad8bfe518f3a6dc55f7bfc5b3b4b84af5257d7'];
+const OK = [HASH];
 const root = document.documentElement;
 let onOpen = null;
-// déjà entré : ici, ou sur l'écran d'accès du serveur (middleware.js, qui pose le cookie look_ok)
-const known = () => { if (/(?:^|; )look_ok=1/.test(document.cookie)) return true; try { return localStorage.getItem(KEY) === HASH; } catch (e) { return false; } };
+// déjà entré : ici, ou sur l'écran d'accès du serveur (middleware.js, qui pose le cookie pf_ok)
+// l'aperçu en ligne (tools/preview.py) s'ouvre sans code : l'Artifact est déjà privé
+const known = () => { if (window.PF_OPEN) return true; try { if (/(?:^|; )pf_ok=1/.test(document.cookie)) return true; return localStorage.getItem(KEY) === HASH; } catch (e) { return false; } };
 async function sha(s) {
   if (!(window.crypto && crypto.subtle)) return '';
   const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
@@ -19,7 +21,7 @@ async function sha(s) {
 function open(instant) {
   try { localStorage.setItem(KEY, HASH); } catch (e) {}
   const g = document.getElementById('gate');
-  if (!instant) root.classList.add('entering');   // le site apparaîtra en fondu (js/scroll.js)
+  if (!instant) root.classList.add('entering');   // le site apparaîtra en fondu (js/film.js)
   root.classList.remove('locked');
   if (g) { if (instant) g.remove(); else { g.classList.add('open'); setTimeout(() => g.remove(), 1400); } }
   if (onOpen) onOpen();

@@ -2,10 +2,10 @@
      style    le caractère du dessin : le trait (tremblé, grain), l'écriture, la grille, les polices
      couleurs chaque style a ses jeux de couleurs (le fond, le trait, l'accent)
    Le choix est retenu (localStorage) ; les couleurs de la page sont posées en variables CSS sur <html>
-   dès la première ligne (index.html, clé look-theme-css), pour ne jamais voir un autre thème en premier.
+   dès la première ligne (index.html, clé pf-theme-css), pour ne jamais voir un autre thème en premier.
    Il s'applique en direct : THEME.set({ style, color }) met cet objet à jour, pose les variables et envoie
    l'évènement 'themechange' : la craie, la grille, les titres et la 3D se recolorent sans recharger la page.
-     ink      le trait (r,g,b)      accent   les jauges, la puissance      cold   le « comprimé » des jauges
+     ink      le trait (r,g,b)      accent   la couleur qui ressort        cold   une couleur froide, en contrepoint
      glow     comment les lueurs s'ajoutent : 'lighter' sur fond sombre, 'multiply' sur fond clair
      wobble   le tremblé (1 craie, 0 machine)     grain   les manques du trait     hand   l'écriture des annotations */
 window.THEME = (() => {
@@ -31,7 +31,7 @@ const STYLES = {
     kraft: C('#C8A77A', '#A98A5E', '#D6B98E', '38,30,22', '150,30,20', '30,70,120', false, 0.4),
     gris:  C('#DADBD8', '#C4C6C2', '#E8E9E6', '34,36,40', '226,90,20', '30,100,180', false, 0.45) } }
 };
-// les polices de la page, par style (css/site.css les lit dans --display, --text)
+// les polices de la page, par style (css/site.css les lit dans --display, --text ; l'écriture à la main dans --hand)
 const FONTS = {
   blueprint: ['"Barlow Condensed","Arial Narrow","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif', '"Barlow",system-ui,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif'],
   ardoise:   ['"Barlow Condensed","Arial Narrow","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif', '"Barlow",system-ui,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif'],
@@ -39,16 +39,15 @@ const FONTS = {
   esquisse:  ['"Barlow Condensed","Arial Narrow","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif', '"Barlow",system-ui,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif'],
 };
 STYLES.esquisse.hand = ARCH; STYLES.esquisse.handScale = 0.78; STYLES.esquisse.handWeight = 400;
-const DEFAULT = { style: 'blueprint', color: 'bleu' };
-const OLD = { plan: ['blueprint', 'bleu'], ardoise: ['ardoise', 'noir'], papier: ['esquisse', 'creme'], cao: ['cao', 'noir'] };   // les premiers thèmes
+// par défaut : l'esquisse, sur papier gris
+const DEFAULT = { style: 'esquisse', color: 'gris' };
 const th = { STYLES };
 const hex = s => { const [r, g, b] = s.split(',').map(Number); return (r << 16) | (g << 8) | b; };
 const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',');
 function read() {
   let style = DEFAULT.style, color = DEFAULT.color;
   try {
-    const o = OLD[localStorage.getItem('look-theme')]; if (o) [style, color] = o;
-    const s = localStorage.getItem('look-style'), c = localStorage.getItem('look-color');
+    const s = localStorage.getItem('pf-style'), c = localStorage.getItem('pf-color');
     if (STYLES[s]) { style = s; color = STYLES[s].colors[c] ? c : Object.keys(STYLES[s].colors)[0]; }
   } catch (e) {}
   return { style, color };
@@ -66,14 +65,14 @@ function css() {
   const neon = STYLES[th.style].glow === 'neon', F = FONTS[th.style];
   const glow = neon ? `drop-shadow(0 0 3px rgba(${K.ink},.85)) drop-shadow(0 0 10px rgba(${K.ink},.35))` : K.dark ? `drop-shadow(0 0 1.2px rgba(${K.ink},.5))` : 'none';
   return `--bp:${K.bp};--bp-deep:${K.deep};--bp-hi:${K.hi};--ink:${K.ink};--accent:${K.accent};--vig:${K.dark ? 'rgba(0,0,0,.45)' : 'rgba(90,80,60,.14)'};` +
-    `--glow-f:${glow};--glow-t:${neon ? `drop-shadow(0 0 4px rgba(${K.ink},.6))` : 'none'};--display:${F[0]};--text:${F[1]};color-scheme:${K.dark ? 'dark' : 'light'}`;
+    `--glow-f:${glow};--glow-t:${neon ? `drop-shadow(0 0 4px rgba(${K.ink},.6))` : 'none'};--display:${F[0]};--text:${F[1]};--hand:${STYLES[th.style].hand};color-scheme:${K.dark ? 'dark' : 'light'}`;
 }
 function paint() {
   const d = document.documentElement, v = css();
   v.split(/;(?![^(]*\))/).forEach(p => { const i = p.indexOf(':'); if (i > 0) { const k = p.slice(0, i), val = p.slice(i + 1); k === 'color-scheme' ? d.style.colorScheme = val : d.style.setProperty(k, val); } });
   d.dataset.style = th.style; d.dataset.color = th.color;
   const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = STYLES[th.style].colors[th.color].deep;
-  try { localStorage.setItem('look-theme-css', v); } catch (e) {}
+  try { localStorage.setItem('pf-theme-css', v); } catch (e) {}
 }
 function set(o) {
   const style = STYLES[o.style] ? o.style : th.style, cs = STYLES[style].colors;
@@ -81,7 +80,7 @@ function set(o) {
   if (style === th.style && color === th.color) return;
   const styleChanged = style !== th.style;
   fill(style, color); paint();
-  try { localStorage.setItem('look-style', style); localStorage.setItem('look-color', color); localStorage.removeItem('look-theme'); } catch (e) {}
+  try { localStorage.setItem('pf-style', style); localStorage.setItem('pf-color', color); } catch (e) {}
   const go = () => dispatchEvent(new CustomEvent('themechange', { detail: { styleChanged } }));
   go();
   // la police du style : une fois chargée, les titres sont recalculés

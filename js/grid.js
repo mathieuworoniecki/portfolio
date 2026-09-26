@@ -2,7 +2,7 @@
      deform  les lignes s'écartent autour de la souris, comme sous une loupe
      path    les cases survolées s'allument, un chemin lumineux qui s'éteint doucement
      chalk   un trait de craie se dessine là où passe la souris, puis s'efface
-   La grille défile un peu moins vite que la page (profondeur). */
+   Rien ne défile : la scène peut décaler la grille (Grid.frame(dy), en pixels) pour donner de la profondeur ; sinon 0. */
 window.Grid = (() => {
 const MINOR = 24, MAJOR = 120; let INK, GA, DOTS;
 const sync = () => { const TH = window.THEME || {}; INK = TH.ink || '238,245,255'; GA = TH.gridA ?? 1; DOTS = TH.grid === 'dots'; };
@@ -42,9 +42,9 @@ function warpLine(x0, y0, x1, y1) {
   }
   ctx.stroke();
 }
-function frame(scrollY) {
+function frame(dy) {
   const now = performance.now(), dt = Math.min(0.05, (now - last) / 1000); last = now;
-  gy = -scrollY * 0.25;
+  gy = -(dy || 0);
   sx += (mx - sx) * 0.18; sy += (my - sy) * 0.18; act += (on - act) * 0.08;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
   const oy = ((gy % MINOR) + MINOR) % MINOR, j0 = Math.floor(-gy / MINOR);

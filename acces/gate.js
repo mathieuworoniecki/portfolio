@@ -1,5 +1,5 @@
 /* L'écran d'accès servi par le serveur (middleware.js) : la grille qui se déforme sous la souris,
-   et des dizaines de pièces de la pédale qui flottent partout ; la souris les bouscule, elles tournoient.
+   et des dizaines d'objets 3D (les exemples de js/objects3d.js) qui flottent partout ; la souris les bouscule, elles tournoient.
    Le bon code : les pièces s'envolent, l'écran s'efface, et le site commence en fondu (même fond). */
 (() => {
 const TAU = Math.PI * 2, PIECES = window.GATE_PIECES || [], reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -9,7 +9,7 @@ const mouse = { x: -1e4, y: -1e4, on: false, vx: 0, vy: 0 };
 Grid.init(gridCv, 'deform');
 // les pièces en 3D (objects3d.js), sinon à la craie
 const obj = window.Obj3D && Obj3D.ok !== false && document.getElementById('obj'); if (obj) Obj3D.init(obj);
-const NAMES = ['roulement', 'pp65', 'vis', 'ski1951', 'ressort', 'cale', 'bike1985', 'batterie', 'jauge', 'embout', 'carte', 'rondelle'].filter(n => obj && Obj3D.has(n));
+const NAMES = ['roulement', 'vis'].filter(n => obj && Obj3D.has(n));
 function resize() { W = innerWidth; H = innerHeight; dpr = Math.min(devicePixelRatio || 1, 3); cv.width = W * dpr; cv.height = H * dpr; Grid.resize(W, H); if (obj) Obj3D.resize(W, H); Chalk.scale = Math.max(0.6, Math.min(1, Math.min(W / 1600, H / 1000))); }
 addEventListener('resize', resize); resize();
 addEventListener('pointermove', e => { mouse.vx = e.clientX - mouse.x; mouse.vy = e.clientY - mouse.y; mouse.x = e.clientX; mouse.y = e.clientY; mouse.on = true; }, { passive: true });
@@ -54,16 +54,16 @@ const form = document.querySelector('form'), input = form.querySelector('input')
 // la langue du navigateur (ou celle choisie sur le site)
 const TX = { fr: ['Accès réservé', 'code', 'Entrer', 'Ce n’est pas le bon code.'], en: ['Private access', 'code', 'Enter', 'That’s not the right code.'], de: ['Geschützter Zugang', 'Code', 'Weiter', 'Das ist nicht der richtige Code.'],
   it: ['Accesso riservato', 'codice', 'Entra', 'Il codice non è corretto.'], es: ['Acceso reservado', 'código', 'Entrar', 'El código no es correcto.'], zh: ['限定访问', '访问码', '进入', '访问码不正确。'] };
-const LG = (() => { try { const s = localStorage.getItem('look-lang'); if (TX[s]) return s; } catch (e) {} for (const l of (navigator.languages || [navigator.language || 'en'])) { const c = String(l).slice(0, 2).toLowerCase(); if (TX[c]) return c; } return 'en'; })(), tx = TX[LG];
+const LG = (() => { try { const s = localStorage.getItem('pf-lang'); if (TX[s]) return s; } catch (e) {} for (const l of (navigator.languages || [navigator.language || 'en'])) { const c = String(l).slice(0, 2).toLowerCase(); if (TX[c]) return c; } return 'en'; })(), tx = TX[LG];
 document.documentElement.lang = LG; { const k = document.querySelector('.kick'), bt = form.querySelector('button'); if (k) k.textContent = tx[0]; input.placeholder = tx[1]; if (bt) bt.textContent = tx[2]; if (msg.textContent.trim()) msg.textContent = tx[3]; }
 input.addEventListener('input', () => { body.classList.remove('bad'); msg.textContent = ''; });
 form.addEventListener('submit', async e => {
   e.preventDefault();
   let ok = false;
-  try { const r = await fetch('/__acces', { method: 'POST', body: new URLSearchParams({ code: input.value }), headers: { 'x-look-gate': '1' }, credentials: 'same-origin' }); ok = r.ok; } catch (er) {}
+  try { const r = await fetch('/__acces', { method: 'POST', body: new URLSearchParams({ code: input.value }), headers: { 'x-pf-gate': '1' }, credentials: 'same-origin' }); ok = r.ok; } catch (er) {}
   if (!ok) { body.classList.remove('bad'); void body.offsetWidth; body.classList.add('bad', 'shake'); msg.textContent = tx[3]; input.select(); return; }
   body.classList.add('good'); input.blur();
-  try { sessionStorage.setItem('look-enter', '1'); } catch (er) {}
+  try { sessionStorage.setItem('pf-enter', '1'); } catch (er) {}
   setTimeout(() => { leaving = 0.001; body.classList.add('leaving'); }, 450);
   setTimeout(() => location.replace('/'), 1250);
 });

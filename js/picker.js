@@ -1,6 +1,6 @@
 /* Les sélecteurs de l'en-tête.
    Au centre, le thème : un bouton (l'aperçu du thème actuel), et un panneau avec
-     · un aperçu par style (son fond, sa grille, son trait, sa police, une petite pédale) et ses pastilles de couleurs
+     · un aperçu par style (son fond, sa grille, son trait, sa police, un petit objet 3D) et ses pastilles de couleurs
      · les couleurs du style choisi, en grand
    Tout s'applique en direct (js/theme.js) ; le panneau reste ouvert pour comparer. Échap, un clic dehors ou ✕ le referme.
    À droite, la langue : un petit menu (changer de langue recharge la page). */
@@ -35,17 +35,16 @@ const N = {
 const L = N || { title: 'Thème', style: 'Style', colors: 'Couleurs', close: 'Fermer', s: {}, c: {} };
 const sName = k => (L.s[k] || [k])[0], sDesc = k => (L.s[k] || ['', ''])[1], cName = k => L.c[k] || k;
 
-/* ——— les aperçus : dessinés sur une toile, avec la vraie pédale en 3D (js/objects3d.js), qui oscille doucement ———
-   Le fond et la grille, puis la pédale (rendue une fois en blanc, puis teintée au trait du thème), puis le titre dans
-   la police du style et un soulignement de la couleur d'accent. Le Néon rayonne. */
-// chaque style a son sujet, qui oscille doucement : la Power RS vue de dessus (le plan), la PP65 de 1984 (la leçon au tableau),
-// l'axe Power Core (la pièce technique), le vélo de 1985 (le croquis)
+/* ——— les aperçus : dessinés sur une toile, avec un objet 3D (js/objects3d.js), qui oscille doucement ———
+   Le fond et la grille, puis l'objet (rendu une fois en blanc, puis teinté au trait du thème), puis le titre dans
+   la police du style et un soulignement de la couleur d'accent. */
+// chaque style a son sujet, qui oscille doucement : pour l'instant les deux objets d'exemple (plus tard : un chat par style)
 const SWING = 32, sw = i => Math.sin(i / SWING * Math.PI * 2), cw = i => Math.cos(i / SWING * Math.PI * 2);
 const VIS = {
-  blueprint: { obj: 'powerrs',   note: 'KEO Blade Power', rot: i => [1.15 + cw(i) * 0.05, sw(i) * 0.22, 0.55] },
-  ardoise:   { obj: 'pp65',      note: 'PP65 · 1984',     rot: i => [-0.45 + cw(i) * 0.05, 0.6 + sw(i) * 0.3, 0.05] },
-  cao:       { obj: 'powercore', note: 'Power Core',      rot: i => [-0.4 + cw(i) * 0.06, 0.45 + sw(i) * 0.35, 0.12] },
-  esquisse:  { obj: 'bike1985',  note: '1985',            rot: i => [-0.12 + cw(i) * 0.03, 0.35 + sw(i) * 0.25, 0] }
+  blueprint: { obj: 'roulement', note: 'plan',     rot: i => [0.9 + cw(i) * 0.05, sw(i) * 0.3, 0.2] },
+  ardoise:   { obj: 'vis',       note: 'tableau',  rot: i => [0.35 + cw(i) * 0.05, 0.6 + sw(i) * 0.3, 0.5] },
+  cao:       { obj: 'roulement', note: 'cao',      rot: i => [0.5 + cw(i) * 0.06, 0.45 + sw(i) * 0.35, 0.12] },
+  esquisse:  { obj: 'vis',       note: 'croquis',  rot: i => [0.2 + cw(i) * 0.03, 0.35 + sw(i) * 0.25, 0.9] }
 };
 const visOf = st => VIS[st] || VIS.blueprint;
 const FR = {};   // les images, par style
@@ -62,7 +61,8 @@ function prepare() {
     FR[st].push(...Obj3D.frames(visOf(st).obj, 300, 220, R, 190)); idle(run, { timeout: 400 }); };
   if (window.__pvDone) __pvDone(); idle(run, { timeout: 400 });
 }
-const pedal = st => { if (!preparing) prepare(); return FR[st] || []; };
+const TITLE = 'MATHIEU';   // le mot écrit dans les aperçus
+const subject = st => { if (!preparing) prepare(); return FR[st] || []; };
 addEventListener('load', () => setTimeout(prepare, 1500));
 const dpr = Math.min(window.devicePixelRatio || 1, 2);
 function layers(style, color, w, h) {
@@ -76,8 +76,8 @@ function layers(style, color, w, h) {
   const [ov, o] = mk(), fs = Math.max(11, h * 0.2), tx = w * 0.95, ty = h * 0.84;
   o.textAlign = 'right'; o.textBaseline = 'alphabetic'; o.font = `700 ${fs}px ${F[0]}`; o.lineJoin = 'round';
   if (S.glow === 'neon') { o.shadowColor = `rgba(${K.ink},.9)`; o.shadowBlur = fs * 0.35; }
-  o.strokeStyle = `rgb(${K.ink})`; o.lineWidth = Math.max(0.8, fs * 0.05); o.strokeText('POWER RS', tx, ty);
-  const tw = o.measureText('POWER RS').width; o.shadowBlur = 0;
+  o.strokeStyle = `rgb(${K.ink})`; o.lineWidth = Math.max(0.8, fs * 0.05); o.strokeText(TITLE, tx, ty);
+  const tw = o.measureText(TITLE).width; o.shadowBlur = 0;
   o.strokeStyle = `rgb(${K.accent})`; o.lineWidth = Math.max(1.2, fs * 0.08); o.lineCap = 'round'; o.beginPath();
   if (S.wobble > 0.5) { o.moveTo(tx - tw, ty + fs * 0.2); o.quadraticCurveTo(tx - tw / 2, ty + fs * 0.12, tx, ty + fs * 0.24); } else { o.moveTo(tx - tw, ty + fs * 0.2); o.lineTo(tx, ty + fs * 0.2); }
   o.stroke();
@@ -89,9 +89,9 @@ function layers(style, color, w, h) {
 }
 const cache = new Map();
 function lay(style, color, w, h) { const k = `${style}|${color}|${w}|${h}`; if (!cache.has(k)) cache.set(k, layers(style, color, w, h)); return cache.get(k); }
-// une toile d'aperçu : fond + pédale teintée + titre ; f = l'image de l'oscillation
+// une toile d'aperçu : fond + objet teinté + titre ; f = l'image de l'oscillation
 function paintTile(cv, style, color, f) {
-  const w = +cv.dataset.w, h = +cv.dataset.h, Ly = lay(style, color, w, h), x = cv.getContext('2d'), all = pedal(style), fr = all.length >= SWING ? all : all.slice(0, 1);
+  const w = +cv.dataset.w, h = +cv.dataset.h, Ly = lay(style, color, w, h), x = cv.getContext('2d'), all = subject(style), fr = all.length >= SWING ? all : all.slice(0, 1);
   x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, cv.width, cv.height); x.drawImage(Ly.bg, 0, 0);
   if (fr.length) {
     const img = fr[f % fr.length], ph = h * 0.95, pw = ph * img.width / img.height, px = w * 0.02, py = h * 0.02;
@@ -127,6 +127,7 @@ function chalkFrame(el, seed, panel) {
   if (window.ResizeObserver) new ResizeObserver(() => draw()).observe(el);
   return { redraw: () => draw(true) };
 }
+window.chalkFrame = chalkFrame;   // les autres boutons de la page s'en servent aussi (js/film.js)
 
 /* ——— le thème : à gauche les styles, à droite le grand aperçu et les couleurs du style ——— */
 const root = document.getElementById('theme-pick');

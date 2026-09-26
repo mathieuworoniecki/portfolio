@@ -1,6 +1,6 @@
 """Serveur local sans cache : le navigateur recharge toujours la dernière version des fichiers.
 
-    python3 tools/serve.py        puis ouvrir http://localhost:8931
+    python3 tools/serve.py        puis ouvrir http://localhost:8940
 """
 import http.server, functools, pathlib
 
@@ -10,4 +10,4 @@ class NoCache(http.server.SimpleHTTPRequestHandler):
         super().end_headers()
 
 root = pathlib.Path(__file__).resolve().parent.parent
-http.server.ThreadingHTTPServer(('', 8931), functools.partial(NoCache, directory=str(root))).serve_forever()
+http.server.ThreadingHTTPServer(('', 8940), functools.partial(NoCache, directory=str(root))).serve_forever()
