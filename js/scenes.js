@@ -1,7 +1,8 @@
 /* Les scènes du portfolio, déclarées sur la ligne du temps (js/film.js).
    Pour l'instant, de quoi éprouver la mécanique, sans le vrai contenu :
-     salut  (0 → 1)  une station : le titre s'écrit, le bouton se dessine ; en bas, le monde des chats (js/chats.js) : un clic, un chat tombe du ciel ;
-                     le bouton « Entrer dans mon monde » : la rupture (un éclat de craie), la lecture démarre
+     salut  (0 → 1)  une station : le titre s'écrit (à l'encre), deux boutons se dessinent ; en bas, le monde des chats (js/chats.js) : un clic, un chat tombe du ciel ;
+                     « Restez jouer ici » : le titre s'efface, le bouton d'entrée monte en haut de l'écran, les chats ont toute la place ;
+                     « Entrer dans mon univers » : la rupture (un éclat de craie), la lecture démarre
      essai  (1 → 6)  une scène de cinq secondes pilotée par la timeline : le titre s'écrit, un objet s'assemble,
                      le temps ralentit (WARP) pendant qu'une flèche et une note se dessinent, une phrase passe
      jeu    (6 → 7)  la station finale : un monde libre, des objets qui flottent, on clique, on attrape, on lance
@@ -18,20 +19,59 @@ const CH = window.Chats || null;
 const popGrab = { grab: (x, y) => Pops.hit(x, y), drag: (o, x, y) => Pops.hold(o, x, y), release: (o, vx, vy) => Pops.release(o, vx, vy) };
 
 /* ——— 1 · la station « Salut » ——— */
-const enterBtn = $('#enter');
+const enterBtn = $('#enter'), stayBtn = $('#stay'), root = document.documentElement;
+let reste = null;   // l'horloge du clic sur « Restez jouer ici » (null : pas encore)
+// « Restez jouer ici » : un cadre en forme de tête de chat (deux oreilles, des moustaches) et une queue qui remue
+function catButton(el, prog, seed, clock) {
+  if (!el || prog <= 0.001) return;
+  const r = el.getBoundingClientRect(); if (!r.width) return;
+  el.hov = (el.hov || 0) + (((el.matches(':hover') || el.matches(':focus-visible')) ? 1 : 0) - (el.hov || 0)) * 0.15;
+  const x0 = r.left - 4, x1 = r.right + 4, y0 = r.top - 2, y1 = r.bottom + 2, h = y1 - y0, cy = (y0 + y1) / 2, rr = h / 2, P = [];
+  // la bosse : une pilule, un peu de travers, qui respire
+  const b = 1 + Math.sin(clock * 2.2) * 0.012;
+  for (let k = 0; k <= 36; k++) { const t = k / 36 * TAU - Math.PI / 2, side = Math.cos(t) >= 0 ? x1 - rr : x0 + rr; P.push([side + Math.cos(t) * rr * b, cy + Math.sin(t) * rr * b]); }
+  P.push(P[0]); C.stroke(P, c01(prog / 0.6), { w: 2.1, seed, amp: 0.4, tip: prog < 0.6 });
+  // les oreilles (l'une frémit au survol)
+  const e = c01((prog - 0.5) / 0.25), ew = h * 0.34, eh = h * 0.5;
+  [[x0 + rr * 1.1, -1], [x1 - rr * 1.1, 1]].forEach(([ex, s], i) => { const tw = Math.sin(clock * 20 + i) * el.hov * 0.2 + (i ? Math.max(0, Math.sin(clock * 1.3)) ** 12 * 0.3 : 0);
+    const ax = ex + s * ew * 0.25 + Math.sin(tw) * eh, ay = y0 - eh * Math.cos(tw) + 2;
+    C.stroke([[ex - ew / 2, y0 + 3], [ax, ay], [ex + ew / 2, y0 + 3]], e, { w: 2, seed: seed + 3 + i, amp: 0.3, tip: false });
+    C.stroke([[ex - ew * 0.22, y0 + 1], [ex * 0.4 + ax * 0.6, y0 * 0.4 + ay * 0.6], [ex + ew * 0.22, y0 + 1]], e, { w: 1.1, a: 0.45, seed: seed + 5 + i, tip: false }); });
+  // les moustaches, de chaque côté
+  const m = c01((prog - 0.7) / 0.2);
+  [-1, 1].forEach(s => [-0.18, 0.12].forEach((dy, j) => { const xs = s < 0 ? x0 - 2 : x1 + 2; C.line(xs, cy + dy * h, xs + s * h * 0.55, cy + dy * h * 1.8 + j * 2 - 3, m, { w: 1.3, a: 0.7, seed: seed + 11 + j + (s > 0 ? 4 : 0), tip: false }); }));
+  // la queue : elle sort d'en bas à droite et remue (plus vite au survol)
+  const q = c01((prog - 0.8) / 0.2), sw = Math.sin(clock * (2.4 + el.hov * 7)) * (0.35 + el.hov * 0.25), T = [];
+  for (let k = 0; k <= 10; k++) { const u = k / 10, a = -0.4 + u * 2.4 + sw * u; T.push([x1 - rr * 0.6 + Math.sin(a) * h * 0.4 * u + u * h * 0.2, y1 - 2 - Math.sin(u * Math.PI) * h * 0.4 - u * h * 0.3 + Math.cos(a) * 3]); }
+  C.stroke(T, q, { w: 2, seed: seed + 20, amp: 0.3, tip: false });
+  el.classList.toggle('drawn', prog > 0.6);
+}
+// on reste jouer : le titre s'efface (il se dé-écrit), ce bouton s'en va, et le bouton d'entrée file en haut de l'écran
+if (stayBtn) stayBtn.addEventListener('click', () => {
+  if (reste !== null) return; reste = Film.clock; stayBtn.disabled = true;
+  setTimeout(() => {
+    const a = enterBtn.getBoundingClientRect(); root.classList.add('jeu'); const b = enterBtn.getBoundingClientRect();
+    enterBtn.style.transition = 'none'; enterBtn.style.transform = `translate(${a.left - b.left}px,${a.top - b.top}px)`; void enterBtn.offsetWidth;
+    enterBtn.style.transition = 'transform .8s cubic-bezier(.3,1.4,.5,1),letter-spacing .3s'; enterBtn.style.transform = '';
+  }, 750);
+});
 const salut = Object.assign({
   id: 'salut', t0: 0, t1: 1, hold: true,
   enter() { if (enterBtn) enterBtn.classList.remove('drawn'); },
   frame(S) {
     // le titre s'écrit à l'arrivée (horloge réelle : la lecture est arrêtée sur une station)
-    this.titles.forEach(el => Titles.progress(el, S.reduced ? 1 : sm((S.since - 0.3) / 2.4)));
+    this.titles.forEach(el => Titles.progress(el, reste !== null ? 1 - sm((S.clock - reste) / 0.7) : S.reduced ? 1 : sm((S.since - 0.3) / 2.4)));
     if (CH) CH.frame(S); else { Pops.step(S); Pops.put(S, S.a); }
   },
   exit() { if (CH) CH.hide(); },
   draw(S, ctx) {
-    Outils.button(enterBtn, S.reduced ? 1 : sm((S.since - 2.3) / 0.9), 1100, S.clock);
-    // l'invitation, écrite à la main sous le bouton, tant que rien n'a jailli
-    if ((CH ? !CH.clicks : !Pops.list.length) && enterBtn) { const r = enterBtn.getBoundingClientRect(); C.text(L('salut.hint'), r.left + r.width / 2, r.bottom + 44 * S.K, S.reduced ? 1 : c01((S.since - 3.4) / 1.2), { size: 19, align: 'center', a: 0.55 }); }
+    const pb = S.reduced ? 1 : sm((S.since - 2.3) / 0.9);
+    Outils.button(enterBtn, pb, 1100, S.clock);
+    if (reste === null) catButton(stayBtn, S.reduced ? 1 : sm((S.since - 2.0) / 1.1), 1200, S.clock);
+    else if (S.clock - reste < 0.5) catButton(stayBtn, 1 - sm((S.clock - reste) / 0.45), 1200, S.clock);
+    // l'invitation, écrite à la main sous les boutons, tant que rien n'a jailli
+    const hb = reste === null && (CH ? !CH.clicks : !Pops.list.length) && enterBtn;
+    if (hb) { const r = hb.getBoundingClientRect(), r2 = stayBtn ? stayBtn.getBoundingClientRect() : r, bot = Math.max(r.bottom, r2.bottom), cx = (Math.min(r.left, r2.left) + Math.max(r.right, r2.right)) / 2; C.text(L('salut.hint'), cx, bot + 40 * S.K, S.reduced ? 1 : c01((S.since - 3.4) / 1.2), { size: 19, align: 'center', a: 0.55 }); }
     if (CH) CH.draw(S, ctx); else Pops.draw(S, ctx);
   },
   click(x, y, S) { return CH ? CH.click(x, y, S) : Pops.spawn(x, y, S); }

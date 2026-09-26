@@ -61,8 +61,12 @@ try{var c=null;if(c)c.split(/;(?![^(]*\))/).forEach(function(p){var i=p.indexOf(
 <!-- les scènes : une par plage de la ligne du temps (js/scenes.js) ; leurs titres sont écrits à la craie -->
 <main class="scenes">
   <section class="scene" data-scene="salut">
-    <h1 data-title data-ink="accent" data-i18n="salut.title">Salut, moi c’est Mathieu et je fais des trucs sur le web.</h1>
-    <button type="button" class="cta" id="enter" data-i18n="salut.cta">Entrer dans mon monde</button>
+    <h1 data-title data-ink="pen" data-plafond data-i18n="salut.title">Salut, moi c’est Mathieu.</h1>
+    <!-- deux boutons : rester jouer avec les chats (le texte s'efface, le bouton d'entrée monte en haut de l'écran), ou entrer -->
+    <div class="ctas">
+      <button type="button" class="cta cta-jeu" id="stay" data-plafond data-i18n="salut.stay">Restez jouer ici</button>
+      <button type="button" class="cta" id="enter" data-plafond data-i18n="salut.cta">Entrer dans mon univers</button>
+    </div>
   </section>
   <section class="scene" data-scene="essai">
     <h2 data-title data-chalk="circle" data-i18n="essai.title">Une scène de cinq secondes</h2>

@@ -41,7 +41,21 @@ const ANIMS = {
   // assis : il regarde autour, cligne des yeux, la queue bat doucement
   assis(c, p, t) { sit(c, p); p[I.htilt] = Math.sin(t * 0.37) * 0.15; p[I.px] = Math.sin(t * 0.5); p[I.tailPhase] = t * 2; p[I.eyes] = blink(t); },
   // la toilette : assis, une patte levée vers la bouche, il lèche (yeux clos)
-  toilette(c, p, t) { sit(c, p, -0.1); p[I.fr] = -p[I.pitch] + 2.2 + Math.sin(t * 12) * 0.12; p[I.fk2] = 0.9; p[I.htilt] = 0.25; p[I.eyes] = 1; p[I.mouth] = Math.sin(t * 12) > 0.5 ? 1 : 0; },
+  toilette(c, p, t) {
+    // la patte du côté qui nous fait face monte jusqu'à la bouche (lécher), puis passe sur la tête (frotter l'oreille), et recommence
+    sit(c, p, -0.05); const D = c.D, b = c.b, k = c.face > 0 ? 'fr' : 'fl', ki = k === 'fr' ? I.fk2 : I.fk;
+    const cyc = t % 7, lick = cyc < 4.2, pitch = p[I.pitch], sx = 1 + p[I.stretch] - p[I.sqz] * 0.5, sy = 1 + p[I.sqz];
+    p[I.hnod] = lick ? 0.28 : 0.08; p[I.htilt] = lick ? 0.12 + Math.sin(t * 1.3) * 0.05 : 0.42; p[I.hy] = lick ? -D.h * 0.12 : -D.h * 0.04; p[I.look] = 0.75;
+    const up = [Math.sin(pitch), Math.cos(pitch)], fwd = [Math.cos(pitch), -Math.sin(pitch)], hc = [D.head[0] * sx + p[I.hx], D.head[1] * sy + p[I.hy]];
+    // lécher : la patte sous le menton, devant (la tête penchée dessus) ; frotter : la patte sur le bord de la tête, de la joue à l'oreille
+    let tx, ty;
+    if (lick) { const m = b.head[1] * 0.92; tx = hc[0] - up[0] * m + fwd[0] * b.head[0] * 0.45; ty = hc[1] - up[1] * m + fwd[1] * b.head[0] * 0.45; }
+    else { const u = (cyc - 4.2) / 2.8, w = 0.5 - 0.5 * Math.cos(u * Math.PI * 4), r = b.head[1] * (-0.3 + 1.1 * w), f = b.head[0] * (1.05 - 0.2 * w); tx = hc[0] + up[0] * r + fwd[0] * f; ty = hc[1] + up[1] * r + fwd[1] * f; }
+    const hip = D.hips.f, vx = tx - hip[0] * sx, vy = ty - hip[1] * sy;
+    let L = Math.hypot(vx, vy) * 0.92; if (lick) L *= 1 - 0.07 * (0.5 + 0.5 * Math.sin(t * 11));
+    p[I[k]] = Math.atan2(vx, -vy); p[ki] = clamp(L / D.ll, 0.3, 1.5);
+    p[I.eyes] = 1; p[I.mouth] = lick && Math.sin(t * 11) > 0.3 ? 1 : 0; p[I.tailWave] = 0.2;
+  },
   // en boule, les yeux clos ; il respire
   dodo(c, p, t) { lie(c, p); p[I.sqz] = -0.1 + Math.sin(t * 1.5) * 0.03; p[I.y] -= 0.01; p[I.hy] = -c.D.h * 0.35; p[I.htilt] = -0.35; p[I.eyes] = 1; p[I.tailSide] = 2; p[I.tailCurl] = 1.4; p[I.fk] = p[I.fk2] = 0.35; },
   // en pain : les pattes rentrées, qui somnole
@@ -103,7 +117,16 @@ const Wd = { on: false, W: 0, H: 0, floor: 0, depth: 60, s0: 150, t: 0, f: 0, ca
 const TAU2 = Math.PI / 2, sgn = v => v < 0 ? -1 : 1, clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const zOf = d => (1 - d) * 6000, kOf = d => 1 - 0.16 * d, floorAt = d => Wd.floor - d * Wd.depth, sOf = d => Wd.s0 * kOf(d);
 const grav = () => 2600 * Wd.s0 / 160;
-const MAXC = 20;
+// plus tard, au temps du monde (pas de setTimeout : le monde peut être en pause, accéléré, ou rechargé)
+const later = (s, f) => { (Wd.later || (Wd.later = [])).push({ t: Wd.t + s, f }); };
+// le plafond de la scène : le bas du texte et des boutons encore visibles (rien ne doit monter plus haut)
+function ceilY() { let y = 0; document.querySelectorAll('[data-plafond]').forEach(e => { const r = e.getBoundingClientRect(); if (r.height) y = Math.max(y, r.bottom); }); return y || Wd.H * 0.4; }
+// la taille d'une unité : selon l'écran, et la place libre sous le texte (plus grand quand on reste jouer : le texte s'en va)
+const size0 = () => clamp(Math.min(Wd.W * (Wd.W < 760 ? 0.2 : 0.19), Wd.H * 0.19, (Wd.floor - Wd.ceil) * 0.95), 64, 165);
+function laters() { if (!Wd.later || !Wd.later.length) return; const due = Wd.later.filter(o => Wd.t >= o.t); if (!due.length) return; Wd.later = Wd.later.filter(o => Wd.t < o.t); due.forEach(o => o.f()); }
+let MAXC = 20;   // sur un téléphone : moins de chats (voir measure)
+// les croquettes : toujours au sol, devant (d ≤ 0.15) ; pas plus qu'on ne peut en manger
+const KIBMAX = () => Wd.mode === 'large' ? 150 : 70, TEMPMAX = () => Wd.mode === 'large' ? 8 : 3;
 
 /* ——— les caractères : chaque race a ses envies (des poids), sa démarche, son coin ———
    dort · mange · joue (pelote, poisson) · grimpe (l'arbre) · carton (se cacher dedans) · pousse (les caisses) · casse (fait tomber la tasse, la plante)
@@ -126,11 +149,10 @@ function measure(S) {
   if (S.W === Wd.W && S.H === Wd.H && Wd.floor) return false;
   Wd.W = S.W; Wd.H = S.H;
   const ui = document.querySelector('.film-ui'), top = ui ? ui.getBoundingClientRect().top : S.H - 60;
-  const btn = document.querySelector('#enter'), bb = btn ? btn.getBoundingClientRect().bottom : S.H * 0.6;
-  Wd.floor = Math.min(S.H - 30, top - 8);
-  Wd.s0 = clamp(Math.min(S.W * (S.W < 760 ? 0.25 : 0.19), S.H * 0.19, (Wd.floor - bb) * 0.95), 64, 165);
+  Wd.floor = Math.min(S.H - 30, top - 8); Wd.ceil = ceilY();
+  const s0 = size0(); if (!Wd.sized) { Wd.s0 = s0; Wd.sized = true; } Wd.s0T = s0;
   Wd.depth = Wd.s0 * 0.7;
-  const mode = S.W >= 760 ? 'large' : 'etroit';
+  const mode = S.W >= 760 ? 'large' : 'etroit'; MAXC = mode === 'large' ? 20 : 8;
   if (mode !== Wd.mode) { Wd.mode = mode; layout(); }
   Wd.props.forEach(it => it.trail && (it.trail.length = 0));
   return true;
@@ -142,13 +164,13 @@ function prop(kind, fx, d, o) {
   Object.assign(it, { fx, d, dT: d, lift: 0, vx: 0, vy: 0, tiltV: 0, fall: false, on: null, onDx: 0, busy: null, fade: 1, fadeT: 1, spinA: 0, trail: it.r ? [] : null, col: o.color });
   it.tilt = 0; it.hull = it.box || HULL[kind] || { w: 0.3, h: 0.2 };
   if (o.yaw !== undefined) it.yaw = o.yaw;
-  it.big = { distrib: 1.5, eau: 1.3, lanceur: 1.15 }[kind] || 1;   // le distributeur et la fontaine, un peu plus grands que nature
+  it.big = { distrib: 1.5, eau: 1.3, lanceur: 1.15, trappe: 1.1 }[kind] || 1;   // le distributeur et la fontaine, un peu plus grands que nature
   Wd.props.push(it); return it;
 }
-function unprop(it) { Univers.destroy(it); const i = Wd.props.indexOf(it); if (i >= 0) Wd.props.splice(i, 1); Wd.props.forEach(o => { if (o.on === it) o.on = null; }); }
+function unprop(it) { Univers.destroy(it); const i = Wd.props.indexOf(it); if (i >= 0) Wd.props.splice(i, 1); Wd.props.forEach(o => { if (o.on === it) o.on = null; if (o.target === it) o.target = null; }); }
 // l'encombrement de chaque objet (en unités) : pour tomber, rebondir, se poser sur une caisse, se laisser attraper
 const HULL = { carton: { w: 0.56, h: 0.32 }, panier: { w: 0.72, h: 0.15 }, coussin: { w: 0.76, h: 0.15 }, gamelle: { w: 0.34, h: 0.08 }, eau: { w: 0.33, h: 0.17 },
-  distrib: { w: 0.4, h: 0.74 }, arbre: { w: 1.5, h: 1.95 }, pelote: { w: 0.15, h: 0.15 }, poisson: { w: 0.3, h: 0.08 }, lanceur: { w: 0.6, h: 0.7 } };
+  distrib: { w: 0.4, h: 0.74 }, trappe: { w: 0.6, h: 0.5 }, arbre: { w: 1.5, h: 1.95 }, pelote: { w: 0.15, h: 0.15 }, poisson: { w: 0.3, h: 0.08 }, lanceur: { w: 0.6, h: 0.7 } };
 // les lourds (ils tanguent, se laissent traîner lentement, tombent lourdement), ce qu'un chat bouscule en passant
 const LOURD = { arbre: 1, distrib: 1, lanceur: 1 }, LEGER = { pelote: 1, poisson: 1, tasse: 1, plante: 1 };
 const COL = { orange: 0xd0661f, bleu: 0x2f6fb0, vert: 0x3a6e46, rose: 0xc04a6c, gris: 0x6a6c70 };
@@ -167,7 +189,7 @@ function layout() {
     P.tasse = prop('tasse', 0, 0.5); stack(P.tasse, P.caisse, 0.12);
     P.caisse2 = prop('caisse', 0.77, 0.92, { size: 1 });
     P.plante = prop('plante', 0, 0.92); stack(P.plante, P.caisse2, -0.06);
-    P.lanceur = prop('lanceur', 0.235, 0.95, { yaw: -0.35 });
+    P.trappe = prop('trappe', 1, 0.9);
     P.distrib = prop('distrib', 0.87, 0.85, { yaw: -0.55 });
     P.gamelle = prop('gamelle', 0.925, 0.45);
     P.eau = prop('eau', 0.95, 0.9);
@@ -177,11 +199,12 @@ function layout() {
     // sur un téléphone, l'arbre et la machine rapetissent un peu (la place manque)
     P.arbre.big = 0.78;
     P.carton = prop('carton', 0.64, 0.88);
-    P.lanceur = prop('lanceur', 0.47, 0.97, { yaw: -0.35 }); P.lanceur.big = 0.85;
+    P.trappe = prop('trappe', 1, 0.9); P.trappe.big = 0.85;
     P.caisse = prop('caisse', 0.86, 0.55, { size: 1 });
     P.tasse = prop('tasse', 0, 0.55); stack(P.tasse, P.caisse, 0.1);
     P.distrib = prop('distrib', 0.76, 0.97, { yaw: -0.55 });
   }
+  if (P.trappe) P.trappe.lift = Wd.s0 * 1.2;
   Wd.props.forEach(it => { it.home = { fx: it.fx, d: it.d, on: it.on, onDx: it.onDx }; });
 }
 function stack(it, on, dx) { it.on = on; it.onDx = dx; it.d = it.dT = on.d; }
@@ -192,6 +215,20 @@ function low(it) {
   return Math.min(-w * sn, w * sn, -w * sn + h * cs, w * sn + h * cs) * s;
 }
 // faire tomber un objet (de là où il est posé)
+// deux objets posés ne se traversent pas : le plus léger glisse de côté (le décor à sa place d'origine ne bouge pas)
+function apart(dt) {
+  const O = Wd.props.filter(it => !it.held && !it.fall && !it.on && !it.run && !it.r && !it.mur && it.kind !== 'souris' && it.fade > 0.5 && !(it.tower && it.tower.phase !== 'fin'));
+  const home = it => it.home && !it.home.on && Math.abs(it.fx - it.home.fx) < 0.01, mass = it => it.hull.w * it.hull.h * (it.big || 1) ** 2 * (LOURD[it.kind] ? 10 : 1);
+  for (let i = 0; i < O.length; i++) for (let j = i + 1; j < O.length; j++) {
+    const a = O[i], b = O[j]; if (!(Math.abs(a.d - b.d) <= 0.18) || (home(a) && home(b))) continue;
+    const ha = a.hull.w / 2 * sOf(a.d) * (a.big || 1), hb = b.hull.w / 2 * sOf(b.d) * (b.big || 1), dx = (b.fx - a.fx) * Wd.W, ov = ha + hb - Math.abs(dx);
+    if (!(ov > 0)) continue;
+    const ma = home(a) ? 1e9 : mass(a), mb = home(b) ? 1e9 : mass(b), dir = dx ? sgn(dx) : 1, mv = Math.min(ov, Wd.s0 * 2.5 * dt) / Wd.W;
+    a.fx -= dir * mv * mb / (ma + mb); b.fx += dir * mv * ma / (ma + mb);
+  }
+}
+// revenir à sa place (invisible, puis il réapparaît doucement)
+function goHome(it) { Object.assign(it, { fx: it.home.fx, d: it.home.d, dT: it.home.d, lift: 0, vx: 0, vy: 0, tiltV: 0, fade: 0 }); it.tilt = 0; if (it.home.on) stack(it, it.home.on, it.home.onDx); if (it.trail) it.trail.length = 0; it.fadeT = 1; it.away = null; }
 function drop(it, vx, vy, tv) { it.on = null; it.fall = true; it.vx = vx; it.vy = vy; it.tiltV = tv; it.down = Wd.t; }
 function updProp(it, dt) {
   if (it._f === Wd.f) return; it._f = Wd.f;
@@ -234,10 +271,12 @@ function updProp(it, dt) {
   const m = (it.r || it.hull.w / 2) * s * (it.big || 1) / Wd.W;
   if (it.folle && !it.held && !it.fall && !it.on) it.lift = Math.abs(Math.sin(Wd.t * 17)) * s * 0.03;
   // les lourds tanguent (un chat qui saute dessus, un coup de doigt, une salve de croquettes)
-  if (LOURD[it.kind] && !it.held && !it.fall && !it.on && Math.abs(it.tilt) < 0.2) { const u = Wd.t - (it.wob ?? -9); it.tilt = Math.sin(u * 13) * 0.045 * (it.wobA || 1) * Math.exp(-u * 3) + (it.folle ? Math.sin(Wd.t * 31) * 0.05 : 0); }
-  if (it.parts.levier) it.parts.levier.rotation.z = 0.3 + (it.pull || 0) * 1.3;
-  if (!it.run && it.fx < m) { it.fx = m; it.vx = Math.abs(it.vx) * (it.r ? 0.6 : 0); }
-  if (!it.run && it.fx > 1 - m) { it.fx = 1 - m; it.vx = -Math.abs(it.vx) * (it.r ? 0.6 : 0); }
+  if ((LOURD[it.kind] || it.mur) && !it.held && !it.fall && !it.on && Math.abs(it.tilt) < 0.2) { const u = Wd.t - (it.wob ?? -9); it.tilt = Math.sin(u * 13) * 0.045 * (it.wobA || 1) * Math.exp(-u * 3) + (it.folle ? Math.sin(Wd.t * 31) * 0.05 : 0); }
+  if (it.parts.levier) it.parts.levier.rotation.z = (it.lev0 ?? 0.3) + (it.pull || 0) * (it.levK ?? 1.3);
+  // accrochée au mur : au bord droit, à sa hauteur (sous le texte), rien ne la fait bouger
+  if (it.mur) { it.fx = 1 + it.hull.w * 0.1 * s * (it.big || 1) / Wd.W; const L = clamp(floorAt(it.d) - (Wd.ceil || 0) - 0.6 * s * (it.big || 1) - 12, Wd.s0 * 0.45, Wd.s0 * 1.7); it.lift += (L - it.lift) * Math.min(1, dt * 4); it.vx = it.vy = 0; it.fall = false; }
+  if (!it.run && !it.mur && it.fx < m) { it.fx = m; it.vx = Math.abs(it.vx) * (it.r ? 0.6 : 0); }
+  if (!it.run && !it.mur && it.fx > 1 - m) { it.fx = 1 - m; it.vx = -Math.abs(it.vx) * (it.r ? 0.6 : 0); }
   // la pelote : elle tourne en roulant et laisse son fil derrière elle
   if (it.r) {
     const x = it.fx * Wd.W; if (it.px !== undefined) it.spinA -= (x - it.px) / (it.r * s); it.px = x;
@@ -287,6 +326,7 @@ const fn = f => ({ k: 'fn', f });
 const STEPS = {
   walk(c, T, dt) {
     const tx = typeof T.x === 'function' ? T.x() : T.x, g = T.g || c.ch.g, v = SPEED[g] * sc(c) * (T.v || 1), dx = tx - c.x;
+    if (!Number.isFinite(tx) || (T.d !== undefined && !Number.isFinite(T.d))) return true;   // une cible perdue (son objet a disparu) : on s'arrête
     if (T.d !== undefined) c.d += clamp(T.d - c.d, -dt * 0.6, dt * 0.6);
     c.anim = g; c.perch = null;
     if (Math.abs(dx) <= v * dt + 0.5) { c.x = tx; if (T.d === undefined || Math.abs(T.d - c.d) < 0.01) { if (T.face) c.face = T.face; return true; } return false; }
@@ -333,6 +373,8 @@ function think(c) {
   if (c.perch) { c.q.push(pose('assis', rnd(1, 2)), hop(() => groundAt(inView(c.x + rnd(-1, 1) * sc(c)), freeD()))); return; }
   if (c.temp) { leave(c); return; }
   if (Wd.t - c.born > c.stay) { leave(c); return; }
+  // resté hors de l'écran (une sortie interrompue) : il revient
+  if (c.x < 0 || c.x > Wd.W) { c.q.push(go(inView(rnd(0.15, 0.85) * Wd.W), { g: 'trot' })); return; }
   const O = [], add = (w, f) => { if (w > 0 && f) O.push([w, f]); };
   // le coin préféré : un bonus pour ce qui s'y rapporte
   const fav = k => ch.coin === k ? 2 : 1;
@@ -393,12 +435,14 @@ function eat(c, g, drink) {
 function press(c, g) {
   claim(c, g);
   c.q.push(fn(c => { const b = beside(c, xOf(g), sc(c) * 0.22); c.q.unshift(go(b.x, { d: Math.max(0, g.d - 0.05), face: b.face })); }),
-    pose('tape', 0.9, { fx: c => setTimeout(() => Math.random() < 0.1 ? folle(g) : fire(g, c), 300) }), pose('affut', 1), fn(free));
+    pose('tape', 0.9, { fx: c => later(0.3, () => Math.random() < 0.1 ? folle(g) : fire(g, c)) }), pose('affut', 1), fn(free));
 }
 // les croquettes au sol : aller les manger, une à une
 function crunch(c) {
   const K = Wd.kib.filter(k => k.rest && !k.who); if (!K.length) { if (c.glouton) { c.glouton = false; c.q.push(pose('toilette', rnd(1.5, 3), { fx: c => say(c, 'burp') })); if (c.temp) leave(c); return; } return idle(c); }
-  const k = K.sort((a, b) => Math.abs(a.x - c.x) - Math.abs(b.x - c.x))[0]; k.who = c;
+  // la plus proche, mais pas sous le nez d'un autre mangeur (pas d'entassement)
+  const taken = Wd.kib.filter(o => o.who && o.who !== c && !o.gone), crowd = k => taken.some(o => Math.abs(o.x - k.x) < sc(c) * 0.9) ? Wd.W : 0;
+  const k = K.sort((a, b) => Math.abs(a.x - c.x) + crowd(a) - Math.abs(b.x - c.x) - crowd(b))[0]; k.who = c;
   c.q.push(fn(c => { const b = beside(c, k.x, -sc(c) * 0.12); c.q.unshift(go(inView(b.x), { d: clamp(k.d, 0, 0.75), face: b.face, g: 'trot' })); }),
     pose('mange', rnd(0.9, 1.6), { fx: c => { say(c, pick(['crounch', 'miam', 'scrountch'])); k.gone = true; let n = 0; Wd.kib.forEach(o => { if (o.rest && !o.who && n < 6 && Math.abs(o.x - k.x) < sc(c) * 0.35 && Math.abs(o.d - k.d) < 0.2) { o.gone = true; n++; } }); } }),
     fn(c => { const more = Wd.kib.filter(k => k.rest && !k.who); if (more.length && (c.glouton || (more.some(k => Math.abs(k.x - c.x) < sc(c) * 1.5) && Math.random() < 0.8))) crunch(c); else c.glouton = false; }));
@@ -408,7 +452,7 @@ function play(c, toy) {
   for (let i = 0; i < n; i++) c.q.push(
     fn(c => { const b = beside(c, xOf(toy), sc(c) * 0.5); c.q.unshift(go(b.x, { d: Math.max(0, toy.d - 0.04), face: b.face, g: 'trot' }), pose('affut', rnd(0.8, 1.6))); }),
     hop(() => groundAt(xOf(toy) - c.face * (front(c) + sc(c) * 0.02), c.d), { h: sc(c) * 0.3 }),
-    pose('tape', 0.55, { fx: c => setTimeout(() => kick(toy, c.face), 180) }));
+    pose('tape', 0.55, { fx: c => later(0.18, () => kick(toy, c.face)) }));
   c.q.push(pose('assis', 1.5), fn(free));
 }
 function kick(it, dir) {
@@ -452,7 +496,7 @@ function smash(c, item) {
   const b = item.on; claim(c, b); const dir = sgn(item.onDx) || 1;
   c.q.push(fn(c => { const s = sOf(b.d), x = xOf(b) - dir * (b.box.w / 2 * s + front(c) * 0.6); c.q.unshift(go(x, { d: Math.max(0, b.d - 0.06), face: dir })); }),
     hop(() => perchAt(b, b.perches[0], -dir * 0.07), { live: true, zr: [0, 0.4] }), fn(c => { c.face = dir; }),
-    pose('assis', 1.2), pose('tape', 0.4), pose('assis', 0.8, { face: dir }), pose('tape', 0.6, { fx: c => setTimeout(() => { if (item.on === b) { drop(item, dir * sOf(b.d) * 1.1, sOf(b.d) * 0.7, -dir * rnd(5, 8)); } }, 250) }),
+    pose('assis', 1.2), pose('tape', 0.4), pose('assis', 0.8, { face: dir }), pose('tape', 0.6, { fx: c => later(0.25, () => { if (item.on === b) { drop(item, dir * sOf(b.d) * 1.1, sOf(b.d) * 0.7, -dir * rnd(5, 8)); } }) }),
     pose('assis', 2.5, { fx: c => say(c, '!') }), hop(() => groundAt(inView(xOf(b) - dir * sc(c) * 1.2), Math.max(0, b.d - 0.15))), fn(free));
 }
 function zoomies(c) {
@@ -551,7 +595,7 @@ function live(c, dt) {
 
 /* ——— chacun sa place : deux chats ne se superposent pas ; ils passent devant ou derrière, ou s'écartent ——— */
 // ce qu'un chat contourne : tout ce qui est posé au sol (sauf ce qu'il va chercher, et les petits jouets qu'il bouscule)
-const SOLIDE = it => !it.r && it.kind !== 'poisson' && !it.on && !it.held && !it.fall && !it.run && it.fade > 0.5;
+const SOLIDE = it => !it.r && !it.mur && it.kind !== 'poisson' && !it.on && !it.held && !it.fall && !it.run && it.fade > 0.5;
 function spread(dt) {
   const G = Wd.cats.filter(c => !c.perch && !c.jump && !c.fall && !c.held && !c.fight && !c.hidden && !c.gone && !(c.task && (c.task.k === 'climb' || c.task.k === 'jump')));
   const walks = c => c.task && c.task.k === 'walk';
@@ -568,7 +612,13 @@ function spread(dt) {
         if (!near || Math.abs(tx - it.x) < hw) continue;
         let lane = it.d - 0.24; if (lane < 0) lane = it.d + 0.24; lane = clamp(lane, 0, 0.98);
         c.d += clamp(lane - c.d, -dt * 1.1, dt * 1.1); if (c.task.d !== undefined && Math.abs(c.task.d - it.d) < 0.2) c.task.d = lane;
-        if (Math.abs(dx) < hw * 0.8 && Math.abs(dd) < 0.12) c.x -= ahead * SPEED.pas * sc(c) * dt * 0.8;   // il attend que le chemin se libère
+        // bloqué contre l'objet : s'il est bas, il saute par-dessus (comme un vrai chat) ; sinon il file de côté, plus vite
+        if (Math.abs(dx) < hw * 0.8 && Math.abs(dd) < 0.12) {
+          const top = it.hull.h * s;
+          if (top < sc(c) * 0.9 && Wd.t - (c.hopT ?? -9) > 1.5) { c.hopT = Wd.t; const w = c.task, lx = inView(it.x + ahead * (hw + sc(c) * 0.15)), ld = c.d;
+            c.q.unshift(pose('affut', 0.25), hop(() => groundAt(lx, ld), { h: top + sc(c) * 0.3, zr: [0, 0.3] }), w); c.task = null; break; }
+          c.d += clamp(lane - c.d, -dt * 1.5, dt * 1.5);
+        }
       } else if (Math.abs(dx) < hw && !c.claims.length && !c.pet && !(c.task && c.task.k === 'push')) c.x = inView(c.x + (dx ? sgn(dx) : 1) * Math.min(hw - Math.abs(dx), sc(c) * 1.6 * dt));
     }
   });
@@ -588,6 +638,7 @@ function spread(dt) {
       const e = (dd ? sgn(dd) : 1) * dt * 0.05; a.d = clamp(a.d - e, 0, 0.6); b.d = clamp(b.d + e, 0, 0.6);
     }
   }
+  G.forEach(c => { if (c.task ? c.task.k !== 'jump' : true) c.y = floorAt(c.d); });   // le sol suit la profondeur, dans la même image
 }
 
 // en passant, un chat bouscule les petites choses : la pelote roule, la tasse saute
@@ -685,7 +736,7 @@ function horde() {
   }
   // les chats de la maison qui traînent : certains se joignent à la course
   Wd.cats.filter(k => !k.temp && free4(k) && Math.random() < 0.4).forEach(k => { interrupt(k); k.q = [pose('affut', rnd(0.3, 0.9), { face: dir }), go(dir > 0 ? W + sc(k) * 2 : -sc(k) * 2, { g: 'galop' }), fn(k => { k.gone = true; })]; });
-  setTimeout(() => { const lead = Wd.cats.filter(k => k.temp).sort((a, b) => dir * (b.x - a.x))[0]; if (lead) say(lead, '!'); }, 600);
+  later(0.6, () => { const lead = Wd.cats.filter(k => k.temp).sort((a, b) => dir * (b.x - a.x))[0]; if (lead) say(lead, '!'); });
 }
 function runMice(dt) {
   Wd.props.filter(p => p.run).forEach(m => {
@@ -694,20 +745,23 @@ function runMice(dt) {
   });
 }
 function tower() {
+  if (Wd.tower) return;   // une tour à la fois
   // une pile de caisses tombe du ciel, une à une ; les chats y grimpent ; ça penche… et tout s'écroule
   const tr = Wd.P.arbre, clear = tr ? tr.fx + (0.75 + 0.35) * Wd.s0 / Wd.W : 0.15;   // pas contre l'arbre
   const cands = [0.2, 0.3, 0.45, 0.55, 0.7, 0.85].filter(f => f > clear && (Wd.mode === 'large' || f > 0.3));
   const fx = cands.sort((a, b) => Math.min(...Wd.props.filter(p => !p.run).map(p => Math.abs(p.fx - b))) - Math.min(...Wd.props.filter(p => !p.run).map(p => Math.abs(p.fx - a))))[0];
-  const d = rnd(0.3, 0.6), sizes = Wd.mode === 'large' ? [2, 2, 1, 1, 0, 0] : [1, 1, 0, 0];
+  const d = rnd(0.3, 0.6), all = Wd.mode === 'large' ? [2, 2, 1, 1, 0, 0] : [1, 1, 0], H = [0.24, 0.3, 0.34];
+  // pas plus haute que la place libre sous le titre et les boutons
+  const room = (floorAt(d) - ceilY()) / sOf(d) - 0.35; let h = 0; const sizes = all.filter(z => (h += H[z]) < room); if (sizes.length < 2) return;
   // un escalier en zigzag : chaque caisse déborde d'un côté, et laisse à celle du dessous une marche où poser les pattes
   const z0 = Math.random() < 0.5 ? -1 : 1, offs = sizes.map((_, i) => i ? (i % 2 ? z0 : -z0) * 0.16 : 0);
   const T = Wd.tower = { boxes: [], t: 0, phase: 'pile', w: 0, fx, d, offs };
-  sizes.forEach((size, i) => setTimeout(() => {
+  sizes.forEach((size, i) => later(i * 0.52, () => {
     if (Wd.tower !== T) return;
     const b = prop('caisse', fx + offs.slice(0, i + 1).reduce((a, o) => a + o, 0) * sOf(d) / Wd.W + rnd(-0.002, 0.002), d, { size }); b.tower = T; b.fall = true; b.lift = Wd.H + sOf(d) * 0.5; b.vy = -sOf(d) * 2; b.tilt = rnd(-0.25, 0.25); b.tiltV = -b.tilt * 1.5;
     b.target = T.boxes[T.boxes.length - 1] || null; b.zo = 100; T.boxes.push(b);
-    if (i === sizes.length - 1) setTimeout(() => { if (Wd.tower === T) { T.phase = 'debout'; T.t = 0; climbers(T); } }, 1200);
-  }, i * 520));
+    if (i === sizes.length - 1) later(1.2, () => { if (Wd.tower === T) { T.phase = 'debout'; T.t = 0; climbers(T); } });
+  }));
 }
 function climbers(T) {
   const n = Math.min(3, Wd.mode === 'large' ? 3 : 2), who = Wd.cats.filter(k => !k.temp && free4(k)).slice(0, n);
@@ -746,7 +800,7 @@ function tidy() {
     if (!moved) { it.away = null; return; }
     if (!it.away) it.away = Wd.t;
     if (Wd.t - it.away > 18 && it.fadeT) it.fadeT = 0;
-    if (it.fade < 0.02 && !it.fadeT) { Object.assign(it, { fx: it.home.fx, d: it.home.d, dT: it.home.d, lift: 0, vx: 0, vy: 0, tiltV: 0 }); it.tilt = 0; if (it.home.on) stack(it, it.home.on, it.home.onDx); if (it.trail) it.trail.length = 0; it.fadeT = 1; it.away = null; }
+    if (it.fade < 0.02 && !it.fadeT) goHome(it);
   });
 }
 
@@ -761,19 +815,19 @@ function shoot(g) {
   g.wob = Wd.t; g.wobA = 0.8; dust(m[0], m[1], s * 0.2, 0.9);
   Wd.fx.push({ k: 'txt', text: pick(['pouf !', 'ploc', 'tchac !', 'et hop']), x: m[0] + ux * 20, y: m[1] - 26, t0: Wd.t, life: 1.1, rot: -0.15, size: 17 });
   // trop de cartons : les plus vieux (vides) s'effacent
-  const cap = Wd.mode === 'large' ? 14 : 7, old = Wd.props.filter(p => p.launched && !p.busy && !p.held && !Wd.cats.some(c => c.perch && c.perch.it === p) && p.fadeT).sort((a, b) => a.launched - b.launched);
+  const cap = Wd.mode === 'large' ? 14 : 5, old = Wd.props.filter(p => p.launched && !p.busy && !p.held && !Wd.cats.some(c => c.perch && c.perch.it === p) && p.fadeT).sort((a, b) => a.launched - b.launched);
   const n = Wd.props.filter(p => p.launched && p.fadeT).length; for (let i = 0; i < n - cap && i < old.length; i++) old[i].fadeT = 0;
 }
 function machines(dt) {
   Wd.props.forEach(g => {
-    if (g.kind === 'lanceur') {
+    if (g.pivot) {
       if (!g.pulling) { const u = Wd.t - (g.flick ?? -9); g.pull = u < 0.5 ? Math.sin(u / 0.5 * Math.PI) : (g.pull || 0) * Math.exp(-dt * 7); }
       if (g.pulling && g.pull > 0.75 && Wd.t > (g.next || 0)) { shoot(g); g.next = Wd.t + 0.3; }
     }
     if (g.folle) {
       const F = g.folle;
-      if (Wd.t > F.next && Wd.kib.length < 380) { F.next = Wd.t + 0.07; const m = Univers.at(g, g.bec), k = Wd.s0 / 160;
-        for (let i = 0; i < 3; i++) Wd.kib.push({ x: m[0], y: m[1], vx: rnd(-750, 750) * k, vy: -rnd(300, 1050) * k, d: rnd(0, 0.7), t0: Wd.t, rest: false, spin: Math.random() * 6 }); }
+      if (Wd.t > F.next && Wd.kib.length < KIBMAX()) { F.next = Wd.t + 0.07; const m = Univers.at(g, g.bec), k = Wd.s0 / 160;
+        for (let i = 0; i < 3; i++) Wd.kib.push({ x: m[0], y: m[1], vx: rnd(-750, 750) * k, vy: -rnd(300, 1050) * k, d: rnd(0, 0.15), t0: Wd.t, rest: false, spin: Math.random() * 6 }); }
       if (Wd.t > F.say) { F.say = Wd.t + rnd(0.6, 1); const m = Univers.at(g, g.bec); Wd.fx.push({ k: 'txt', text: pick(['BZZT !', 'ding ding ding', '!!!', 'croquettes !!!', 'brrrrr']), x: m[0] + rnd(-40, 40), y: m[1] - g.s * rnd(0.4, 0.8), t0: Wd.t, life: 1.2, rot: rnd(-0.3, 0.3), size: 19 }); }
       if (!F.fest && Wd.t > F.t0 + 1.2) { F.fest = true; feast(); }
       if (Wd.t > F.end) { g.folle = null; const m = Univers.at(g, [0, 0.8, 0]); dust(m[0], m[1], g.s * 0.3, 1); Wd.fx.push({ k: 'txt', text: 'pfff…', x: m[0], y: m[1] - 20, t0: Wd.t, life: 1.6, rot: -0.1, size: 18 }); g.clk = 0; }
@@ -790,8 +844,8 @@ function folle(g) {
 // le festin : tous les chats du coin accourent (et ceux d'à côté débarquent), ils mangent tout
 function feast() {
   const n = Wd.mode === 'large' ? 6 : 3;
-  for (let i = 0; i < n; i++) setTimeout(() => { if (Wd.cats.length > 26) return; const side = i % 2 ? -1 : 1, c = addCat({ temp: true, face: -side, d: rnd(0, 0.6) });
-    c.x = side < 0 ? -sc(c) * 1.2 : Wd.W + sc(c) * 1.2; c.glouton = true; c.q.push(go(rnd(0.2, 0.8) * Wd.W, { g: 'galop' })); if (i === 0) say(c, 'miaaou !'); crunch(c); }, i * 350);
+  for (let i = 0; i < n; i++) later(i * 0.35, () => { if (Wd.cats.filter(c => c.temp).length >= TEMPMAX() || Wd.cats.length >= MAXC + 4) return; const side = i % 2 ? -1 : 1, c = addCat({ temp: true, face: -side, d: rnd(0, 0.6) });
+    c.x = side < 0 ? -sc(c) * 1.2 : Wd.W + sc(c) * 1.2; c.glouton = true; c.q.push(go(rnd(0.2, 0.8) * Wd.W, { g: 'galop' })); if (i === 0) say(c, 'miaaou !'); crunch(c); });
   Wd.cats.forEach(c => { if (!c.temp && free4(c) && Math.random() < 0.85) { interrupt(c); c.glouton = true; crunch(c); } });
 }
 // ouvrir un carton fermé (un coup de griffe, deux) : il devient un carton ouvert… et on s'y installe
@@ -814,7 +868,7 @@ function fire(g, who) {
   if (!g || !Wd.props.includes(g) || Wd.t - (g.shake ?? -9) < 1.2) return;
   g.shake = Wd.t; g.wob = Wd.t; g.wobA = 0.6; const m = Univers.at(g, g.bec), k = Wd.s0 / 160, n = 9 + Math.floor(Math.random() * 7);
   Wd.fx.push({ k: 'txt', text: 'ding !', x: m[0] - g.s * 0.15, y: m[1] - g.s * 0.5, t0: Wd.t, life: 1.4, rot: -0.1, size: 18 });
-  for (let i = 0; i < n; i++) Wd.kib.push({ x: m[0], y: m[1], vx: rnd(90, 520) * k * (Math.random() < 0.12 ? -0.6 : 1), vy: -rnd(380, 820) * k, d: rnd(0, 0.55), t0: Wd.t + i * 0.045, rest: false, spin: Math.random() * 6 });
+  for (let i = 0; i < n && Wd.kib.length < KIBMAX(); i++) Wd.kib.push({ x: m[0], y: m[1], vx: rnd(90, 520) * k * (Math.random() < 0.12 ? -0.6 : 1), vy: -rnd(380, 820) * k, d: rnd(0, 0.12), t0: Wd.t + i * 0.045, rest: false, spin: Math.random() * 6 });
   // les gourmands accourent
   Wd.cats.filter(c => c !== who && free4(c) && !c.temp && Math.random() < 0.6).forEach(c => { interrupt(c); c.q = [pose('affut', rnd(0.4, 1.2))]; });
 }
@@ -857,7 +911,7 @@ function drawWater(S) {
 /* ——— plus il y a de chats, plus il y a de coins : un coussin, une pelote, un panier, de l'eau… apparaissent (et s'en vont) ——— */
 const EXTRA = ['coussin', 'pelote', 'panier', 'eau', 'carton', 'poisson', 'gamelle', 'coussin', 'pelote', 'panier'];
 function extras() {
-  const want = clamp(Math.floor((residents().length - 2) / 2), 0, Wd.mode === 'large' ? 8 : 3), X = Wd.extras;
+  const want = clamp(Math.floor((residents().length - 2) / 2), 0, Wd.mode === 'large' ? 8 : 1), X = Wd.extras;
   if (X.length < want && Wd.t > Wd.nextExtra) {
     const kind = EXTRA[X.length % EXTRA.length], toy = kind === 'pelote' || kind === 'poisson', d = toy ? rnd(0, 0.5) : rnd(0.55, 0.95);
     let best = null, bd = -1;
@@ -872,6 +926,62 @@ function extras() {
   X.slice().forEach(it => { if (!it.fadeT && it.fade < 0.02) { X.splice(X.indexOf(it), 1); Wd.cats.forEach(c => { if (c.perch && c.perch.it === it) interrupt(c); }); unprop(it); } });
 }
 
+
+/* ——— l'aspirateur divin : quand il y a trop de bazar, il descend du ciel (dans un rayon de lumière), balaie la scène
+   d'un bord à l'autre et aspire ce qui traîne (les cartons lancés, les croquettes, les objets déplacés, qui reviennent à leur place) ;
+   les chats s'enfuient… sauf un curieux, aspiré puis recraché ——— */
+const clutter = () => Wd.props.filter(p => p.launched && !p.suck).length + Math.floor(Wd.kib.filter(k => k.rest).length / 12) + Wd.props.filter(p => p.away && !p.launched && Wd.t - p.away > 6).length;
+function aspire() {
+  if (Wd.vac) return; const dir = Math.random() < 0.5 ? 1 : -1;
+  Wd.vac = { t0: Wd.t, dir, x: dir > 0 ? Wd.s0 * 0.6 : Wd.W - Wd.s0 * 0.6, ph: 'descend', curious: false };
+  const c = Wd.cats.find(k => free4(k)); if (c) say(c, '?!');
+}
+function vacFrame(dt) {
+  if (!Wd.vac) { if (Wd.t > (Wd.vacT || 0)) { Wd.vacT = Wd.t + 1; if (clutter() >= (Wd.mode === 'large' ? 14 : 7)) aspire(); } return; }
+  const V = Wd.vac, u = Wd.t - V.t0, s0 = Wd.s0, mouthY = Wd.floor - s0 * 1.05;
+  V.y = V.ph === 'descend' ? -s0 + (mouthY + s0) * sm(u / 1.3) : V.ph === 'remonte' ? mouthY - (mouthY + s0 * 1.5) * sm((Wd.t - V.tu) / 1.2) : mouthY + Math.sin(u * 5) * 4;
+  if (V.ph === 'descend' && u > 1.3) { V.ph = 'balaye'; V.tb = Wd.t; Wd.fx.push({ k: 'txt', text: 'VROUUUM', x: V.x, y: mouthY - s0 * 0.9, t0: Wd.t, life: 1.6, rot: -0.1, size: 22 }); }
+  if (V.ph === 'balaye') {
+    V.x += V.dir * Wd.W / 5.5 * dt;
+    const R = s0 * 0.9;
+    // ce qui traîne sous la bouche s'envole vers elle
+    Wd.props.forEach(it => { if (it.suck || it.held || it.run || it.mur || Math.abs(it.x - V.x) > R) return;
+      const temp = it.launched || (it.away && Wd.t - it.away > 2 && !it.tower); if (!temp) return;
+      it.suck = { t0: Wd.t, fx: it.fx, lift: it.lift }; it.on = null; it.fall = false; });
+    Wd.kib.forEach(k => { if (!k.suck && Math.abs(k.x - V.x) < R) { k.suck = Wd.t; k.sx = k.x; k.sy = k.y; if (k.who) k.who = null; } });
+    // les chats : ils filent de l'autre côté ; un curieux s'approche trop… aspiré, puis recraché
+    Wd.cats.forEach(c => { if (c.held || c.fall || c.hidden || c.perch || Math.abs(c.x - V.x) > R * 1.8 || Wd.t - (c.fled || -9) < 4) return;
+      c.fled = Wd.t;
+      if (!V.curious && Math.random() < 0.35 && Math.abs(c.x - V.x) < R) { V.curious = true; interrupt(c); say(c, 'miaaa !!'); c.fall = true; c.vx = (V.x - c.x) * 2; c.vy = -Math.sqrt(2 * grav() * Math.max(10, c.y - V.y)); c.spin = Math.PI * 2 * sgn(Math.random() - 0.5);
+        later(0.9, () => Wd.fx.push({ k: 'txt', text: 'ptoui !', x: V.x, y: V.y + 10, t0: Wd.t, life: 1.2, rot: 0.1, size: 18 })); return; }
+      interrupt(c); say(c, pick(['!!', 'fshhh', 'mia !'])); c.q = [go(inView(c.x + V.dir * Wd.W * 0.35), { g: 'galop' }), pose('affut', rnd(1, 2), { face: -V.dir }), pose('toilette', rnd(1.5, 3))]; });
+    if (V.x < -s0 * 0.4 || V.x > Wd.W + s0 * 0.4 || Wd.t - V.tb > 7) { V.ph = 'remonte'; V.tu = Wd.t; V.x = clamp(V.x, 0, Wd.W);
+      Wd.fx.push({ k: 'txt', text: pick(['propre !', 'voilà.', 'merci qui ?']), x: clamp(V.x, 60, Wd.W - 60), y: mouthY - s0 * 0.5, t0: Wd.t, life: 2, rot: -0.08, size: 22 }); }
+  }
+  if (V.ph === 'remonte' && Wd.t - V.tu > 1.2 && !Wd.props.some(p => p.suck) && !Wd.kib.some(k => k.suck)) Wd.vac = null;
+  // l'aspiration : vers la bouche, de plus en plus petit, puis disparu
+  const mx = V.x, my = V.y + s0 * 0.05;
+  Wd.props.slice().forEach(it => { if (!it.suck) return; const q = Math.min(1, (Wd.t - it.suck.t0) / 0.7), e = q * q;
+    it.fx = it.suck.fx + (mx / Wd.W - it.suck.fx) * e; it.lift = it.suck.lift + (floorAt(it.d) - my - it.suck.lift) * e; it.tilt = (it.tilt || 0) + dt * 9; it.fade = it.fadeT = 1 - e;
+    Wd.cats.forEach(c => { if (c.perch && c.perch.it === it) { interrupt(c); c.fall = true; c.vy = -sOf(it.d); say(c, '!!'); } });
+    if (q >= 1) { it.suck = null; if (it.launched || !it.home) unprop(it); else goHome(it); } });
+  Wd.kib.forEach(k => { if (!k.suck) return; const q = Math.min(1, (Wd.t - k.suck) / 0.45); k.rest = true; k.x = k.sx + (mx - k.sx) * q * q; k.y = k.sy + (my - k.sy) * q * q; if (q >= 1) k.gone = true; });
+}
+function drawVac(S) {
+  const V = Wd.vac; if (!V) return; const C = Chalk, s0 = Wd.s0, x = V.x, y = V.y, a = 0.85 * Wd.a, w = s0 * 0.28;
+  // le rayon divin : de la lumière qui tombe du ciel autour du tuyau
+  for (let i = -3; i <= 3; i++) { const sp = i * s0 * 0.16; C.line(x + sp * 0.3, 0, x + sp, y - s0 * 0.1, 1, { w: 1.1, a: 0.16 * Wd.a, amp: 0.4, seed: 40 + i, tip: false, dash: [6, 9] }); }
+  // le tuyau (deux traits ondulés), les annelures
+  const hose = k => { const P = []; for (let j = 0; j <= 12; j++) { const v = j / 12, yy = -10 + (y - s0 * 0.35 + 10) * v; P.push([x + k * w * 0.32 + Math.sin(v * 7 + Wd.t * 3) * s0 * 0.05 * (1 - v), yy]); } return P; };
+  C.stroke(hose(-1), 1, { w: 2, a, seed: 51, tip: false }); C.stroke(hose(1), 1, { w: 2, a, seed: 52, tip: false });
+  for (let j = 1; j < 6; j++) { const yy = (y - s0 * 0.35) * j / 6, xx = x + Math.sin(j / 6 * 7 + Wd.t * 3) * s0 * 0.05 * (1 - j / 6); C.line(xx - w * 0.32, yy, xx + w * 0.32, yy + 3, 1, { w: 1.2, a: a * 0.6, seed: 60 + j, tip: false }); }
+  // la bouche : un entonnoir large, ouvert vers le bas ; une auréole au-dessus
+  C.stroke([[x - w * 0.32, y - s0 * 0.35], [x - w, y], [x + w, y], [x + w * 0.32, y - s0 * 0.35]], 1, { w: 2.4, a, seed: 70, tip: false });
+  C.circle(x, y - s0 * 0.5, w * 0.7, w * 0.16, 1, { w: 1.6, a: a * 0.8, seed: 71 });
+  // l'aspiration : des petits traits qui montent vers la bouche
+  if (V.ph === 'balaye') for (let i = 0; i < 7; i++) { const ph = (Wd.t * 2.2 + i / 7) % 1, sx = x + (i - 3) * s0 * 0.22 * (1 - ph), sy = Wd.floor - (Wd.floor - y) * ph; C.line(sx, sy + 8, sx + (x - sx) * 0.1, sy, 1, { w: 1.2, a: a * 0.5 * (1 - ph), seed: 80 + i, tip: false }); }
+}
+
 /* ——— l'image ——— */
 let ready = false;
 function frame(S) {
@@ -884,18 +994,20 @@ function step(S, dt) {
   Wd.f++; Wd.t += dt;
   if (!ready) { ready = true; for (let i = 0; i < 2; i++) { const c = addCat({ x: rnd(0.3, 0.85) * Wd.W }); c.q.push(pose(pick(['assis', 'toilette', 'pain']), rnd(2, 5))); } }
   // la population : trois chats (au moins) ; quand l'un part, un autre arrive
-  if (dt && residents().length < 3 && Wd.t > Wd.nextIn) { enter(); Wd.nextIn = Wd.t + rnd(3, 9); }
+  if (dt && residents().length < (Wd.mode === 'large' ? 3 : 2) && Wd.t > Wd.nextIn) { enter(); Wd.nextIn = Wd.t + rnd(3, 9); }
   // les scénarios
   if (dt && Wd.t > Wd.nextScen && !Wd.tower && !Wd.props.some(p => p.run)) { (Wd.scen++ % 2 ? tower : horde)(); Wd.nextScen = Wd.t + rnd(28, 50); }
-  runMice(dt); towerFrame(dt); kibFrame(dt); extras(); machines(dt);
+  if (Wd.t > (Wd.ceilT || 0)) { Wd.ceil = ceilY(); Wd.s0T = size0(); Wd.ceilT = Wd.t + 0.5; }
+  if (Math.abs(Wd.s0T - Wd.s0) > 0.05) { Wd.s0 += (Wd.s0T - Wd.s0) * Math.min(1, dt * 1.5); Wd.depth = Wd.s0 * 0.7; }
+  laters(); runMice(dt); towerFrame(dt); kibFrame(dt); vacFrame(dt); extras(); machines(dt);
   Wd.cats.forEach(c => { if (c.pet && Wd.t - c.pet.t > 5) { c.pet = null; c.task = null; } });
   if (dt && Wd.t > Wd.nextKib) { const g = Wd.props.find(p => p.kind === 'distrib'); if (g) fire(g); Wd.nextKib = Wd.t + rnd(16, 32); }
-  Wd.props.forEach(it => updProp(it, dt));
+  Wd.props.forEach(it => updProp(it, dt)); apart(dt);
   Wd.cats.slice().forEach(c => live(c, dt));
   spread(dt); bump();
   tidy();
 }
-function draw(S) { drawWater(S); drawKib(S); drawFx(S); }
+function draw(S) { drawWater(S); drawKib(S); drawVac(S); drawFx(S); }
 function hide() { Wd.cats.forEach(c => { c.root.visible = false; }); Wd.props.forEach(it => { it.root.visible = false; }); }
 
 /* ——— les mains : cliquer, attraper ——— */
@@ -919,7 +1031,7 @@ function poke(it, x) {
   const inside = Wd.cats.filter(c => c.perch && c.perch.it === it);
   if (inside.length && !LOURD[it.kind]) { inside.forEach(c => { interrupt(c); say(c, pick(['!', 'mia !', '?!'])); c.q = [hop(() => groundAt(inView(it.x + sgn(Math.random() - 0.5) * sc(c) * 1.2), Math.max(0, it.d - 0.2)), { h: sc(c) * 0.9, zr: [0.2, 0.6] }), pose('feule', 0.6), pose('toilette', 2)]; }); it.wob = Wd.t; return; }
   if (it.kind === 'distrib') { it.clk = Wd.t - (it.clkT ?? -9) < 2.5 ? (it.clk || 0) + 1 : 1; it.clkT = Wd.t; if (it.clk >= 3 || Math.random() < 0.1) folle(it); else fire(it); }
-  else if (it.kind === 'lanceur') { it.flick = Wd.t; shoot(it); }
+  else if (it.pivot) { it.flick = Wd.t; shoot(it); }
   else if (it.kind === 'arbre') { it.poke = it.wob = Wd.t; it.wobA = 1; }
   else if (it.r) { it.vx = side * s * rnd(2, 3); it.fall = true; it.vy = s * 0.6; }
   else if (it.on) drop(it, side * s * 1.1, s * 0.8, -side * 6);
@@ -945,17 +1057,17 @@ function grab(x, y) {
   const c = catAt(x, y); if (c) return c; const it = propAt(x, y); return it && !it.run ? it : null;
 }
 // le levier de la machine à cartons : son pommeau à l'écran
-function knob(g) { const a = 0.3 + (g.pull || 0) * 1.3; return Univers.at(g, [g.pivot[0] - Math.sin(a) * 0.3, g.pivot[1] + Math.cos(a) * 0.3, g.pivot[2]]); }
-function leverAt(x, y) { const g = Wd.props.find(p => p.kind === 'lanceur' && !p.held && !p.fall && p.a > 0.5); if (!g) return null; const k = knob(g); return Math.hypot(x - k[0], y - k[1]) < Math.max(g.s * 0.09, 18) ? (g.handle || (g.handle = { lever: g })) : null; }
+function knob(g) { const a = (g.lev0 ?? 0.3) + (g.pull || 0) * (g.levK ?? 1.3); return Univers.at(g, [g.pivot[0] - Math.sin(a) * 0.3, g.pivot[1] + Math.cos(a) * 0.3, g.pivot[2]]); }
+function leverAt(x, y) { const g = Wd.props.find(p => p.pivot && !p.held && !p.fall && p.a > 0.5); if (!g) return null; const k = knob(g); return Math.hypot(x - k[0], y - k[1]) < Math.max(g.s * 0.09, 18) ? (g.handle || (g.handle = { lever: g })) : null; }
 const isProp = k => !!(k && k.hull);
 function drag(c, x, y) {
   if (!c) return;
   if (c.lever) { const g = c.lever; if (!g.pulling) { g.pulling = true; c.y0 = y - (g.pull || 0) * g.s * 0.35; } g.pull = clamp((y - c.y0) / (g.s * 0.35), 0, 1); return; }
-  if (isProp(c)) { const it = c;
+  if (isProp(c)) { const it = c; if (it.mur) return;   // accrochée au mur : on ne l'emporte pas
     if (!it.held) {
       // on le soulève : ce qui dormait dessus saute (live), ce qui était posé dessus suit ; il ne revient plus seul à sa place tout de suite
       it.on = null; it.fall = false; it.target = null; it.held = true; it.vy = it.tiltV = 0; it.gdx = x - it.x; it.gdy = y - it.y; it.fadeT = 1; it.away = null;
-      if (it.tower) { it.tower.boxes.splice(it.tower.boxes.indexOf(it), 1); it.tower = null; }
+      if (it.tower) { it.tower.boxes.splice(it.tower.boxes.indexOf(it), 1); it.tower = null; it.launched = Wd.t; }   // sortie de la tour : un carton temporaire comme un autre
       // les chats d'à côté regardent ce qui s'envole
       Wd.cats.forEach(k => { if (free4(k) && Math.abs(k.x - it.x) < Wd.W * 0.4 && Math.random() < 0.5) { interrupt(k); k.q = [pose('affut', rnd(1, 2.2), { face: sgn(it.x - k.x) })]; } });
       if (LOURD[it.kind]) Wd.fx.push({ k: 'txt', text: 'hop…', x, y: y - it.s * 0.2, t0: Wd.t, life: 1, rot: -0.1, size: 16 });
@@ -979,7 +1091,7 @@ function pet(c, x, y) {
     if (P.n >= lim && Math.random() < (c.breed === 'grincheux' ? 0.8 : 0.35)) { c.pet = null; c.task = null; c.q = [pose('tape', 0.5, { face: sgn(x - c.x) || c.face, fx: c => say(c, 'pfff !') }), go(inView(c.x - sgn(x - c.x) * sc(c) * 1.5), { g: 'trot' }), pose('toilette', 2.5)]; } } }
   P.t = Wd.t; c.face = c.face;
 }
-function purr(c) { c.purr = Wd.t + 2.6; say(c, '♥'); setTimeout(() => say(c, 'rrrr', 0), 500); }
+function purr(c) { c.purr = Wd.t + 2.6; say(c, '♥'); later(0.5, () => say(c, 'rrrr', 0)); }
 function release(c, vx, vy) {
   if (!c) return;
   if (c.lever) { const g = c.lever; if (!g.pulling) { g.flick = Wd.t; shoot(g); } g.pulling = false; return; }
@@ -994,5 +1106,5 @@ function release(c, vx, vy) {
   c.d = freeD();
 }
 
-return { ANIMS, CARAC, frame, draw, hide, click, grab, drag, release, get clicks() { return Wd.clicks; }, get world() { return Wd; }, horde, tower, folle: () => folle(Wd.P.distrib), ouvre: () => { const b = Wd.props.find(p => p.launched && p.kind === 'caisse' && !p.busy && !p.fall), c = Wd.cats.find(free4); if (b && c) { interrupt(c); open(c, b); } }, fight: () => { const L = Wd.cats.filter(free4).slice(0, 2); if (L.length > 1) fight(L); }, quarrel: () => { const L = Wd.cats.filter(free4); if (L.length > 1) quarrel(L[0], L[1]); } };
+return { ANIMS, CARAC, frame, draw, hide, click, grab, drag, release, get clicks() { return Wd.clicks; }, get world() { return Wd; }, horde, tower, aspire, folle: () => folle(Wd.P.distrib), ouvre: () => { const b = Wd.props.find(p => p.launched && p.kind === 'caisse' && !p.busy && !p.fall), c = Wd.cats.find(free4); if (b && c) { interrupt(c); open(c, b); } }, fight: () => { const L = Wd.cats.filter(free4).slice(0, 2); if (L.length > 1) fight(L); }, quarrel: () => { const L = Wd.cats.filter(free4); if (L.length > 1) quarrel(L[0], L[1]); } };
 })();

@@ -359,6 +359,15 @@ function writeTrace(it, ox, oy, p) {
   const T = it.tr, col = it.el.dataset.ink === 'accent' ? ((window.THEME && THEME.accent) || INK) : INK, lite = col.split(',').map(v => Math.round(+v + (255 - v) * 0.45)).join(',');
   const q = c01((p - it.delay) / (1 - it.delay) / 0.9), budget = T.total * q, w = Math.max(2.2, T.th * 1.12);
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  if (it.el.dataset.ink === 'pen') {
+    // à l'encre (data-ink="pen") : un trait simple, noir, comme le prénom du logo (js/logo.js) ; un fin reflet décalé, pas de poudre
+    const pw = Math.max(2, T.th * 1.05); let used = 0, tip = null; ctx.strokeStyle = `rgba(${INK},0.9)`; ctx.lineWidth = pw;
+    for (const P of T.strokes) { if (used >= budget) break; tip = trace(P, Math.min(P.len, budget - used), ox, oy); used += P.len; }
+    used = 0; ctx.strokeStyle = `rgba(${INK},0.25)`; ctx.lineWidth = pw * 0.3;
+    for (const P of T.strokes) { if (used >= budget) break; trace(P, Math.min(P.len, budget - used), ox - 0.4, oy - 0.5); used += P.len; }
+    if (q < 0.999 && tip) { ctx.fillStyle = `rgba(${INK},0.95)`; ctx.beginPath(); ctx.arc(tip[0], tip[1], pw * 0.6, 0, Math.PI * 2); ctx.fill(); }
+    return;
+  }
   const pass = (lw, style, dx, dy) => { ctx.strokeStyle = style; ctx.lineWidth = lw; let used = 0, tip = null;
     for (const P of T.strokes) { if (used >= budget) break; const t = trace(P, Math.min(P.len, budget - used), ox + dx, oy + dy); used += P.len; if (t) tip = t; else tip = null; }
     return tip; };
