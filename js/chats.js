@@ -52,6 +52,13 @@ const ANIMS = {
     p[I.pitch] = -0.35 * a; p[I.stretch] = 0.25 * a; p[I.y] -= 0.02 * a; p[I.fl] = p[I.fr] = 1.1 * a; p[I.hl] = p[I.hr] = 0.35 * a; p[I.fk] = p[I.fk2] = 1 + 0.3 * a;
     p[I.mouth] = a > 0.8 ? 1 : 0; p[I.eyes] = a > 0.6 ? 1 : 0; p[I.tailUp] = 0.9 + 0.5 * a; p[I.hy] = -0.04 * a;
   },
+  // la caresse : debout sur la pointe des pattes, le dos qui se bombe sous la main, la tête qui se frotte, la queue droite qui frémit
+  caresse(c, p, t) {
+    Chat.rest(c, p); const k = c.pet ? Math.min(1, c.pet.n / 6) : 0.5;
+    p[I.sqz] = 0.05 + 0.05 * k + Math.sin(t * 3) * 0.03; p[I.y] += 0.015; p[I.pitch] = -0.05; p[I.fk] = p[I.fk2] = 1.1; p[I.hk] = 1.15;
+    p[I.htilt] = 0.3 * Math.sin(t * 2.2); p[I.hnod] = -0.2; p[I.eyes] = 2; p[I.look] = 1;
+    p[I.tailUp] = 1.7; p[I.tailCurl] = -0.4 + k * 0.5; p[I.tailWave] = 0.25; p[I.tailPhase] = t * 9;
+  },
   // à l'affût : tapi, l'arrière qui se dandine, le bout de la queue qui fouette, les pupilles sur la proie
   affut(c, p, t) { lie(c, p); p[I.y] += 0.02; p[I.pitch] = -0.08 + Math.sin(t * 16) * 0.04; p[I.hk] = 0.5; p[I.fl] = p[I.fr] = 0.9; p[I.look] = 0.5; p[I.px] = 1; p[I.tailUp] = 0.2; p[I.tailPhase] = t * 14; p[I.tailWave] = 1.4; },
   // un coup de patte
@@ -135,21 +142,21 @@ function prop(kind, fx, d, o) {
   Object.assign(it, { fx, d, dT: d, lift: 0, vx: 0, vy: 0, tiltV: 0, fall: false, on: null, onDx: 0, busy: null, fade: 1, fadeT: 1, spinA: 0, trail: it.r ? [] : null, col: o.color });
   it.tilt = 0; it.hull = it.box || HULL[kind] || { w: 0.3, h: 0.2 };
   if (o.yaw !== undefined) it.yaw = o.yaw;
-  it.big = { distrib: 1.5, eau: 1.3 }[kind] || 1;   // le distributeur et la fontaine, un peu plus grands que nature
+  it.big = { distrib: 1.5, eau: 1.3, lanceur: 1.15 }[kind] || 1;   // le distributeur et la fontaine, un peu plus grands que nature
   Wd.props.push(it); return it;
 }
 function unprop(it) { Univers.destroy(it); const i = Wd.props.indexOf(it); if (i >= 0) Wd.props.splice(i, 1); Wd.props.forEach(o => { if (o.on === it) o.on = null; }); }
 // l'encombrement de chaque objet (en unités) : pour tomber, rebondir, se poser sur une caisse, se laisser attraper
 const HULL = { carton: { w: 0.56, h: 0.32 }, panier: { w: 0.72, h: 0.15 }, coussin: { w: 0.76, h: 0.15 }, gamelle: { w: 0.34, h: 0.08 }, eau: { w: 0.33, h: 0.17 },
-  distrib: { w: 0.5, h: 0.9 }, arbre: { w: 1.5, h: 1.95 }, pelote: { w: 0.15, h: 0.15 }, poisson: { w: 0.3, h: 0.08 } };
-// ce qu'on peut attraper (l'arbre et le distributeur sont trop lourds : ils tanguent), ce qu'un chat bouscule en passant
-const LOURD = { arbre: 1, distrib: 1 }, LEGER = { pelote: 1, poisson: 1, tasse: 1, plante: 1 };
+  distrib: { w: 0.4, h: 0.74 }, arbre: { w: 1.5, h: 1.95 }, pelote: { w: 0.15, h: 0.15 }, poisson: { w: 0.3, h: 0.08 }, lanceur: { w: 0.6, h: 0.7 } };
+// les lourds (ils tanguent, se laissent traîner lentement, tombent lourdement), ce qu'un chat bouscule en passant
+const LOURD = { arbre: 1, distrib: 1, lanceur: 1 }, LEGER = { pelote: 1, poisson: 1, tasse: 1, plante: 1 };
 const COL = { orange: 0xd0661f, bleu: 0x2f6fb0, vert: 0x3a6e46, rose: 0xc04a6c, gris: 0x6a6c70 };
 function layout() {
   Wd.props.slice().forEach(unprop); Wd.P = {}; Wd.extras = []; Wd.kib = []; const P = Wd.P, wide = Wd.mode === 'large';
   const ex = u => u * Wd.s0 / Wd.W;   // une largeur en unités → en fraction de l'écran
   // l'arbre à chat au bord gauche, tourné vers le centre ; le coin repos, les jouets devant, le carton et les caisses, la cuisine à droite
-  P.arbre = prop('arbre', ex(0.8) + 0.012, 0.75, { yaw: 0.4 });
+  P.arbre = prop('arbre', ex(wide ? 0.8 : 0.62) + 0.012, 0.75, { yaw: 0.4 });
   if (wide) {
     P.coussin = prop('coussin', 0.25, 0.3);
     P.panier = prop('panier', 0.34, 0.85);
@@ -160,13 +167,17 @@ function layout() {
     P.tasse = prop('tasse', 0, 0.5); stack(P.tasse, P.caisse, 0.12);
     P.caisse2 = prop('caisse', 0.77, 0.92, { size: 1 });
     P.plante = prop('plante', 0, 0.92); stack(P.plante, P.caisse2, -0.06);
+    P.lanceur = prop('lanceur', 0.235, 0.95, { yaw: -0.35 });
     P.distrib = prop('distrib', 0.87, 0.85, { yaw: -0.55 });
     P.gamelle = prop('gamelle', 0.925, 0.45);
     P.eau = prop('eau', 0.95, 0.9);
   } else {
-    P.coussin = prop('coussin', 0.5, 0.35);
+    P.coussin = prop('coussin', 0.56, 0.3);
     P.pelote = prop('pelote', 0.68, 0.0);
-    P.carton = prop('carton', 0.56, 0.88);
+    // sur un téléphone, l'arbre et la machine rapetissent un peu (la place manque)
+    P.arbre.big = 0.78;
+    P.carton = prop('carton', 0.64, 0.88);
+    P.lanceur = prop('lanceur', 0.47, 0.97, { yaw: -0.35 }); P.lanceur.big = 0.85;
     P.caisse = prop('caisse', 0.86, 0.55, { size: 1 });
     P.tasse = prop('tasse', 0, 0.55); stack(P.tasse, P.caisse, 0.1);
     P.distrib = prop('distrib', 0.76, 0.97, { yaw: -0.55 });
@@ -177,7 +188,7 @@ function stack(it, on, dx) { it.on = on; it.onDx = dx; it.d = it.dT = on.d; }
 const topOf = b => b.box ? b.box.h * sOf(b.d) * 0.98 : 0;
 // le point le plus bas d'une caisse penchée (sous son pied), en px (négatif : sous le pivot)
 function low(it) {
-  if (it.r) return 0; const s = sOf(it.d), w = it.hull.w / 2, h = it.hull.h, sn = Math.sin(it.tilt), cs = Math.cos(it.tilt);
+  if (it.r) return 0; const s = sOf(it.d) * (it.big || 1), w = it.hull.w / 2, h = it.hull.h, sn = Math.sin(it.tilt), cs = Math.cos(it.tilt);
   return Math.min(-w * sn, w * sn, -w * sn + h * cs, w * sn + h * cs) * s;
 }
 // faire tomber un objet (de là où il est posé)
@@ -188,7 +199,7 @@ function updProp(it, dt) {
   if (it.held) {
     // dans la main : il suit le doigt, et penche un peu du côté d'où il vient
     const px = it.fx; it.fx = (it.hx - it.gdx) / Wd.W; it.lift = floorAt(it.d) - it.hy + it.gdy;
-    it.vx = (it.fx - px) * Wd.W / Math.max(dt, 1 / 120); if (!it.r) it.tilt += (clamp(-it.vx * 0.0012, -0.6, 0.6) - it.tilt) * Math.min(1, dt * 8);
+    it.vx = (it.fx - px) * Wd.W / Math.max(dt, 1 / 120); if (!it.r) { const h = LOURD[it.kind]; it.tilt += (clamp(-it.vx * (h ? 0.0005 : 0.0012), -0.6, 0.6) * (h ? 0.5 : 1) - it.tilt) * Math.min(1, dt * (h ? 3 : 8)); }
   } else if (it.on) {
     const b = it.on; updProp(b, dt); it.d = it.dT = b.d;
     const p = Univers.at(b, [it.onDx, b.box ? b.box.h : 0, 0]); it.fx = p[0] / Wd.W; it.lift = floorAt(it.d) - p[1];
@@ -208,7 +219,7 @@ function updProp(it, dt) {
     if (it.fall && it.lift + lo <= 0) {
       it.lift = -lo;
       if (it.tower && it.tower.phase === 'pile') { it.fall = false; it.vy = it.vx = it.tiltV = 0; it.tilt = 0; it.lift = 0; dust(it.fx * Wd.W, floorAt(it.d), s * 0.5, 0.8); }
-      else if (it.vy < -s * 1.6) { dust(it.fx * Wd.W, floorAt(it.d), s * 0.4, 0.8); it.vy = -it.vy * 0.28; it.vx *= 0.6; it.tiltV *= 0.45; }
+      else if (it.vy < -s * 1.6) { dust(it.fx * Wd.W, floorAt(it.d), s * 0.4, 0.8); thud(it); it.vy = -it.vy * (LOURD[it.kind] ? 0.12 : 0.28); it.vx *= 0.6; it.tiltV *= 0.45; }
       else {
         it.vy = 0; it.vx *= Math.exp(-dt * 7);
         if (!it.r) { const q = it.box ? Math.round(it.tilt / TAU2) * TAU2 : 0; it.tiltV = (q - it.tilt) * 9; if (Math.abs(q - it.tilt) < 0.01 && Math.abs(it.vx) < 4) { it.tilt = q; it.tiltV = 0; it.fall = false; it.lift = -low(it); it.vx = 0; } }
@@ -221,8 +232,10 @@ function updProp(it, dt) {
   }
   // les bords de l'écran : la pelote rebondit, le reste s'arrête
   const m = (it.r || it.hull.w / 2) * s * (it.big || 1) / Wd.W;
+  if (it.folle && !it.held && !it.fall && !it.on) it.lift = Math.abs(Math.sin(Wd.t * 17)) * s * 0.03;
   // les lourds tanguent (un chat qui saute dessus, un coup de doigt, une salve de croquettes)
-  if (LOURD[it.kind]) { const u = Wd.t - (it.wob ?? -9); it.tilt = Math.sin(u * 13) * 0.045 * (it.wobA || 1) * Math.exp(-u * 3); }
+  if (LOURD[it.kind] && !it.held && !it.fall && !it.on && Math.abs(it.tilt) < 0.2) { const u = Wd.t - (it.wob ?? -9); it.tilt = Math.sin(u * 13) * 0.045 * (it.wobA || 1) * Math.exp(-u * 3) + (it.folle ? Math.sin(Wd.t * 31) * 0.05 : 0); }
+  if (it.parts.levier) it.parts.levier.rotation.z = 0.3 + (it.pull || 0) * 1.3;
   if (!it.run && it.fx < m) { it.fx = m; it.vx = Math.abs(it.vx) * (it.r ? 0.6 : 0); }
   if (!it.run && it.fx > 1 - m) { it.fx = 1 - m; it.vx = -Math.abs(it.vx) * (it.r ? 0.6 : 0); }
   // la pelote : elle tourne en roulant et laisse son fil derrière elle
@@ -232,7 +245,8 @@ function updProp(it, dt) {
     const T = it.trail, y = floorAt(it.d) - it.lift, L = T[T.length - 1];
     if (!L || Math.hypot(L[0] - x, L[1] - y) > 7) { T.push([x, y]); if (T.length > 60) T.shift(); }
   }
-  if (it.parts.jar) { const u = Wd.t - (it.shake ?? -9); it.parts.jar.rotation.z = Math.sin(u * 32) * 0.14 * Math.exp(-u * 3.5); it.parts.jar.position.y = 0.46 + Math.max(0, Math.sin(u * 16)) * 0.03 * Math.exp(-u * 4); }
+  if (it.parts.jar && it.folle) { it.parts.jar.rotation.z = Math.sin(Wd.t * 38) * 0.3; it.parts.jar.position.y = 0.46 + Math.abs(Math.sin(Wd.t * 25)) * 0.05; }
+  else if (it.parts.jar) { const u = Wd.t - (it.shake ?? -9); it.parts.jar.rotation.z = Math.sin(u * 32) * 0.14 * Math.exp(-u * 3.5); it.parts.jar.position.y = 0.46 + Math.max(0, Math.sin(u * 16)) * 0.03 * Math.exp(-u * 4); }
   if (it.parts.pompon) it.parts.pompon.rotation.z = Math.sin(Wd.t * 2.2) * 0.25 + (it.poke ? Math.sin((Wd.t - it.poke) * 14) * Math.exp(-(Wd.t - it.poke) * 2) * 0.8 : 0);
   it.fade += (it.fadeT - it.fade) * Math.min(1, dt * 3);
   it.s = s * (it.big || 1); it.x = it.fx * Wd.W; it.y = floorAt(it.d) - it.lift; it.z = zOf(it.d) + (it.zo || 0); it.a = it.fade * Wd.a;
@@ -335,6 +349,8 @@ function think(c) {
   const cartons = all('carton'); if (cartons.length) add(ch.carton * fav('carton'), () => hide(c, pick(cartons)));
   const boxes = Wd.props.filter(p => p.kind === 'caisse' && !p.on && !p.fall && !p.busy && !p.tower && Math.abs(p.tilt) < 0.01);
   if (boxes.length) add(ch.pousse * fav('caisse'), () => push(c, pick(boxes)));
+  const shut = Wd.props.filter(p => p.kind === 'caisse' && p.launched && !p.on && !p.fall && !p.held && !p.busy && !Wd.props.some(o => o.on === p) && p.fade > 0.9);
+  if (shut.length) add((ch.carton + 0.6) * 1.6, () => open(c, pick(shut)));
   const knock = Wd.props.filter(p => (p.kind === 'tasse' || p.kind === 'plante') && p.on && !p.on.busy && !p.on.fall && !p.on.tower);
   if (knock.length) add(ch.casse * 1.3, () => smash(c, pick(knock)));
   // le distributeur : on peut aller appuyer sur son gros bouton
@@ -377,15 +393,15 @@ function eat(c, g, drink) {
 function press(c, g) {
   claim(c, g);
   c.q.push(fn(c => { const b = beside(c, xOf(g), sc(c) * 0.22); c.q.unshift(go(b.x, { d: Math.max(0, g.d - 0.05), face: b.face })); }),
-    pose('tape', 0.9, { fx: c => setTimeout(() => fire(g, c), 300) }), pose('affut', 1), fn(free));
+    pose('tape', 0.9, { fx: c => setTimeout(() => Math.random() < 0.1 ? folle(g) : fire(g, c), 300) }), pose('affut', 1), fn(free));
 }
 // les croquettes au sol : aller les manger, une à une
 function crunch(c) {
-  const K = Wd.kib.filter(k => k.rest && !k.who); if (!K.length) return idle(c);
+  const K = Wd.kib.filter(k => k.rest && !k.who); if (!K.length) { if (c.glouton) { c.glouton = false; c.q.push(pose('toilette', rnd(1.5, 3), { fx: c => say(c, 'burp') })); if (c.temp) leave(c); return; } return idle(c); }
   const k = K.sort((a, b) => Math.abs(a.x - c.x) - Math.abs(b.x - c.x))[0]; k.who = c;
   c.q.push(fn(c => { const b = beside(c, k.x, -sc(c) * 0.12); c.q.unshift(go(inView(b.x), { d: clamp(k.d, 0, 0.75), face: b.face, g: 'trot' })); }),
-    pose('mange', rnd(0.9, 1.6), { fx: c => { say(c, 'crounch'); setTimeout(() => { k.gone = true; }, 500); } }),
-    fn(c => { if (Wd.kib.some(k => k.rest && !k.who && Math.abs(k.x - c.x) < sc(c) * 1.5) && Math.random() < 0.8) crunch(c); }));
+    pose('mange', rnd(0.9, 1.6), { fx: c => { say(c, pick(['crounch', 'miam', 'scrountch'])); k.gone = true; let n = 0; Wd.kib.forEach(o => { if (o.rest && !o.who && n < 6 && Math.abs(o.x - k.x) < sc(c) * 0.35 && Math.abs(o.d - k.d) < 0.2) { o.gone = true; n++; } }); } }),
+    fn(c => { const more = Wd.kib.filter(k => k.rest && !k.who); if (more.length && (c.glouton || (more.some(k => Math.abs(k.x - c.x) < sc(c) * 1.5) && Math.random() < 0.8))) crunch(c); else c.glouton = false; }));
 }
 function play(c, toy) {
   claim(c, toy); const n = toy.kind === 'pelote' ? 2 + Math.floor(Math.random() * 3) : 1;
@@ -523,7 +539,7 @@ function live(c, dt) {
   // la pose
   const A = ANIMS[c.anim] || ANIMS.assis; A(c, c.tgt, c.at);
   if (c.pushing) { c.tgt[I.pitch] -= 0.12; c.tgt[I.look] = 0.3; c.tgt[I.eyes] = 1; }
-  if (c.purr && Wd.t < c.purr) { ANIMS.ronron(c, c.tgt, c.at); }
+  if (c.purr && Wd.t < c.purr && !c.pet) { ANIMS.ronron(c, c.tgt, c.at); }
   c.s = sOf(c.d);
   c.z = c.held ? 30000 : c.jump && c.zj != null ? c.zj : c.zp != null ? c.zp : zOf(c.d) + c.zo;
   if (c.bonk && Wd.t < c.bonk) { c.tgt[I.eyes] = 1; c.tgt[I.sqz] -= 0.1; c.tgt[I.hnod] -= 0.15; }
@@ -534,9 +550,28 @@ function live(c, dt) {
 }
 
 /* ——— chacun sa place : deux chats ne se superposent pas ; ils passent devant ou derrière, ou s'écartent ——— */
+// ce qu'un chat contourne : tout ce qui est posé au sol (sauf ce qu'il va chercher, et les petits jouets qu'il bouscule)
+const SOLIDE = it => !it.r && it.kind !== 'poisson' && !it.on && !it.held && !it.fall && !it.run && it.fade > 0.5;
 function spread(dt) {
   const G = Wd.cats.filter(c => !c.perch && !c.jump && !c.fall && !c.held && !c.fight && !c.hidden && !c.gone && !(c.task && (c.task.k === 'climb' || c.task.k === 'jump')));
   const walks = c => c.task && c.task.k === 'walk';
+  const O = Wd.props.filter(SOLIDE);
+  G.forEach(c => {
+    const walking = walks(c), tx = walking ? (typeof c.task.x === 'function' ? c.task.x() : c.task.x) : c.x;
+    for (const it of O) {
+      if (it.busy === c || c.claims.includes(it)) continue;
+      const s = sOf(it.d) * (it.big || 1), hw = it.hull.w / 2 * s + sc(c) * 0.42, dx = c.x - it.x, dd = c.d - it.d;
+      if (Math.abs(dd) >= 0.2) continue;
+      if (walking) {
+        // devant lui, sur son chemin (et ce n'est pas là qu'il va) : il passe devant l'objet, ou derrière s'il n'y a pas la place
+        const ahead = sgn(tx - c.x), near = Math.abs(dx) < hw + sc(c) * 0.5 && (Math.abs(dx) < hw * 0.6 || sgn(-dx) === ahead);
+        if (!near || Math.abs(tx - it.x) < hw) continue;
+        let lane = it.d - 0.24; if (lane < 0) lane = it.d + 0.24; lane = clamp(lane, 0, 0.98);
+        c.d += clamp(lane - c.d, -dt * 1.1, dt * 1.1); if (c.task.d !== undefined && Math.abs(c.task.d - it.d) < 0.2) c.task.d = lane;
+        if (Math.abs(dx) < hw * 0.8 && Math.abs(dd) < 0.12) c.x -= ahead * SPEED.pas * sc(c) * dt * 0.8;   // il attend que le chemin se libère
+      } else if (Math.abs(dx) < hw && !c.claims.length && !c.pet && !(c.task && c.task.k === 'push')) c.x = inView(c.x + (dx ? sgn(dx) : 1) * Math.min(hw - Math.abs(dx), sc(c) * 1.6 * dt));
+    }
+  });
   for (let i = 0; i < G.length; i++) for (let j = i + 1; j < G.length; j++) {
     const a = G[i], b = G[j], dd = b.d - a.d; if (Math.abs(dd) >= 0.3) continue;
     const dx = b.x - a.x, need = (sc(a) + sc(b)) * 0.52; if (Math.abs(dx) >= need) continue;
@@ -557,16 +592,44 @@ function spread(dt) {
 
 // en passant, un chat bouscule les petites choses : la pelote roule, la tasse saute
 function bump() {
+  // un objet qui tombe sur une tête : bonk (et l'objet rebondit)
+  Wd.props.forEach(it => {
+    if (!it.fall || it.held || it.vy >= 0 || Wd.t - (it.bonkT ?? -9) < 0.4) return;
+    const s = sOf(it.d) * (it.big || 1);
+    for (const c of Wd.cats) { if (!c.hp || c.hidden || c.held || Math.abs(c.d - it.d) > 0.3) continue; const r = c.b.head[0] * sc(c);
+      if (Math.abs(it.x - c.hp[0]) < it.hull.w / 2 * s + r * 0.6 && Math.abs(it.y - (c.hp[1] - r)) < r * 0.8) {
+        it.bonkT = Wd.t; it.vy = Math.abs(it.vy) * 0.35 + s * 0.8; it.vx = (it.vx || 0) * 0.5 + sgn(it.x - c.x) * s * 1.2; it.tiltV = (it.tiltV || 0) + rnd(-4, 4);
+        c.bonk = Wd.t + 0.5; say(c, pick(['bonk !', 'aïe', 'hé !', '?!'])); startle(c, it.x, 0.6); break; } }
+  });
+  // la pelote qui file : un joueur part à sa poursuite
+  Wd.props.forEach(it => {
+    if (!it.r || it.held || it.busy || Math.abs(it.vx) < sOf(it.d) * 1.8 || Wd.t - (it.chaseT ?? -9) < 3) return;
+    const k = Wd.cats.filter(c => free4(c) && c.ch.joue >= 1 && Math.abs(c.x - it.x) < Wd.W * 0.4).sort((a, b) => b.ch.joue - a.ch.joue)[0];
+    it.chaseT = Wd.t; if (k && Math.random() < 0.7) { interrupt(k); say(k, '!'); play(k, it); k.q.forEach(q => { if (q.k === 'walk') q.g = 'galop'; }); }
+  });
   Wd.cats.forEach(c => {
     if (!c.task || c.task.k !== 'walk' || c.perch || c.jump || c.hidden) return;
     const v = SPEED[c.task.g || c.ch.g] * sc(c);
     Wd.props.forEach(it => {
       if (!LEGER[it.kind] || it.busy || it.on || it.held || it.fall || it.run || Wd.t - (it.bumpT ?? -9) < 0.8 || Math.abs(it.d - c.d) > 0.09) return;
-      const s = sOf(it.d), dx = it.x - c.x; if (sgn(dx) !== c.face || Math.abs(dx) > it.hull.w / 2 * s + sc(c) * 0.4) return;
+      const s = sOf(it.d) * (it.big || 1), dx = it.x - c.x; if (sgn(dx) !== c.face || Math.abs(dx) > it.hull.w / 2 * s + sc(c) * 0.4) return;
       it.bumpT = Wd.t; it.vx = c.face * v * (it.r ? 1.6 : 0.9);
       if (!it.r) { it.fall = true; it.vy = s * 0.5; it.tiltV = -c.face * rnd(2, 4); }
     });
   });
+}
+
+// il sursaute : un bond de côté (loin de x), le poil hérissé, puis il se remet
+function startle(c, x, p) {
+  if (!(free4(c) || (c.task && c.task.k === 'pose' && !c.perch)) || c.held || c.fall || Math.random() > (p ?? 1)) return;
+  interrupt(c); const away = sgn(c.x - x) || 1;
+  c.q = [hop(() => groundAt(inView(c.x + away * sc(c) * 0.9), c.d), { h: sc(c) * 0.5 }), pose('feule', rnd(0.5, 0.9), { face: -away }), pose('assis', rnd(0.8, 1.5))];
+}
+// un lourd qui retombe (ou une caisse qui arrive) : les chats d'à côté sursautent
+function thud(it) {
+  const s = sOf(it.d) * (it.big || 1), r = it.hull.w / 2 * s + s * (LOURD[it.kind] ? 1.4 : 0.8);
+  Wd.cats.forEach(c => { if (Math.abs(c.x - it.x) < r && Math.abs(c.d - it.d) < 0.45) { startle(c, it.x, LOURD[it.kind] ? 1 : 0.6); if (Math.random() < 0.4) say(c, pick(['!', '?!', 'mrr ?'])); } });
+  if (LOURD[it.kind]) Wd.fx.push({ k: 'txt', text: pick(['boum', 'bam !', 'poum']), x: it.x, y: it.y - s * 0.3, t0: Wd.t, life: 1.2, rot: -0.12, size: 20 });
 }
 
 /* ——— la craie : les petits effets ——— */
@@ -583,6 +646,7 @@ function drawFx(S) {
     } else if (f.k === 'z') C.text(u < 0.5 ? 'z' : 'Z', f.x + f.dx * u * 18 + Math.sin(u * 7) * 5, f.y - u * 40, 1, { size: 12 + u * 10, a: 0.6 * fade });
     else if (f.k === 'dust') { for (let i = -1; i <= 1; i += 2) for (let j = 0; j < 2; j++) { const a0 = f.r * (0.5 + u * 0.8), h = (j + 1) * 5; C.line(f.x + i * a0, f.y - h * 0.4, f.x + i * (a0 + 8 + u * 8), f.y - h, 1, { w: 1.6, a: 0.5 * f.a * (1 - u), seed: f.seed + i + j }); } }
     else if (f.k === 'bagarre') fightCloud(f, u, fade, K);
+    else if (f.k === 'heart') heart(f.x, f.y - u * 26, f.r * K, fade);
   });
   // le fil des pelotes
   Wd.props.forEach(it => { if (!it.trail || it.trail.length < 2) return; const col = undefined;
@@ -686,6 +750,65 @@ function tidy() {
   });
 }
 
+/* ——— la machine à cartons : un coup sur elle, un carton ; le levier baissé, ça n'arrête pas ——— */
+function shoot(g) {
+  if (!g || !Wd.props.includes(g) || g.fall || g.held) return;
+  const m = Univers.at(g, g.bouche), m2 = Univers.at(g, [g.bouche[0] + g.vise[0] * 0.2, g.bouche[1] + g.vise[1] * 0.2, 0]);
+  const L = Math.hypot(m2[0] - m[0], m2[1] - m[1]) || 1, ux = (m2[0] - m[0]) / L, uy = -(m2[1] - m[1]) / L;
+  const s = sOf(0.4), v = s * rnd(5, 8.5) * (Wd.mode === 'large' ? 1 : 0.7);
+  const b = prop('caisse', m[0] / Wd.W, g.d, { size: Math.random() < 0.6 ? 0 : 1 });
+  b.dT = rnd(0.05, 0.7); b.lift = floorAt(g.d) - m[1]; b.fall = true; b.vx = ux * v; b.vy = uy * v; b.tiltV = rnd(-7, 7); b.launched = Wd.t; b.zo = 50;
+  g.wob = Wd.t; g.wobA = 0.8; dust(m[0], m[1], s * 0.2, 0.9);
+  Wd.fx.push({ k: 'txt', text: pick(['pouf !', 'ploc', 'tchac !', 'et hop']), x: m[0] + ux * 20, y: m[1] - 26, t0: Wd.t, life: 1.1, rot: -0.15, size: 17 });
+  // trop de cartons : les plus vieux (vides) s'effacent
+  const cap = Wd.mode === 'large' ? 14 : 7, old = Wd.props.filter(p => p.launched && !p.busy && !p.held && !Wd.cats.some(c => c.perch && c.perch.it === p) && p.fadeT).sort((a, b) => a.launched - b.launched);
+  const n = Wd.props.filter(p => p.launched && p.fadeT).length; for (let i = 0; i < n - cap && i < old.length; i++) old[i].fadeT = 0;
+}
+function machines(dt) {
+  Wd.props.forEach(g => {
+    if (g.kind === 'lanceur') {
+      if (!g.pulling) { const u = Wd.t - (g.flick ?? -9); g.pull = u < 0.5 ? Math.sin(u / 0.5 * Math.PI) : (g.pull || 0) * Math.exp(-dt * 7); }
+      if (g.pulling && g.pull > 0.75 && Wd.t > (g.next || 0)) { shoot(g); g.next = Wd.t + 0.3; }
+    }
+    if (g.folle) {
+      const F = g.folle;
+      if (Wd.t > F.next && Wd.kib.length < 380) { F.next = Wd.t + 0.07; const m = Univers.at(g, g.bec), k = Wd.s0 / 160;
+        for (let i = 0; i < 3; i++) Wd.kib.push({ x: m[0], y: m[1], vx: rnd(-750, 750) * k, vy: -rnd(300, 1050) * k, d: rnd(0, 0.7), t0: Wd.t, rest: false, spin: Math.random() * 6 }); }
+      if (Wd.t > F.say) { F.say = Wd.t + rnd(0.6, 1); const m = Univers.at(g, g.bec); Wd.fx.push({ k: 'txt', text: pick(['BZZT !', 'ding ding ding', '!!!', 'croquettes !!!', 'brrrrr']), x: m[0] + rnd(-40, 40), y: m[1] - g.s * rnd(0.4, 0.8), t0: Wd.t, life: 1.2, rot: rnd(-0.3, 0.3), size: 19 }); }
+      if (!F.fest && Wd.t > F.t0 + 1.2) { F.fest = true; feast(); }
+      if (Wd.t > F.end) { g.folle = null; const m = Univers.at(g, [0, 0.8, 0]); dust(m[0], m[1], g.s * 0.3, 1); Wd.fx.push({ k: 'txt', text: 'pfff…', x: m[0], y: m[1] - 20, t0: Wd.t, life: 1.6, rot: -0.1, size: 18 }); g.clk = 0; }
+    }
+  });
+  // les cartons lancés et effacés s'en vont pour de bon
+  Wd.props.slice().forEach(p => { if (p.launched && !p.fadeT && p.fade < 0.02) { Wd.cats.forEach(c => { if (c.perch && c.perch.it === p) interrupt(c); }); unprop(p); } });
+}
+// le distributeur devient fou : il tremble, saute, et crache des croquettes partout, longtemps
+function folle(g) {
+  if (!g || g.folle) return; g.folle = { t0: Wd.t, end: Wd.t + rnd(6, 8), next: 0, say: 0 }; g.wob = Wd.t; g.wobA = 1;
+  const m = Univers.at(g, g.bec); Wd.fx.push({ k: 'txt', text: 'BZZZT !!', x: m[0], y: m[1] - g.s * 0.6, t0: Wd.t, life: 1.5, rot: -0.2, size: 24 });
+}
+// le festin : tous les chats du coin accourent (et ceux d'à côté débarquent), ils mangent tout
+function feast() {
+  const n = Wd.mode === 'large' ? 6 : 3;
+  for (let i = 0; i < n; i++) setTimeout(() => { if (Wd.cats.length > 26) return; const side = i % 2 ? -1 : 1, c = addCat({ temp: true, face: -side, d: rnd(0, 0.6) });
+    c.x = side < 0 ? -sc(c) * 1.2 : Wd.W + sc(c) * 1.2; c.glouton = true; c.q.push(go(rnd(0.2, 0.8) * Wd.W, { g: 'galop' })); if (i === 0) say(c, 'miaaou !'); crunch(c); }, i * 350);
+  Wd.cats.forEach(c => { if (!c.temp && free4(c) && Math.random() < 0.85) { interrupt(c); c.glouton = true; crunch(c); } });
+}
+// ouvrir un carton fermé (un coup de griffe, deux) : il devient un carton ouvert… et on s'y installe
+function open(c, b) {
+  claim(c, b);
+  c.q.push(fn(c => { const w = beside(c, xOf(b), b.box.w / 2 * sOf(b.d) - front(c) * 0.3); c.q.unshift(go(w.x, { d: Math.max(0, b.d - 0.05), face: w.face })); }),
+    pose('affut', rnd(0.5, 1)), pose('tape', 0.5, { fx: c => say(c, 'scritch') }), pose('assis', 0.4), pose('tape', 0.5),
+    fn(c => { const nb = unbox(b); free(c); if (nb) hide(c, nb); }));
+}
+function unbox(b) {
+  if (!Wd.props.includes(b) || b.fall || b.held || b.on || Wd.props.some(o => o.on === b)) return null;
+  const k = b.box.w / 0.56 * 1.25, nb = prop('carton', b.fx, b.d); nb.big = k; nb.launched = b.launched || Wd.t; nb.zo = b.zo;
+  if (b.home) nb.home = { fx: b.fx, d: b.d }; unprop(b);
+  const s = sOf(nb.d); dust(nb.fx * Wd.W, floorAt(nb.d) - s * 0.2, s * 0.35, 1); Wd.fx.push({ k: 'txt', text: 'pop !', x: nb.fx * Wd.W, y: floorAt(nb.d) - s * 0.55, t0: Wd.t, life: 1.1, rot: 0.1, size: 17 });
+  return nb;
+}
+
 /* ——— les croquettes : le distributeur en crache une poignée, en l'air ; elles rebondissent sur la tête des chats ——— */
 function fire(g, who) {
   if (!g || !Wd.props.includes(g) || Wd.t - (g.shake ?? -9) < 1.2) return;
@@ -753,14 +876,19 @@ function extras() {
 let ready = false;
 function frame(S) {
   if (!Obj3D.ok) return;
-  const dt = Math.min(0.05, S.dt || 0); Wd.a = S.a; Wd.f++; Wd.t += dt;
+  const dt = Math.min(0.05, S.dt || 0); Wd.a = S.a;
   measure(S);
+  for (let i = 0; i < (Wd.fast || 1); i++) step(S, dt);   // Wd.fast : pour les essais, le monde en accéléré
+}
+function step(S, dt) {
+  Wd.f++; Wd.t += dt;
   if (!ready) { ready = true; for (let i = 0; i < 2; i++) { const c = addCat({ x: rnd(0.3, 0.85) * Wd.W }); c.q.push(pose(pick(['assis', 'toilette', 'pain']), rnd(2, 5))); } }
   // la population : trois chats (au moins) ; quand l'un part, un autre arrive
   if (dt && residents().length < 3 && Wd.t > Wd.nextIn) { enter(); Wd.nextIn = Wd.t + rnd(3, 9); }
   // les scénarios
   if (dt && Wd.t > Wd.nextScen && !Wd.tower && !Wd.props.some(p => p.run)) { (Wd.scen++ % 2 ? tower : horde)(); Wd.nextScen = Wd.t + rnd(28, 50); }
-  runMice(dt); towerFrame(dt); kibFrame(dt); extras();
+  runMice(dt); towerFrame(dt); kibFrame(dt); extras(); machines(dt);
+  Wd.cats.forEach(c => { if (c.pet && Wd.t - c.pet.t > 5) { c.pet = null; c.task = null; } });
   if (dt && Wd.t > Wd.nextKib) { const g = Wd.props.find(p => p.kind === 'distrib'); if (g) fire(g); Wd.nextKib = Wd.t + rnd(16, 32); }
   Wd.props.forEach(it => updProp(it, dt));
   Wd.cats.slice().forEach(c => live(c, dt));
@@ -781,14 +909,18 @@ function catAt(x, y) {
 function propAt(x, y) {
   return Wd.props.find(it => { if (it.a < 0.5 || it.run) return false; const s = it.s;
     if (it.r) return Math.hypot(x - it.x, y - (it.y - it.r * s)) < Math.max(it.r * s * 1.8, 18);
-    if (it.kind === 'arbre') return false;
     const w = Math.max(it.hull.w * s * 0.55, 16), h = Math.max(it.hull.h * s * 1.1, 22);
     return Math.abs(x - it.x) < w && y < it.y + 8 && y > it.y - h; });
 }
 // une chichenaude sur un objet : le distributeur tire, la pelote roule, ce qui est posé tombe, le reste sursaute
 function poke(it, x) {
   const s = sOf(it.d), side = sgn(it.x - x || 1);
-  if (it.kind === 'distrib') fire(it);
+  // un chat dedans (ou dessus) : il en jaillit
+  const inside = Wd.cats.filter(c => c.perch && c.perch.it === it);
+  if (inside.length && !LOURD[it.kind]) { inside.forEach(c => { interrupt(c); say(c, pick(['!', 'mia !', '?!'])); c.q = [hop(() => groundAt(inView(it.x + sgn(Math.random() - 0.5) * sc(c) * 1.2), Math.max(0, it.d - 0.2)), { h: sc(c) * 0.9, zr: [0.2, 0.6] }), pose('feule', 0.6), pose('toilette', 2)]; }); it.wob = Wd.t; return; }
+  if (it.kind === 'distrib') { it.clk = Wd.t - (it.clkT ?? -9) < 2.5 ? (it.clk || 0) + 1 : 1; it.clkT = Wd.t; if (it.clk >= 3 || Math.random() < 0.1) folle(it); else fire(it); }
+  else if (it.kind === 'lanceur') { it.flick = Wd.t; shoot(it); }
+  else if (it.kind === 'arbre') { it.poke = it.wob = Wd.t; it.wobA = 1; }
   else if (it.r) { it.vx = side * s * rnd(2, 3); it.fall = true; it.vy = s * 0.6; }
   else if (it.on) drop(it, side * s * 1.1, s * 0.8, -side * 6);
   else if (!it.fall) { it.fall = true; it.vy = s * 1.5; it.tiltV = rnd(-1.5, 1.5); }
@@ -799,7 +931,6 @@ function click(x, y, S) {
   if (c) { purr(c); return true; }
   const it = propAt(x, y);
   if (it) { poke(it, x); return true; }
-  if (Wd.props.some(it => it.kind === 'arbre' && Math.abs(x - it.x) < 0.75 * it.s && y < it.y && y > it.y - 1.9 * it.s)) { Wd.P.arbre.poke = Wd.P.arbre.wob = Wd.t; Wd.P.arbre.wobA = 1; return true; }
   // un chat tombe du ciel, ici
   if (residents().length >= MAXC) return false;
   Wd.clicks++;
@@ -808,23 +939,51 @@ function click(x, y, S) {
 }
 // attraper : le film demande d'abord qui est sous le doigt (sans rien changer) ; le chat n'est soulevé qu'au premier glissé.
 // Lâché sans avoir bougé, c'est une caresse : il ronronne.
-function grab(x, y) { if (!ready) return null; Wd.gx = x; const c = catAt(x, y); if (c) return c; const it = propAt(x, y); return it && !LOURD[it.kind] && !it.run ? it : null; }
+function grab(x, y) {
+  if (!ready) return null; Wd.gx = x; Wd.gy = y;
+  const L = leverAt(x, y); if (L) return L;
+  const c = catAt(x, y); if (c) return c; const it = propAt(x, y); return it && !it.run ? it : null;
+}
+// le levier de la machine à cartons : son pommeau à l'écran
+function knob(g) { const a = 0.3 + (g.pull || 0) * 1.3; return Univers.at(g, [g.pivot[0] - Math.sin(a) * 0.3, g.pivot[1] + Math.cos(a) * 0.3, g.pivot[2]]); }
+function leverAt(x, y) { const g = Wd.props.find(p => p.kind === 'lanceur' && !p.held && !p.fall && p.a > 0.5); if (!g) return null; const k = knob(g); return Math.hypot(x - k[0], y - k[1]) < Math.max(g.s * 0.09, 18) ? (g.handle || (g.handle = { lever: g })) : null; }
 const isProp = k => !!(k && k.hull);
 function drag(c, x, y) {
   if (!c) return;
+  if (c.lever) { const g = c.lever; if (!g.pulling) { g.pulling = true; c.y0 = y - (g.pull || 0) * g.s * 0.35; } g.pull = clamp((y - c.y0) / (g.s * 0.35), 0, 1); return; }
   if (isProp(c)) { const it = c;
     if (!it.held) {
       // on le soulève : ce qui dormait dessus saute (live), ce qui était posé dessus suit ; il ne revient plus seul à sa place tout de suite
       it.on = null; it.fall = false; it.target = null; it.held = true; it.vy = it.tiltV = 0; it.gdx = x - it.x; it.gdy = y - it.y; it.fadeT = 1; it.away = null;
       if (it.tower) { it.tower.boxes.splice(it.tower.boxes.indexOf(it), 1); it.tower = null; }
+      // les chats d'à côté regardent ce qui s'envole
+      Wd.cats.forEach(k => { if (free4(k) && Math.abs(k.x - it.x) < Wd.W * 0.4 && Math.random() < 0.5) { interrupt(k); k.q = [pose('affut', rnd(1, 2.2), { face: sgn(it.x - k.x) })]; } });
+      if (LOURD[it.kind]) Wd.fx.push({ k: 'txt', text: 'hop…', x, y: y - it.s * 0.2, t0: Wd.t, life: 1, rot: -0.1, size: 16 });
     }
     it.hx = x; it.hy = y; return; }
+  // le geste décide : vers le haut, on le soulève (par la peau du cou) ; de côté ou vers le bas, on le caresse
+  if (!c.held && !c.pet) { const dx = x - (Wd.gx ?? x), dy = y - (Wd.gy ?? y);
+    if (!(dy < -Math.abs(dx) * 0.7) && !c.fall && !c.jump) { interrupt(c); c.pet = { n: 0, dir: 0, lx: x, t: Wd.t, run: 0 }; c.q = []; c.task = { k: 'wait', anim: 'caresse', until: c => !c.pet, max: 120, t: 0 }; say(c, '♥'); } }
+  if (c.pet) { pet(c, x, y); return; }
   if (!c.held) { interrupt(c); c.fall = false; c.held = true; c.spin = 0; c.pend = { th: 0, w: 0, px: x, py: y, vx: 0, vy: 0, ax: 0 }; say(c, pick(['mia ?', '…', 'hé !'])); }
   c.hx = x; c.hy = y;
+}
+// les caresses : chaque aller-retour de la main compte ; il ronronne, pétrit, s'endort… ou en a assez (un coup de patte)
+function pet(c, x, y) {
+  const P = c.pet, m = x - P.lx; P.run += Math.abs(m); P.lx = x;
+  if (Math.abs(m) > 2) { const d = sgn(m); if (d !== P.dir && P.run > sc(c) * 0.12) { P.dir = d; P.run = 0; P.n++; c.purr = Wd.t + 2.5;
+    if (P.n % 2 === 0) Wd.fx.push({ k: 'heart', x: x + rnd(-10, 10), y: y - 14, t0: Wd.t, life: 1.3, r: clamp(sc(c) * 0.06, 6, 11) });
+    if (P.n === 3) say(c, 'rrrr', 0); if (P.n === 7) say(c, 'rrrrrrr ♥', 0);
+    // trop, c'est trop : le grincheux (et parfois un autre) donne un petit coup de patte
+    const lim = c.breed === 'grincheux' ? 5 : 12 + Math.floor(Math.random() * 10);
+    if (P.n >= lim && Math.random() < (c.breed === 'grincheux' ? 0.8 : 0.35)) { c.pet = null; c.task = null; c.q = [pose('tape', 0.5, { face: sgn(x - c.x) || c.face, fx: c => say(c, 'pfff !') }), go(inView(c.x - sgn(x - c.x) * sc(c) * 1.5), { g: 'trot' }), pose('toilette', 2.5)]; } } }
+  P.t = Wd.t; c.face = c.face;
 }
 function purr(c) { c.purr = Wd.t + 2.6; say(c, '♥'); setTimeout(() => say(c, 'rrrr', 0), 500); }
 function release(c, vx, vy) {
   if (!c) return;
+  if (c.lever) { const g = c.lever; if (!g.pulling) { g.flick = Wd.t; shoot(g); } g.pulling = false; return; }
+  if (c.pet) { const n = c.pet.n; c.pet = null; c.task = null; c.q = n > 5 ? [pose('petrit', rnd(2, 3.5), { fx: c => say(c, '♥') }), pose('pain', rnd(4, 8))] : [pose('assis', rnd(1, 2))]; if (!n) purr(c); return; }
   if (isProp(c)) { const it = c; if (!it.held) { poke(it, Wd.gx ?? it.x); return; }
     // lâché : il vole, tourne sur lui-même, rebondit, se pose (sur une caisse, s'il tombe dessus)
     it.held = false; drop(it, clamp(vx || 0, -1800, 1800), -clamp(vy || 0, -1800, 1800), clamp((vx || 0) * 0.004, -7, 7) + rnd(-1, 1)); return; }
@@ -835,5 +994,5 @@ function release(c, vx, vy) {
   c.d = freeD();
 }
 
-return { ANIMS, CARAC, frame, draw, hide, click, grab, drag, release, get clicks() { return Wd.clicks; }, get world() { return Wd; }, horde, tower, fight: () => { const L = Wd.cats.filter(free4).slice(0, 2); if (L.length > 1) fight(L); }, quarrel: () => { const L = Wd.cats.filter(free4); if (L.length > 1) quarrel(L[0], L[1]); } };
+return { ANIMS, CARAC, frame, draw, hide, click, grab, drag, release, get clicks() { return Wd.clicks; }, get world() { return Wd; }, horde, tower, folle: () => folle(Wd.P.distrib), ouvre: () => { const b = Wd.props.find(p => p.launched && p.kind === 'caisse' && !p.busy && !p.fall), c = Wd.cats.find(free4); if (b && c) { interrupt(c); open(c, b); } }, fight: () => { const L = Wd.cats.filter(free4).slice(0, 2); if (L.length > 1) fight(L); }, quarrel: () => { const L = Wd.cats.filter(free4); if (L.length > 1) quarrel(L[0], L[1]); } };
 })();

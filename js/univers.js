@@ -8,6 +8,7 @@
      caisse   un carton fermé (o.size : 0, 1, 2), scotché, un petit dessin devant : on les empile, les pousse, les fait tomber
      panier   un lit rond en osier · poisson  un poisson en tissu (un jouet) · plante  une plante en pot · tasse  une tasse (à pousser du bord)
      distrib  le distributeur de croquettes (il a une tête, il crache des croquettes par son bec : it.bec) · eau  une fontaine à eau (it.jet)
+     lanceur  la machine à cartons : un canon (it.bouche, it.vise), un levier (parts.levier) ; elle projette des caisses
      souris   une souris articulée (corps, tête, oreilles, queue, pattes) qui court
    Tout se modèle en unités chat (la même taille que les chats) : Univers.make(type, { color }) → un objet posé par
    Univers.place(o) (o.x, o.y : son pied à l'écran, o.s : px par unité, o.yaw, o.z, o.a : l'opacité). */
@@ -113,6 +114,20 @@ function pieces() {
     B.solid(K.lathe([[0, 0], [0.12, 0], [0.13, 0.02], [0.13, 0.19], [0.11, 0.215], [0.055, 0.225], [0.055, 0.25], [0.07, 0.26], [0.07, 0.28], [0, 0.285]], 26));
     for (let i = 0; i < 11; i++) { const a = -0.9 + (i * 0.61) % 1.8, y = 0.03 + (i * 0.037) % 0.15, c = [Math.sin(a) * 0.132, y, Math.cos(a) * 0.132]; B.soft(segs(ring(0.016, 0, 8).map(q => [c[0] + q[0] * Math.cos(a), c[1] + q[2], c[2] - q[0] * Math.sin(a)]))); }
   });
+  // la machine à cartons : un gros corps qui a une tête (deux yeux, un sourire), une réserve de cartons à plat sur le dessus,
+  // un canon qui vise en l'air vers la droite, un levier sur le côté (il pivote : parts.levier)
+  P.lSocle = Obj3D.piece('u:lsocle', B => B.solid(K.ext(K.roundPoly([[-0.3, 0], [0.3, 0], [0.3, 0.07], [-0.3, 0.07]], 0.03, 4), 0.42)));
+  P.lCorps = Obj3D.piece('u:lcorps', B => {
+    B.solid(K.ext(K.roundPoly([[-0.24, 0.07], [0.24, 0.07], [0.22, 0.56], [-0.22, 0.56]], 0.07, 5), 0.36));
+    const f = 0.182; [-1, 1].forEach(e => { B.lines(segs(ring(0.042, 0, 18).map(q => [e * 0.085 + q[0], 0.41 + q[2], f]))); B.solid(K.ball(0.016, [e * 0.085 + 0.01, 0.405, f])); });
+    B.lines(segs([[-0.06, 0.32, f], [-0.03, 0.295, f], [0, 0.29, f], [0.03, 0.295, f], [0.06, 0.32, f]]));
+    // la trappe, et ses rivets
+    B.lines(K.poly([[-0.15, 0.12, f], [0.15, 0.12, f], [0.15, 0.24, f], [-0.15, 0.24, f]], true));
+    [[-0.13, 0.14], [0.13, 0.14], [-0.13, 0.22], [0.13, 0.22]].forEach(([x, y]) => B.soft(segs(ring(0.008, 0, 8).map(q => [x + q[0], y + q[2], f]))));
+  });
+  P.lReserve = Obj3D.piece('u:lreserve', B => { for (let i = 0; i < 4; i++) B.solid(K.tf(K.box(0.34, 0.026, 0.26), [((i * 7) % 3 - 1) * 0.015, 0.575 + i * 0.03, 0], [0, (i % 2 ? 0.12 : -0.09), 0])); B.soft([-0.17, 0.69, 0, 0.17, 0.69, 0]); });
+  P.lCanon = Obj3D.piece('u:lcanon', B => { B.solid(K.tf(K.lathe([[0, 0], [0.085, 0], [0.085, 0.28], [0.108, 0.3], [0.108, 0.345], [0.072, 0.345], [0.07, 0.33], [0, 0.33]], 18), [0.16, 0.4, 0], [0, 0, -0.8])); });
+  P.lLevier = Obj3D.piece('u:llevier', B => { B.solid(K.lathe([[0, -0.02], [0.05, -0.02], [0.05, 0.02], [0, 0.02]], 14).rotateX(Math.PI / 2)); B.solid(K.tube([[0, 0, 0], [0, 0.26, 0]], 0.017, 8)); B.solid(K.ball(0.05, [0, 0.3, 0])); });
   // la fontaine à eau : une vasque, une petite colonne ; l'eau (qui coule) est dessinée à la craie (js/chats.js)
   P.fontaine = Obj3D.piece('u:fontaine', B => {
     B.solid(K.lathe([[0, 0], [0.15, 0], [0.165, 0.015], [0.16, 0.065], [0.148, 0.07], [0.138, 0.052], [0.03, 0.048], [0.028, 0.14], [0.042, 0.15], [0.036, 0.168], [0, 0.172]], 28));
@@ -160,6 +175,12 @@ function make(kind, o) {
   else if (kind === 'coussin') { put(P.coussin); it.perches = [{ id: 'coussin', p: [0, 0.13, 0], w: 0.15 }]; }
   else if (kind === 'gamelle') put(P.gamelle);
   else if (kind === 'distrib') { ['dSocle', 'dCorps', 'dBec'].forEach(k => put(P[k])); const j = new T.Group(); j.position.set(0, 0.46, 0); view.add(j); put(P.dBocal, j); parts.jar = j; it.bec = [0.24, 0.41, 0]; }
+  else if (kind === 'lanceur') {
+    ['lSocle', 'lCorps', 'lReserve', 'lCanon'].forEach(k => put(P[k]));
+    const lv = new T.Group(); lv.position.set(-0.25, 0.3, 0.19); lv.rotation.z = 0.3; view.add(lv); put(P.lLevier, lv); parts.levier = lv;
+    // la bouche du canon, sa direction (en unités) ; le pommeau du levier (dans le repère du levier)
+    it.bouche = [0.16 + Math.sin(0.8) * 0.345, 0.4 + Math.cos(0.8) * 0.345, 0]; it.vise = [Math.sin(0.8), Math.cos(0.8)]; it.pivot = [-0.25, 0.3, 0.19];
+  }
   else if (kind === 'eau') { put(P.fontaine); it.jet = [0, 0.172, 0]; }
   else if (kind === 'pelote') { const g = new T.Group(); g.position.set(0, 0.075, 0); view.add(g); put(P.pelote, g); parts.ball = g; it.r = 0.075; }
   else if (kind === 'souris') {
