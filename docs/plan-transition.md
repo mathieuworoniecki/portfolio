@@ -29,13 +29,12 @@ Retour arrière (flèche gauche, barre du film) : tout doit se rejouer à l'enve
 
 ## Mathieu en 3D : ce qui existe
 
-Troisième version (26 septembre, 12:24). Mathieu a refusé la caricature (« on ne me reconnaît pas »), puis le décalque en gris (« creepy ») : il est maintenant dessiné au trait d'après sa photo, fidèle, avec des contours seulement comme les chats et les objets, en t-shirt Patagonia.
+Quatrième version (26 septembre, 12:40). Mathieu a refusé la caricature (« on ne me reconnaît pas »), le décalque en gris (« creepy »), puis le dessin posé sur un relief de face (« on ne voit que le devant, je suis coupé »). C'est maintenant une vraie tête en 3D, crâne compris, dessinée au trait comme les chats : on le voit de face, de profil et de dos. Base : la photo qu'il préfère (selfie, cheveux en pics, moustache en guidon ; la photo n'est pas dans le dépôt).
 
-- `tools/mathieu/build.py` tire de sa photo de face : le dessin au trait (`media/mathieu/visage.png`, la tête par `tools/mathieu/trait.py`), le dos (`dos.png` : ses cheveux, le dos du t-shirt), le relief (`relief.png`, `relief.json`). Le relief vient des 468 points 3D du visage (MediaPipe Face Mesh) ; autour, un ellipsoïde pour le crâne, un cylindre pour le cou, un tonneau pour le buste. La photo elle-même n'est pas dans le dépôt.
-- `js/mathieu.js` pose le décalque sur ce relief (une grille de 256 × 256 sommets) : `Mathieu.create()`, `Mathieu.pose(m, { x, y, s, turn, tilt, open })`, `Mathieu.mouthAt(m)` (le centre du trou noir à l'écran, pour y plonger).
-- La bouche : la mâchoire (sous la ligne des lèvres, jusqu'au menton) descend et avance ; à sa place, de l'encre.
-- Limite : le relief vient d'une photo de face ; de trois quarts il est très juste, de profil il s'aplatit. Pour « il arrive en tournant », le tour est rapide (on ne s'attarde pas de profil) ; de dos on voit ses cheveux.
-- Aperçu : `tools/mathieu.html`.
+- `tools/mathieu/tete.py` : ses 478 points 3D (MediaPipe Face Mesh) reportés sur une tête humaine simple (un crâne ellipsoïde, 96 × 73 directions) → `media/mathieu/tete.json`. Retouches demandées : un visage un peu plus fin, de plus grands yeux, une plus grande bouche, un sourire. Les traits sont posés sur la surface : paupières, iris et pupilles (avec un reflet), sourcils, nez, lèvres, moustache en guidon (un trait épais par côté, des poils pâles) ; les cheveux en volume, leur ligne sur le front, des pics sur le dessus.
+- `js/mathieu.js` : la tête, les oreilles, le cou, le buste en t-shirt Patagonia (encolure, coutures, logo sur le cœur). Des volumes invisibles et leurs contours, recalculés à chaque image. API : `Mathieu.create()`, `Mathieu.pose(m, { x, y, s, turn, tilt, nod, open })`, `Mathieu.mouthAt(m)` (le centre du trou noir à l'écran et ses demi-axes, pour y plonger).
+- La bouche : la surface se déforme ; sous les lèvres, la mâchoire descend en arc (les coins restent, le milieu s'ouvre), la lèvre du haut remonte ; entre les deux, de l'encre. À `open = 1`, la mâchoire descend jusqu'au buste : c'est la bouche biblique.
+- Aperçu : `tools/mathieu.html` (il tourne sur lui-même ; curseur de bouche ; « Arrivée »).
 
 ## À faire, dans l'ordre
 

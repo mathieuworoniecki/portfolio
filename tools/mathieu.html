@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mathieu en 3D</title>
-<!-- L'aperçu de Mathieu en 3D (js/mathieu.js), à part du film : il se balance de trois quarts en trois quarts, un curseur ouvre la bouche.
+<!-- L'aperçu de Mathieu en 3D (js/mathieu.js), à part du film : il tourne sur lui-même, un curseur ouvre la bouche.
      python3 tools/serve.py, puis http://localhost:8940/tools/mathieu.html
-     les images : media/mathieu/ (tools/mathieu/build.py) · ?open=0.6 (la bouche) · ?turn=0.5 (un angle fixe, sans tourner) · ?t=3 (un temps fixe, pour les essais) · ?arrivee (il arrive de loin, en boucle) -->
+     le modèle : media/mathieu/tete.json (tools/mathieu/tete.py) · ?open=0.6 (la bouche) · ?turn=0.5 (un angle fixe, sans tourner) · ?t=3 (un temps fixe, pour les essais) · ?arrivee (il arrive de loin, en boucle) -->
 <style>
 html,body{margin:0;height:100%;background:#DADBD8;color:#222428;overflow:hidden;font:15px system-ui}
 canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
@@ -45,7 +45,7 @@ $('arr').onclick = () => { arr = 0; };
 let drag = null; $('obj').onpointerdown = e => { drag = e.clientX; spin = false; $('spin').classList.remove('on'); };
 addEventListener('pointermove', e => { if (drag !== null) { turn += (e.clientX - drag) * 0.01; drag = e.clientX; } });
 addEventListener('pointerup', () => { drag = null; });
-let last = performance.now(), t = 0, sw = 0;
+let last = performance.now(), t = 0;
 const sm = v => { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); };
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now; t = q.has('t') ? +q.get('t') : t + dt;
@@ -53,8 +53,8 @@ function frame(now) {
   // le cadre (des cheveux au bas du buste) est centré ; la racine est le centre de la tête
   const yOf = s => (Hh - 80) / 2 - (0.5 - hy) * s;
   let s = base, x = W / 2 + (hx - 0.5) * base, y = yOf(base), tr = turn, op = openT;
-  // il se balance de trois quarts en trois quarts (le relief vient d'une photo de face : de profil, il s'aplatit)
-  if (spin) { sw += dt; tr = turn = Math.sin(sw * 0.7) * 0.75; }
+  // il tourne sur lui-même, lentement (une vraie tête : de face, de profil, de dos)
+  if (spin) tr = turn += dt * 0.5;
   // l'arrivée : minuscule au loin, il grossit en tournant (un tour et demi qui ralentit), se pose, puis la bouche biblique
   if (arr >= 0) {
     arr += dt; const k = sm(arr / 2.5), b = sm((arr - 3.2) / 1.6);
