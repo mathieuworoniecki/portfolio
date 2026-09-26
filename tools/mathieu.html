@@ -6,7 +6,7 @@
 <title>Mathieu en 3D</title>
 <!-- L'aperçu de Mathieu en 3D (js/mathieu.js), à part du film : il tourne sur lui-même, un curseur ouvre la bouche.
      python3 tools/serve.py, puis http://localhost:8940/tools/mathieu.html
-     le modèle : media/mathieu/tete.json (tools/mathieu/tete.py) · ?open=0.6 (la bouche) · ?turn=0.5 (un angle fixe, sans tourner) · ?t=3 (un temps fixe, pour les essais) · ?arrivee (il arrive de loin, en boucle) -->
+     le modèle : media/mathieu/tete.json (tools/mathieu/tete.py) · ?open=0.6 (la bouche) · ?turn=0.5 (un angle fixe, sans tourner) · ?t=3 (un temps fixe, pour les essais) · ?arrivee (il arrive de loin, en boucle) · ?logo (la tête seule, en petit, comme dans l'en-tête) -->
 <style>
 html,body{margin:0;height:100%;background:#DADBD8;color:#222428;overflow:hidden;font:15px system-ui}
 canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
@@ -34,7 +34,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
 const q = new URLSearchParams(location.search), $ = id => document.getElementById(id);
 Obj3D.init($('obj'));
 let W = 1, Hh = 1; const size = () => { W = document.documentElement.clientWidth; Hh = innerHeight; Obj3D.resize(W, Hh); }; size(); addEventListener('resize', size);
-const m = Mathieu.create();
+const logo = q.has('logo'), m = Mathieu.create({ logo }); if (logo) document.querySelector('.ui').style.display = 'none';
 let spin = !q.has('turn'), openT = +(q.get('open') || 0), open = openT, arr = q.has('arrivee') ? 0 : -1, turn = +(q.get('turn') || 0), bible = -1;
 $('open').value = openT;
 $('open').oninput = e => { openT = +e.target.value; bible = -1; };
@@ -63,6 +63,8 @@ function frame(now) {
   }
   if (bible >= 0) { bible += dt; op = openT = Math.min(1, bible / 1.2); $('open').value = op; if (bible > 1.2) bible = -1; }
   open += (op - open) * Math.min(1, dt * 10); if (q.has('t')) open = op;
+  // le logo : la tête seule, petite, en haut à gauche, qui tourne
+  if (logo) { s = +(q.get('logo') || 56); x = 16 + s * 0.45; y = 16 + s * (m.meta ? m.meta.head[1] : 0.4); }
   // la vie : il respire
   Mathieu.pose(m, { x, y: y + Math.sin(t * 1.6) * s * 0.004, s, turn: tr, tilt: 0.06, open, nod: Math.sin(t * 0.8) * 0.03 });
   Obj3D.render(); requestAnimationFrame(frame);

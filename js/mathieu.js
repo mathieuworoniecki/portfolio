@@ -9,8 +9,9 @@
    La bouche : sous la ligne des lèvres, le visage se déforme (la mâchoire descend en arc) ; entre les lèvres, de l'encre : le trou noir.
 
    Mathieu.create() crée le pantin (il apparaît quand tete.json est chargé ; ou window.MATHIEU_MEDIA = { tete }) ;
+   Mathieu.create({ logo: true }) : la tête seule, sans les traits pâles, pour le logo (tools/mathieu.html?logo) ;
    Mathieu.pose(m, { x, y, s, turn, tilt, nod, open, a }) le pose :
-     x, y : le centre de la tête à l'écran (px) · s : la taille du cadre, des pointes des cheveux au bas du buste (px)
+     x, y : le centre de la tête à l'écran (px) · s : la taille du cadre, des pointes des cheveux au bas du buste (px ; en logo, jusqu'au menton)
      turn : le tour sur lui-même (radians, 0 de face) · tilt : pencher en avant · open : la bouche, de 0 à 1 (biblique)
    Mathieu.mouthAt(m) : le centre du trou noir à l'écran et ses demi-axes (px), pour y plonger (docs/plan-transition.md). */
 window.Mathieu = (() => {
@@ -168,10 +169,11 @@ function face(D, M, Mb, fill) {
 
 /* ——— le pantin ——— */
 const all = new Set();
-function create() {
+function create(opt) {
+  const logo = !!(opt && opt.logo);
   const root = new T.Group(), turn = new T.Group(); root.add(turn); root.visible = false;
   const list = [], R = Obj3D.rig(root, list);
-  const m = { root, turn, R, list, cur: {}, ready: false, meta: null };
+  const m = { root, turn, R, list, cur: {}, ready: false, meta: null, logo };
   load().then(D => {
     if (!m.R) return;
     const P = build(D), ink = inkNow();
@@ -181,14 +183,15 @@ function create() {
     const F = face(D, m.M, m.Mb, m.fill); head.add(F.g);
     const put = (pp, g, M) => { const x = Obj3D.mount(pp, M || m.M); g.add(x.g); list.push(x); return x; };
     ['cheveux', 'oreilles'].forEach(k => put(P[k], head));
-    ['cou', 'buste'].forEach(k => put(P[k], turn));
+    if (!logo) ['cou', 'buste'].forEach(k => put(P[k], turn));
     // les pupilles : des ronds d'encre, avec un reflet (des yeux vivants, pas vides)
     D.pupils.forEach(p => {
       const d = new T.Mesh(new T.CircleGeometry(p.r, 24), m.fill); d.position.set(p.c[0], p.c[1], p.c[2] + 0.004); d.renderOrder = 3; head.add(d);
       const h = new T.Mesh(new T.CircleGeometry(p.r * 0.34, 16), m.paperM); h.position.set(p.c[0] + p.r * 0.35, p.c[1] + p.r * 0.38, p.c[2] + 0.006); h.renderOrder = 4; head.add(h);
     });
-    Object.assign(m, { head, F, D, ready: true, fig: D.top - BAS });
-    m.meta = { head: [0.5, D.top / (D.top - BAS)] };
+    const bas = logo ? D.chin - 0.04 : BAS;          // le logo : la tête seule, des pointes des cheveux au menton
+    Object.assign(m, { head, F, D, ready: true, fig: D.top - bas });
+    m.meta = { head: [0.5, D.top / (D.top - bas)] };
     pose(m, {});
   }).catch(e => console.error('Mathieu : tete.json introuvable', e));
   all.add(m);
@@ -207,7 +210,8 @@ function pose(m, o) {
   // le trait : proportionné à sa taille, comme un dessin (ni fil, ni pâté)
   const w = Math.max(1.3, Math.min(9, u * PEN));
   m.M.line.uniforms.width.value = w; m.M.soft.uniforms.width.value = w * 0.6; m.Mb.line.uniforms.width.value = w * 2;
-  [m.M.line, m.M.soft, m.Mb.line].forEach((x, i) => { x.opacity = a * (i === 1 ? 0.5 : 1); }); m.fill.opacity = a; m.paperM.opacity = a;
+  // en logo, tout petit : sans les traits pâles
+  [m.M.line, m.M.soft, m.Mb.line].forEach((x, i) => { x.opacity = a * (i === 1 ? (m.logo ? 0 : 0.5) : 1); }); m.fill.opacity = a; m.paperM.opacity = a;
   m.F.deform(Math.round(Math.max(0, Math.min(1, p.open ?? 0)) * 400) / 400);
   m.root.updateMatrixWorld(true); m.F.contour();
   return m;
