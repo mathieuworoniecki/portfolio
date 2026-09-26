@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planche des chats</title>
+<!-- La planche des chats : toutes les races, et chaque animation, pour les régler sans passer par le film.
+     python3 tools/serve.py, puis http://localhost:8940/tools/planche.html (?anim=pas, trot, galop, assis, toilette…) -->
+<style>
+html,body{margin:0;height:100%;background:#DADBD8;font:14px/1.3 "Caveat",cursive;color:#222428;overflow:hidden}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+.lbl{position:fixed;transform:translateX(-50%);font-size:18px;white-space:nowrap}
+nav{position:fixed;left:12px;top:10px;display:flex;flex-wrap:wrap;gap:6px;z-index:2;max-width:95vw}
+nav a{color:#222428;font:13px system-ui;padding:2px 6px;border:1px solid #9a9c98;text-decoration:none}
+nav a.on{background:#222428;color:#DADBD8}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&display=swap">
+</head>
+<body>
+<canvas id="obj"></canvas>
+<nav id="nav"></nav>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="../js/theme.js"></script>
+<script src="../js/objects3d.js"></script>
+<script src="../js/chat.js"></script>
+<script src="../js/univers.js"></script>
+<script src="../js/chats.js"></script>
+<script>
+(() => {
+const q = new URLSearchParams(location.search), anim = q.get('anim') || 'debout', ids = Chat.IDS;
+const ANIMS = window.Chats && Chats.ANIMS ? ['debout'].concat(Object.keys(Chats.ANIMS)) : ['debout'];
+document.getElementById('nav').innerHTML = ANIMS.map(a => `<a href="?anim=${a}" class="${a === anim ? 'on' : ''}">${a}</a>`).join('');
+Obj3D.init(document.getElementById('obj'));
+let W = innerWidth, H = innerHeight; Obj3D.resize(W, H);
+const cols = W > H ? 4 : 2, rows = Math.ceil(ids.length / cols), cw = W / cols, ch = (H - 40) / rows, s = Math.min(cw * 0.8, ch * 1.3);
+const cats = ids.map((id, i) => {
+  const c = Chat.create(id); c.s = s; c.x = cw * (i % cols + 0.5) - s * 0.1; c.y = 40 + ch * (Math.floor(i / cols) + 0.86); c.z = -i * 2000; c.yaw = -Chat.VIEW.yaw;
+  const l = document.createElement('div'); l.className = 'lbl'; l.textContent = c.b.nom; l.style.left = (cw * (i % cols + 0.5)) + 'px'; l.style.top = (c.y + 4) + 'px'; document.body.appendChild(l);
+  return c;
+});
+let last = performance.now(), t = 0;
+window.__t = null;   // pour les essais : un temps fixe
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now; t = window.__t ?? t + dt;
+  cats.forEach((c, i) => {
+    if (anim === 'debout' || !Chats.ANIMS[anim]) { Chat.rest(c, c.tgt); c.tgt[Chat.I.tailPhase] = t * 2 + i; c.tgt[Chat.I.tailWave] = 1; }
+    else Chats.ANIMS[anim](c, c.tgt, t + i * 0.13);
+    Chat.step(c, window.__t !== null ? 10 : dt);
+  });
+  Obj3D.render(); requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

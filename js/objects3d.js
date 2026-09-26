@@ -152,12 +152,13 @@ function piece(key, build) {
 function mats(color) {
   const c = color ?? inkNow();
   return { line: new T.LineBasicMaterial({ color: c, transparent: true, depthWrite: false }), soft: new T.LineBasicMaterial({ color: c, transparent: true, opacity: 0.5, depthWrite: false }),
-    hid: new T.LineBasicMaterial({ color: c, transparent: true, opacity: 0, depthWrite: false, depthFunc: T.GreaterDepth }) };
+    hid: new T.LineBasicMaterial({ color: c, transparent: true, opacity: 0, depthWrite: false, depthFunc: T.GreaterDepth }), nohid: true };
 }
 function mount(pp, M) {
   const g = new T.Group(), add = (o, ord) => { o.renderOrder = ord; o.frustumCulled = false; g.add(o); };
   pp.occ.forEach(o => add(new T.Mesh(o, OCC), 0));
-  if (pp.crease) { add(new T.LineSegments(pp.crease, M.line), 1); add(new T.LineSegments(pp.crease, M.hid), 2); }
+  // les traits cachés : seulement s'ils se voient (M.hid.opacity) — sinon autant de dessins en moins par image
+  if (pp.crease) { add(new T.LineSegments(pp.crease, M.line), 1); if (!M.nohid) add(new T.LineSegments(pp.crease, M.hid), 2); }
   if (pp.soft) { add(new T.LineSegments(pp.soft, M.soft), 1); }
   let sil = null;
   if (pp.cand.length) { const arr = new Float32Array(pp.cand.length / 2), sg = new T.BufferGeometry(); sg.setAttribute('position', new T.BufferAttribute(arr, 3)); sg.setDrawRange(0, 0); add(new T.LineSegments(sg, M.line), 1); sil = { arr, sg }; }
