@@ -1,0 +1,10 @@
+# on ne publie que le site : jamais les documents internes Look
+*.pdf
+*.pptx
+*.docx
+*.xlsx
+*Zone.Identifier
+docs/
+media/src/
+tools/
+media/keo/OneDrive*/

@@ -1,0 +1,426 @@
+/* LOOK Power RS — la page, en plan d'atelier.
+   Le bleu, le quadrillage et la pédale restent fixes (#stage) ; le texte défile par-dessus. */
+:root{
+  --bp:#1C58A2;             /* bleu du plan */
+  --bp-deep:#133F7C;        /* bleu profond, les bords */
+  --ink:238,245,255;        /* le trait blanc, en r,g,b */
+  --display:"Barlow Condensed","Arial Narrow","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  --text:"Barlow",system-ui,-apple-system,"Segoe UI","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,"Noto Sans SC","PingFang SC","Microsoft YaHei",monospace;
+  --gutter:clamp(22px,5vw,72px);
+  --sheet:12px;             /* le cadre de la planche */
+  /* la sensibilité du défilement, par type d'étape (1 = d'origine ; plus petit = on avance plus vite à chaque cran de molette) :
+     --scroll-len pour les étapes à longue animation (au millimètre, Power Core, puissance, robustesse, quotidien, héritage),
+     --scroll-short pour les étapes courtes (dedans), qui passaient trop vite */
+  --scroll-len:.8;
+  --scroll-short:1.45;
+  --bp-hi:#2468B6;          /* le centre, plus clair */
+  --vig:rgba(5,20,50,.45);  /* le vignetage des bords */
+  color-scheme:dark;
+}
+/* ——— les thèmes : les couleurs et les polices arrivent en variables sur <html> (js/theme.js) ; ici, quelques retouches par style ——— */
+#titles{filter:var(--glow-t,none)}
+[data-style="cao"] h1,[data-style="cao"] h2{letter-spacing:-.01em}
+[data-style="cao"] .sheet{border-color:rgba(var(--ink),.3)}
+[data-style="ardoise"] #stage{background-image:var(--noise,none),radial-gradient(ellipse at 40% 35%,var(--bp-hi) 0%,var(--bp) 50%,var(--bp-deep) 100%)}
+
+/* ——— les sélecteurs (thème, langue) : un bouton discret, un petit panneau ——— */
+.picks{display:flex;gap:8px;align-items:center}
+.pick{position:relative}
+.pick>button{display:flex;align-items:center;gap:7px;height:28px;padding:0 10px;position:relative;border:0;border-radius:0;background:none;color:rgb(var(--ink));
+  font:500 .64rem/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:border-color .2s,background .2s}
+.pick>button:hover,.pick>button:focus-visible,.pick.open>button{outline:none}
+.pick>button::after{content:"";width:5px;height:5px;border-right:1px solid currentColor;border-bottom:1px solid currentColor;transform:translateY(-2px) rotate(45deg);opacity:.7;transition:transform .2s}
+.pick.open>button::after{transform:translateY(1px) rotate(-135deg)}
+.pick ul{position:absolute;right:0;top:calc(100% + 6px);min-width:11rem;margin:0;padding:6px;list-style:none;background:var(--bp-deep);border:0;overflow:visible;
+  box-shadow:0 12px 30px rgba(0,0,0,.25);opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .18s,transform .18s;z-index:6}
+.pick.open ul{opacity:1;transform:none;pointer-events:auto}
+.pick li button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border:0;background:none;color:rgb(var(--ink));font:500 .7rem/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;text-align:left;cursor:pointer;opacity:.75}
+.pick li button:hover,.pick li button:focus-visible{opacity:1;background:rgba(var(--ink),.08);outline:none}
+.pick li button[aria-current="true"]{opacity:1}
+.pick li button[aria-current="true"]::after{content:"";margin-left:auto;width:9px;height:5px;border-left:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg) translateY(-2px)}
+.pick li span{font-family:var(--mono),"Noto Sans SC",sans-serif}
+.pick li small{opacity:.55;letter-spacing:.06em;text-transform:none;font-size:.68rem}
+/* ——— un cadre tracé à la craie (js/picker.js : chalkFrame) : un seul trait à main levée, qui se trace à l'apparition ;
+   au survol, un second trait vient s'y ajouter, comme autour du bouton lookcycle.com ——— */
+.cf{position:absolute;left:-6px;top:-6px;width:calc(100% + 12px);height:calc(100% + 12px);overflow:visible;pointer-events:none;fill:none;stroke:rgb(var(--ink));stroke-linecap:round;stroke-linejoin:round;filter:url(#chalk-rough)}
+.cf path{stroke-dasharray:1;stroke-dashoffset:1}
+.cf .cf-a{stroke-width:1.6;opacity:.95;animation:cf-draw 1s cubic-bezier(.6,0,.2,1) .4s forwards}
+.cf .cf-b{stroke-width:1;opacity:0;transition:opacity .2s}
+@keyframes cf-draw{to{stroke-dashoffset:0}}
+:hover>.cf .cf-b,:focus-visible>.cf .cf-b,.open>button>.cf .cf-b{opacity:.65;animation:cf-draw .55s cubic-bezier(.6,0,.2,1) forwards}
+.cf-panel{left:0;top:0;width:100%;height:100%}   /* dans les panneaux (qui coupent ce qui dépasse), le cadre est tracé à l'intérieur */
+.cf-panel .cf-a{stroke-width:1.3;animation-delay:0s;animation-duration:.6s}
+[data-style="cao"] .cf{filter:none}
+
+/* ——— le sélecteur de thème : au centre de l'en-tête ———
+   Un bouton (la miniature du thème et son nom) ; un panneau : les styles à gauche, le grand aperçu et les couleurs à droite. */
+.tpick{position:absolute;left:50%;top:calc(12px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:7;pointer-events:auto}
+.tp-btn{display:flex;align-items:center;gap:10px;height:38px;padding:4px 12px 4px 4px;position:relative;border:0;background:none;color:rgb(var(--ink));cursor:pointer;
+  font:500 .64rem/1.15 var(--mono);letter-spacing:.12em;text-transform:uppercase;transition:border-color .2s,background .2s;backdrop-filter:blur(6px)}
+.tp-btn:hover,.tp-btn:focus-visible,.tpick.open .tp-btn{outline:none}
+.tp-mini{display:block;box-shadow:0 0 0 1px rgba(var(--ink),.25)}
+.tp-name{display:flex;flex-direction:column;align-items:flex-start;white-space:nowrap}
+.tp-name small{font-size:.5rem;letter-spacing:.2em;opacity:.55;margin-bottom:2px}
+.tp-btn::after{content:"";width:5px;height:5px;border-right:1px solid currentColor;border-bottom:1px solid currentColor;transform:translateY(-2px) rotate(45deg);opacity:.7;transition:transform .2s;margin-left:2px}
+.tpick.open .tp-btn::after{transform:translateY(1px) rotate(-135deg)}
+.tp-panel{position:absolute;left:50%;top:calc(100% + 10px);width:min(540px,calc(100vw - 24px));transform:translate(-50%,-6px);padding:12px 14px 14px;
+  background:var(--bp-deep);color:rgb(var(--ink));border:0;box-shadow:0 20px 60px rgba(0,0,0,.4);
+  opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-height:calc(100vh - 90px);overflow:auto}
+.tpick.open .tp-panel{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.tp-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font:500 .66rem/1 var(--mono);letter-spacing:.22em;text-transform:uppercase}
+.tp-x{border:0;background:none;color:inherit;font-size:.95rem;cursor:pointer;opacity:.75;padding:4px 6px}
+.tp-x:hover{opacity:1}
+.tp-body{display:grid;grid-template-columns:178px 1fr;gap:12px;align-items:stretch}
+.tp-cap{margin:0 0 8px;font:500 .58rem/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;opacity:.6}
+.tp-list{display:flex;flex-direction:column;gap:3px}
+.tp-list .tp-item{flex:1}   /* la liste occupe toute la hauteur de l'aperçu et des couleurs */
+.tp-item{display:flex;align-items:center;gap:8px;padding:4px;border:1px solid transparent;background:none;color:inherit;text-align:left;cursor:pointer;transition:background .15s,border-color .15s}
+.tp-item:hover,.tp-item:focus-visible{background:rgba(var(--ink),.07);outline:none}
+.tp-item[aria-checked="true"]{border-color:rgb(var(--ink));background:rgba(var(--ink),.08)}
+.tp-thumb{flex:none;display:block;box-shadow:0 0 0 1px rgba(var(--ink),.2)}
+.tp-item b{display:block;font:600 .8rem/1.1 var(--display);letter-spacing:.05em;text-transform:uppercase}
+.tp-item small{display:none}
+.tp-big canvas{display:block;width:100%!important;height:auto!important;aspect-ratio:320/180;box-shadow:0 0 0 1px rgba(var(--ink),.25)}
+.tp-capc{margin-top:10px}
+.tp-desc{margin:6px 0 0;font:400 .72rem/1.35 var(--text);opacity:.7;min-height:1.35em}
+.tp-colors{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.tp-col{display:flex;flex-direction:column;gap:4px;padding:3px;border:1px solid rgba(var(--ink),.15);background:none;color:inherit;cursor:pointer;font:500 .62rem/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;text-align:left;transition:border-color .15s}
+.tp-col canvas{display:block;width:100%!important;height:auto!important;aspect-ratio:96/54}
+.tp-col:hover,.tp-col:focus-visible{border-color:rgba(var(--ink),.55);outline:none}
+.tp-col[aria-checked="true"]{border-color:rgb(var(--ink));box-shadow:inset 0 0 0 1px rgb(var(--ink))}
+.tp-col[aria-checked="true"] span::after{content:" ✓"}
+*{box-sizing:border-box}
+html{background:var(--bp-deep);scroll-behavior:auto}
+body{margin:0;color:rgb(var(--ink));background:var(--bp-deep);font:400 1.0625rem/1.6 var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit}
+:focus-visible{outline:2px solid rgb(var(--ink));outline-offset:3px}
+
+/* ——— le plan : fond, quadrillage, grain ——— */
+#stage{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;
+  background-color:var(--bp);
+  background-image:var(--noise,none),radial-gradient(ellipse at 50% 40%,var(--bp-hi) 0%,var(--bp) 45%,var(--bp-deep) 100%);
+  background-size:180px 180px,100% 100%}
+#grid{position:absolute;inset:0;width:100%;height:100%;display:block}
+#stage::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,transparent 55%,var(--vig) 100%)}
+/* le voile sous le menu : en montant, textes, craie, pédale et pièces s'effacent avant d'atteindre le logo (--veil, --my : js/scroll.js) */
+:root{--veil:0;--veil-a:78px;--veil-b:170px}
+#gl,#debris,#obj,#titles{-webkit-mask-image:linear-gradient(to bottom,transparent calc(var(--veil)*var(--veil-a)),#000 calc(var(--veil)*var(--veil-b)));mask-image:linear-gradient(to bottom,transparent calc(var(--veil)*var(--veil-a)),#000 calc(var(--veil)*var(--veil-b)))}
+/* sur téléphone : la pédale et les objets 3D s'effacent aussi au-dessus du bas du texte affiché (--cut, js/scroll.js) */
+:root{--cut:0px;--cut-b:100vh}
+#gl,#debris,#obj{-webkit-mask-image:linear-gradient(to bottom,transparent max(calc(var(--veil)*var(--veil-a)),calc(var(--cut) - 26px)),#000 max(calc(var(--veil)*var(--veil-b)),calc(var(--cut) + 14px)),#000 calc(var(--cut-b) - 14px),transparent calc(var(--cut-b) + 20px));mask-image:linear-gradient(to bottom,transparent max(calc(var(--veil)*var(--veil-a)),calc(var(--cut) - 26px)),#000 max(calc(var(--veil)*var(--veil-b)),calc(var(--cut) + 14px)),#000 calc(var(--cut-b) - 14px),transparent calc(var(--cut-b) + 20px))}
+main{--my:0px;-webkit-mask-image:linear-gradient(to bottom,transparent calc(var(--my) + var(--veil)*var(--veil-a)),#000 calc(var(--my) + var(--veil)*var(--veil-b)));mask-image:linear-gradient(to bottom,transparent calc(var(--my) + var(--veil)*var(--veil-a)),#000 calc(var(--my) + var(--veil)*var(--veil-b)))}
+.sheet{position:fixed;inset:var(--sheet);z-index:3;pointer-events:none;border:1px solid rgba(var(--ink),.55)}
+.sheet::after{content:"";position:absolute;inset:4px;border:1px solid rgba(var(--ink),.18)}
+
+/* ——— la pédale en 3D, et les titres dessinés par-dessus ——— */
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;filter:var(--glow-f,drop-shadow(0 0 1.2px rgba(238,245,255,.55)))}
+#titles,#debris,#obj{position:fixed;inset:0;z-index:1;width:100%;height:100%;pointer-events:none}
+#obj{filter:var(--glow-f,drop-shadow(0 0 1.2px rgba(238,245,255,.5)))}
+#gate{z-index:20}
+.locked #debris,.locked #obj{z-index:21}
+/* les titres restent dans la page pour la lecture ; c'est la toile qui les dessine */
+.js [data-title]{color:transparent}
+.js [data-title]::selection{color:rgb(var(--ink));background:rgba(var(--ink),.25)}
+.tag{position:absolute;left:0;top:0;margin:0;display:flex;flex-direction:column;align-items:center;gap:4px;white-space:nowrap;opacity:0;will-change:transform,opacity;
+  font:500 .68rem/1.2 var(--mono);letter-spacing:.14em;text-transform:uppercase}
+.tag b{font:600 1.05rem/1 var(--display);letter-spacing:.12em}
+.tag::before{content:"";width:1px;height:26px;background:rgba(var(--ink),.7);margin-bottom:4px}
+
+/* on peut attraper la pédale : un curseur de rotation, et une bulle tant qu'on ne l'a pas encore tournée */
+.can-grab,.can-grab body,.can-grab main,.can-grab .step{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cg fill='none' stroke='%23133F7C' stroke-width='5' stroke-linecap='round'%3E%3Cpath d='M9 16a12 12 0 0 1 21-4M31 24a12 12 0 0 1-21 4'/%3E%3C/g%3E%3Cg fill='none' stroke='%23EEF5FF' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 16a12 12 0 0 1 21-4M31 24a12 12 0 0 1-21 4'/%3E%3Cpath d='M30 5v7h-7M10 35v-7h7'/%3E%3C/g%3E%3Ccircle cx='20' cy='20' r='2.4' fill='%23EEF5FF'/%3E%3C/svg%3E") 20 20,grab}
+.grabbing,.grabbing body,.grabbing *{cursor:grabbing!important;user-select:none;-webkit-user-select:none}
+.can-grab body{user-select:none;-webkit-user-select:none}
+.grab-hint{position:fixed;z-index:6;left:0;top:0;pointer-events:none;padding:6px 10px;border:1px solid rgba(var(--ink),.6);background:rgba(19,63,124,.85);font:500 .62rem/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;opacity:0;transition:opacity .25s}
+.can-grab .grab-hint:not(.done){opacity:1}
+
+/* ——— l'en-tête ——— */
+.top{position:fixed;z-index:4;top:var(--sheet);left:var(--sheet);right:var(--sheet);display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px calc(var(--gutter) - var(--sheet));padding-top:calc(18px + env(safe-area-inset-top,0px));pointer-events:none}
+.top > *{pointer-events:auto}
+.brand{display:flex;align-items:center;gap:.8rem;text-decoration:none;opacity:0;pointer-events:none;transition:opacity .6s ease}
+/* sur l'accueil, le logo et le nom sont déjà au centre : l'en-tête ne les montre qu'après */
+.past-hero .brand{opacity:1;pointer-events:auto}
+.logo{display:block;height:22px;width:auto;overflow:visible}
+/* le logo se trace en contour, puis se remplit */
+/* le logo reste en contour, comme dessiné à la craie : il se trace, sans se remplir */
+.logo path{fill:none;stroke:rgb(var(--ink));stroke-width:1.3;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:0;vector-effect:non-scaling-stroke}
+.js .logo path{stroke-dashoffset:1}
+.js.past-hero .logo path{animation:logo-draw 1.8s cubic-bezier(.6,0,.2,1) .2s forwards}
+/* au survol, le logo s'anime : chaque élément saute l'un après l'autre, se remplit un instant, puis se retrace */
+.logo path{transform-box:fill-box;transform-origin:50% 100%;transition:transform .45s cubic-bezier(.3,1.8,.5,1),fill .3s,stroke-width .3s}
+.brand:hover .logo path{fill:rgba(var(--ink),.18);stroke-width:1.8;stroke-dashoffset:0;animation:logo-hop .7s cubic-bezier(.3,1.6,.5,1) both}
+.brand:hover .lg-l{animation-delay:0s}.brand:hover .lg-o1{animation-delay:.07s}.brand:hover .lg-o2{animation-delay:.14s}.brand:hover .lg-k{animation-delay:.21s}.brand:hover .lg-bar{animation-delay:.28s}.brand:hover .lg-box{animation-delay:.35s}
+@keyframes logo-hop{0%{transform:none}35%{transform:translateY(-9px) scale(1.08) rotate(-4deg)}65%{transform:translateY(1px) scale(.98)}100%{transform:none}}
+.brand:hover span{letter-spacing:.28em}
+.brand span{transition:letter-spacing .4s}
+@keyframes logo-draw{to{stroke-dashoffset:0}}
+.brand:hover .logo path{stroke-width:3.2}
+.brand span{font:500 .7rem/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;opacity:.8}
+/* le bouton vers lookcycle.com : en bas à droite, toujours là ; son ovale est dessiné à la craie (js/scenes.js) */
+.top-cta{position:fixed;z-index:5;right:calc(var(--sheet) + 16px);bottom:calc(var(--sheet) + 22px + env(safe-area-inset-bottom,0px));display:inline-flex;align-items:center;gap:.45em;padding:.6rem .4rem;text-decoration:none;font:600 .78rem/1 var(--display);letter-spacing:.14em;text-transform:uppercase;transition:letter-spacing .3s}
+.top-cta i{font-style:normal;transition:transform .3s}
+.top-cta:hover,.top-cta:focus-visible{letter-spacing:.2em}
+.top-cta:hover i{transform:translate(3px,-3px)}
+.locked .top-cta{visibility:hidden}
+.top-cta .short{display:none}
+.top{flex-wrap:nowrap}
+.top .plate{margin-left:auto}
+/* sur l'accueil, le cartouche passe à gauche : le bouton est à droite */
+.cartouche{right:auto;left:calc(var(--sheet) + 10px);width:max-content}   /* le même écart au bord que le bouton en bas à droite (son cadre déborde de 6px) */
+.plate{margin:0;font:400 .68rem/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;opacity:.85;font-variant-numeric:tabular-nums}
+.plate b{font-weight:500}
+.plate em{font-style:normal;margin-left:.8em;padding-left:.8em;border-left:1px solid rgba(var(--ink),.5)}
+
+/* ——— la règle, à droite : où l'on est dans la page ——— */
+.ruler{position:fixed;z-index:3;right:calc(var(--sheet) + 14px);top:22vh;bottom:22vh;width:34px}
+.ruler::before{content:"";position:absolute;right:0;top:0;bottom:0;width:1px;background:rgba(var(--ink),.45)}
+.ruler{cursor:ns-resize;touch-action:none}
+.ruler::after{content:"";position:absolute;right:-10px;left:-14px;top:-10px;bottom:-10px}
+.ruler.dragging .mark{transform:translateY(-50%) rotate(45deg) scale(1.5);background:rgb(var(--ink))}
+.ruler a{position:absolute;right:0;z-index:1;display:flex;align-items:center;gap:6px;transform:translateY(-50%);text-decoration:none;font:500 .6rem/1 var(--mono);letter-spacing:.08em;opacity:.55;transition:opacity .3s}
+.ruler a::after{content:"";width:10px;height:1px;background:rgb(var(--ink))}
+.ruler a.on,.ruler a:hover{opacity:1}
+.ruler i{position:absolute;right:0;width:4px;height:1px;background:rgba(var(--ink),.35)}
+.ruler .mark{position:absolute;right:-4px;top:0;width:9px;height:9px;border:1px solid rgb(var(--ink));transform:translateY(-50%) rotate(45deg);background:var(--bp)}
+
+/* ——— les étapes ——— */
+main{position:relative;z-index:2}
+.step{position:relative;min-height:calc(130vh * var(--scroll-len));display:flex;align-items:center;padding:0 var(--gutter)}
+.step[data-side="right"]{justify-content:flex-end}
+.step[data-side="top"]{align-items:flex-start;justify-content:center;padding-top:20vh;text-align:center}
+#fin h2{margin-bottom:.6rem}
+#fin .versions{margin-top:.6rem}
+#fin .cta{margin-top:2.8rem;padding:1.1rem 2rem}
+#fin .box{display:flex;flex-direction:column;align-items:center;max-width:44rem}
+@media (max-height:800px){#fin h2{margin-bottom:.8rem}#fin .versions{margin-top:1rem}#fin .cta{margin-top:1.4rem}.fin-pedal{height:clamp(130px,22vh,240px)}}
+.box{max-width:34rem}   /* assez large pour « Même silhouette. » sur une ligne */
+.step[data-side="top"] .box{max-width:40rem}
+.num{display:flex;align-items:center;gap:.8em;margin:0 0 1rem;font:500 .7rem/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;opacity:.8}
+.num::before{content:"";width:28px;height:1px;background:rgb(var(--ink))}
+.step[data-side="top"] .num{justify-content:center}
+h1,h2{font-family:var(--display);font-weight:600;text-transform:uppercase;margin:0;text-wrap:balance}
+/* le chinois : les polices du site n'ont pas ces caractères, on prend celles du système (titres plus serrés, sans capitales) */
+:lang(zh) body{font-family:var(--text),"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC","Noto Sans CJK SC",sans-serif}
+:lang(zh) h1,:lang(zh) h2,:lang(zh) h3{font-family:var(--display),"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC","Noto Sans CJK SC",sans-serif;letter-spacing:.04em}
+:lang(zh) .box p:not(.num){line-height:1.75}
+h2{font-size:clamp(1.9rem,min(5.2vw,8.2vh),4.4rem);line-height:.95;letter-spacing:.01em;margin-bottom:1rem}
+.box p:not(.num){margin:0;max-width:34ch;font-size:1.12rem;opacity:.92}
+.step[data-side="top"] .box p:not(.num){margin-inline:auto}
+
+/* ——— l'accueil ——— */
+.hero{min-height:100vh;min-height:100svh;align-items:flex-start;justify-content:center;text-align:center;padding-top:calc(13vh + env(safe-area-inset-top,0px))}
+.hero-txt{display:flex;flex-direction:column;align-items:center;max-width:52rem}
+.kick{margin:0 0 .9rem;font:500 .72rem/1.3 var(--mono);letter-spacing:.2em;text-transform:uppercase;opacity:.85}
+h1{font-size:clamp(3.2rem,min(10.5vw,17vh),9.2rem);   /* la hauteur compte aussi : écrans larges et peu hauts */line-height:.86;letter-spacing:.03em}
+.dimline{display:flex;align-items:center;gap:12px;width:min(100%,30rem);margin:1rem 0 1.1rem;font:500 .72rem/1 var(--mono);letter-spacing:.18em;text-transform:uppercase}
+.dimline i{position:relative;flex:1;height:1px;background:rgb(var(--ink))}
+.dimline i:first-child::before,.dimline i:last-child::after{content:"";position:absolute;top:-4px;width:1px;height:9px;background:rgb(var(--ink))}
+.dimline i:first-child::before{left:0}.dimline i:last-child::after{right:0}
+.lead{margin:0;max-width:40ch;font-size:clamp(1.02rem,1.5vw,1.2rem);opacity:.92}
+
+/* l'invitation à défiler : une souris, ou un doigt sur écran tactile */
+.cue{position:absolute;left:50%;bottom:calc(30px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;font:500 .64rem/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+.mouse{position:relative;width:24px;height:38px;border:1.5px solid rgb(var(--ink));border-radius:12px}
+.mouse i{position:absolute;left:50%;top:7px;width:3px;height:7px;margin-left:-1.5px;border-radius:2px;background:rgb(var(--ink));animation:wheel 1.8s cubic-bezier(.5,0,.5,1) infinite}
+@keyframes wheel{0%{transform:translateY(0);opacity:0}15%{opacity:1}70%{transform:translateY(13px);opacity:0}100%{opacity:0}}
+.swipe{display:none;position:relative;width:30px;height:54px}
+.swipe::before{content:"";position:absolute;left:50%;bottom:10px;width:1.5px;height:34px;margin-left:-.75px;background:linear-gradient(to top,rgba(var(--ink),.9),rgba(var(--ink),0));transform-origin:bottom;animation:trail 1.9s ease-in-out infinite}
+.swipe i{position:absolute;left:50%;bottom:2px;width:18px;height:18px;margin-left:-9px;border-radius:50%;border:1.5px solid rgb(var(--ink));background:rgba(var(--ink),.22);animation:swipe 1.9s ease-in-out infinite}
+@keyframes swipe{0%{transform:translateY(0) scale(.8);opacity:0}15%{transform:translateY(0) scale(1);opacity:1}70%{transform:translateY(-34px);opacity:1}100%{transform:translateY(-38px);opacity:0}}
+@keyframes trail{0%,15%{transform:scaleY(0);opacity:0}70%{transform:scaleY(1);opacity:1}100%{transform:scaleY(1);opacity:0}}
+.chev{width:9px;height:9px;border-right:1.5px solid rgb(var(--ink));border-bottom:1.5px solid rgb(var(--ink));transform:rotate(45deg);animation:chev 1.8s ease-in-out infinite}
+@keyframes chev{0%,100%{transform:translateY(-2px) rotate(45deg);opacity:.35}50%{transform:translateY(3px) rotate(45deg);opacity:1}}
+.cue .touch{display:none}
+/* l'icône est dessinée à la craie (js/scenes.js) ; on garde seulement le texte */
+.js .cue .mouse,.js .cue .swipe,.js .cue .chev{display:none!important}
+.js .cue{gap:0}
+@media (hover:none) and (pointer:coarse){.mouse{display:none}.swipe{display:block}.cue .desk{display:none}.cue .touch{display:inline}}
+
+/* le cartouche, en bas à droite de l'accueil */
+.cartouche{position:absolute;right:var(--gutter);bottom:calc(30px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(3,auto);margin:0;border:1px solid rgba(var(--ink),.7);font:400 .62rem/1.25 var(--mono);text-transform:uppercase;letter-spacing:.1em;text-align:left}
+.cartouche div{padding:6px 10px;border-right:1px solid rgba(var(--ink),.35);border-top:1px solid rgba(var(--ink),.35)}
+.cartouche .c-wide{grid-column:1 / -1;border-top:0}
+.cartouche dt{opacity:.65}
+.cartouche dd{margin:2px 0 0;font:600 .92rem/1.1 var(--display);letter-spacing:.08em}
+
+/* l'écran 5 est long : le texte reste en place pendant qu'on traverse la puissance */
+#puissance,#cotes{min-height:calc(520vh * var(--scroll-len));align-items:flex-start;padding-top:22vh}
+#cotes{min-height:calc(440vh * var(--scroll-len))}
+#power-core{min-height:calc(400vh * var(--scroll-len));align-items:flex-start;padding-top:22vh}
+#quotidien{min-height:calc(480vh * var(--scroll-len));align-items:flex-start;padding-top:22vh}
+#heritage{min-height:calc(300vh * var(--scroll-len));align-items:flex-start;padding-top:22vh}
+#robustesse{min-height:calc(300vh * var(--scroll-len));align-items:flex-start;padding-top:22vh}
+#dedans{min-height:calc(130vh * var(--scroll-short));align-items:flex-start;padding-top:22vh}
+#dedans .box{position:sticky;top:30vh}
+#robustesse .box{position:sticky;top:30vh}
+#heritage .box{position:sticky;top:30vh}
+#quotidien .box{position:sticky;top:26vh}
+#power-core .box{position:sticky;top:26vh}
+#puissance .box,#cotes .box{position:sticky;top:26vh}
+
+/* ——— l'accès réservé ——— */
+#gate{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4rem;padding:0 var(--gutter);text-align:center;transition:opacity 1.1s ease,transform 1.2s cubic-bezier(.6,0,.2,1)}
+.locked body{overflow:hidden}
+.locked body>*:not(#gate):not(#stage):not(#debris):not(#obj):not(svg),.locked #gl{visibility:hidden}
+html:not(.locked) #gate:not(.open){display:none}
+#gate.open{opacity:0;transform:scale(1.04);pointer-events:none}
+.gate-logo{width:min(260px,56vw);height:auto;overflow:visible}
+.gate-logo path{fill:none;stroke:rgb(var(--ink));stroke-width:1.6;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1}
+#gate.in .gate-logo path{animation:logo-draw 2.2s cubic-bezier(.6,0,.2,1) .2s forwards}
+#gate.in .gate-logo path+path{animation-delay:.7s}
+.gate-kick{margin:0;font:600 clamp(1.6rem,3vw,2.2rem)/1 "Caveat","Segoe Print",cursive;opacity:0;transform:translateY(6px);transition:opacity .8s ease 1.6s,transform .8s ease 1.6s}
+#gate.in .gate-kick{opacity:.95;transform:none}
+.gate-form{display:flex;flex-direction:column;align-items:center;gap:.9rem}
+.gate-field{position:relative;width:min(320px,80vw);height:76px}
+.gate-box{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.gate-box path{fill:none;stroke:rgb(var(--ink));stroke-width:2.2;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1}
+#gate.in .gate-box path:first-child{animation:logo-draw 1.4s cubic-bezier(.6,0,.2,1) 2s forwards}
+.gate-box .gate-tick{stroke-width:4;opacity:0}
+#gate.good .gate-box .gate-tick{opacity:1;animation:logo-draw .6s ease forwards}
+#gate.good input{opacity:.6}
+.gate-field input{all:unset;box-sizing:border-box;position:absolute;inset:0;width:100%;text-align:center;font:600 2rem/76px "Caveat","Segoe Print",cursive;letter-spacing:.3em;color:rgb(var(--ink));caret-color:rgb(var(--ink));opacity:0;transition:opacity .6s ease 3s}
+#gate.in .gate-field input{opacity:1}
+.gate-field input::selection{background:rgba(238,245,255,.2)}
+.gate-field input::placeholder{color:rgba(var(--ink),.35);letter-spacing:.1em}
+.gate-field input:focus-visible{outline:none}
+#gate.bad .gate-field{animation:gate-shake .5s cubic-bezier(.36,.07,.19,.97)}
+@keyframes gate-shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-8px)}40%,60%{transform:translateX(8px)}}
+.gate-go{all:unset;cursor:pointer;padding:.6rem 1.2rem;font:500 .72rem/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;border-bottom:1.5px solid rgba(var(--ink),.7);opacity:0;transition:opacity .6s ease 3.2s,letter-spacing .3s}
+#gate.in .gate-go{opacity:.9}
+.gate-go:hover,.gate-go:focus-visible{letter-spacing:.28em;opacity:1}
+.gate-msg{margin:0;min-height:1.4em;font:600 1.3rem/1 "Caveat","Segoe Print",cursive}
+@media (prefers-reduced-motion:reduce){#gate *{animation-duration:.01s!important;transition:none!important}}
+
+/* l'espace au-dessus du titre, où s'écrivent le logo LOOK et « présente la nouvelle » */
+.hero-over{height:clamp(80px,15vh,140px)}
+/* écrans larges et peu hauts (portables zoomés, 1510×698, 1280×560…) : textes plus compacts, placés plus haut */
+@media (min-aspect-ratio:1/1) and (max-height:760px){
+  .box p:not(.num){font-size:1rem;line-height:1.5}
+  #cotes .box,#power-core .box,#puissance .box,#quotidien .box{top:20vh}
+  #dedans .box,#robustesse .box,#heritage .box{top:22vh}
+  .hero{padding-top:calc(var(--sheet) + 92px)}   /* le logo LOOK à la craie reste sous le sélecteur de thème */
+}
+@media (min-aspect-ratio:1/1) and (max-height:600px){
+  .box p:not(.num){font-size:.92rem;line-height:1.45}
+  .step .box .fine{display:none}
+  #cotes .box,#power-core .box,#puissance .box,#quotidien .box,#dedans .box,#robustesse .box,#heritage .box{top:calc(var(--sheet) + 70px)}
+}
+
+/* l'arrivée depuis l'écran d'accès : le site apparaît en fondu, sur le même fond, quand tout est prêt */
+.entering #gl,.entering #titles,.entering main,.entering .top,.entering .ruler,.entering .top-cta{opacity:0!important}
+.fading-in #gl,.fading-in #titles,.fading-in main,.fading-in .top,.fading-in .ruler,.fading-in .top-cta{transition:opacity 1s ease!important}
+
+/* masqué à l'écran, lu par les lecteurs d'écran et les moteurs de recherche */
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* la fin : les deux versions */
+.versions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:44px;margin:1.6rem auto 0;width:min(100%,38rem);text-align:center}
+.version{border:1px solid rgba(var(--ink),.55);padding:18px 20px;background:rgba(19,63,124,.35)}
+.version h3{margin:0 0 .4rem;font:600 1.5rem/1 var(--display);letter-spacing:.08em;text-transform:uppercase}
+.version p{margin:0!important;font-size:.95rem!important;max-width:none!important}
+@media (max-width:520px){.versions{grid-template-columns:minmax(0,1fr);gap:24px}}
+
+/* au final, les cadres et le bouton sont dessinés à la craie (js/scenes.js) ; leur contenu apparaît une fois tracés */
+.js .version{border-color:transparent;background:transparent}
+.js .version>*{opacity:0;transition:opacity .6s ease}
+.js .version.drawn>*{opacity:1}
+.js .cta{border-color:transparent;background:transparent;color:transparent;transition:color .6s ease}
+.js .cta.drawn{color:rgb(var(--ink))}
+.js .cta.drawn:hover{background:transparent;color:rgb(var(--ink))}
+.js .version,.js .cta{position:relative}
+
+/* la fin */
+.end{min-height:100vh}
+.cta{display:inline-block;margin-top:1.8rem;padding:1rem 1.6rem;border:1.5px solid rgb(var(--ink));text-decoration:none;font:600 1rem/1 var(--display);letter-spacing:.16em;text-transform:uppercase;background:rgba(19,63,124,.4);transition:background .25s,color .25s}
+.cta:hover{background:rgb(var(--ink));color:var(--bp-deep)}
+.fine{max-width:none!important;margin-top:1.2rem!important;font:400 .7rem/1 var(--mono)!important;letter-spacing:.16em;text-transform:uppercase;opacity:.7!important}
+
+/* ——— l'apparition du texte, au défilement ——— */
+.js [data-reveal]{opacity:0;transition:opacity .9s ease}
+.js [data-reveal].in{opacity:1}
+.js .dimline i{transform:scaleX(0);transition:transform 1.2s cubic-bezier(.6,0,.2,1) .2s}
+.js .dimline i:first-child{transform-origin:right}.js .dimline i:last-child{transform-origin:left}
+.js .dimline.in i{transform:none}
+.js .num::before{transform:scaleX(0);transform-origin:left;transition:transform .9s cubic-bezier(.6,0,.2,1) .3s}
+.js .in .num::before{transform:none}
+
+/* les paragraphes s'écrivent mot par mot, au fil du défilement (js/scroll.js) */
+.js .w{opacity:0}
+
+/* ——— écran étroit ——— */
+/* la fin : tout le bloc (titre, pédale, cartes, bouton) est centré dans l'écran ; la pédale a sa place réservée (js/scenes.js la suit) */
+.fin-pedal{display:block;width:100%;height:clamp(150px,26vh,300px);margin:.4rem 0}
+#fin{padding-top:calc(var(--sheet) + 64px);padding-bottom:calc(var(--sheet) + 64px);align-items:center;justify-content:center}
+/* --fk : le resserrement de la fin quand l'écran est peu haut (js/scroll.js) */
+#fin .version{padding:calc(18px * var(--fk,1)) 20px}
+#fin .version h3{font-size:calc(1.5rem * var(--fk,1))}
+#fin .version p{font-size:calc(.95rem * var(--fk,1))!important;line-height:calc(1.6 * (.4 + .6 * var(--fk,1)))}
+#fin .cta{margin-top:calc(1.6rem * var(--fk,1))!important}
+#fin h2{font-size:calc(clamp(1.9rem,min(5.2vw,8.2vh),4.4rem) * (.5 + .5 * var(--fk,1)))}
+/* téléphones, et tout écran en hauteur (tablettes en portrait) : même logique que js/scroll.js (wide = largeur > hauteur) */
+@media (max-width:760px),(max-aspect-ratio:1/1){
+  .cue{bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+  :root{--sheet:8px;--veil-a:50px;--veil-b:66px}
+  .ruler,.cartouche{display:none}
+  .plate span,.plate b{display:none}
+  /* le bouton lookcycle.com : toute la largeur, en bas (son cadre à main levée suit) */
+  .top-cta{left:calc(var(--sheet) + 14px);right:calc(var(--sheet) + 14px);justify-content:center;padding:.85rem 1rem;font-size:.8rem}
+  .top-cta .full{display:inline}.top-cta .short{display:none}
+  .plate em{border:0;margin:0;padding:0}
+  /* sur téléphone : le logo LOOK toujours visible dans l'en-tête, déjà tracé ; la langue en deux lettres */
+  .brand,.past-hero .brand{opacity:1;pointer-events:auto}
+  .js .logo path{stroke-dashoffset:0;animation:none}
+  .logo{height:20px}
+  .brand span{display:none}
+  /* l'en-tête respire : plus de marge sur les côtés et en haut, le nom de l'écran et la langue séparés */
+  .top{gap:18px;padding:22px 20px 14px;padding-top:calc(22px + env(safe-area-inset-top,0px))}
+  .top .plate{margin-right:4px}
+  .picks{gap:6px}
+  .pick>button{height:26px;padding:0 8px}
+  .pick ul{min-width:12rem}
+  /* le thème : juste la miniature ; le panneau en pleine largeur : les styles en bande qui défile, l'aperçu, les couleurs */
+  .tp-name{display:none}
+  .tp-btn{padding-right:10px;height:36px}
+  .tp-body{grid-template-columns:1fr;gap:12px}
+  .tp-list{flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:4px;scrollbar-width:none}
+  .tp-list .tp-cap{display:none}
+  .tp-list .tp-item{flex:none}
+  .tp-item{flex-direction:column;align-items:flex-start;gap:4px;width:86px;padding:4px}
+  .tp-item small{display:none}
+  .tp-item b{font-size:.74rem}
+  .tpick{top:calc(16px + env(safe-area-inset-top,0px));left:0;right:0;margin:0 auto;width:max-content;transform:none}
+  /* le panneau reste compact (540 px au plus), centré sous l'en-tête ; sur un téléphone, toute la largeur */
+  .tp-panel{position:fixed;left:50%;right:auto;width:min(540px,calc(100vw - 24px));top:62px;transform:translate(-50%,-6px)}
+  .tpick.open .tp-panel{transform:translate(-50%,0)}
+  .top .plate{display:none}
+  .step,.step[data-side="right"]{align-items:flex-start;justify-content:flex-start;padding-top:16vh}
+  .hero{justify-content:center;padding-top:calc(15vh + env(safe-area-inset-top,0px))}
+  .step[data-side="top"]{justify-content:center}
+  /* le texte, compact, en haut ; l'animation dans la zone libre en dessous */
+  #cotes,#dedans,#power-core,#puissance,#robustesse,#quotidien,#heritage{padding-top:10vh}
+  #cotes .box,#dedans .box,#power-core .box,#puissance .box,#robustesse .box,#quotidien .box,#heritage .box{top:calc(var(--sheet) + 58px)}
+  .step:not(.hero):not(.end) h2{font-size:1.9rem;margin-bottom:.55rem}
+  .step:not(.end) .box p:not(.num){font-size:.93rem;line-height:1.45}
+  .step .box .fine{display:none}
+  #fin h2{margin-bottom:.4rem}
+  .fin-pedal{display:block;height:20vh}
+  #fin{padding-top:calc(var(--sheet) + 78px)}
+  #fin .versions{margin-top:.6rem;gap:14px}
+  #fin .cta{margin-top:1.4rem;padding:.9rem 1.1rem;font-size:.86rem;letter-spacing:.1em;white-space:nowrap}
+}
+/* tablettes en portrait : la mise en page du téléphone, en plus grand */
+@media (max-aspect-ratio:1/1) and (min-width:700px){
+  .step:not(.hero):not(.end) h2{font-size:2.9rem}
+  .step:not(.end) .box p:not(.num){font-size:1.12rem;line-height:1.5}
+  .step .box{max-width:36rem}
+  #cotes .box,#dedans .box,#power-core .box,#puissance .box,#robustesse .box,#quotidien .box,#heritage .box{top:calc(var(--sheet) + 78px)}
+  .top-cta{left:calc(50% - 13rem);right:auto;width:26rem}
+  #fin h2{font-size:3.2rem}
+  .fin-pedal{height:26vh}
+}
+@media (prefers-reduced-motion:reduce){
+  .js [data-reveal],.js .dimline i,.js .num::before{transition:none}
+  .js .w{opacity:1}
+  .js .logo path{animation:none;fill-opacity:1;stroke-dashoffset:0}
+  .mouse i,.swipe i,.swipe::before,.chev{animation:none}
+}

@@ -1,0 +1,9 @@
+{
+  "name": "look-power-rs",
+  "private": true,
+  "type": "module",
+  "description": "Page de présentation LOOK Power RS (site statique ; middleware.js protège l'accès côté serveur)",
+  "dependencies": {
+    "@vercel/functions": "^3.9.9"
+  }
+}
