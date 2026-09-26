@@ -20,7 +20,7 @@ const popGrab = { grab: (x, y) => Pops.hit(x, y), drag: (o, x, y) => Pops.hold(o
 
 /* ——— 1 · la station « Salut » ——— */
 const enterBtn = $('#enter'), stayBtn = $('#stay'), root = document.documentElement;
-let reste = null;   // l'horloge du clic sur « Restez jouer ici » (null : pas encore)
+let reste = null, chute = false;   // l'horloge du clic sur « Restez jouer ici » (null : pas encore)
 // « Restez jouer ici » : le même cadre que l'autre bouton, mais il brille : un halo de lumière qui respire,
 // un reflet qui le traverse (css/site.css) et de petites étoiles qui scintillent autour
 function glowButton(el, prog, seed, clock) {
@@ -37,9 +37,11 @@ function glowButton(el, prog, seed, clock) {
     if (sz < 0.5) continue; const x = cx + Math.cos(ang) * (r.width / 2 + 16), y = cy + Math.sin(ang) * (r.height / 2 + 12);
     C.line(x - sz, y, x + sz, y, 1, { w: 1.3, a: 0.8, seed: k, tip: false, amp: 0 }); C.line(x, y - sz, x, y + sz, 1, { w: 1.3, a: 0.8, seed: k + 9, tip: false, amp: 0 }); }
 }
-// on reste jouer : le titre s'efface (il se dé-écrit), ce bouton s'en va, et le bouton d'entrée file en haut de l'écran
+// on reste jouer : le titre tombe (ou s'efface), ce bouton s'en va, et le bouton d'entrée file en haut de l'écran
 if (stayBtn) stayBtn.addEventListener('click', () => {
   if (reste !== null) return; reste = Film.clock; stayBtn.disabled = true;
+  // les lettres du titre dégringolent jusqu'au sol (js/vie.js) ; sans elles, le titre se dé-écrit
+  chute = !!(window.Vie && Vie.tombe());
   setTimeout(() => {
     const a = enterBtn.getBoundingClientRect(); root.classList.add('jeu'); const b = enterBtn.getBoundingClientRect();
     enterBtn.style.transition = 'none'; enterBtn.style.transform = `translate(${a.left - b.left}px,${a.top - b.top}px)`; void enterBtn.offsetWidth;
@@ -51,7 +53,7 @@ const salut = Object.assign({
   enter() { if (enterBtn) enterBtn.classList.remove('drawn'); },
   frame(S) {
     // le titre s'écrit à l'arrivée (horloge réelle : la lecture est arrêtée sur une station)
-    this.titles.forEach(el => Titles.progress(el, reste !== null ? 1 - sm((S.clock - reste) / 0.7) : S.reduced ? 1 : sm((S.since - 0.3) / 2.4)));
+    this.titles.forEach(el => Titles.progress(el, reste !== null ? chute ? 1 : 1 - sm((S.clock - reste) / 0.7) : S.reduced ? 1 : sm((S.since - 0.3) / 2.4)));
     if (CH) CH.frame(S); else { Pops.step(S); Pops.put(S, S.a); }
   },
   exit() { if (CH) CH.hide(); },

@@ -322,5 +322,5 @@ try {
 // pour les essais (Playwright) : aller à un temps logique précis, en pause
 window.__seek = s => { seek(realOf(s), false); };
 return { setup, go, seek: s => seek(realOf(s)), play: () => setPlaying(true), pause: () => setPlaying(false), toChapter, story, realOf, sound,
-  get t() { return story(T); }, get clock() { return clock; }, get playing() { return playing && !wait; }, get waiting() { return wait ? wait.id : null; }, get reduced() { return reduced; } };
+  get t() { return story(T); }, get clock() { return clock; }, get soundOn() { return soundOn && !!AC; }, get audio() { return AC; }, get playing() { return playing && !wait; }, get waiting() { return wait ? wait.id : null; }, get reduced() { return reduced; } };
 })();

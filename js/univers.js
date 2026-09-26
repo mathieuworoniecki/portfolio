@@ -111,8 +111,10 @@ function pieces() {
     B.lines(segs([[-0.04, 0.315, f], [-0.02, 0.3, f], [0, 0.297, f], [0.02, 0.3, f], [0.04, 0.315, f]]));
   });
   P.dBec = Obj3D.piece('u:dbec', B => B.solid(K.tf(K.lathe([[0, 0], [0.04, 0], [0.036, 0.13], [0.05, 0.15], [0.05, 0.16], [0, 0.16]], 14), [0.1, 0.33, 0], [0, 0, -1.05])));
-  P.dBocal = Obj3D.piece('u:dbocal', B => {
-    B.solid(K.lathe([[0, 0], [0.12, 0], [0.13, 0.02], [0.13, 0.19], [0.11, 0.215], [0.055, 0.225], [0.055, 0.25], [0.07, 0.26], [0.07, 0.28], [0, 0.285]], 26));
+  // les pupilles (elles bougent : parts.yeux) ; les croquettes du bocal (le bocal se vide : parts.grains)
+  P.dYeux = Obj3D.piece('u:dyeux', B => [-1, 1].forEach(e => B.solid(K.ball(0.011, [e * 0.045, 0.37, 0.124]))));
+  P.dBocal = Obj3D.piece('u:dbocal', B => B.solid(K.lathe([[0, 0], [0.12, 0], [0.13, 0.02], [0.13, 0.19], [0.11, 0.215], [0.055, 0.225], [0.055, 0.25], [0.07, 0.26], [0.07, 0.28], [0, 0.285]], 26)));
+  P.dGrains = Obj3D.piece('u:dgrains', B => {
     for (let i = 0; i < 11; i++) { const a = -0.9 + (i * 0.61) % 1.8, y = 0.03 + (i * 0.037) % 0.15, c = [Math.sin(a) * 0.132, y, Math.cos(a) * 0.132]; B.soft(segs(ring(0.016, 0, 8).map(q => [c[0] + q[0] * Math.cos(a), c[1] + q[2], c[2] - q[0] * Math.sin(a)]))); }
   });
   // la machine à cartons : un gros corps qui a une tête (deux yeux, un sourire), une réserve de cartons à plat sur le dessus,
@@ -131,9 +133,10 @@ function pieces() {
   P.lLevier = Obj3D.piece('u:llevier', B => { B.solid(K.lathe([[0, -0.02], [0.05, -0.02], [0.05, 0.02], [0, 0.02]], 14).rotateX(Math.PI / 2)); B.solid(K.tube([[0, 0, 0], [0, 0.26, 0]], 0.017, 8)); B.solid(K.ball(0.05, [0, 0.3, 0])); });
   // la trappe à cartons : une boîte accrochée au mur (au bord droit de l'écran, surtout hors champ), sur une équerre ;
   // une tête (deux yeux, un sourire), une bouche en tube qui vise en l'air vers la gauche, un levier qui dépasse (on le baisse)
+  P.tYeux = Obj3D.piece('u:tyeux', B => [-0.22, -0.1].forEach(x => B.solid(K.ball(0.014, [x - 0.008, 0.355, 0.172]))));
   P.tCorps = Obj3D.piece('u:tcorps', B => {
     B.solid(K.ext(K.roundPoly([[-0.3, 0], [0.3, 0], [0.3, 0.5], [-0.3, 0.5]], 0.06, 5), 0.34));
-    const f = 0.172; [-0.22, -0.1].forEach(x => { B.lines(segs(ring(0.036, 0, 16).map(q => [x + q[0], 0.36 + q[2], f]))); B.solid(K.ball(0.014, [x - 0.008, 0.355, f])); });
+    const f = 0.172; [-0.22, -0.1].forEach(x => B.lines(segs(ring(0.036, 0, 16).map(q => [x + q[0], 0.36 + q[2], f]))));
     B.lines(segs([[-0.2, 0.28, f], [-0.18, 0.262, f], [-0.16, 0.258, f], [-0.14, 0.262, f], [-0.12, 0.28, f]]));
     // le logo : un petit carton dessiné, et deux rivets
     B.lines(K.poly([[-0.24, 0.1, f], [-0.14, 0.1, f], [-0.14, 0.17, f], [-0.24, 0.17, f]], true)); B.lines(segs([[-0.24, 0.17, f], [-0.21, 0.2, f], [-0.11, 0.2, f], [-0.14, 0.17, f]]));
@@ -187,7 +190,8 @@ function make(kind, o) {
   else if (kind === 'tasse') { put(P.tasse); it.tilt = 0; it.box = { w: 0.11, h: 0.11, d: 0.11 }; }
   else if (kind === 'coussin') { put(P.coussin); it.perches = [{ id: 'coussin', p: [0, 0.13, 0], w: 0.15 }]; }
   else if (kind === 'gamelle') put(P.gamelle);
-  else if (kind === 'distrib') { ['dSocle', 'dCorps', 'dBec'].forEach(k => put(P[k])); const j = new T.Group(); j.position.set(0, 0.46, 0); view.add(j); put(P.dBocal, j); parts.jar = j; it.bec = [0.24, 0.41, 0]; }
+  else if (kind === 'distrib') { ['dSocle', 'dCorps', 'dBec'].forEach(k => put(P[k])); const j = new T.Group(); j.position.set(0, 0.46, 0); view.add(j); put(P.dBocal, j); parts.jar = j; it.bec = [0.24, 0.41, 0];
+    const gr = new T.Group(); j.add(gr); put(P.dGrains, gr); parts.grains = gr; const ey = new T.Group(); view.add(ey); put(P.dYeux, ey); parts.yeux = ey; }
   else if (kind === 'lanceur') {
     ['lSocle', 'lCorps', 'lReserve', 'lCanon'].forEach(k => put(P[k]));
     const lv = new T.Group(); lv.position.set(-0.25, 0.3, 0.19); lv.rotation.z = 0.3; view.add(lv); put(P.lLevier, lv); parts.levier = lv;
@@ -196,6 +200,7 @@ function make(kind, o) {
   }
   else if (kind === 'trappe') {
     ['tCorps', 'tBouche'].forEach(k => put(P[k])); it.lev0 = 1.57; it.levK = 1.3; it.mur = true;
+    const ey = new T.Group(); view.add(ey); put(P.tYeux, ey); parts.yeux = ey;
     const lv = new T.Group(); lv.position.set(-0.3, 0.12, 0.12); lv.rotation.z = it.lev0; view.add(lv); put(P.lLevier, lv); parts.levier = lv;
     it.bouche = [-0.26 - Math.sin(1.22) * 0.22, 0.3 + Math.cos(1.22) * 0.22, 0]; it.vise = [-Math.sin(1.22), Math.cos(1.22)]; it.pivot = [-0.3, 0.12, 0.12];
   }

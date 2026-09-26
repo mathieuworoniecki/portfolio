@@ -137,7 +137,18 @@ function traceText(lines, font, size, lh, width, align, ls) {
     const a = P[0], b = P[P.length - 1]; if (b[0] < a[0] - 2 || (Math.abs(b[0] - a[0]) <= 2 && b[1] < a[1])) P.reverse();
     P.x = Math.min(...P.map(p => p[0])); P.row = Math.floor(Math.min(...P.map(p => p[1])) / lh); P.len = plen(P); return P; });
   strokes.sort((p, q) => p.row - q.row || p.x - q.x);
-  return { strokes, th, w: W, h: lines.length * lh };
+  // les lettres : la place de chaque caractère (mesurée), et les traits dont le milieu y tombe ; chacune peut ensuite bouger seule (js/vie.js)
+  const chars = [];
+  lines.forEach((l, j) => { const lw = x.measureText(l).width / S, x0 = align === 'center' ? W / 2 - lw / 2 : align === 'right' ? W - lw : 0;
+    for (let k = 0; k < l.length; k++) { if (/\s/.test(l[k])) continue; const a = x.measureText(l.slice(0, k)).width / S, b = x.measureText(l.slice(0, k + 1)).width / S; chars.push({ ch: l[k], row: j, x0: x0 + a, x1: x0 + b }); } });
+  const letters = [];
+  strokes.forEach(P => { const cx = P.reduce((q, p) => q + p[0], 0) / P.length, cy = P.reduce((q, p) => q + p[1], 0) / P.length, row = Math.max(0, Math.min(lines.length - 1, Math.floor(cy / lh)));
+    let best = null, bd = 1e9; chars.forEach(c => { if (c.row !== row) return; const d = cx < c.x0 ? c.x0 - cx : cx > c.x1 ? cx - c.x1 : 0; if (d < bd) { bd = d; best = c; } });
+    if (!best) return; if (!best.L) { best.L = { ch: best.ch, row, strokes: [], x0: 1e9, x1: -1e9, y0: 1e9, y1: -1e9 }; letters.push(best.L); }
+    const L = best.L; L.strokes.push(P); P.L = L; P.forEach(p => { L.x0 = Math.min(L.x0, p[0] - th / 2); L.x1 = Math.max(L.x1, p[0] + th / 2); L.y0 = Math.min(L.y0, p[1] - th / 2); L.y1 = Math.max(L.y1, p[1] + th / 2); }); });
+  letters.sort((a, b) => a.row - b.row || a.x0 - b.x0);
+  letters.forEach(L => { L.cx = (L.x0 + L.x1) / 2; L.cy = (L.y0 + L.y1) / 2; L.dx = L.dy = L.rot = 0; L.a = 1; });
+  return { strokes, th, w: W, h: lines.length * lh, letters };
 }
 
 // la mise en page d'un titre, lue dans la page, son contour à écrire et ses annotations
@@ -176,7 +187,7 @@ function layout(it, idx) {
   it.tr = null;
   if (TR && !d0.morph) {
     const T = traceText(lines, `${cs.fontWeight} ${size}px ${cs.fontFamily}`, size, lh, r.width, align, ls);
-    T.strokes = T.strokes.map((P, i) => { const Q = hand(P, idx * 31 + i * 7, 0.35 * WOB, 3); Q.len = plen(Q); return Q; });
+    T.strokes = T.strokes.map((P, i) => { const Q = hand(P, idx * 31 + i * 7, 0.35 * WOB, 3); Q.len = plen(Q); Q.L = P.L; return Q; });
     T.dust = []; T.strokes.forEach((P, i) => { for (let k = 0; k < 2 + hash(i, idx) * 3; k++) { const q = P[Math.floor(hash(i * 7 + k, 23) * P.length)]; T.dust.push([q[0] + (hash(i, k * 3) - 0.5) * T.th * 2.4, q[1] + (hash(k, i * 5) - 0.3) * T.th * 2.2, 0.7 + hash(i + k, 4) * 1.3, i]); } });
     T.total = T.strokes.reduce((q, P) => q + P.len, 0); it.tr = T;
   }
@@ -280,10 +291,14 @@ function writeMorph(it, r, now) {
 function init(canvas, els, isReduced) { cv = canvas; ctx = cv.getContext('2d'); if (window.Chalk) Chalk.ctx = ctx; reduced = isReduced; t0 = performance.now(); items = els.map(el => ({ el, p: 0 })); }
 // la progression d'écriture d'un titre (0 → 1), donnée par sa scène à chaque image
 function progress(el, p) { const it = items.find(i => i.el === el); if (it) it.p = p; }
+// les lettres d'un titre écrit d'un trait (data-ink="pen"), et son cadre à l'écran (figé : il ne suit plus la page)
+function letters(el) { const it = items.find(i => i.el === el); return it && it.tr && it.p >= 0.999 && it.tr.letters || null; }
+function rect(el) { const it = items.find(i => i.el === el); return it ? it.frozen || it.el.getBoundingClientRect() : null; }
+function freeze(el, on) { const it = items.find(i => i.el === el); if (!it) return; if (on) { const r = el.getBoundingClientRect(); it.frozen = { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height }; } else it.frozen = null; }
 function resize(w, h) {
   // pleine densité (jusqu'à 3×) : sinon le navigateur agrandit la toile et la craie devient floue
   W = w; H = h; dpr = Math.min(window.devicePixelRatio || 1, 3); cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
-  items.forEach(layout);
+  items.forEach((it, i) => { if (!it.frozen) layout(it, i); });
   // le grain de la craie : de petits manques, surtout en travers (le relief du tableau) ; dessiné en vrais pixels d'écran,
   // à des positions entières, pour qu'il reste net quel que soit le zoom de l'écran (125 %, 150 %, téléphones…)
   // sur petit écran, le trait est fin : le grain aussi (des manques d'un pixel d'écran, et moins marqués) — sinon il hache le trait
@@ -361,10 +376,15 @@ function writeTrace(it, ox, oy, p) {
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   if (it.el.dataset.ink === 'pen') {
     // à l'encre (data-ink="pen") : un trait simple, noir, comme le prénom du logo (js/logo.js) ; un fin reflet décalé, pas de poudre
-    const pw = Math.max(2, T.th * 1.05); let used = 0, tip = null; ctx.strokeStyle = `rgba(${INK},0.9)`; ctx.lineWidth = pw;
-    for (const P of T.strokes) { if (used >= budget) break; tip = trace(P, Math.min(P.len, budget - used), ox, oy); used += P.len; }
-    used = 0; ctx.strokeStyle = `rgba(${INK},0.25)`; ctx.lineWidth = pw * 0.3;
-    for (const P of T.strokes) { if (used >= budget) break; trace(P, Math.min(P.len, budget - used), ox - 0.4, oy - 0.5); used += P.len; }
+    // chaque lettre peut avoir quitté sa place (js/vie.js : dx, dy, rot, a) : son trait suit
+    const pw = Math.max(2, T.th * 1.05), ga = ctx.globalAlpha; let used = 0, tip = null;
+    const one = (P, n, lw, col, sx, sy) => { const L = P.L, moved = L && (L.dx || L.dy || L.rot || L.a < 1); if (L && L.a <= 0.01) return null;
+      ctx.strokeStyle = col; ctx.lineWidth = lw;
+      if (!moved) return trace(P, n, ox + sx, oy + sy);
+      ctx.save(); ctx.globalAlpha = ga * L.a; ctx.translate(ox + L.cx + L.dx, oy + L.cy + L.dy); ctx.rotate(L.rot); const t = trace(P, n, sx - L.cx, sy - L.cy); ctx.restore(); return t; };
+    for (const P of T.strokes) { if (used >= budget) break; tip = one(P, Math.min(P.len, budget - used), pw, `rgba(${INK},0.9)`, 0, 0); used += P.len; }
+    used = 0;
+    for (const P of T.strokes) { if (used >= budget) break; one(P, Math.min(P.len, budget - used), pw * 0.3, `rgba(${INK},0.25)`, -0.4, -0.5); used += P.len; }
     if (q < 0.999 && tip) { ctx.fillStyle = `rgba(${INK},0.95)`; ctx.beginPath(); ctx.arc(tip[0], tip[1], pw * 0.6, 0, Math.PI * 2); ctx.fill(); }
     return;
   }
@@ -390,7 +410,7 @@ function frame(back, front) {
   if (back) { ctx.save(); back(ctx); ctx.restore(); ctx.globalAlpha = 1; }
   items.forEach(it => {
     if (it.p <= 0.001 || !it.loops) return;
-    const r = it.el.getBoundingClientRect();
+    const r = it.frozen || it.el.getBoundingClientRect();
     if (r.bottom < -120 || r.top > H + 80) return;
     // un titre suit l'opacité de sa scène (js/film.js)
     if (it.wrap === undefined) it.wrap = it.el.closest('.scene');
@@ -401,5 +421,5 @@ function frame(back, front) {
   if (grain) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'destination-out'; ctx.globalAlpha = grainA; ctx.fillStyle = grain; ctx.fillRect(0, 0, cv.width, cv.height); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
 }
 function restart() { t0 = performance.now(); }
-return { init, resize, frame, restart, progress, traceText, hand };
+return { init, resize, frame, restart, progress, traceText, hand, letters, rect, freeze, get _items() { return items; } };
 })();
