@@ -113,7 +113,7 @@ a{color:inherit}
 .can-hold,.can-hold body{cursor:grab}
 .grabbing,.grabbing body,.grabbing *{cursor:grabbing!important}
 .grab-hint{position:fixed;z-index:6;left:0;top:0;pointer-events:none;padding:6px 10px;border:1px solid rgba(var(--ink),.6);background:var(--bp-deep);font:500 .62rem/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;opacity:0;transition:opacity .25s}
-:is(.can-grab,.can-hold) .grab-hint:not(.done){opacity:1}
+.can-grab .grab-hint:not(.done){opacity:1}
 
 /* ——— l'en-tête : le nom à gauche, le thème au centre, la langue à droite ——— */
 .top{position:fixed;z-index:5;top:var(--sheet);left:var(--sheet);right:var(--sheet);display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px calc(var(--gutter) - var(--sheet));padding-top:calc(18px + env(safe-area-inset-top,0px));pointer-events:none}

@@ -7,6 +7,7 @@
      pelote   une pelote de laine (sa couleur), qui roule ; le fil qui traîne est dessiné à la craie (js/chats.js)
      caisse   un carton fermé (o.size : 0, 1, 2), scotché, un petit dessin devant : on les empile, les pousse, les fait tomber
      panier   un lit rond en osier · poisson  un poisson en tissu (un jouet) · plante  une plante en pot · tasse  une tasse (à pousser du bord)
+     distrib  le distributeur de croquettes (il a une tête, il crache des croquettes par son bec : it.bec) · eau  une fontaine à eau (it.jet)
      souris   une souris articulée (corps, tête, oreilles, queue, pattes) qui court
    Tout se modèle en unités chat (la même taille que les chats) : Univers.make(type, { color }) → un objet posé par
    Univers.place(o) (o.x, o.y : son pied à l'écran, o.s : px par unité, o.yaw, o.z, o.a : l'opacité). */
@@ -93,6 +94,24 @@ function pieces() {
     B.soft(segs(ring(0.378, 0.07, 32).map(p => [p[0], p[1], p[2] * 0.78])));
     B.lines(segs(ring(0.02, 0.135, 10))); for (let k = 0; k < 4; k++) { const a = k / 4 * TAU + 0.4; B.soft([Math.cos(a) * 0.03, 0.137, Math.sin(a) * 0.03 * 0.78, Math.cos(a) * 0.14, 0.14, Math.sin(a) * 0.14 * 0.78]); }
   });
+  // le distributeur de croquettes : un socle, une colonne avec une tête (deux yeux, un sourire, un gros bouton), un bocal plein en haut, un bec qui crache
+  P.dSocle = Obj3D.piece('u:dsocle', B => B.solid(K.tf(K.ext(K.roundPoly([[-0.2, 0], [0.2, 0], [0.2, 0.08], [-0.2, 0.08]], 0.03, 4), 0.3), [0, 0, 0])));
+  P.dCorps = Obj3D.piece('u:dcorps', B => {
+    B.solid(K.ext(K.roundPoly([[-0.13, 0.08], [0.13, 0.08], [0.12, 0.46], [-0.12, 0.46]], 0.05, 5), 0.24));
+    const f = 0.122; B.lines(segs(ring(0.045, 0, 20).map(q => [q[0], 0.2 + q[2], f]))); B.soft(segs(ring(0.028, 0, 16).map(q => [q[0], 0.2 + q[2], f])));
+    [-1, 1].forEach(e => B.lines(segs(ring(0.014, 0, 10).map(q => [e * 0.045 + q[0], 0.37 + q[2], f]))));
+    B.lines(segs([[-0.04, 0.315, f], [-0.02, 0.3, f], [0, 0.297, f], [0.02, 0.3, f], [0.04, 0.315, f]]));
+  });
+  P.dBec = Obj3D.piece('u:dbec', B => B.solid(K.tf(K.lathe([[0, 0], [0.04, 0], [0.036, 0.13], [0.05, 0.15], [0.05, 0.16], [0, 0.16]], 14), [0.1, 0.33, 0], [0, 0, -1.05])));
+  P.dBocal = Obj3D.piece('u:dbocal', B => {
+    B.solid(K.lathe([[0, 0], [0.12, 0], [0.13, 0.02], [0.13, 0.19], [0.11, 0.215], [0.055, 0.225], [0.055, 0.25], [0.07, 0.26], [0.07, 0.28], [0, 0.285]], 26));
+    for (let i = 0; i < 11; i++) { const a = -0.9 + (i * 0.61) % 1.8, y = 0.03 + (i * 0.037) % 0.15, c = [Math.sin(a) * 0.132, y, Math.cos(a) * 0.132]; B.soft(segs(ring(0.016, 0, 8).map(q => [c[0] + q[0] * Math.cos(a), c[1] + q[2], c[2] - q[0] * Math.sin(a)]))); }
+  });
+  // la fontaine à eau : une vasque, une petite colonne ; l'eau (qui coule) est dessinée à la craie (js/chats.js)
+  P.fontaine = Obj3D.piece('u:fontaine', B => {
+    B.solid(K.lathe([[0, 0], [0.15, 0], [0.165, 0.015], [0.16, 0.065], [0.148, 0.07], [0.138, 0.052], [0.03, 0.048], [0.028, 0.14], [0.042, 0.15], [0.036, 0.168], [0, 0.172]], 28));
+    B.soft(segs(ring(0.11, 0.052, 26))); B.soft(segs(ring(0.07, 0.052, 20)));
+  });
   // la gamelle et ses croquettes
   P.gamelle = Obj3D.piece('u:gamelle', B => {
     B.solid(K.lathe([[0, 0], [0.16, 0], [0.17, 0.01], [0.14, 0.075], [0.13, 0.08], [0.115, 0.072], [0, 0.05]], 28));
@@ -133,6 +152,8 @@ function make(kind, o) {
   else if (kind === 'tasse') { put(P.tasse); it.tilt = 0; it.box = { w: 0.11, h: 0.11, d: 0.11 }; }
   else if (kind === 'coussin') { put(P.coussin); it.perches = [{ id: 'coussin', p: [0, 0.13, 0], w: 0.15 }]; }
   else if (kind === 'gamelle') put(P.gamelle);
+  else if (kind === 'distrib') { ['dSocle', 'dCorps', 'dBec'].forEach(k => put(P[k])); const j = new T.Group(); j.position.set(0, 0.46, 0); view.add(j); put(P.dBocal, j); parts.jar = j; it.bec = [0.24, 0.41, 0]; }
+  else if (kind === 'eau') { put(P.fontaine); it.jet = [0, 0.172, 0]; }
   else if (kind === 'pelote') { const g = new T.Group(); g.position.set(0, 0.075, 0); view.add(g); put(P.pelote, g); parts.ball = g; it.r = 0.075; }
   else if (kind === 'souris') {
     const body = new T.Group(); view.add(body); parts.body = body; put(P.sCorps, body);

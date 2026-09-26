@@ -34,7 +34,7 @@ Obj3D.init(document.getElementById('obj'));
 let W = innerWidth, H = innerHeight; Obj3D.resize(W, H);
 const cols = W > H ? 4 : 2, rows = Math.ceil(ids.length / cols), cw = W / cols, ch = (H - 40) / rows, s = Math.min(cw * 0.85, ch * 1.2);
 // le décor : chaque objet de l'univers, côte à côte
-const props = anim !== 'decor' ? [] : [['arbre', 0.2, 0.62, 1], ['carton', 0.45, 0.62, 1], ['coussin', 0.65, 0.62, 1], ['gamelle', 0.85, 0.62, 1], ['pelote', 0.3, 0.92, 0xd0661f], ['pelote', 0.42, 0.92, 0x2f6fb0], ['souris', 0.62, 0.92, 0x6a6c70], ['caisse', 0.8, 0.95, 1, 0], ['caisse', 0.9, 0.95, 1, 2], ['caisse', 0.85, 0.75, 1, 1], ['panier', 0.12, 0.92, 1], ['poisson', 0.52, 0.93, 0x2f6fb0], ['plante', 0.72, 0.62, 0x3a6e46], ['tasse', 0.95, 0.6, 0xc04a6c]].map(([k, fx, fy, col, size], i) => {
+const props = anim !== 'decor' ? [] : [['arbre', 0.2, 0.62, 1], ['carton', 0.45, 0.62, 1], ['coussin', 0.65, 0.62, 1], ['gamelle', 0.85, 0.62, 1], ['pelote', 0.3, 0.92, 0xd0661f], ['pelote', 0.42, 0.92, 0x2f6fb0], ['souris', 0.62, 0.92, 0x6a6c70], ['caisse', 0.8, 0.95, 1, 0], ['caisse', 0.9, 0.95, 1, 2], ['caisse', 0.85, 0.75, 1, 1], ['panier', 0.12, 0.92, 1], ['poisson', 0.52, 0.93, 0x2f6fb0], ['plante', 0.72, 0.62, 0x3a6e46], ['tasse', 0.95, 0.6, 0xc04a6c], ['distrib', 0.33, 0.62, 0x2f6fb0], ['eau', 0.62, 0.8, 0x2f6fb0]].map(([k, fx, fy, col, size], i) => {
   const o = Univers.make(k, Object.assign(col !== 1 ? { color: col } : {}, { size })); o.x = W * fx; o.y = H * fy; o.s = Math.min(W, H) * 0.42; o.z = -i * 3000; return o; });
 const cats = anim === 'decor' ? [] : ids.map((id, i) => {
   const c = Chat.create(id); c.s = s; c.x = cw * (i % cols + 0.5) - s * 0.1; c.y = 40 + ch * (Math.floor(i / cols) + 0.86); c.z = -i * 2000; c.face = i % 2 ? -1 : 1;

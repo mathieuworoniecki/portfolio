@@ -1,6 +1,6 @@
 /* Les scènes du portfolio, déclarées sur la ligne du temps (js/film.js).
    Pour l'instant, de quoi éprouver la mécanique, sans le vrai contenu :
-     salut  (0 → 1)  une station : le titre s'écrit, le bouton se dessine ; un clic ailleurs fait jaillir un objet (20 au plus) ;
+     salut  (0 → 1)  une station : le titre s'écrit, le bouton se dessine ; en bas, le monde des chats (js/chats.js) : un clic, un chat tombe du ciel ;
                      le bouton « Entrer dans mon monde » : la rupture (un éclat de craie), la lecture démarre
      essai  (1 → 6)  une scène de cinq secondes pilotée par la timeline : le titre s'écrit, un objet s'assemble,
                      le temps ralentit (WARP) pendant qu'une flèche et une note se dessinent, une phrase passe
@@ -13,6 +13,8 @@ const $ = s => document.querySelector(s);
 const NAMES = ['roulement', 'vis'];   // les objets d'exemple (js/objects3d.js) ; plus tard : les chats
 Pops.names = NAMES;
 // attraper un objet qui a jailli (commun aux deux stations)
+// les chats (js/chats.js) vivent sur l'écran d'accueil ; sans eux (WebGL absent), les objets qui jaillissent
+const CH = window.Chats || null;
 const popGrab = { grab: (x, y) => Pops.hit(x, y), drag: (o, x, y) => Pops.hold(o, x, y), release: (o, vx, vy) => Pops.release(o, vx, vy) };
 
 /* ——— 1 · la station « Salut » ——— */
@@ -23,16 +25,17 @@ const salut = Object.assign({
   frame(S) {
     // le titre s'écrit à l'arrivée (horloge réelle : la lecture est arrêtée sur une station)
     this.titles.forEach(el => Titles.progress(el, S.reduced ? 1 : sm((S.since - 0.3) / 2.4)));
-    Pops.step(S); Pops.put(S, S.a);
+    if (CH) CH.frame(S); else { Pops.step(S); Pops.put(S, S.a); }
   },
+  exit() { if (CH) CH.hide(); },
   draw(S, ctx) {
     Outils.button(enterBtn, S.reduced ? 1 : sm((S.since - 2.3) / 0.9), 1100, S.clock);
     // l'invitation, écrite à la main sous le bouton, tant que rien n'a jailli
-    if (!Pops.list.length && enterBtn) { const r = enterBtn.getBoundingClientRect(); C.text(L('salut.hint'), r.left + r.width / 2, r.bottom + 44 * S.K, S.reduced ? 1 : c01((S.since - 3.4) / 1.2), { size: 19, align: 'center', a: 0.55 }); }
-    Pops.draw(S, ctx);
+    if ((CH ? !CH.clicks : !Pops.list.length) && enterBtn) { const r = enterBtn.getBoundingClientRect(); C.text(L('salut.hint'), r.left + r.width / 2, r.bottom + 44 * S.K, S.reduced ? 1 : c01((S.since - 3.4) / 1.2), { size: 19, align: 'center', a: 0.55 }); }
+    if (CH) CH.draw(S, ctx); else Pops.draw(S, ctx);
   },
-  click(x, y, S) { return Pops.spawn(x, y, S); }
-}, popGrab);
+  click(x, y, S) { return CH ? CH.click(x, y, S) : Pops.spawn(x, y, S); }
+}, CH ? { grab: (x, y) => CH.grab(x, y), drag: (c, x, y) => CH.drag(c, x, y), release: (c, vx, vy) => CH.release(c, vx, vy) } : popGrab);
 // le bouton : la rupture, puis la lecture démarre
 if (enterBtn) enterBtn.addEventListener('click', () => {
   const r = enterBtn.getBoundingClientRect();

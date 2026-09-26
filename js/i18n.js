@@ -20,7 +20,7 @@ fr: {
   'ch.1': 'Salut', 'ch.2': 'Essai', 'ch.3': 'Terrain de jeu',
   // la scène d'exemple (js/scenes.js) — à remplacer par le vrai contenu
   'salut.title': 'Salut, moi c’est Mathieu et je fais des trucs sur le web.',
-  'salut.cta': 'Entrer dans mon monde', 'salut.hint': 'clique ailleurs : un objet tombe',
+  'salut.cta': 'Entrer dans mon monde', 'salut.hint': 'clique : un chat tombe du ciel',
   'essai.title': 'Une scène de cinq secondes', 'essai.note': 'le temps ralentit ici', 'essai.cap': 'Une phrase écrite sur la ligne du temps, lettre à lettre.',
   'jeu.title': 'Terrain de jeu', 'jeu.hint': 'clique, attrape, lance'
 },
@@ -34,7 +34,7 @@ en: {
   'film.sound': 'Sound', 'film.hint': 'Wheel or arrows: next chapter',
   'ch.1': 'Hi', 'ch.2': 'Test', 'ch.3': 'Playground',
   'salut.title': 'Hi, I’m Mathieu and I make stuff on the web.',
-  'salut.cta': 'Enter my world', 'salut.hint': 'click anywhere else: something falls',
+  'salut.cta': 'Enter my world', 'salut.hint': 'click: a cat falls from the sky',
   'essai.title': 'A five-second scene', 'essai.note': 'time slows down here', 'essai.cap': 'A sentence written on the timeline, letter by letter.',
   'jeu.title': 'Playground', 'jeu.hint': 'click, grab, throw'
 }};
