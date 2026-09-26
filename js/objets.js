@@ -217,7 +217,7 @@ const ledges = () => ['#enter', '#stay'].map(q => document.querySelector(q)).fil
 H.fall.push((c, dt) => {
   if (c.vy <= 0 || c.sulk) return false; const ny = c.y + (c.vy + K.grav() * dt) * dt;
   for (const el of ledges()) {
-    const r = el.getBoundingClientRect(); if (c.x < r.left + 6 || c.x > r.right - 6 || c.y > r.top || ny < r.top) continue;
+    const r = el.getBoundingClientRect(); const drop = Wd.t - (c.relT ?? -9) < 0.3 && c.y - sc(c) * 0.9 < r.top + r.height * 0.5; if (c.x < r.left + 6 || c.x > r.right - 6 || ((c.y > r.top + r.height * 0.75 || ny < r.top) && !drop)) continue;
     interrupt(c); c.fall = false; c.spin = 0; c.vx = 0; c.y = r.top; c.task = null; c.q = [{ k: 'rebord', el, air: true }]; say(c, pick(['hop', 'tadaa'])); return true;
   }
   return false;

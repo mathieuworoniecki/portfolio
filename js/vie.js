@@ -1,7 +1,7 @@
 /* La suite de la vie des chats : branchée sur js/chats.js par ses crochets (Chats.K.H), avec les outils du monde (Chats.K).
    - La chasse au pointeur : les yeux suivent la souris ; un chat tout près se tapit, se dandine et bondit dessus,
      se dresse sur ses pattes arrière pour l'attraper quand elle passe au-dessus de lui. Les joueurs chassent plus, les dormeurs ouvrent un œil.
-     Un geste vif dans le vide fait apparaître une plume au bout d'un fil : la chasse redouble.
+     La canne à plume (prise dans le coffre à jouets, js/jouets.js) : la plume au bout du fil, les chats la chassent.
    - L'arbre : lâché contre le poteau, le chat s'y agrippe, glisse (les griffes laissent leurs traces), puis grimpe à la première plateforme.
      Lâché au-dessus d'un perchoir (une plateforme, une caisse, le carton, le coussin), il s'y pose.
    - La rébellion : porté trop longtemps (ou secoué), il fouette de la queue, se tord, se retourne vers la main, feule…
@@ -40,32 +40,31 @@ addEventListener('pointermove', e => {
   ptr.x = e.clientX; ptr.y = e.clientY; ptr.on = true; ptr.moved = Wd.t;
 }, { passive: true });
 document.addEventListener('mouseleave', () => { ptr.on = false; });
-// la plume au bout du fil : elle pend sous le pointeur et traîne derrière lui (un pendule)
-const plume = { x: 0, y: 0, vx: 0, vy: 0 };
+// la plume au bout du fil : elle pend sous le bout de la canne (K.bout, js/jouets.js) et traîne derrière lui (un pendule)
+const plume = { x: 0, y: 0, vx: 0, vy: 0, ax: 0, ay: 0 };
 const busyHand = () => Wd.cats.some(c => c.held) || Wd.props.some(it => it.held);
 // ce que les chats visent : la plume si elle est là, sinon le pointeur
 const aim = () => ptr.plume > Wd.t ? [plume.x, plume.y] : [ptr.x, ptr.y];
 H.pre.push(dt => {
   if (Wd.t - ptr.moved > 0.06) { const k = Math.exp(-dt * 10); ptr.vx *= k; ptr.vy *= k; }
   const v = Math.hypot(ptr.vx, ptr.vy);
-  // un geste vif, dans le vide (pas sur un chat, ni en portant quelque chose) : la plume sort
-  if (ptr.on && v > 2200 && !busyHand() && !K.catAt(ptr.x, ptr.y)) { if (ptr.plume < Wd.t) { plume.x = ptr.x; plume.y = ptr.y + Wd.s0 * 0.5; plume.vx = plume.vy = 0; } ptr.plume = Wd.t + 3.5; }
-  if (!ptr.on || busyHand()) ptr.plume = Math.min(ptr.plume, Wd.t);
+  // la canne est sortie (dans la main ou plantée) : la plume pend au bout
+  const tip = K.bout && K.bout();
+  if (tip) { if (ptr.plume < Wd.t) { plume.x = tip[0]; plume.y = tip[1] + Wd.s0 * 0.5; plume.vx = plume.vy = 0; } ptr.plume = Wd.t + 0.25; plume.ax = tip[0]; plume.ay = tip[1]; }
   if (ptr.plume > Wd.t - 1) {
-    const L = Wd.s0 * 0.55, dx = plume.x - ptr.x, dy = plume.y - ptr.y, d = Math.hypot(dx, dy) || 1;
+    const L = Wd.s0 * 0.55;
     plume.vy += 1400 * dt * Wd.s0 / 160; plume.vx *= Math.exp(-dt * 1.5); plume.vy *= Math.exp(-dt * 1.5);
     plume.x += plume.vx * dt; plume.y += plume.vy * dt;
-    const d2 = Math.hypot(plume.x - ptr.x, plume.y - ptr.y) || 1; if (d2 > L) { const nx = (plume.x - ptr.x) / d2, ny = (plume.y - ptr.y) / d2, vr = plume.vx * nx + plume.vy * ny; plume.x = ptr.x + nx * L; plume.y = ptr.y + ny * L; if (vr > 0) { plume.vx -= vr * nx; plume.vy -= vr * ny; } }
+    const d2 = Math.hypot(plume.x - plume.ax, plume.y - plume.ay) || 1; if (d2 > L) { const nx = (plume.x - plume.ax) / d2, ny = (plume.y - plume.ay) / d2, vr = plume.vx * nx + plume.vy * ny; plume.x = plume.ax + nx * L; plume.y = plume.ay + ny * L; if (vr > 0) { plume.vx -= vr * nx; plume.vy -= vr * ny; } }
     plume.y = Math.min(plume.y, Wd.floor - 4);
   }
 });
 function drawPlume() {
-  const f = c01((ptr.plume - Wd.t) / 0.6) * Wd.a; if (f < 0.02) return;
+  const f = c01((ptr.plume - Wd.t) / 0.25) * Wd.a; if (f < 0.02) return;
   const C = Chalk, s = Wd.s0, ang = Math.atan2(plume.vy + 300, plume.vx) - Math.PI / 2;
-  // le bâton (sous le pointeur, en biais), le fil qui pend (un peu courbe), la plume (une tige, ses barbes)
-  C.line(ptr.x - s * 0.35, ptr.y - s * 0.28, ptr.x, ptr.y, 1, { w: 2.4, a: 0.8 * f, seed: 91, tip: false });
-  const mx = (ptr.x + plume.x) / 2 - plume.vx * 0.02, my = (ptr.y + plume.y) / 2 + 6;
-  C.stroke([[ptr.x, ptr.y], [mx, my], [plume.x, plume.y]], 1, { w: 1, a: 0.6 * f, seed: 92, tip: false, amp: 0.3 });
+  // le fil qui pend (un peu courbe), la plume (une tige, ses barbes) ; la canne elle-même : js/jouets.js
+  const mx = (plume.ax + plume.x) / 2 - plume.vx * 0.02, my = (plume.ay + plume.y) / 2 + 6;
+  C.stroke([[plume.ax, plume.ay], [mx, my], [plume.x, plume.y]], 1, { w: 1, a: 0.6 * f, seed: 92, tip: false, amp: 0.3 });
   const L = s * 0.32, ca = Math.cos(ang), sa = Math.sin(ang), at = (u, w) => [plume.x + (-sa * u + ca * w) * L, plume.y + (ca * u + sa * w) * L];
   const spine = []; for (let i = 0; i <= 6; i++) spine.push(at(i / 6, Math.sin(i / 6 * 3) * 0.05));
   C.stroke(spine, 1, { w: 1.6, a: 0.85 * f, seed: 93, tip: false });
@@ -75,7 +74,7 @@ function drawPlume() {
 /* ——— la chasse ——— */
 // les yeux suivent le pointeur ; un dormeur ouvre un œil quand il passe tout près
 H.live.push((c, dt) => {
-  if (!ptr.on || c.hidden || c.held || !c.hp || Wd.t - ptr.moved > 4) return;
+  if (c.hidden || c.held || !c.hp || ((!ptr.on || Wd.t - ptr.moved > 4) && !(ptr.plume > Wd.t))) return;
   const [ax, ay] = aim(), dx = ax - c.hp[0], dy = ay - c.hp[1], s = sc(c), d = Math.hypot(dx, dy);
   if (d > s * 4.5) return; const p = c.tgt;
   if (p[I.eyes] >= 0.5) {
@@ -89,8 +88,8 @@ H.live.push((c, dt) => {
 });
 // qui part en chasse : un chat libre, tout près, qui aime jouer (la plume : plus loin, plus souvent)
 H.post.push(dt => {
-  if (!ptr.on || Wd.t - ptr.moved > 0.5 || busyHand() || Wd.t < (Wd.chaseChk || 0)) return; Wd.chaseChk = Wd.t + 0.35;
-  if (ptr.plume < Wd.t && K.catAt(ptr.x, ptr.y)) return;   // la main sur un chat : elle veut l'attraper, pas jouer
+  // seulement la plume (le pointeur seul n'attire plus : c'est la canne du coffre à jouets qui les fait jouer)
+  if (!(ptr.plume > Wd.t) || busyHand() || Wd.t < (Wd.chaseChk || 0)) return; Wd.chaseChk = Wd.t + 0.35;
   const [ax, ay] = aim(), pl = ptr.plume > Wd.t;
   Wd.cats.forEach(c => {
     if (c.temp || !free4(c) || c.hidden || (c.task && c.task.k === 'chasse') || Wd.t < (c.chaseCool || 0) || c.x < 0 || c.x > Wd.W) return;
@@ -102,9 +101,9 @@ H.post.push(dt => {
 });
 STEPS.chasse = (c, T, dt) => {
   if (T.t0 === undefined) { T.t0 = Wd.t; T.w = 0; T.wait = rnd(0.5, 1.1); T.n = 0; }
-  // la proie : le pointeur (ou la plume) ; ou une autre (T.aim : la mouche…)
+  // la proie : la plume de la canne ; ou une autre (T.aim : la mouche…)
   c.aimF = T.aim || null; const [ax, ay] = T.aim ? T.aim() : aim(), s = sc(c), dx = ax - c.x, hy = floorAt(c.d) - ay, far = Math.abs(dx), pl = !T.aim && ptr.plume > Wd.t;
-  const stale = T.aim ? !T.aim.alive() : !ptr.on || Wd.t - ptr.moved > (pl ? 3 : 2);
+  const stale = T.aim ? !T.aim.alive() : !pl;   // la canne rangée : fini
   if (Wd.t - T.t0 > T.max || far > s * (pl ? 7 : 5) || hy > s * 4 || (stale && Wd.t - T.t0 > 1.2) || T.n > 5) {
     c.chaseCool = Wd.t + rnd(4, 9); c.aimF = null; c.q.unshift(pose(T.n ? 'toilette' : 'assis', rnd(1, 2))); return true; }
   c.face = sgn(dx) || c.face;
@@ -316,12 +315,17 @@ H.pre.push(dt => {
     const m = Math.min(ov, 240 * dt) / 2, sd = dx ? sgn(dx) : 1; a.dx -= sd * m; b.dx += sd * m;
   }
 });
+// l'instant où on le lâche (pour se poser sur ce qu'on voit sous lui : le titre, un bouton)
+H.release.push(c => { if (c && c.hp) c.relT = Wd.t; return false; });
 // se poser sur le titre en tombant
 H.fall.push((c, dt) => {
   const Ls = LETTERS(); if (!Ls || c.vy <= 0 || c.sulk || TL.jeu) return false; const r = RECT(), ny = c.y + (c.vy + K.grav() * dt) * dt;
   for (const L of Ls) {
     if (L.st || L.a < 0.9) continue; const top = r.top + L.y0;
-    if (Math.abs(c.x - lx(L, r)) > (L.x1 - L.x0) / 2 + sc(c) * 0.1 || c.y > top || ny < top) continue;
+    // lâché les pattes déjà dans la lettre (on le tient par la peau du cou, le corps pend) : il se pose dessus quand même
+    // juste lâché : il pend sous la main, le corps devant les lettres ; ses pattes passent alors sous le haut de la lettre
+    const drop = Wd.t - (c.relT ?? -9) < 0.3 && c.y - sc(c) * 0.9 < top + (L.y1 - L.y0) * 0.5;
+    if (Math.abs(c.x - lx(L, r)) > (L.x1 - L.x0) / 2 + sc(c) * 0.1 || (c.y > top + (L.y1 - L.y0) * 0.75 && !drop) || (ny < top && !drop)) continue;
     interrupt(c); c.fall = false; c.spin = 0; c.vx = 0; c.y = top; c.task = null; L.wob = Wd.t; L.wobA = 1;
     c.q = [{ k: 'titre', air: true, row: L.row }]; say(c, pick(['hop', 'tadaa', '!'])); return true;
   }

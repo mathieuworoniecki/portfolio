@@ -10,6 +10,7 @@
      distrib  le distributeur de croquettes (il a une tête, il crache des croquettes par son bec : it.bec) · eau  une fontaine à eau (it.jet)
      trappe   la machine à cartons accrochée au mur : seuls la bouche et le levier dépassent (it.mur, it.lev0, it.levK)
      lanceur  la machine à cartons : un canon (it.bouche, it.vise), un levier (parts.levier) ; elle projette des caisses
+     coffre   le coffre à jouets : le couvercle (parts.couvercle) s'ouvre ; la canne à plume en sort (js/jouets.js)
      souris   une souris articulée (corps, tête, oreilles, queue, pattes) qui court
    Tout se modèle en unités chat (la même taille que les chats) : Univers.make(type, { color }) → un objet posé par
    Univers.place(o) (o.x, o.y : son pied à l'écran, o.s : px par unité, o.yaw, o.z, o.a : l'opacité). */
@@ -165,6 +166,20 @@ function pieces() {
   P.sOreille = Obj3D.piece('u:soreille', B => { B.solid(K.tf(new T.IcosahedronGeometry(0.03, 1), 0, 0, [0.35, 1, 1])); B.soft(segs(ring(0.018, 0, 14).map(p => [0.008, p[0], p[2]]))); });
   P.sPatte = Obj3D.piece('u:spatte', B => B.solid(K.tf(new T.IcosahedronGeometry(0.012, 0), [0.004, -0.006, 0], 0, [1.6, 0.7, 1])));
   P.sQueue = Obj3D.piece('u:squeue', B => B.solid(K.latheX([[-0.002, 0.006], [0.045, 0.004], [0.05, 0]], 6)));
+  // le coffre à jouets : un coffre en planches, des coins renforcés, une étoile devant ; le couvercle bombé s'ouvre (charnière derrière)
+  P.cCaisse = Obj3D.piece('u:ccaisse', B => {
+    const w = 0.5, h = 0.26, d = 0.3, f = d / 2 + 0.003;
+    B.solid(K.tf(K.ext(K.roundPoly([[-w / 2, 0], [w / 2, 0], [w / 2, h], [-w / 2, h]], 0.025, 3), d), [0, 0, 0]));
+    [h * 0.33, h * 0.66].forEach(y => B.soft([-w / 2 + 0.02, y, f, w / 2 - 0.02, y, f]));
+    [-1, 1].forEach(sx => { B.lines(segs([[sx * (w / 2 - 0.06), 0.005, f], [sx * (w / 2 - 0.005), 0.005, f], [sx * (w / 2 - 0.005), 0.06, f]])); B.lines(segs([[sx * (w / 2 - 0.06), h - 0.005, f], [sx * (w / 2 - 0.005), h - 0.005, f], [sx * (w / 2 - 0.005), h - 0.06, f]])); });
+    const St = []; for (let k = 0; k <= 10; k++) { const a = -Math.PI / 2 + k / 10 * TAU, r = k % 2 ? 0.022 : 0.05; St.push([Math.cos(a) * r, h * 0.5 - Math.sin(a) * r, f]); } B.lines(segs(St));
+  });
+  P.cCouv = Obj3D.piece('u:ccouv', B => {
+    // dans le repère de la charnière (au bord arrière du dessus) : le couvercle s'étend vers l'avant (+z)
+    const w = 0.52, d = 0.32, Q = [[0, 0], [d, 0], [d, 0.03], [d * 0.8, 0.06], [d * 0.5, 0.075], [d * 0.2, 0.06], [0, 0.03]];
+    B.solid(K.sideExt(K.roundPoly(Q, 0.01, 3), w, 0));
+    B.lines(segs(ring(0.018, 0, 10).map(q => [q[0], 0.03 + q[2] * 0.6, d + 0.004])));
+  });
   return P;
 }
 
@@ -198,6 +213,8 @@ function make(kind, o) {
     // la bouche du canon, sa direction (en unités) ; le pommeau du levier (dans le repère du levier)
     it.bouche = [0.16 + Math.sin(0.8) * 0.345, 0.4 + Math.cos(0.8) * 0.345, 0]; it.vise = [Math.sin(0.8), Math.cos(0.8)]; it.pivot = [-0.25, 0.3, 0.19];
   }
+  else if (kind === 'coffre') { put(P.cCaisse); const hg = new T.Group(); hg.position.set(0, 0.26, -0.15); view.add(hg); put(P.cCouv, hg); parts.couvercle = hg;
+    it.box = { w: 0.5, h: 0.3, d: 0.32 }; it.perches = [{ id: 'coffre', p: [0, 0.3, 0], w: 0.16 }]; it.tilt = 0; }
   else if (kind === 'trappe') {
     ['tCorps', 'tBouche'].forEach(k => put(P[k])); it.lev0 = 1.57; it.levK = 1.3; it.mur = true;
     const ey = new T.Group(); view.add(ey); put(P.tYeux, ey); parts.yeux = ey;

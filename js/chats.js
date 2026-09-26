@@ -166,6 +166,8 @@ const SPEED = { pas: 0.32, trot: 0.62, galop: 1.5 };
 /* ——— la mise en page : le sol, la taille d'une unité ——— */
 function measure(S) {
   if (S.W === Wd.W && S.H === Wd.H && Wd.floor) return false;
+  // la fenêtre change de largeur : les chats restent à la même place relative (pas dehors, à marcher des heures pour revenir)
+  if (Wd.W && S.W !== Wd.W) { const k = S.W / Wd.W; Wd.cats.forEach(c => { if (c.x > -50 && c.x < Wd.W + 50) c.x *= k; else c.x = c.x < 0 ? -40 : S.W + 40; if (c.task && c.task.k === 'walk' && !c.temp && !c.held) interrupt(c); }); }
   Wd.W = S.W; Wd.H = S.H;
   const ui = document.querySelector('.film-ui'), top = ui ? ui.getBoundingClientRect().top : S.H - 60;
   Wd.floor = Math.min(S.H - 30, top - 8); Wd.ceil = ceilY();
@@ -189,9 +191,9 @@ function prop(kind, fx, d, o) {
 function unprop(it) { Univers.destroy(it); const i = Wd.props.indexOf(it); if (i >= 0) Wd.props.splice(i, 1); Wd.props.forEach(o => { if (o.on === it) o.on = null; if (o.target === it) o.target = null; }); }
 // l'encombrement de chaque objet (en unités) : pour tomber, rebondir, se poser sur une caisse, se laisser attraper
 const HULL = { carton: { w: 0.56, h: 0.32 }, panier: { w: 0.72, h: 0.15 }, coussin: { w: 0.76, h: 0.15 }, gamelle: { w: 0.34, h: 0.08 }, eau: { w: 0.33, h: 0.17 },
-  distrib: { w: 0.4, h: 0.74 }, trappe: { w: 0.6, h: 0.5 }, arbre: { w: 1.5, h: 1.95 }, pelote: { w: 0.15, h: 0.15 }, poisson: { w: 0.3, h: 0.08 }, lanceur: { w: 0.6, h: 0.7 } };
+  distrib: { w: 0.4, h: 0.74 }, trappe: { w: 0.6, h: 0.5 }, arbre: { w: 1.5, h: 1.95 }, pelote: { w: 0.15, h: 0.15 }, poisson: { w: 0.3, h: 0.08 }, lanceur: { w: 0.6, h: 0.7 }, coffre: { w: 0.52, h: 0.3 } };
 // les lourds (ils tanguent, se laissent traîner lentement, tombent lourdement), ce qu'un chat bouscule en passant
-const LOURD = { arbre: 1, distrib: 1, lanceur: 1 }, LEGER = { pelote: 1, poisson: 1, tasse: 1, plante: 1 };
+const LOURD = { arbre: 1, distrib: 1, lanceur: 1, coffre: 1 }, LEGER = { pelote: 1, poisson: 1, tasse: 1, plante: 1 };
 const COL = { orange: 0xd0661f, bleu: 0x2f6fb0, vert: 0x3a6e46, rose: 0xc04a6c, gris: 0x6a6c70 };
 function layout() {
   Wd.props.slice().forEach(unprop); Wd.P = {}; Wd.extras = []; Wd.kib = []; const P = Wd.P, wide = Wd.mode === 'large';
@@ -213,6 +215,8 @@ function layout() {
     P.distrib = prop('distrib', 0.5, 0.9, { yaw: -0.25 });
     P.gamelle = prop('gamelle', 0.56, 0.5);
     P.eau = prop('eau', 0.95, 0.9);
+    // le coffre à jouets : la canne à plume dedans (js/jouets.js)
+    P.coffre = prop('coffre', 0.87, 0.55, { yaw: -0.3 });
   } else {
     P.coussin = prop('coussin', 0.56, 0.3);
     P.pelote = prop('pelote', 0.68, 0.0);
@@ -223,6 +227,7 @@ function layout() {
     P.caisse = prop('caisse', 0.86, 0.55, { size: 1 });
     P.tasse = prop('tasse', 0, 0.55); stack(P.tasse, P.caisse, 0.1);
     P.distrib = prop('distrib', 0.5, 0.97, { yaw: -0.25 });
+    P.coffre = prop('coffre', 0.33, 0.5, { yaw: 0.25 });
   }
   if (P.trappe) P.trappe.lift = Wd.s0 * 1.2;
   Wd.props.forEach(it => { it.home = { fx: it.fx, d: it.d, on: it.on, onDx: it.onDx }; });
@@ -981,7 +986,7 @@ function aspire() {
   const c = Wd.cats.find(k => free4(k)); if (c) say(c, '?!');
 }
 function vacFrame(dt) {
-  if (!Wd.vac) { if (Wd.t > (Wd.vacT || 0)) { Wd.vacT = Wd.t + 1; if (clutter() >= (Wd.mode === 'large' ? 14 : 7)) aspire(); } return; }
+  if (!Wd.vac) { if (Wd.t > (Wd.vacT || 0)) { Wd.vacT = Wd.t + 1; if (clutter() >= (Wd.mode === 'large' ? 14 : 7) && Wd.t > (Wd.vacCool || 0) && Math.random() < 0.035) aspire(); } return; }   // de temps en temps seulement, pas dès que ça déborde
   const V = Wd.vac, u = Wd.t - V.t0, s0 = Wd.s0, mouthY = Wd.floor - s0 * 1.05;
   V.y = V.ph === 'descend' ? -s0 + (mouthY + s0) * sm(u / 1.3) : V.ph === 'remonte' ? mouthY - (mouthY + s0 * 1.5) * sm((Wd.t - V.tu) / 1.2) : mouthY + Math.sin(u * 5) * 4;
   if (V.ph === 'descend' && u > 1.3) { V.ph = 'balaye'; V.tb = Wd.t; Wd.fx.push({ k: 'txt', text: 'VROUUUM', x: V.x, y: mouthY - s0 * 0.9, t0: Wd.t, life: 1.6, rot: -0.1, size: 22 }); }
@@ -1002,7 +1007,7 @@ function vacFrame(dt) {
     if (V.x < -s0 * 0.4 || V.x > Wd.W + s0 * 0.4 || Wd.t - V.tb > 7) { V.ph = 'remonte'; V.tu = Wd.t; V.x = clamp(V.x, 0, Wd.W);
       Wd.fx.push({ k: 'txt', text: pick(['propre !', 'voilà.', 'merci qui ?']), x: clamp(V.x, 60, Wd.W - 60), y: mouthY - s0 * 0.5, t0: Wd.t, life: 2, rot: -0.08, size: 22 }); }
   }
-  if (V.ph === 'remonte' && Wd.t - V.tu > 1.2 && !Wd.props.some(p => p.suck) && !Wd.kib.some(k => k.suck)) Wd.vac = null;
+  if (V.ph === 'remonte' && Wd.t - V.tu > 1.2 && !Wd.props.some(p => p.suck) && !Wd.kib.some(k => k.suck)) { Wd.vac = null; Wd.vacCool = Wd.t + rnd(70, 140); }
   // l'aspiration : vers la bouche, de plus en plus petit, puis disparu
   const mx = V.x, my = V.y + s0 * 0.05;
   Wd.props.slice().forEach(it => { if (!it.suck) return; const q = Math.min(1, (Wd.t - it.suck.t0) / 0.7), e = q * q;
@@ -1152,10 +1157,11 @@ function release(c, vx, vy) {
   if (!c || run(H.release, c, vx, vy)) return;
   if (c.lever) { const g = c.lever; if (!g.pulling) { g.flick = Wd.t; shoot(g); } g.pulling = false; return; }
   if (c.pet) { const n = c.pet.n; c.pet = null; c.task = null; c.q = n > 5 ? [pose('petrit', rnd(2, 3.5), { fx: c => say(c, '♥') }), pose('pain', rnd(4, 8))] : [pose('assis', rnd(1, 2))]; if (!n) purr(c); return; }
-  if (isProp(c)) { const it = c; if (!it.held) { poke(it, Wd.gx ?? it.x); return; }
+  // un simple clic (sans soulever) : d'abord les modules (le coffre, la trappe coincée, le distributeur vide…), sinon une pichenette
+  if (isProp(c)) { const it = c; if (!it.held) { if (!run(H.click, Wd.gx ?? it.x, Wd.gy ?? it.y)) poke(it, Wd.gx ?? it.x); return; }
     // lâché : il vole, tourne sur lui-même, rebondit, se pose (sur une caisse, s'il tombe dessus)
     it.held = false; drop(it, clamp(vx || 0, -1800, 1800), -clamp(vy || 0, -1800, 1800), clamp((vx || 0) * 0.004, -7, 7) + rnd(-1, 1)); return; }
-  if (!c.held) { purr(c); return; }
+  if (!c.held) { if (!run(H.click, Wd.gx ?? c.x, Wd.gy ?? c.y)) purr(c); return; }
   c.held = false; c.fall = true; c.vx = clamp(vx || 0, -1500, 1500); c.vy = clamp(vy || 0, -1500, 1500);
   // la pose change (pendu → en chute) : le corps reste où il est
   c.y += c.D.stand * sc(c); c.cur[I.y] = c.D.stand; c.spin = clamp((c.pend ? c.pend.th : 0) * c.face - c.vx * 0.002, -1.5, 1.5); c.pend = null;

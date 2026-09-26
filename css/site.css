@@ -149,7 +149,9 @@ h2{font-size:clamp(1.9rem,min(5.2vw,8.2vh),4.4rem);line-height:.95;letter-spacin
 .cta:focus-visible{outline:2px dashed rgba(var(--ink),.6);outline-offset:10px}
 .js .cta{opacity:0}.js .cta.drawn{opacity:1}
 /* l'accueil : le texte en haut (la scène des chats a la place en bas) ; deux boutons côte à côte */
-[data-scene="salut"]{justify-content:flex-start;padding-top:calc(var(--sheet) + clamp(78px,12vh,140px))}
+/* --chat : la taille d'un chat à l'écran (comme size0 dans js/chats.js) ; il faut qu'un chat tienne debout au-dessus du titre
+   et sur un bouton sans passer sous le texte */
+[data-scene="salut"]{--chat:clamp(64px,min(19vw,19vh),165px);justify-content:flex-start;gap:calc(var(--chat) * .95);padding-top:calc(var(--sheet) + max(clamp(78px,12vh,140px),var(--chat) * 1.15))}
 [data-scene="salut"] h1{font-size:clamp(2.6rem,min(6vw,10vh),5.6rem)}
 .ctas{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:clamp(30px,4vw,64px)}
 /* « Restez jouer ici » : comme l'autre bouton, mais lumineux (le halo et les étoiles sont dessinés par js/scenes.js) :
@@ -260,9 +262,10 @@ html:not(.locked) #gate:not(.open){display:none}
   .tpick.open .tp-panel{transform:translate(-50%,0)}
   .scene{padding:calc(var(--sheet) + 84px) 20px calc(var(--sheet) + 130px)}
   h1{font-size:clamp(2rem,min(10.5vw,7.5vh),3.6rem)}
-  [data-scene="salut"]{padding-top:calc(var(--sheet) + 92px)}
+  [data-scene="salut"]{--chat:clamp(64px,min(20vw,19vh),165px);padding-top:calc(var(--sheet) + max(92px,var(--chat) * 1.2))}
   [data-scene="salut"] h1{font-size:clamp(2.2rem,11vw,3.4rem)}
   .ctas{flex-direction:column;gap:14px}
+  [data-scene="salut"] .ctas{gap:calc(var(--chat) * .95)}
   .jeu #enter{top:calc(var(--sheet) + 60px + env(safe-area-inset-top,0px));font-size:.68rem;white-space:nowrap}
   [data-scene="essai"]{padding-top:calc(var(--sheet) + 96px)}
   [data-scene="jeu"]{padding-top:calc(var(--sheet) + 104px)}
