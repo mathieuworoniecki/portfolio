@@ -29,5 +29,10 @@ h = re.sub(r'<link rel="stylesheet" href="(css/[^"]+)">', css, h)
 tete = root / 'media' / 'mathieu' / 'tete.json'
 if tete.exists(): h = h.replace('<script src="js/mathieu.js"></script>', '<script>window.MATHIEU_MEDIA={tete:' + tete.read_text(encoding='utf-8') + '};</script>\n<script src="js/mathieu.js"></script>', 1)
 h = re.sub(r'<script src="(js/[^"]+)"></script>', js, h)
+# l'aperçu sur téléphone (appli Claude) : si le cadre prend la hauteur du contenu, la page ne doit pas valoir 0 px ;
+# et une erreur s'affiche à l'écran au lieu d'une page vide
+h = ('<style>html,body{min-height:max(100%,560px)}</style>\n<script>addEventListener("error",function(e){var d=document.createElement("pre");'
+     'd.style.cssText="position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;margin:0;padding:8px;background:#fff;color:#a00;font:12px monospace;white-space:pre-wrap";'
+     'd.textContent="Erreur : "+(e.message||e)+" ("+(e.filename||"").split("/").pop()+":"+(e.lineno||"")+")";(document.body||document.documentElement).appendChild(d)});</script>\n') + h
 (out / 'index.html').write_text(h, encoding='utf-8', newline='\n')
 print(out / 'index.html', len(h) // 1024, 'Ko')
