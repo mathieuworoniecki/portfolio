@@ -29,11 +29,13 @@ Retour arrière (flèche gauche, barre du film) : tout doit se rejouer à l'enve
 
 ## Mathieu en 3D : ce qui existe
 
-`js/mathieu.js` : la tête et le buste, en traits d'encre épais (le même moteur que les chats, `Obj3D.mats(…, { fat })`), mignon et caricatural plutôt que réaliste, d'après ses photos : cheveux bruns en pics, moustache, chemise blanche à col.
+Deuxième version (26 septembre, 12:07), après le retour de Mathieu (« on ne me reconnaît pas ») : il est décalqué de sa photo, fidèle comme une photo en noir et blanc, et porte un t-shirt Patagonia.
 
-- `Mathieu.create()` crée le pantin ; `Mathieu.pose(m, { x, y, s, turn, tilt, open, look })` le pose à l'écran (px), `open` de 0 (bouche fermée) à 1 (bouche biblique).
-- `Mathieu.mouthAt(m)` : le centre et la taille de la bouche à l'écran, pour viser le trou noir.
-- Aperçu : `tools/mathieu.html` (il tourne ; un curseur ouvre la bouche ; `?open=1` pour la bouche ouverte).
+- `tools/mathieu/build.py` tire de sa photo de face : le décalque en noir et blanc (`media/mathieu/visage.png`), le dos (`dos.png` : ses cheveux, le dos du t-shirt), le relief (`relief.png`, `relief.json`). Le relief vient des 468 points 3D du visage (MediaPipe Face Mesh) ; autour, un ellipsoïde pour le crâne, un cylindre pour le cou, un tonneau pour le buste. La photo elle-même n'est pas dans le dépôt.
+- `js/mathieu.js` pose le décalque sur ce relief (une grille de 256 × 256 sommets) : `Mathieu.create()`, `Mathieu.pose(m, { x, y, s, turn, tilt, open })`, `Mathieu.mouthAt(m)` (le centre du trou noir à l'écran, pour y plonger).
+- La bouche : la mâchoire (sous la ligne des lèvres, jusqu'au menton) descend et avance ; à sa place, de l'encre.
+- Limite : le relief vient d'une photo de face ; de trois quarts il est très juste, de profil il s'aplatit. Pour « il arrive en tournant », le tour est rapide (on ne s'attarde pas de profil) ; de dos on voit ses cheveux.
+- Aperçu : `tools/mathieu.html`.
 
 ## À faire, dans l'ordre
 

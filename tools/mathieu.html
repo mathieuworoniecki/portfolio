@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mathieu en 3D</title>
-<!-- L'aperçu de Mathieu en 3D (js/mathieu.js), à part du film : il tourne sur lui-même, un curseur ouvre la bouche.
+<!-- L'aperçu de Mathieu en 3D (js/mathieu.js), à part du film : il se balance de trois quarts en trois quarts, un curseur ouvre la bouche.
      python3 tools/serve.py, puis http://localhost:8940/tools/mathieu.html
-     ?open=0.6 (la bouche) · ?turn=0.5 (un angle fixe, sans tourner) · ?t=3 (un temps fixe, pour les essais) · ?arrivee (il arrive de loin, en boucle) -->
+     les images : media/mathieu/ (tools/mathieu/build.py) · ?open=0.6 (la bouche) · ?turn=0.5 (un angle fixe, sans tourner) · ?t=3 (un temps fixe, pour les essais) · ?arrivee (il arrive de loin, en boucle) -->
 <style>
 html,body{margin:0;height:100%;background:#DADBD8;color:#222428;overflow:hidden;font:15px system-ui}
 canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
@@ -45,27 +45,26 @@ $('arr').onclick = () => { arr = 0; };
 let drag = null; $('obj').onpointerdown = e => { drag = e.clientX; spin = false; $('spin').classList.remove('on'); };
 addEventListener('pointermove', e => { if (drag !== null) { turn += (e.clientX - drag) * 0.01; drag = e.clientX; } });
 addEventListener('pointerup', () => { drag = null; });
-let last = performance.now(), t = 0, blinkAt = 2;
-const lerpY = (k, b, s) => (Hh - 80) * (0.3 + 0.2 * k) - 2.8 * s / Mathieu.H * k + b * s * 0.12;
+let last = performance.now(), t = 0, sw = 0;
 const sm = v => { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); };
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now; t = q.has('t') ? +q.get('t') : t + dt;
-  const base = Math.min(W * 0.9, (Hh - 80) * 1.05);
-  // la figure va de 8 unités au-dessus de la racine (les pics) à 13,6 en dessous (le bas du buste) : on la centre
-  const yOf = s => (Hh - 80) / 2 - 2.8 * s / Mathieu.H;
-  let s = base, x = W / 2, y = yOf(base), tr = turn, op = openT;
-  if (spin) tr = turn = turn + dt * 0.9;
+  const base = Math.min(W * 0.98, (Hh - 80) * 1.0), hx = m.meta ? m.meta.head[0] : 0.516, hy = m.meta ? m.meta.head[1] : 0.336;
+  // le cadre (des cheveux au bas du buste) est centré ; la racine est le centre de la tête
+  const yOf = s => (Hh - 80) / 2 - (0.5 - hy) * s;
+  let s = base, x = W / 2 + (hx - 0.5) * base, y = yOf(base), tr = turn, op = openT;
+  // il se balance de trois quarts en trois quarts (le relief vient d'une photo de face : de profil, il s'aplatit)
+  if (spin) { sw += dt; tr = turn = Math.sin(sw * 0.7) * 0.75; }
   // l'arrivée : minuscule au loin, il grossit en tournant (un tour et demi qui ralentit), se pose, puis la bouche biblique
   if (arr >= 0) {
     arr += dt; const k = sm(arr / 2.5), b = sm((arr - 3.2) / 1.6);
-    s = base * (0.04 + 0.66 * k + 1.6 * b); y = lerpY(k, b, s); tr = (1 - k) * Math.PI * 3; op = b;
+    s = base * (0.04 + 0.66 * k + 1.6 * b); y = Hh * 0.3 + (yOf(s) - Hh * 0.3) * k + b * s * 0.1; x = W / 2 + (hx - 0.5) * s; tr = (1 - k) * Math.PI * 3; op = b;
     if (arr > 7) arr = q.has('arrivee') ? 0 : -1;
   }
   if (bible >= 0) { bible += dt; op = openT = Math.min(1, bible / 1.2); $('open').value = op; if (bible > 1.2) bible = -1; }
   open += (op - open) * Math.min(1, dt * 10); if (q.has('t')) open = op;
-  // la vie : il respire, il cligne
-  const blink = t > blinkAt ? Math.max(0, 1 - Math.abs(t - blinkAt - 0.08) / 0.08) : 0; if (t > blinkAt + 0.2) blinkAt = t + 2.5 + Math.random() * 3;
-  Mathieu.pose(m, { x, y: y + Math.sin(t * 1.6) * s * 0.004, s, turn: tr, tilt: 0.06, open, blink: q.has('t') ? 0 : blink, nod: Math.sin(t * 0.8) * 0.03 });
+  // la vie : il respire
+  Mathieu.pose(m, { x, y: y + Math.sin(t * 1.6) * s * 0.004, s, turn: tr, tilt: 0.06, open, nod: Math.sin(t * 0.8) * 0.03 });
   Obj3D.render(); requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
