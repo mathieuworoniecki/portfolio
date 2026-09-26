@@ -21,30 +21,21 @@ const popGrab = { grab: (x, y) => Pops.hit(x, y), drag: (o, x, y) => Pops.hold(o
 /* ——— 1 · la station « Salut » ——— */
 const enterBtn = $('#enter'), stayBtn = $('#stay'), root = document.documentElement;
 let reste = null;   // l'horloge du clic sur « Restez jouer ici » (null : pas encore)
-// « Restez jouer ici » : un cadre en forme de tête de chat (deux oreilles, des moustaches) et une queue qui remue
-function catButton(el, prog, seed, clock) {
+// « Restez jouer ici » : le même cadre que l'autre bouton, mais il brille : un halo de lumière qui respire,
+// un reflet qui le traverse (css/site.css) et de petites étoiles qui scintillent autour
+function glowButton(el, prog, seed, clock) {
   if (!el || prog <= 0.001) return;
-  const r = el.getBoundingClientRect(); if (!r.width) return;
-  el.hov = (el.hov || 0) + (((el.matches(':hover') || el.matches(':focus-visible')) ? 1 : 0) - (el.hov || 0)) * 0.15;
-  const x0 = r.left - 4, x1 = r.right + 4, y0 = r.top - 2, y1 = r.bottom + 2, h = y1 - y0, cy = (y0 + y1) / 2, rr = h / 2, P = [];
-  // la bosse : une pilule, un peu de travers, qui respire
-  const b = 1 + Math.sin(clock * 2.2) * 0.012;
-  for (let k = 0; k <= 36; k++) { const t = k / 36 * TAU - Math.PI / 2, side = Math.cos(t) >= 0 ? x1 - rr : x0 + rr; P.push([side + Math.cos(t) * rr * b, cy + Math.sin(t) * rr * b]); }
-  P.push(P[0]); C.stroke(P, c01(prog / 0.6), { w: 2.1, seed, amp: 0.4, tip: prog < 0.6 });
-  // les oreilles (l'une frémit au survol)
-  const e = c01((prog - 0.5) / 0.25), ew = h * 0.34, eh = h * 0.5;
-  [[x0 + rr * 1.1, -1], [x1 - rr * 1.1, 1]].forEach(([ex, s], i) => { const tw = Math.sin(clock * 20 + i) * el.hov * 0.2 + (i ? Math.max(0, Math.sin(clock * 1.3)) ** 12 * 0.3 : 0);
-    const ax = ex + s * ew * 0.25 + Math.sin(tw) * eh, ay = y0 - eh * Math.cos(tw) + 2;
-    C.stroke([[ex - ew / 2, y0 + 3], [ax, ay], [ex + ew / 2, y0 + 3]], e, { w: 2, seed: seed + 3 + i, amp: 0.3, tip: false });
-    C.stroke([[ex - ew * 0.22, y0 + 1], [ex * 0.4 + ax * 0.6, y0 * 0.4 + ay * 0.6], [ex + ew * 0.22, y0 + 1]], e, { w: 1.1, a: 0.45, seed: seed + 5 + i, tip: false }); });
-  // les moustaches, de chaque côté
-  const m = c01((prog - 0.7) / 0.2);
-  [-1, 1].forEach(s => [-0.18, 0.12].forEach((dy, j) => { const xs = s < 0 ? x0 - 2 : x1 + 2; C.line(xs, cy + dy * h, xs + s * h * 0.55, cy + dy * h * 1.8 + j * 2 - 3, m, { w: 1.3, a: 0.7, seed: seed + 11 + j + (s > 0 ? 4 : 0), tip: false }); }));
-  // la queue : elle sort d'en bas à droite et remue (plus vite au survol)
-  const q = c01((prog - 0.8) / 0.2), sw = Math.sin(clock * (2.4 + el.hov * 7)) * (0.35 + el.hov * 0.25), T = [];
-  for (let k = 0; k <= 10; k++) { const u = k / 10, a = -0.4 + u * 2.4 + sw * u; T.push([x1 - rr * 0.6 + Math.sin(a) * h * 0.4 * u + u * h * 0.2, y1 - 2 - Math.sin(u * Math.PI) * h * 0.4 - u * h * 0.3 + Math.cos(a) * 3]); }
-  C.stroke(T, q, { w: 2, seed: seed + 20, amp: 0.3, tip: false });
-  el.classList.toggle('drawn', prog > 0.6);
+  const r = el.getBoundingClientRect(); if (!r.width) return; const ctx = C.ctx; if (!ctx) return;
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2, pulse = 0.75 + 0.25 * Math.sin(clock * 2.4), a = c01(prog * 1.4);
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(1, r.height / r.width * 1.6);
+  const R = r.width * 0.85, g = ctx.createRadialGradient(0, 0, R * 0.15, 0, 0, R);
+  g.addColorStop(0, `rgba(255,255,255,${0.75 * a * pulse})`); g.addColorStop(0.45, `rgba(255,252,238,${0.35 * a * pulse})`); g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g; ctx.fillRect(-R, -R, R * 2, R * 2); ctx.restore();
+  Outils.button(el, prog, seed, clock);
+  // les étoiles : quatre branches, elles naissent, brillent et s'éteignent autour du cadre
+  for (let k = 0; k < 6; k++) { const ph = (clock * 0.55 + k / 6) % 1, ang = k * 2.4 + Math.floor(clock * 0.55 + k / 6) * 1.7, sz = (4 + (k % 3) * 2) * Math.sin(ph * Math.PI) * a;
+    if (sz < 0.5) continue; const x = cx + Math.cos(ang) * (r.width / 2 + 16), y = cy + Math.sin(ang) * (r.height / 2 + 12);
+    C.line(x - sz, y, x + sz, y, 1, { w: 1.3, a: 0.8, seed: k, tip: false, amp: 0 }); C.line(x, y - sz, x, y + sz, 1, { w: 1.3, a: 0.8, seed: k + 9, tip: false, amp: 0 }); }
 }
 // on reste jouer : le titre s'efface (il se dé-écrit), ce bouton s'en va, et le bouton d'entrée file en haut de l'écran
 if (stayBtn) stayBtn.addEventListener('click', () => {
@@ -67,8 +58,8 @@ const salut = Object.assign({
   draw(S, ctx) {
     const pb = S.reduced ? 1 : sm((S.since - 2.3) / 0.9);
     Outils.button(enterBtn, pb, 1100, S.clock);
-    if (reste === null) catButton(stayBtn, S.reduced ? 1 : sm((S.since - 2.0) / 1.1), 1200, S.clock);
-    else if (S.clock - reste < 0.5) catButton(stayBtn, 1 - sm((S.clock - reste) / 0.45), 1200, S.clock);
+    if (reste === null) glowButton(stayBtn, S.reduced ? 1 : sm((S.since - 2.0) / 1.1), 1200, S.clock);
+    else if (S.clock - reste < 0.5) glowButton(stayBtn, 1 - sm((S.clock - reste) / 0.45), 1200, S.clock);
     // l'invitation, écrite à la main sous les boutons, tant que rien n'a jailli
     const hb = reste === null && (CH ? !CH.clicks : !Pops.list.length) && enterBtn;
     if (hb) { const r = hb.getBoundingClientRect(), r2 = stayBtn ? stayBtn.getBoundingClientRect() : r, bot = Math.max(r.bottom, r2.bottom), cx = (Math.min(r.left, r2.left) + Math.max(r.right, r2.right)) / 2; C.text(L('salut.hint'), cx, bot + 40 * S.K, S.reduced ? 1 : c01((S.since - 3.4) / 1.2), { size: 19, align: 'center', a: 0.55 }); }

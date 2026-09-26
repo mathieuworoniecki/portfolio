@@ -103,6 +103,8 @@ const ANIMS = {
   petrit(c, p, t) { Chat.rest(c, p); p[I.y] *= 0.92; ['fl', 'fr'].forEach((k, i) => { const u = Math.max(0, Math.sin(t * 5 + i * Math.PI)); p[I[k]] = 0.3 + u * 0.5; }); p[I.fk] = p[I.fk2] = 0.8; p[I.eyes] = 2; p[I.tailUp] = 1; p[I.tailCurl] = 1.1; },
   // il miaule : assis, la tête levée, la bouche qui s'ouvre
   miaule(c, p, t) { sit(c, p); p[I.hnod] = -0.3; p[I.mouth] = (t % 2.2) < 0.7 ? 1 : 0; p[I.eyes] = p[I.mouth] ? 1 : blink(t); },
+  // debout, immobile : il attend, la queue qui ondule
+  debout(c, p, t) { Chat.rest(c, p); p[I.eyes] = blink(t); p[I.tailWave] = 0.6; p[I.tailPhase] = t * 1.6; },
   // il ronronne : assis, les yeux ravis, tout doucement secoué
   ronron(c, p, t) { sit(c, p); p[I.eyes] = 2; p[I.htilt] = 0.2 + Math.sin(t * 30) * 0.01; p[I.sqz] = Math.sin(t * 30) * 0.008; p[I.tailWave] = 0.3; p[I.tailPhase] = t * 1.5; }
 };
@@ -183,26 +185,27 @@ function layout() {
     P.coussin = prop('coussin', 0.25, 0.3);
     P.panier = prop('panier', 0.34, 0.85);
     P.pelote = prop('pelote', 0.45, 0.02);
-    P.poisson = prop('poisson', 0.53, 0.12);
-    P.carton = prop('carton', 0.6, 0.78);
+    P.poisson = prop('poisson', 0.4, 0.12);
+    P.carton = prop('carton', 0.64, 0.8);
     P.caisse = prop('caisse', 0.7, 0.5, { size: 2 });
     P.tasse = prop('tasse', 0, 0.5); stack(P.tasse, P.caisse, 0.12);
     P.caisse2 = prop('caisse', 0.77, 0.92, { size: 1 });
     P.plante = prop('plante', 0, 0.92); stack(P.plante, P.caisse2, -0.06);
     P.trappe = prop('trappe', 1, 0.9);
-    P.distrib = prop('distrib', 0.87, 0.85, { yaw: -0.55 });
-    P.gamelle = prop('gamelle', 0.925, 0.45);
+    // le distributeur au milieu : les chats y passent souvent
+    P.distrib = prop('distrib', 0.5, 0.9, { yaw: -0.25 });
+    P.gamelle = prop('gamelle', 0.56, 0.5);
     P.eau = prop('eau', 0.95, 0.9);
   } else {
     P.coussin = prop('coussin', 0.56, 0.3);
     P.pelote = prop('pelote', 0.68, 0.0);
     // sur un téléphone, l'arbre et la machine rapetissent un peu (la place manque)
     P.arbre.big = 0.78;
-    P.carton = prop('carton', 0.64, 0.88);
+    P.carton = prop('carton', 0.72, 0.88);
     P.trappe = prop('trappe', 1, 0.9); P.trappe.big = 0.85;
     P.caisse = prop('caisse', 0.86, 0.55, { size: 1 });
     P.tasse = prop('tasse', 0, 0.55); stack(P.tasse, P.caisse, 0.1);
-    P.distrib = prop('distrib', 0.76, 0.97, { yaw: -0.55 });
+    P.distrib = prop('distrib', 0.5, 0.97, { yaw: -0.25 });
   }
   if (P.trappe) P.trappe.lift = Wd.s0 * 1.2;
   Wd.props.forEach(it => { it.home = { fx: it.fx, d: it.d, on: it.on, onDx: it.onDx }; });
@@ -255,7 +258,8 @@ function updProp(it, dt) {
     const lo = low(it);
     if (it.fall && it.lift + lo <= 0) {
       it.lift = -lo;
-      if (it.tower && it.tower.phase === 'pile') { it.fall = false; it.vy = it.vx = it.tiltV = 0; it.tilt = 0; it.lift = 0; dust(it.fx * Wd.W, floorAt(it.d), s * 0.5, 0.8); }
+      if (it.swept && Math.abs(it.vx) > s * 0.8) { it.vy = s * rnd(0.4, 0.9); it.vx *= 0.9; }   // balayé : il roule-boule jusqu'au bord
+      else if (it.tower && it.tower.phase === 'pile') { it.fall = false; it.vy = it.vx = it.tiltV = 0; it.tilt = 0; it.lift = 0; dust(it.fx * Wd.W, floorAt(it.d), s * 0.5, 0.8); }
       else if (it.vy < -s * 1.6) { dust(it.fx * Wd.W, floorAt(it.d), s * 0.4, 0.8); thud(it); it.vy = -it.vy * (LOURD[it.kind] ? 0.12 : 0.28); it.vx *= 0.6; it.tiltV *= 0.45; }
       else {
         it.vy = 0; it.vx *= Math.exp(-dt * 7);
@@ -275,8 +279,9 @@ function updProp(it, dt) {
   if (it.parts.levier) it.parts.levier.rotation.z = (it.lev0 ?? 0.3) + (it.pull || 0) * (it.levK ?? 1.3);
   // accrochée au mur : au bord droit, à sa hauteur (sous le texte), rien ne la fait bouger
   if (it.mur) { it.fx = 1 + it.hull.w * 0.1 * s * (it.big || 1) / Wd.W; const L = clamp(floorAt(it.d) - (Wd.ceil || 0) - 0.6 * s * (it.big || 1) - 12, Wd.s0 * 0.45, Wd.s0 * 1.7); it.lift += (L - it.lift) * Math.min(1, dt * 4); it.vx = it.vy = 0; it.fall = false; }
-  if (!it.run && !it.mur && it.fx < m) { it.fx = m; it.vx = Math.abs(it.vx) * (it.r ? 0.6 : 0); }
-  if (!it.run && !it.mur && it.fx > 1 - m) { it.fx = 1 - m; it.vx = -Math.abs(it.vx) * (it.r ? 0.6 : 0); }
+  if (it.swept && (it.fx < -0.2 || it.fx > 1.2)) { it.fadeT = it.fade = 0; it.gone = true; } else if (it.swept && !it.fall && !it.vx) it.swept = 0;
+  if (!it.run && !it.mur && !it.swept && it.fx < m) { it.fx = m; it.vx = Math.abs(it.vx) * (it.r ? 0.6 : 0); }
+  if (!it.run && !it.mur && !it.swept && it.fx > 1 - m) { it.fx = 1 - m; it.vx = -Math.abs(it.vx) * (it.r ? 0.6 : 0); }
   // la pelote : elle tourne en roulant et laisse son fil derrière elle
   if (it.r) {
     const x = it.fx * Wd.W; if (it.px !== undefined) it.spinA -= (x - it.px) / (it.r * s); it.px = x;
@@ -329,7 +334,8 @@ const STEPS = {
     if (!Number.isFinite(tx) || (T.d !== undefined && !Number.isFinite(T.d))) return true;   // une cible perdue (son objet a disparu) : on s'arrête
     if (T.d !== undefined) c.d += clamp(T.d - c.d, -dt * 0.6, dt * 0.6);
     c.anim = g; c.perch = null;
-    if (Math.abs(dx) <= v * dt + 0.5) { c.x = tx; if (T.d === undefined || Math.abs(T.d - c.d) < 0.01) { if (T.face) c.face = T.face; return true; } return false; }
+    // arrivé : la profondeur finit de s'ajuster (au plus un instant : si un voisin le pousse, il ne piétine pas sur place)
+    if (Math.abs(dx) <= v * dt + 0.5) { c.x = tx; T.at = (T.at || 0) + dt; if (T.d === undefined || Math.abs(T.d - c.d) < 0.01 || T.at > 0.6) { if (T.face) c.face = T.face; return true; } c.anim = 'debout'; return false; }
     c.face = sgn(dx); c.x += c.face * v * dt; return false;
   },
   pose(c, T) { c.anim = T.anim; if (T.face) c.face = T.face; if (T.t < 0.02 && T.fx) T.fx(c); return T.t >= T.dur; },
@@ -354,7 +360,9 @@ const STEPS = {
     const b = T.box; c.anim = 'pas'; c.face = T.dir;
     const v = SPEED.pas * sc(c) * 0.55, m = b.box.w / 2 * sOf(b.d) / Wd.W, nx = b.fx + T.dir * v * dt / Wd.W;
     if (nx < m || nx > 1 - m || b.fall || b.on) return true;
-    b.fx = nx; c.x += T.dir * v * dt; c.pushing = 1;
+    // la caisse bute contre un autre objet (repoussée) : il abandonne, au lieu de pousser dans le vide
+    if (T.last !== undefined && T.dir * (b.fx - T.last) < -1e-5) return true;
+    b.fx = nx; T.last = nx; c.x += T.dir * v * dt; c.pushing = 1;
     return T.t >= T.dur;
   },
   wait(c, T) { c.anim = T.anim || 'assis'; return T.until(c) || T.t > (T.max || 8); }
@@ -603,6 +611,7 @@ function spread(dt) {
   G.forEach(c => {
     const walking = walks(c), tx = walking ? (typeof c.task.x === 'function' ? c.task.x() : c.task.x) : c.x;
     for (const it of O) {
+      if (c.balai && it.launched) continue;   // la horde fonce dans les cartons (elle les balaie, voir bump)
       if (it.busy === c || c.claims.includes(it)) continue;
       const s = sOf(it.d) * (it.big || 1), hw = it.hull.w / 2 * s + sc(c) * 0.42, dx = c.x - it.x, dd = c.d - it.d;
       if (Math.abs(dd) >= 0.2) continue;
@@ -657,6 +666,16 @@ function bump() {
     if (!it.r || it.held || it.busy || Math.abs(it.vx) < sOf(it.d) * 1.8 || Wd.t - (it.chaseT ?? -9) < 3) return;
     const k = Wd.cats.filter(c => free4(c) && c.ch.joue >= 1 && Math.abs(c.x - it.x) < Wd.W * 0.4).sort((a, b) => b.ch.joue - a.ch.joue)[0];
     it.chaseT = Wd.t; if (k && Math.random() < 0.7) { interrupt(k); say(k, '!'); play(k, it); k.q.forEach(q => { if (q.k === 'walk') q.g = 'galop'; }); }
+  });
+  // la horde au galop pousse devant elle les cartons lancés et les croquettes : ils partent hors de l'écran (un coup de balai)
+  Wd.cats.forEach(c => {
+    if (!c.balai || !c.task || c.task.k !== 'walk' || c.jump) return; const v = SPEED.galop * sc(c), dir = c.balai, reach = sc(c) * 0.6;
+    Wd.props.forEach(it => { if (!(it.launched || it.swept) || it.held || it.suck || Math.abs(it.d - c.d) > 0.35) return; const dx = (it.x - c.x) * dir;
+      if (dx < -sc(c) * 0.2 || dx > it.hull.w / 2 * it.s + reach) return;
+      Wd.cats.forEach(o => { if (o.perch && o.perch.it === it) { interrupt(o); o.fall = true; o.vx = dir * v; o.vy = -sOf(it.d) * 1.2; say(o, '!!'); } });
+      it.on = null; it.swept = dir; it.fall = true; it.vx = dir * v * rnd(1.25, 1.6); it.vy = Math.max(it.vy || 0, sOf(it.d) * rnd(0.6, 1.4)); it.tiltV = dir * -rnd(4, 9);
+      if (Wd.t - (it.sweepT ?? -9) > 0.6) { it.sweepT = Wd.t; dust(it.x, floorAt(it.d), it.s * 0.3, 0.7); } });
+    Wd.kib.forEach(k => { if (k.suck || Wd.t < k.t0 || Math.abs((k.x - c.x) * dir - reach * 0.5) > reach) return; k.rest = false; k.swept = true; k.who = null; k.vx = dir * v * rnd(1.2, 1.8); k.vy = -rnd(120, 380) * Wd.s0 / 160; });
   });
   Wd.cats.forEach(c => {
     if (!c.task || c.task.k !== 'walk' || c.perch || c.jump || c.hidden) return;
@@ -732,7 +751,7 @@ function horde() {
   for (let i = 0; i < n; i++) {
     const k = addCat({ temp: true, d: clamp(d + rnd(-0.02, 0.4), 0, 1), face: dir });
     k.x = m.fx * W - dir * (sc(k) * 1.6 + i * sc(k) * rnd(0.7, 1.1));
-    k.q = [go(dir > 0 ? W + sc(k) * 2 + i * 10 : -sc(k) * 2 - i * 10, { g: 'galop', v: rnd(1, 1.15) }), fn(k => { k.gone = true; })];
+    k.q = [go(dir > 0 ? W + sc(k) * 2 + i * 10 : -sc(k) * 2 - i * 10, { g: 'galop', v: rnd(1, 1.15) }), fn(k => { k.gone = true; })]; k.balai = dir;   // la horde balaie le bazar au passage
   }
   // les chats de la maison qui traînent : certains se joignent à la course
   Wd.cats.filter(k => !k.temp && free4(k) && Math.random() < 0.4).forEach(k => { interrupt(k); k.q = [pose('affut', rnd(0.3, 0.9), { face: dir }), go(dir > 0 ? W + sc(k) * 2 : -sc(k) * 2, { g: 'galop' }), fn(k => { k.gone = true; })]; });
@@ -834,7 +853,7 @@ function machines(dt) {
     }
   });
   // les cartons lancés et effacés s'en vont pour de bon
-  Wd.props.slice().forEach(p => { if (p.launched && !p.fadeT && p.fade < 0.02) { Wd.cats.forEach(c => { if (c.perch && c.perch.it === p) interrupt(c); }); unprop(p); } });
+  Wd.props.slice().forEach(p => { if (p.gone) { unprop(p); return; } if (p.launched && !p.fadeT && p.fade < 0.02) { Wd.cats.forEach(c => { if (c.perch && c.perch.it === p) interrupt(c); }); unprop(p); } });
 }
 // le distributeur devient fou : il tremble, saute, et crache des croquettes partout, longtemps
 function folle(g) {
@@ -878,13 +897,14 @@ function kibFrame(dt) {
   Wd.kib.forEach(k => {
     if (Wd.t < k.t0 || k.rest) return;
     k.vy += g * dt; k.x += k.vx * dt; k.y += k.vy * dt; k.spin += dt * 9;
-    if (k.x < 6 || k.x > Wd.W - 6) { k.x = clamp(k.x, 6, Wd.W - 6); k.vx *= -0.5; }
+    if (k.swept) { if (k.x < -20 || k.x > Wd.W + 20) k.gone = true; }
+    else if (k.x < 6 || k.x > Wd.W - 6) { k.x = clamp(k.x, 6, Wd.W - 6); k.vx *= -0.5; }
     // bonk : sur une tête
     if (k.vy > 0) for (const c of Wd.cats) { if (!c.hp || c.hidden) continue; const r = c.b.head[0] * sc(c) * 0.95;
       if (Math.hypot(k.x - c.hp[0], k.y - c.hp[1]) < r) { k.vy = -Math.abs(k.vy) * 0.45 - 60; k.vx += rnd(-80, 80); k.y = c.hp[1] - r;
         c.bonk = Wd.t + 0.45; if (Wd.t - (c.saidBonk || -9) > 0.9) { c.saidBonk = Wd.t; say(c, pick(['bonk', 'aïe', '?!', 'toc'])); } break; } }
     const f = floorAt(k.d);
-    if (k.y >= f && k.vy > 0) { k.y = f; if (k.vy > 180) { k.vy = -k.vy * 0.35; k.vx *= 0.55; } else { k.rest = true; k.vx = k.vy = 0; } }
+    if (k.y >= f && k.vy > 0) { k.y = f; if (k.vy > 180) { k.vy = -k.vy * 0.35; k.vx *= k.swept ? 0.9 : 0.55; } else if (k.swept && Math.abs(k.vx) > 40) { k.vy = -rnd(60, 160); k.vx *= 0.93; } else { k.rest = true; k.swept = false; k.vx = k.vy = 0; } }
   });
 }
 function drawKib(S) {
@@ -1075,8 +1095,10 @@ function drag(c, x, y) {
     it.hx = x; it.hy = y; return; }
   // le geste décide : vers le haut, on le soulève (par la peau du cou) ; de côté ou vers le bas, on le caresse
   if (!c.held && !c.pet) { const dx = x - (Wd.gx ?? x), dy = y - (Wd.gy ?? y);
-    if (!(dy < -Math.abs(dx) * 0.7) && !c.fall && !c.jump) { interrupt(c); c.pet = { n: 0, dir: 0, lx: x, t: Wd.t, run: 0 }; c.q = []; c.task = { k: 'wait', anim: 'caresse', until: c => !c.pet, max: 120, t: 0 }; say(c, '♥'); } }
-  if (c.pet) { pet(c, x, y); return; }
+    if (Math.hypot(dx, dy) < 12) return;   // le geste n'a pas encore de direction : on attend
+    if (Math.abs(dx) > Math.abs(dy) * 2.2 && dy > -8 && !c.fall && !c.jump) { interrupt(c); c.pet = { n: 0, dir: 0, lx: x, t: Wd.t, run: 0 }; c.q = []; c.task = { k: 'wait', anim: 'caresse', until: c => !c.pet, max: 120, t: 0 }; say(c, '♥'); } }
+  // la main sort du dos (trop loin sur le côté, ou vers le haut) : on arrête de caresser, on l'attrape
+  if (c.pet) { const b = Chat.where(c, c.body), k = sc(c); if (Math.abs(x - b[0]) > c.D.a * k * 1.3 + 20 || y < b[1] - c.D.h * k * 1.6 - 20) { c.pet = null; c.task = null; } else { pet(c, x, y); return; } }
   if (!c.held) { interrupt(c); c.fall = false; c.held = true; c.spin = 0; c.pend = { th: 0, w: 0, px: x, py: y, vx: 0, vy: 0, ax: 0 }; say(c, pick(['mia ?', '…', 'hé !'])); }
   c.hx = x; c.hy = y;
 }

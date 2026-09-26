@@ -123,6 +123,8 @@ a{color:inherit}
 .brand:hover{letter-spacing:.08em}
 /* le logo (js/logo.js) : sa toile déborde un peu (les oreilles au-dessus, la queue à droite) */
 .brand canvas{display:block;margin:-16px 0 -8px -6px}
+/* le logo en 3D (js/logo.js) : la place de la tête, dessinée dans la toile 3D */
+.brand .tete{display:block;width:44px;height:52px}
 .brand:hover{letter-spacing:.02em}
 [data-style="cao"] .brand{font-size:.95rem;letter-spacing:.14em;text-transform:uppercase}
 
@@ -150,15 +152,15 @@ h2{font-size:clamp(1.9rem,min(5.2vw,8.2vh),4.4rem);line-height:.95;letter-spacin
 [data-scene="salut"]{justify-content:flex-start;padding-top:calc(var(--sheet) + clamp(78px,12vh,140px))}
 [data-scene="salut"] h1{font-size:clamp(2.6rem,min(6vw,10vh),5.6rem)}
 .ctas{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:clamp(30px,4vw,64px)}
-/* « Restez jouer ici » : le bouton rigolo, écrit à la main, qui se dandine (son cadre de chat est dessiné par js/scenes.js) */
-.cta-jeu{font:700 clamp(1.35rem,2.2vw,1.7rem)/1 "Caveat","Segoe Print",cursive;letter-spacing:.01em;text-transform:none;padding:.7rem 1.5rem .8rem;transform-origin:50% 80%}
-.cta-jeu.drawn{animation:dandine 2.8s ease-in-out infinite}
-.cta-jeu:hover,.cta-jeu:focus-visible{letter-spacing:.04em;animation-duration:.7s}
-@keyframes dandine{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2.5deg) translateY(-2px)}}
+/* « Restez jouer ici » : comme l'autre bouton, mais lumineux (le halo et les étoiles sont dessinés par js/scenes.js) :
+   un reflet de lumière le traverse de temps en temps */
+.cta-jeu{position:relative;overflow:hidden;text-shadow:0 0 12px rgba(255,255,255,.95)}
+.cta-jeu::after{content:"";position:absolute;inset:-20% auto -20% -40%;width:30%;background:linear-gradient(100deg,rgba(255,255,255,0),rgba(255,255,255,.85),rgba(255,255,255,0));transform:skewX(-20deg);animation:reflet 3.2s ease-in-out infinite;pointer-events:none}
+@keyframes reflet{0%,55%{left:-40%}85%,100%{left:120%}}
+@media (prefers-reduced-motion:reduce){.cta-jeu::after{animation:none;opacity:0}}
 /* on reste jouer : le titre et ce bouton s'en vont, le bouton d'entrée monte en haut de l'écran */
 .jeu [data-scene="salut"] h1,.jeu #stay{display:none}
 .jeu #enter{position:fixed;z-index:4;left:50%;top:calc(var(--sheet) + 14px + env(safe-area-inset-top,0px));translate:-50% 0;padding:.7rem 1.2rem;font-size:.78rem}
-@media (prefers-reduced-motion:reduce){.cta-jeu.drawn{animation:none}}
 /* une phrase à la main, sous un titre */
 .scene .note{margin:0;font:400 clamp(.95rem,1.5vw,1.2rem)/1.3 var(--hand);opacity:.75}
 /* la scène d'essai : le titre en haut à gauche, l'objet à droite (js/scenes.js) */

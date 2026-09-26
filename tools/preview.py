@@ -25,6 +25,9 @@ h = h.replace("d.classList.add('locked');", "window.PF_OPEN=true;", 1)
 css = lambda m: '<style>\n' + (root / m.group(1)).read_text(encoding='utf-8') + '\n</style>'
 js = lambda m: '<script>\n' + (root / m.group(1)).read_text(encoding='utf-8').replace('</script', '<\\/script') + '\n</script>'
 h = re.sub(r'<link rel="stylesheet" href="(css/[^"]+)">', css, h)
+# la tête de Mathieu (js/mathieu.js) : son modèle, intégré (window.MATHIEU_MEDIA)
+tete = root / 'media' / 'mathieu' / 'tete.json'
+if tete.exists(): h = h.replace('<script src="js/mathieu.js"></script>', '<script>window.MATHIEU_MEDIA={tete:' + tete.read_text(encoding='utf-8') + '};</script>\n<script src="js/mathieu.js"></script>', 1)
 h = re.sub(r'<script src="(js/[^"]+)"></script>', js, h)
 (out / 'index.html').write_text(h, encoding='utf-8', newline='\n')
 print(out / 'index.html', len(h) // 1024, 'Ko')

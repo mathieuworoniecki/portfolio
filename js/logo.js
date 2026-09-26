@@ -78,17 +78,34 @@ function draw(dt) {
     for (let k = 0; k < n; k++) line([P[k], P[k + 1]], w * (1 - k / n * 0.55), 0.9);
   }
 }
+/* ——— la tête de Mathieu en 3D (js/mathieu.js), au trait, qui tourne sur elle-même : elle remplace le prénom quand la 3D est là.
+   Elle est dessinée dans la toile 3D commune (Obj3D), à la place du logo ; le prénom reste dans la page pour la lecture. ——— */
+let head = null;
+function headFrame(dt) {
+  if (!head) {
+    if (!window.Mathieu || !window.Obj3D || !Obj3D.ok) return false;
+    try { const m = Mathieu.create({ logo: true }); if (!m) return false; head = { m, turn: 0 }; } catch (e) { return false; }
+    brand.innerHTML = `<span class="vh">${NAME}</span><span class="tete" aria-hidden="true"></span>`; brand.classList.add('en-tete');
+  }
+  const box = brand.querySelector('.tete'), r = box.getBoundingClientRect(), m = head.m, s = r.height, hy = m.meta ? m.meta.head[1] : 0.4;
+  const show = born === null ? 0 : sm((clock - born) / 0.8);
+  // il tourne doucement ; au survol il accélère et fait un petit signe de tête
+  head.turn += dt * (reduced ? 0 : 0.7 + hov * 3.5);
+  Mathieu.pose(m, { x: r.left + r.width / 2, y: r.top + s * hy, z: 90000, s, turn: head.turn, tilt: 0.06, nod: hov * Math.sin(clock * 9) * 0.12, a: show });
+  hov += ((brand.matches(':hover') || brand.matches(':focus-visible') ? 1 : 0) - hov) * Math.min(1, dt * 8);
+  return true;
+}
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now; clock += dt;
   // le prénom s'écrit quand le site apparaît (après l'accès réservé)
   if (born === null && !root.classList.contains('locked') && !root.classList.contains('entering')) born = clock + 0.2;
-  draw(dt); requestAnimationFrame(loop);
+  if (!headFrame(dt)) draw(dt); requestAnimationFrame(loop);
 }
 // au clic : il se réécrit
-brand.addEventListener('click', () => { born = clock; });
+brand.addEventListener('click', () => { born = clock; if (head) head.turn += Math.PI * 2; });
 // la police d'abord (la feuille de Google Fonts doit être lue avant de pouvoir charger Caveat)
 const ready = document.fonts && document.fonts.load ? document.fonts.ready.then(() => document.fonts.load('700 31px "Caveat"')) : Promise.resolve();
 ready.then(() => { build(); requestAnimationFrame(loop); }, () => { build(); requestAnimationFrame(loop); });
-let rt = 0; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(build, 150); });
+let rt = 0; addEventListener('resize', () => { if (head) return; clearTimeout(rt); rt = setTimeout(build, 150); });
 return { rewrite() { born = clock; } };
 })();
