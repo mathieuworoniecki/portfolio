@@ -355,7 +355,7 @@ const STEPS = {
     if (Math.abs(dx) <= v * dt + 0.5) { c.x = tx; T.at = (T.at || 0) + dt; if (T.d === undefined || Math.abs(T.d - c.d) < 0.01 || T.at > 0.6) { if (T.face) c.face = T.face; return true; } c.anim = 'debout'; return false; }
     c.face = sgn(dx); c.x += c.face * v * dt; return false;
   },
-  pose(c, T) { c.anim = T.anim; if (T.face) c.face = T.face; if (T.t < 0.02 && T.fx) T.fx(c); return T.t >= T.dur; },
+  pose(c, T) { c.anim = T.anim; if (T.face) c.face = T.face; if (T.fx && !T.fxd) { T.fxd = 1; T.fx(c); } return T.t >= T.dur; },   // l'effet : une seule fois, au début (même quand l'image est lente)
   jump(c, T) {
     if (!c.jump) { const to = T.to(); const H = T.h ?? Math.max(0.25 * sc(c), Math.abs(to.y - c.y) * 0.35 + 0.25 * sc(c));
       c.jump = { x0: c.x, y0: c.y, z0: c.z, d0: c.d, to, H, dur: T.dur ?? clamp(0.45 + Math.hypot(to.x - c.x, to.y - c.y) / (sc(c) * 5), 0.45, 1), zr: T.zr || [0, 0.5] };
@@ -765,6 +765,7 @@ function fightCloud(f, u, fade, K) {
 
 /* ——— les scénarios : de temps en temps ——— */
 function horde() {
+  if (Wd.cats.filter(c => c.temp).length > 4 || Wd.cats.length > MAXC + 6) return false;   // une horde à la fois, pas de foule
   const dir = Math.random() < 0.5 ? 1 : -1, d = rnd(0.02, 0.2), s = sOf(d), W = Wd.W;
   const m = prop('souris', dir > 0 ? -0.05 : 1.05, d, { yaw: dir > 0 ? -0.35 : Math.PI + 0.35 });
   m.run = { dir, v: s * 2.1 }; m.zo = 200;

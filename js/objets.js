@@ -176,6 +176,42 @@ STEPS.pendu = (c, T, dt) => {
   return false;
 };
 
+/* ——— le carton marqué : un chat (surtout le grincheux) recule contre un carton, la queue dressée qui frémit… « psss » ;
+   les autres reniflent, font la grimace et l'évitent ; l'aspirateur l'emporte ——— */
+ANIMS.marque = (c, p, t) => { Chat.rest(c, p); p[I.tailUp] = 1.7; p[I.tailCurl] = 0; p[I.tailWave] = 0.5; p[I.tailPhase] = t * 40; p[I.hk] = 0.25; p[I.look] = 0.6; p[I.eyes] = (t % 1.4) < 0.9 ? 1 : 0; p[I.hnod] = -0.1; };
+H.think.push((c, add) => {
+  if (c.b.s < 0.8 && c.breed !== 'grincheux') return;
+  const cb = Wd.props.filter(p => p.kind === 'carton' && !p.busy && !p.fall && !p.held && !p.suck && !p.marked && p.fade > 0.9 && !p.mur && !Wd.cats.some(k => k.perch && k.perch.it === p)); if (!cb.length) return;
+  add((c.breed === 'grincheux' ? 0.5 : 0.04) + c.ch.casse * 0.05, () => {
+    const b = pick(cb); claim(c, b);
+    // il se place à côté, le dos tourné au carton
+    c.q.push(fn(c => { const w = K.beside(c, K.xOf(b), b.hull.w / 2 * b.s + front(c) * 0.25); c.q.unshift(go(inView(w.x), { d: Math.max(0, b.d - 0.03), face: -w.face })); }),
+      pose('marque', 2.2, { fx: c => { c.face = sgn(c.x - b.x) || c.face; later(0.7, () => { if (!Wd.props.includes(b)) return; say(c, 'psss'); b.marked = Wd.t;
+        V.push({ k: 'flaque', x: (c.x + b.x) / 2, y: floorAt(b.d) + 3, s: b.s, t0: Wd.t, life: 30, seed: Math.floor(Math.random() * 99), it: b }); }); } }),
+      pose('assis', 1.2, { fx: c => say(c, pick(['à moi.', 'voilà.', 'hmpf.'])) }), fn(free));
+  });
+});
+// les autres : un détour pour renifler, la grimace, et on s'en va
+H.post.push(() => {
+  if (Wd.t < (Wd.marqChk || 0)) return; Wd.marqChk = Wd.t + 0.5;
+  Wd.props.forEach(b => {
+    if (!b.marked) return; if (b.suck || !Wd.props.includes(b) || Wd.t - b.marked > 40) { b.marked = 0; return; }
+    if (!b.away) b.away = Wd.t - 3;   // l'aspirateur le compte comme du bazar
+    Wd.cats.forEach(c => {
+      if (!free4(c) || c.temp || Wd.t - b.marked < 3 || Wd.t < (c.beurkT || 0) || Math.abs(c.x - b.x) > sc(c) * 1.6 || Math.abs(c.d - b.d) > 0.25 || Math.random() > 0.3) return;
+      c.beurkT = Wd.t + 12; interrupt(c); const away = sgn(c.x - b.x) || 1;
+      c.q = [pose('affut', 0.9, { face: -away }), pose('feule', 0.7, { face: -away, fx: c => say(c, pick(['beurk !', 'pouah', 'bleh'])) }), go(inView(c.x + away * sc(c) * 2.2), { d: c.d, g: 'trot', face: away })];
+    });
+  });
+});
+// en passant, on l'évite : la marche vers lui est détournée
+H.think.push((c, add) => { if (Wd.props.some(b => b.marked && Math.abs(c.x - b.x) < sc(c) * 2)) add(0.6, () => { const b = Wd.props.find(b => b.marked); const away = sgn(c.x - b.x) || 1; c.q.push(go(inView(c.x + away * sc(c) * 1.8), { d: c.d })); }); });
+
+/* ——— le hoquet : hic ! le corps sursaute, à intervalles ——— */
+ANIMS.hoquet = (c, p, t) => { K.sit(c, p); const u = t % 1.1, h = u < 0.12 ? Math.sin(u / 0.12 * Math.PI) : 0; p[I.sqz] = -0.1 * h; p[I.hnod] = 0.25 * h - 0.05; p[I.eyes] = h > 0.3 ? 1 : 0; p[I.mouth] = h > 0.5 ? 1 : 0; p[I.tailWave] = 0.4 + h; };
+H.think.push((c, add) => { if (Wd.t - (c.mangeT || -99) > 20) return; add(0.35, () => c.q.push(pose('hoquet', 3.3, { fx: c => [0, 1.1, 2.2].forEach(k => later(k + 0.04, () => { if (c.anim === 'hoquet') say(c, 'hic !'); })) }), pose('assis', 1))); });
+H.post.push(() => Wd.cats.forEach(c => { if (c.anim === 'mange') c.mangeT = Wd.t; }));
+
 /* ——— les boutons : un chat qui tombe dessus s'y pose, un moment ——— */
 const ledges = () => ['#enter', '#stay'].map(q => document.querySelector(q)).filter(el => el && !el.disabled && el.getClientRects().length);
 H.fall.push((c, dt) => {
@@ -226,6 +262,10 @@ function drawBits() {
       C.line(x - Math.cos(q) * 3, y - Math.sin(q) * 3, x + Math.cos(q) * 3, y + Math.sin(q) * 3, 1, { w: 1.6, a: 0.7 * a, seed: f.seed, tip: false, amp: 0, color: '176,128,78' }); }
     else if (f.k === 'patte') { const ctx = C.ctx; if (!ctx) return; ctx.fillStyle = ink((0.3 * a).toFixed(3)); ctx.beginPath(); ctx.ellipse(f.x, f.y, f.r, f.r * 0.55, 0, 0, TAU); ctx.fill();
       for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.ellipse(f.x + i * f.r * 0.8, f.y - f.r * 0.85, f.r * 0.32, f.r * 0.22, 0, 0, TAU); ctx.fill(); } }
+    else if (f.k === 'flaque') { const ctx = C.ctx; if (!ctx) return; const aa = f.it && !Wd.props.includes(f.it) ? a * 0.3 : a, r = f.s * 0.2 * Math.min(1, (t - f.t0) / 1.2);
+      ctx.fillStyle = `rgba(214,190,90,${(0.22 * aa).toFixed(3)})`; ctx.beginPath(); ctx.ellipse(f.x, f.y, r * 0.8, r * 0.18, 0, 0, TAU); ctx.fill();
+      if (t - f.t0 > 1 && f.it && f.it.marked) { const b = f.it; for (let i = -1; i <= 1; i++) { const x = b.x + i * b.s * 0.14, y0 = b.y - (b.box ? b.box.h : 0.4) * b.s - 6, P = [];
+        for (let k = 0; k <= 8; k++) P.push([x + Math.sin(k * 1.2 + t * 3 + i) * 4, y0 - k * 3.5 - ((t * 10 + i * 7) % 8)]); C.stroke(P, 1, { w: 1.2, a: 0.45 * aa, seed: f.seed + i, tip: false, amp: 0.1, color: '120,140,60' }); } } }
     else if (f.k === 'goutte') { const dt = t - f.t0, x = f.x + f.vx * dt, y = f.y + f.vy * dt + 500 * dt * dt; if (y > f.y1) return; C.dot(x, y, 1.7, 0.6 * a, '60,110,180'); }
   });
 }
