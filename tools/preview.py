@@ -17,6 +17,8 @@ h = re.sub(r'</?head>\s*', '', h)
 h = re.sub(r'<meta charset[^>]*>\s*|<meta name="viewport"[^>]*>\s*', '', h)
 h = re.sub(r'<link rel="(icon|apple-touch-icon)"[^>]*>\s*', '', h)
 h = re.sub(r'<title[^>]*>.*?</title>', '<title>Portfolio de Mathieu</title>', h)
+# les mesures de Vercel n'existent pas dans l'aperçu
+h = re.sub(r'<!-- les mesures de Vercel.*?speed-insights/script.js"></script>\s*', '', h, flags=re.S)
 # l'accès : ouvert d'avance (js/gate.js lit PF_OPEN)
 h = h.replace("d.classList.add('locked');", "window.PF_OPEN=true;", 1)
 # les fichiers locaux, intégrés (on protège « </script> » dans le code)
