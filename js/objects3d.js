@@ -130,6 +130,42 @@ function silhouettes(p) {
   p.sil.sg.attributes.position.needsUpdate = true; p.sil.sg.setDrawRange(0, n / 3);
 }
 
+/* ——— les pantins (js/chats.js) : des objets articulés, dont chaque pièce est posée à chaque image ———
+   piece(clé, build) : une pièce modelée une fois (même API que LIB : B.solid, B.occ, B.lines, B.soft), gardée en cache ;
+   mount(pièce, mats) : une copie de la pièce (son groupe g, à accrocher où l'on veut) ;
+   rig(racine, pièces) : la racine est ajoutée à la scène, ses pièces sont rendues (contours compris) tant qu'elle est visible. */
+const pieces = {}, rigs = new Set();
+function piece(key, build) {
+  if (pieces[key]) return pieces[key];
+  const P = { occ: [], crease: [], cand: [], soft: [] };
+  const B = {
+    occ(g) { P.occ.push(g); return B; },
+    solid(g) { const a = analyse(g); P.occ.push(a.g); for (const v of a.crease) P.crease.push(v); for (const v of a.cand) P.cand.push(v); return B; },
+    lines(arr) { for (const v of arr) P.crease.push(v); return B; },
+    soft(arr) { for (const v of arr) P.soft.push(v); return B; }
+  };
+  build(B);
+  const lineGeo = arr => { if (!arr.length) return null; const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(arr, 3)); return g; };
+  return (pieces[key] = { occ: P.occ, crease: lineGeo(P.crease), soft: lineGeo(P.soft), cand: new Float32Array(P.cand) });
+}
+// les matériaux d'un pantin : son trait (couleur r,g,b en hexadécimal), ses traits pâles, ses traits cachés
+function mats(color) {
+  const c = color ?? inkNow();
+  return { line: new T.LineBasicMaterial({ color: c, transparent: true, depthWrite: false }), soft: new T.LineBasicMaterial({ color: c, transparent: true, opacity: 0.5, depthWrite: false }),
+    hid: new T.LineBasicMaterial({ color: c, transparent: true, opacity: 0, depthWrite: false, depthFunc: T.GreaterDepth }) };
+}
+function mount(pp, M) {
+  const g = new T.Group(), add = (o, ord) => { o.renderOrder = ord; o.frustumCulled = false; g.add(o); };
+  pp.occ.forEach(o => add(new T.Mesh(o, OCC), 0));
+  if (pp.crease) { add(new T.LineSegments(pp.crease, M.line), 1); add(new T.LineSegments(pp.crease, M.hid), 2); }
+  if (pp.soft) { add(new T.LineSegments(pp.soft, M.soft), 1); }
+  let sil = null;
+  if (pp.cand.length) { const arr = new Float32Array(pp.cand.length / 2), sg = new T.BufferGeometry(); sg.setAttribute('position', new T.BufferAttribute(arr, 3)); sg.setDrawRange(0, 0); add(new T.LineSegments(sg, M.line), 1); sil = { arr, sg }; }
+  return { g, pp, sil };
+}
+function rig(root, list) { if (!ok) return null; const R = { root, list }; scene.add(root); rigs.add(R); return R; }
+function unrig(R) { if (!R) return; scene.remove(R.root); rigs.delete(R); }
+
 /* ——— la toile ——— */
 function init(canvas) {
   try {
@@ -160,16 +196,27 @@ function put(name, x, y, size, rot, o) {
     rq.copy(p.g.quaternion); pc.copy(p.pp.pc).applyQuaternion(rq);
     p.g.position.set(v[0] * e * P.span + p.pp.pc.x - pc.x, v[1] * e * P.span + p.pp.pc.y - pc.y, v[2] * e * P.span + p.pp.pc.z - pc.z);
   });
-  I.mats.line.opacity = Math.min(1, 0.95 * a); I.mats.soft.opacity = Math.min(1, 0.42 * a); I.mats.hid.opacity = Math.min(1, 0.15 * a);
+  I.mats.line.opacity = Math.min(1, 0.95 * a); I.mats.soft.opacity = Math.min(1, 0.42 * a); I.mats.hid.opacity = Math.min(1, (o.hid ?? 0.15) * a);
+  // une couleur à soi (o.color, en hexadécimal), sinon le trait du thème
+  const col = o.color ?? inkNow(); if (I.col !== col) { I.col = col; I.mats.line.color.setHex(col); I.mats.soft.color.setHex(col); I.mats.hid.color.setHex(col); }
   return true;
+}
+// où tombe, à l'écran, le point (px, py, pz) du modèle d'un objet posé avec put(nom, x, y, size, rot)
+const wo = new T.Object3D(), wv = new T.Vector3();
+function where(name, x, y, size, rot, pt) {
+  if (!LIB[name]) return null; const P = proto[name] || (proto[name] = make(name));
+  eul.set(rot ? rot[0] : 0, rot ? rot[1] : 0, rot ? rot[2] || 0 : 0, 'YXZ'); wo.quaternion.setFromEuler(eul); wo.position.set(x, -y, 0); wo.scale.setScalar(size * (LIB[name].scale || 1) * P.k); wo.updateMatrix();
+  wv.set(pt[0] - P.c.x, pt[1] - P.c.y, (pt[2] || 0) - P.c.z).applyMatrix4(wo.matrix); return [wv.x, -wv.y];
 }
 function render() {
   if (!ok) return;
   let any = false;
   for (const nm in pool) pool[nm].forEach((I, i) => { if (i >= (used[nm] || 0)) I.root.visible = false; else any = true; });
+  rigs.forEach(R => { if (R.root.visible) any = true; });
   if (any) {
     scene.updateMatrixWorld();
     for (const nm in pool) for (let i = 0; i < (used[nm] || 0); i++) pool[nm][i].parts.forEach(p => { if (p.sil) silhouettes(p); });
+    rigs.forEach(R => { if (R.root.visible) R.list.forEach(p => { if (p.sil && p.g.visible) silhouettes(p); }); });
     renderer.clear(); renderer.render(scene, camera); drawn = true;
   } else if (drawn) { renderer.clear(); drawn = false; }
   used = {}; zc = 0; frameId++;
@@ -224,5 +271,6 @@ function frames(name, w, h, rots, size) {
   snapS.remove(I.root);
   return out;
 }
-return { frames, get ok() { return ok; }, init, resize, put, render, hit, drag, has: n => ok && !!LIB[n], names: () => Object.keys(LIB) };
+return { frames, get ok() { return ok; }, init, resize, put, render, hit, drag, where, has: n => ok && !!LIB[n], names: () => Object.keys(LIB),
+  piece, mount, mats, rig, unrig, T, kit: { analyse, tf, lathe, latheX, latheZ, ext, topExt, sideExt, tube, box, ball, helixX, helixY, poly, circ, roundPoly, shape } };
 })();

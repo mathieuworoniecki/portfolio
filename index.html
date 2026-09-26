@@ -6,7 +6,7 @@
 <!-- verrouillé avant tout affichage : rien du site ne se voit tant que le code n'a pas été entré (js/gate.js) -->
 <script>(function(d){d.classList.add('locked');try{if(sessionStorage.getItem('pf-enter')){sessionStorage.removeItem('pf-enter');d.classList.add('entering')}}catch(e){}try{if(/(?:^|; )pf_ok=1/.test(document.cookie)||localStorage.getItem('pf-access')==='0e6a8e0b849ed9b064c5a25e1ee5592f427e3eb9d250e42069ce46147d00e8d4')d.classList.remove('locked')}catch(e){}
 /* le thème retenu (js/theme.js) : ses couleurs et polices, posées avant tout affichage */
-try{var c=localStorage.getItem('pf-theme-css');if(c)c.split(/;(?![^(]*\))/).forEach(function(p){var i=p.indexOf(':');if(i>0){var k=p.slice(0,i);if(k==='color-scheme')d.style.colorScheme=p.slice(i+1);else d.style.setProperty(k,p.slice(i+1))}});var s=localStorage.getItem('pf-style');if(s)d.dataset.style=s}catch(e){}})(document.documentElement)</script>
+try{var c=null;if(c)c.split(/;(?![^(]*\))/).forEach(function(p){var i=p.indexOf(':');if(i>0){var k=p.slice(0,i);if(k==='color-scheme')d.style.colorScheme=p.slice(i+1);else d.style.setProperty(k,p.slice(i+1))}});var s=localStorage.getItem('pf-style');if(s)d.dataset.style=s}catch(e){}})(document.documentElement)</script>
 <style>.locked body>*:not(#gate):not(#stage):not(svg){visibility:hidden!important}.entering #obj,.entering #titles,.entering .scenes,.entering .top,.entering .film-ui{opacity:0!important}</style>
 <title data-i18n="meta.title">Mathieu — des trucs sur le web</title>
 <link rel="icon" href="/acces/favicon.svg" type="image/svg+xml">

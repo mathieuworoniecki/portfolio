@@ -1,7 +1,8 @@
 /* La craie : de quoi dessiner à la main sur le plan (traits, flèches, cercles, cotes, écriture, points).
    Tout est dessiné sur la toile des titres, qui applique ensuite le grain de la craie.
    Chaque trait a un tremblé de main fixé par une graine : il ne bouge pas tant que ses extrémités ne bougent pas.
-   prog (0 → 1) : la part du trait déjà tracée ; la pointe de craie suit l'extrémité. */
+   prog (0 → 1) : la part du trait déjà tracée ; la pointe de craie suit l'extrémité.
+   o.color ("r,g,b") : une craie de couleur au lieu du trait du thème. */
 window.Chalk = (() => {
 // les couleurs, la police et le tremblé viennent du thème (js/theme.js) ; sans thème (écran d'accès) : la craie blanche
 let INK, HAND, WOB, HS, HW;
@@ -24,17 +25,18 @@ function trace(P, prog) {
   for (let i = 1; i < P.length && rem > 0; i++) { const d = Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); if (d <= rem) { ctx.lineTo(P[i][0], P[i][1]); rem -= d; tip = P[i]; } else { const f = rem / d; tip = [P[i - 1][0] + (P[i][0] - P[i - 1][0]) * f, P[i - 1][1] + (P[i][1] - P[i - 1][1]) * f]; ctx.lineTo(tip[0], tip[1]); rem = 0; } }
   ctx.stroke(); return tip;
 }
-function tip(x, y, w) { ctx.fillStyle = `rgba(${INK},0.95)`; ctx.beginPath(); ctx.arc(x, y, w * 0.9, 0, Math.PI * 2); ctx.fill(); }
+function tip(x, y, w, col) { ctx.fillStyle = `rgba(${col || INK},0.95)`; ctx.beginPath(); ctx.arc(x, y, w * 0.9, 0, Math.PI * 2); ctx.fill(); }
 /* un trait à la craie le long des points P : deux passages, le second décalé et plus fin */
 function stroke(P, prog, o) {
   o = o || {}; if (!ctx || prog <= 0.001 || P.length < 2) return null;
   const w = (o.w || 2.4) * Math.max(0.7, K) * (WOB ? 1 : 0.7), a = o.a ?? 0.85, seed = o.seed || 1, amp = (o.amp ?? 1.1) * Math.max(0.7, K) * WOB;
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   if (o.dash) ctx.setLineDash(o.dash);
-  ctx.strokeStyle = `rgba(${INK},${a})`; ctx.lineWidth = w; const t = trace(hand(P, seed, amp), prog);
-  if (WOB) { ctx.strokeStyle = `rgba(${INK},${a * 0.4 * Math.min(1, WOB)})`; ctx.lineWidth = w * 0.45; trace(hand(P.map(p => [p[0] + 0.9, p[1] + 0.6]), seed + 3, amp * 1.3), prog); }
+  const ink = o.color || INK;
+  ctx.strokeStyle = `rgba(${ink},${a})`; ctx.lineWidth = w; const t = trace(hand(P, seed, amp), prog);
+  if (WOB) { ctx.strokeStyle = `rgba(${ink},${a * 0.4 * Math.min(1, WOB)})`; ctx.lineWidth = w * 0.45; trace(hand(P.map(p => [p[0] + 0.9, p[1] + 0.6]), seed + 3, amp * 1.3), prog); }
   ctx.setLineDash([]);
-  if (prog < 0.999 && o.tip !== false) tip(t[0], t[1], w);
+  if (prog < 0.999 && o.tip !== false) tip(t[0], t[1], w, o.color);
   return t;
 }
 const line = (x0, y0, x1, y1, prog, o) => stroke([[x0, y0], [x1, y1]], prog, o);
@@ -59,8 +61,8 @@ function text(str, x, y, prog, o) {
   { const m = ctx.getTransform(); if (!m.b && !m.c && !m.e && !m.f && m.a > 0) { const cw = ctx.canvas.width / m.a, pad = 10; if (x + x0 + tw > cw - pad) x = cw - pad - tw - x0; if (x + x0 < pad) x = pad - x0; } }
   ctx.translate(x, y); ctx.rotate(o.rot || 0); ctx.textBaseline = 'middle';
   ctx.beginPath(); ctx.rect(x0 - 4, -fs, (tw + 8) * c01(prog), fs * 2); ctx.clip();
-  ctx.fillStyle = `rgba(${INK},${o.a ?? 0.9})`; ctx.fillText(str, x0, 0);
-  if (WOB) { ctx.strokeStyle = `rgba(${INK},0.3)`; ctx.lineWidth = 0.8; ctx.strokeText(str, x0 + 0.8, 0.6); }
+  const ink = o.color || INK; ctx.fillStyle = `rgba(${ink},${o.a ?? 0.9})`; ctx.fillText(str, x0, 0);
+  if (WOB) { ctx.strokeStyle = `rgba(${ink},0.3)`; ctx.lineWidth = 0.8; ctx.strokeText(str, x0 + 0.8, 0.6); }
   ctx.restore();
   if (prog < 0.999) { const c = Math.cos(o.rot || 0), s = Math.sin(o.rot || 0), px = x0 + tw * prog; tip(x + px * c, y + px * s, 2); }
   return tw;
@@ -76,7 +78,7 @@ function dim(x0, y0, x1, y1, label, prog, o) {
   arrow([[ (a0[0] + a1[0]) / 2, (a0[1] + a1[1]) / 2 ], a0], q, { w: 1.6, head: 9, seed: (o.seed || 1) + 4 });
   if (label) text(label, (a0[0] + a1[0]) / 2 + nx * 18, (a0[1] + a1[1]) / 2 + ny * 18, c01((prog - 0.6) / 0.4), { size: o.size || 24, align: 'center', rot: Math.abs(dx) >= Math.abs(dy) ? Math.atan2(dy, dx) * (dx < 0 ? 1 : 1) : 0 });
 }
-function dot(x, y, r, a) { if (!ctx) return; ctx.fillStyle = `rgba(${INK},${a ?? 0.85})`; ctx.beginPath(); ctx.arc(x, y, r || 2, 0, Math.PI * 2); ctx.fill(); }
+function dot(x, y, r, a, col) { if (!ctx) return; ctx.fillStyle = `rgba(${col || INK},${a ?? 0.85})`; ctx.beginPath(); ctx.arc(x, y, r || 2, 0, Math.PI * 2); ctx.fill(); }
 // un voile de craie étalée (trace d'effaçage)
 function smudge(x, y, w, h, a) { if (!ctx || !WOB) return; ctx.save(); ctx.translate(x, y); ctx.scale(1, h / w); const g = ctx.createRadialGradient(0, 0, 0, 0, 0, w / 2); g.addColorStop(0, `rgba(${INK},${a ?? 0.06})`); g.addColorStop(1, `rgba(${INK},0)`); ctx.fillStyle = g; ctx.fillRect(-w / 2, -w / 2, w, w); ctx.restore(); }
 return { set ctx(c) { ctx = c; }, get ctx() { return ctx; }, set scale(k) { K = k; }, get scale() { return K; }, stroke, line, arrow, circle, text, measure, dim, dot, smudge, tip, hash, INK };

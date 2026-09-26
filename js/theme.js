@@ -41,11 +41,14 @@ const FONTS = {
 STYLES.esquisse.hand = ARCH; STYLES.esquisse.handScale = 0.78; STYLES.esquisse.handWeight = 400;
 // par défaut : l'esquisse, sur papier gris
 const DEFAULT = { style: 'esquisse', color: 'gris' };
+// pour l'instant un seul thème : le choix retenu est ignoré et le sélecteur est caché (css/site.css) ; false pour le rendre
+const LOCK = true;
 const th = { STYLES };
 const hex = s => { const [r, g, b] = s.split(',').map(Number); return (r << 16) | (g << 8) | b; };
 const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',');
 function read() {
   let style = DEFAULT.style, color = DEFAULT.color;
+  if (LOCK) return { style, color };
   try {
     const s = localStorage.getItem('pf-style'), c = localStorage.getItem('pf-color');
     if (STYLES[s]) { style = s; color = STYLES[s].colors[c] ? c : Object.keys(STYLES[s].colors)[0]; }

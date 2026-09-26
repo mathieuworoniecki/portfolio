@@ -129,7 +129,7 @@ a{color:inherit}
 .scene button,.scene a{pointer-events:auto}
 h1,h2{font-family:var(--display);font-weight:600;text-transform:uppercase;margin:0;text-wrap:balance}
 /* la hauteur compte aussi : écrans larges et peu hauts */
-h1{max-width:17ch;font-size:clamp(2.2rem,min(6.2vw,10vh),5.4rem);line-height:.92;letter-spacing:.02em}
+h1{max-width:26ch;font-size:clamp(2.2rem,min(6.2vw,10vh),5.4rem);line-height:.92;letter-spacing:.02em}
 h2{font-size:clamp(1.9rem,min(5.2vw,8.2vh),4.4rem);line-height:.95;letter-spacing:.01em}
 /* les titres restent dans la page pour la lecture ; c'est la toile qui les dessine (js/titles.js) */
 .js [data-title]{color:transparent}
@@ -251,3 +251,6 @@ html:not(.locked) #gate:not(.open){display:none}
   .cap,.cap .ch{transition:none!important}
   #chap button.hold.on .bar i{animation:none}
 }
+
+/* un seul thème pour l'instant (js/theme.js : LOCK) : le sélecteur est caché */
+#theme-pick{display:none}
