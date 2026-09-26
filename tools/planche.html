@@ -28,13 +28,16 @@ nav a.on{background:#222428;color:#DADBD8}
 <script>
 (() => {
 const q = new URLSearchParams(location.search), anim = q.get('anim') || 'debout', ids = Chat.IDS;
-const ANIMS = window.Chats && Chats.ANIMS ? ['debout'].concat(Object.keys(Chats.ANIMS)) : ['debout'];
+const ANIMS = ['decor'].concat(window.Chats && Chats.ANIMS ? ['debout'].concat(Object.keys(Chats.ANIMS)) : ['debout']);
 document.getElementById('nav').innerHTML = ANIMS.map(a => `<a href="?anim=${a}" class="${a === anim ? 'on' : ''}">${a}</a>`).join('');
 Obj3D.init(document.getElementById('obj'));
 let W = innerWidth, H = innerHeight; Obj3D.resize(W, H);
-const cols = W > H ? 4 : 2, rows = Math.ceil(ids.length / cols), cw = W / cols, ch = (H - 40) / rows, s = Math.min(cw * 0.8, ch * 1.3);
-const cats = ids.map((id, i) => {
-  const c = Chat.create(id); c.s = s; c.x = cw * (i % cols + 0.5) - s * 0.1; c.y = 40 + ch * (Math.floor(i / cols) + 0.86); c.z = -i * 2000; c.yaw = -Chat.VIEW.yaw;
+const cols = W > H ? 4 : 2, rows = Math.ceil(ids.length / cols), cw = W / cols, ch = (H - 40) / rows, s = Math.min(cw * 1.1, ch * 1.6);
+// le décor : chaque objet de l'univers, côte à côte
+const props = anim !== 'decor' ? [] : [['arbre', 0.2, 0.62, 1], ['carton', 0.45, 0.62, 1], ['coussin', 0.65, 0.62, 1], ['gamelle', 0.85, 0.62, 1], ['pelote', 0.3, 0.92, 0xd0661f], ['pelote', 0.42, 0.92, 0x2f6fb0], ['souris', 0.62, 0.92, 0x6a6c70], ['caisse', 0.8, 0.95, 1, 0], ['caisse', 0.9, 0.95, 1, 2], ['caisse', 0.85, 0.75, 1, 1]].map(([k, fx, fy, col, size], i) => {
+  const o = Univers.make(k, Object.assign(col !== 1 ? { color: col } : {}, { size })); o.x = W * fx; o.y = H * fy; o.s = Math.min(W, H) * 0.42; o.z = -i * 3000; return o; });
+const cats = anim === 'decor' ? [] : ids.map((id, i) => {
+  const c = Chat.create(id); c.s = s; c.x = cw * (i % cols + 0.5) - s * 0.1; c.y = 40 + ch * (Math.floor(i / cols) + 0.86); c.z = -i * 2000; c.face = i % 2 ? -1 : 1;
   const l = document.createElement('div'); l.className = 'lbl'; l.textContent = c.b.nom; l.style.left = (cw * (i % cols + 0.5)) + 'px'; l.style.top = (c.y + 4) + 'px'; document.body.appendChild(l);
   return c;
 });
@@ -42,6 +45,7 @@ let last = performance.now(), t = 0;
 window.__t = null;   // pour les essais : un temps fixe
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now; t = window.__t ?? t + dt;
+  props.forEach(o => { if (o.kind === 'souris') Univers.scurry(o, t, 1); if (o.kind === 'pelote') o.spin.setFromAxisAngle(new Obj3D.T.Vector3(0, 0, 1), -t); if (o.parts.pompon) o.parts.pompon.rotation.z = Math.sin(t * 2.5) * 0.3; Univers.place(o); });
   cats.forEach((c, i) => {
     if (anim === 'debout' || !Chats.ANIMS[anim]) { Chat.rest(c, c.tgt); c.tgt[Chat.I.tailPhase] = t * 2 + i; c.tgt[Chat.I.tailWave] = 1; }
     else Chats.ANIMS[anim](c, c.tgt, t + i * 0.13);
