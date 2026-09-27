@@ -17,7 +17,7 @@ function corps(o) {
 }
 const dans = (z, x, y) => ((x - z.x) / z.rx) ** 2 + ((y - z.y) / z.ry) ** 2 < 1;
 // un chat qu'on peut toucher : au sol, visible, libre de ses mouvements
-const cible = o => o.hp && !o.fall && !o.held && !o.hidden && !o.rare && !o.gone && !o.jump && !(o.task && o.task.air);
+const cible = o => o.hp && !o.perch && !o.fall && !o.held && !o.hidden && !o.rare && !o.gone && !o.jump && !(o.task && o.task.air);
 // le cadre d'un objet (x au centre, y en bas)
 const boite = it => ({ x0: it.x - it.hull.w * it.s * 0.5, x1: it.x + it.hull.w * it.s * 0.5, y0: it.y - it.hull.h * it.s, y1: it.y });
 const touche = (it, x, y, m) => { const b = boite(it); return x > b.x0 - m && x < b.x1 + m && y > b.y0 - m && y < b.y1 + m; };

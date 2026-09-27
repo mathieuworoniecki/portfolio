@@ -1072,7 +1072,7 @@ function step(S, dt) {
   tidy();
 }
 function draw(S) { drawWater(S); drawKib(S); drawVac(S); H.draw.forEach(f => f(S)); drawFx(S); }
-function hide() { Wd.cats.forEach(c => { c.root.visible = false; }); Wd.props.forEach(it => { it.root.visible = false; }); }
+function hideAll() { Wd.cats.forEach(c => { c.root.visible = false; }); Wd.props.forEach(it => { it.root.visible = false; }); }
 
 /* ——— les mains : cliquer, attraper ——— */
 function catAt(x, y) {
@@ -1181,5 +1181,5 @@ function release(c, vx, vy) {
 const K = { Wd, H, ANIMS, STEPS, CARAC, SPEED, LOURD, I, sit, lie, blink, rnd, pick, clamp, sgn, sm, c01, lerp, later, sc, front, back, sOf, floorAt, zOf, xOf, grav, inView, groundAt, perchAt, beside,
   SCEN, addCat, unCat, free, free4, zoomies, eat, play, climb, push, smash, interrupt, claim, go, pose, hop, fn, say, dust, startle, thud, drop, prop, unprop, kick, residents, leave, enter, catAt, propAt, freeD, stack, topOf, open, unbox, hide, sleep, idle, stroll, press, fire, folle, aspire,
   get MAXC() { return MAXC; } };
-return { K, ANIMS, CARAC, frame, draw, hide, click, grab, drag, release, get clicks() { return Wd.clicks; }, get world() { return Wd; }, horde, tower, aspire, folle: () => folle(Wd.P.distrib), ouvre: () => { const b = Wd.props.find(p => p.launched && p.kind === 'caisse' && !p.busy && !p.fall), c = Wd.cats.find(free4); if (b && c) { interrupt(c); open(c, b); } }, fight: () => { const L = Wd.cats.filter(free4).slice(0, 2); if (L.length > 1) fight(L); }, quarrel: () => { const L = Wd.cats.filter(free4); if (L.length > 1) quarrel(L[0], L[1]); } };
+return { K, ANIMS, CARAC, frame, draw, hide: hideAll, click, grab, drag, release, get clicks() { return Wd.clicks; }, get world() { return Wd; }, horde, tower, aspire, folle: () => folle(Wd.P.distrib), ouvre: () => { const b = Wd.props.find(p => p.launched && p.kind === 'caisse' && !p.busy && !p.fall), c = Wd.cats.find(free4); if (b && c) { interrupt(c); open(c, b); } }, fight: () => { const L = Wd.cats.filter(free4).slice(0, 2); if (L.length > 1) fight(L); }, quarrel: () => { const L = Wd.cats.filter(free4); if (L.length > 1) quarrel(L[0], L[1]); } };
 })();

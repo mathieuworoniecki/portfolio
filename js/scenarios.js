@@ -72,7 +72,7 @@ H.pre.push(dt => {
   m.vx = (m.vx + ax * dt) * Math.exp(-dt * 2); m.vy = (m.vy + ay * dt) * Math.exp(-dt * 2); m.x += m.vx * dt; m.y = clamp(m.y + m.vy * dt, top, fl - 10);
   if ((Wd.t > m.end || m.bye) && (m.x < -60 || m.x > Wd.W + 60)) { Wd.mouche = null; return; }
   // elle se pose sur le nez d'un chat assis
-  if (!m.bye && Wd.t - m.t0 > 9 && Math.random() < dt * 0.2) { const c = Wd.cats.find(c => c.hp && !c.hidden && !c.rare && /assis|pain|debout/.test(c.anim) && Math.abs(c.hp[0] - m.x) < 200); if (c) { m.nose = c; m.landT = Wd.t; interrupt(c); c.q = [pose('assis', 3)]; c.task = null; } }
+  if (!m.bye && Wd.t - m.t0 > 9 && Math.random() < dt * 0.2) { const c = Wd.cats.find(c => c.hp && !c.hidden && !c.rare && !c.perch && !(c.task && c.task.air) && /assis|pain|debout/.test(c.anim) && Math.abs(c.hp[0] - m.x) < 200); if (c) { m.nose = c; m.landT = Wd.t; interrupt(c); c.q = [pose('assis', 3)]; c.task = null; } }
   if (Wd.t > (m.buzz || 0)) { m.buzz = Wd.t + rnd(1.5, 3); word(pick(['bzzz', 'bzz', 'zzzz']), m.x + 12, m.y - 12, 13); }
 });
 // les yeux suivent la mouche ; qui aime jouer la chasse

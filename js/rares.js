@@ -31,7 +31,7 @@ ANIMS.ecrase = (c, p, t) => {
   p[I.eyes] = 1; p[I.mouth] = k > 0.5 ? 1 : 0; p[I.tailUp] = -0.3; p[I.tailSide] = 0; p[I.tailWave] = 0;
 };
 function squash(o, dir) {
-  if (Wd.t - (o.squashT ?? -9) < 2.5 || o.held || o.gone || o.hidden) return;   // caché (carton, coussin) : le géant passe dessus sans le voir o.squashT = Wd.t;
+  if (Wd.t - (o.squashT ?? -9) < 2.5 || o.held || o.gone || o.hidden) return; o.squashT = Wd.t;   // caché (carton, coussin) : le géant passe dessus sans le voir
   if (o.perch || o.jump) { interrupt(o); o.hidden = 0; o.fall = true; o.vx = dir * sc(o) * rnd(3, 5); o.vy = -sc(o) * rnd(3, 5); say(o, pick(['waaah !', 'miaaa !'])); return; }
   interrupt(o); o.fall = false; o.pet = null;
   o.q = [pose('ecrase', 1.35, { fx: o => word(pick(['splotch', 'plof', 'crouiik']), o.x, o.y - sc(o) * 0.4, 18) }), pose('secoue', 0.55), pose(pick(['boude', 'assis', 'etourdi']), rnd(1.5, 2.5), { fx: o => say(o, pick(['…', 'aïe', 'pfff', '@_@'])) })];
