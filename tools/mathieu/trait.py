@@ -233,14 +233,14 @@ def simple(im, m, L, g, head):
     br = L[[188, 174, 236, 198]] if side < 0 else L[[412, 399, 456, 420]]
     brush(d, curve(None, 30, s=100, pts=br), W * 0.7, INK, (0.5, 0.3), 0.2)
 
-    # ——— la moustache en guidon : deux traits, épais sous le nez, qui s'effilent et remontent en boucle au-delà des coins de la bouche ———
+    # ——— la moustache en guidon : deux traits, épais sous le nez, qui s'effilent au-delà des coins de la bouche, les pointes à peine relevées, en petite boucle ———
     UPO = [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291]; lipP = curve(UPO, 60)
     cx, hw = L[0, 0], (L[291, 0] - L[61, 0]) / 2
     for sg in (-1, 1):
       xs = cx + sg * np.linspace(0.04 * fw, hw + 0.1 * fw, 30); u = np.linspace(0, 1, 30)
-      ys = np.interp(xs, lipP[:, 0], lipP[:, 1], left=lipP[0, 1], right=lipP[-1, 1]) - 0.035 * fw - 0.06 * fw * np.clip((u - 0.55) / 0.45, 0, 1) ** 2
+      ys = np.interp(xs, lipP[:, 0], lipP[:, 1], left=lipP[0, 1], right=lipP[-1, 1]) - 0.035 * fw - 0.022 * fw * np.clip((u - 0.6) / 0.4, 0, 1) ** 2     # les pointes remontent à peine (27 septembre : « elle remonte pas autant »)
       P = np.c_[xs, ys]; tip = P[-1]
-      curl = [tip + [sg * 0.02 * fw, -0.03 * fw], tip + [sg * 0.005 * fw, -0.05 * fw], tip + [-sg * 0.012 * fw, -0.04 * fw]]
+      curl = [tip + [sg * 0.016 * fw, -0.012 * fw], tip + [sg * 0.008 * fw, -0.026 * fw], tip + [-sg * 0.004 * fw, -0.024 * fw]]
       brush(d, curve(None, 50, s=0, pts=np.vstack([P[::5], curl])), W * 1.7, INK, (0.05, 0.75), 0.12)
 
     # ——— la bouche : un sourire, d'un trait ; le menton ———
@@ -258,3 +258,47 @@ def simple(im, m, L, g, head):
       if cv2.contourArea(c) < 5000: continue
       p = smooth(smooth(c, 16)[:, None, :], 12); d.line([tuple(q) for q in p] + [tuple(p[0])], fill=INK, width=int(W * 1.1), joint='curve')
     return np.asarray(img, np.float32) / 255, hair > 0
+
+def logo_lines():
+    """Le logo Patagonia du t-shirt, en traits : le cadre, le ciel rayé, les pics (le Fitz Roy), le nom (les contours des lettres).
+    Des polylignes [x, y] ; le haut du cadre à y = 0, centré en x ; unités : le cadre fait 0,36 de large."""
+    logo = []
+    lw, lh = 0.36, 0.18
+    logo.append([[-lw / 2, 0], [lw / 2, 0], [lw / 2, -lh], [-lw / 2, -lh], [-lw / 2, 0]])
+    for yb in np.linspace(-0.03, -0.09, 3): logo.append([[-lw / 2 + 0.01, yb], [lw / 2 - 0.01, yb]])
+    peaks = [(0, 1), (0.08, 0.72), (0.16, 0.8), (0.27, 0.42), (0.33, 0.55), (0.41, 0.3), (0.47, 0.5), (0.55, 0.38), (0.62, 0.62), (0.72, 0.52), (0.82, 0.74), (0.9, 0.66), (1, 0.82)]
+    logo.append([[-lw / 2 + lw * u, -lh * v] for u, v in peaks])
+    try:
+        from fontTools.ttLib import TTFont
+        from fontTools.pens.recordingPen import RecordingPen
+        f = TTFont('/usr/share/fonts/truetype/freefont/FreeSerifBoldItalic.ttf'); gs = f.getGlyphSet(); cmap = f.getBestCmap(); upm = f['head'].unitsPerEm
+        text = 'patagonia'; sc = 0.075 / upm * 1.3; x0 = 0; glyphs = []
+        for ch in text:
+            g = gs[cmap[ord(ch)]]; pen = RecordingPen(); g.draw(pen); glyphs.append((x0, pen.value)); x0 += g.width
+        ox = -x0 * sc / 2
+        for gx, ops in glyphs:
+            cur = []; last = None
+            for op, args in ops:
+                if op == 'moveTo': cur = [args[0]]; last = args[0]
+                elif op == 'lineTo': cur.append(args[0]); last = args[0]
+                elif op in ('qCurveTo', 'curveTo'):
+                    pts_ = [last] + list(args)
+                    # des courbes quadratiques en chaîne (TrueType) : on les échantillonne
+                    if op == 'qCurveTo':
+                        ctrl = list(args[:-1]); end = args[-1]; seq = [last]
+                        for ci in range(len(ctrl)):
+                            c1 = ctrl[ci]; e = end if ci == len(ctrl) - 1 else ((c1[0] + ctrl[ci + 1][0]) / 2, (c1[1] + ctrl[ci + 1][1]) / 2)
+                            s0 = seq[-1]
+                            for t in np.linspace(0.2, 1, 5): cur.append(((1 - t) ** 2 * s0[0] + 2 * (1 - t) * t * c1[0] + t * t * e[0], (1 - t) ** 2 * s0[1] + 2 * (1 - t) * t * c1[1] + t * t * e[1]))
+                            seq.append(e)
+                        last = end
+                    else:
+                        p0, p1, p2, p3 = pts_
+                        for t in np.linspace(0.2, 1, 5): cur.append(tuple(((1 - t) ** 3) * np.array(p0) + 3 * (1 - t) ** 2 * t * np.array(p1) + 3 * (1 - t) * t * t * np.array(p2) + t ** 3 * np.array(p3)))
+                        last = args[-1]
+                elif op in ('closePath', 'endPath'):
+                    if cur: logo.append([[ox + (gx + p[0]) * sc, -lh - 0.03 - 0.075 + p[1] * sc] for p in cur + [cur[0]]]); cur = []
+    except Exception as e:
+        print('le nom du logo : pas de contours', e)
+
+    return logo

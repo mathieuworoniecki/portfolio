@@ -5,7 +5,7 @@
 
 La photo n'est pas gardée dans le dépôt : seulement ce qu'on en tire.
   visage3d.png le même dessin, la tête seule et sans sa silhouette (pour la vraie 3D)
-  visage.png   le dessin au trait (gris dans r,g,b ; la silhouette dans a) : la tête et le cou redessinés d'après la photo (trait.py) ; le buste redessiné en t-shirt (Patagonia) ; 1024 × 1024
+  visage.png   le dessin au trait (gris dans r,g,b ; la silhouette dans a : 1 la tête, 0,78 le buste) : la tête et le cou redessinés d'après la photo (trait.py) ; le buste redessiné en t-shirt (Patagonia) ; 1024 × 1024
   dos.png      le dos (quand il tourne) : les cheveux sur toute la tête, le dos du t-shirt ; même cadre
   relief.png   256 × 256, un point par sommet de la grille : r la profondeur, g la mâchoire (ce qui descend quand la bouche s'ouvre),
                b le côté de la ligne des lèvres (0 au-dessus, 255 en dessous) : le trou noir s'ouvre entre les deux
@@ -159,11 +159,13 @@ def fr(a, n, interp=cv2.INTER_AREA): return cv2.resize(np.ascontiguousarray(a[Y0
 def rgba(gray, al):
     g8 = (np.clip(fr(gray, N), 0, 1) * 255).astype(np.uint8); a8 = (np.clip(fr(al.astype(np.float32), N), 0, 1) * 255).astype(np.uint8)
     return Image.fromarray(np.dstack([g8, g8, g8, a8]), 'RGBA')
-rgba(front, alpha).save(out / 'visage.png', optimize=True)
+# l'alpha : 1 la tête (et le cou), 0,78 le buste — js/mathieu.js ne garde que la tête quand il dessine le corps en 3D (ou le logo)
+av = np.where(head, 1.0, np.where(torso, 0.78, 0.0))
+rgba(front, av).save(out / 'visage.png', optimize=True)
 # pour la vraie 3D (js/mathieu.js) : la tête seule, sans sa silhouette (les contours viennent du volume, selon la vue)
 ink3, _ = trait.tete(im, person, L[:, :2], g, head=head, contour=False)
 rgba(np.where(head, ink3, 1.0), head).save(out / 'visage3d.png', optimize=True)
-rgba(back, balpha).save(out / 'dos.png', optimize=True)
+rgba(back, av[:, ::-1]).save(out / 'dos.png', optimize=True)
 G = 256
 D = fr(depth, G, cv2.INTER_LINEAR); dmin, dmax = float(D.min()), float(D.max())
 R = np.dstack([(D - dmin) / (dmax - dmin) * 255, fr(jaw, G, cv2.INTER_LINEAR) * 255, fr(below.astype(np.float32), G, cv2.INTER_NEAREST) * 255])
@@ -171,5 +173,8 @@ Image.fromarray(np.clip(R + 0.5, 0, 255).astype(np.uint8), 'RGB').save(out / 're
 k = 1 / S   # les mesures en fraction du cadre (0 à 1, y vers le bas)
 meta = dict(depth=[dmin * k, dmax * k], mouth=dict(x=(mc[0] - X0) * k, y=(mc[1] - Y0) * k, w=mw * k, jaw=jw * k, z=float(depth[int(mc[1]), int(mc[0])]) * k), chin=(chin - Y0) * k,
             face=[(L[10, 1] - Y0) * k, (chin - Y0) * k], head=[(HC['c'][0] - X0) * k, (HC['c'][1] - Y0) * k])
-(out / 'relief.json').write_text(json.dumps(meta, indent=1))
+# pour le corps en 3D (js/mathieu.js) : le cou (bords gauche et droit, bas devant) et le logo du t-shirt, en traits allégés
+meta['neck'] = [(NECK[0] - X0) * k, (NECK[1] - X0) * k, (NL['c'][1] + NL['r'][1] - Y0) * k]
+meta['logo'] = [[[round(x, 3), round(y, 3)] for x, y in (p[::2] + [p[-1]] if len(p) > 12 else p)] for p in trait.logo_lines()]
+(out / 'relief.json').write_text(json.dumps(meta, separators=(',', ':')))
 print(json.dumps(meta))

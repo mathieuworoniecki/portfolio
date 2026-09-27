@@ -29,13 +29,14 @@ Retour arrière (flèche gauche, barre du film) : tout doit se rejouer à l'enve
 
 ## Mathieu en 3D : ce qui existe
 
-Version simple (27 septembre, 12:10). La vraie tête 3D (sixième version) a été jugée « pire qu'avant » ; Mathieu veut « plus simple, un trait qui me dessine, moins de détails ». Retour au dessin posé sur un relief (troisième version), redessiné d'un seul trait.
+Corps entier (27 septembre, 14:48). Mathieu : « fais tout le reste de mon corps, car quand on va cliquer sur le bouton je vais arriver en courant au milieu de la scène ».
 
-- `tools/mathieu/build.py` tire de sa photo de face : le dessin (`media/mathieu/visage.png`, la tête par `trait.simple` : silhouette, les cheveux par leur forme seule (le contour et la ligne sur le front, sans mèches), sourcils, yeux en points avec un reflet, dessous du nez, moustache en guidon, sourire, menton ; un seul trait franc, pas de gris), le dos (`dos.png` : le contour de la tête et le bord des cheveux sur la nuque), le relief (`relief.png`, `relief.json`). `trait.tete` (le portrait détaillé) reste disponible. La photo n'est pas dans le dépôt.
-- `js/mathieu.js` pose le dessin sur ce relief : `Mathieu.create()`, `Mathieu.pose(m, { x, y, s, turn, tilt, open })`, `Mathieu.mouthAt(m)`. La bouche : la mâchoire descend et avance ; à sa place, de l'encre.
-- Le logo du site (`js/logo.js`) : `Mathieu.create({ logo: true })`, la tête seule ; un tour sans fin y devient un balancement de trois quarts en trois quarts.
-- De côté, chargées nulle part : la vraie tête au trait (`js/mathieu-tete.js`, quatrième version) ; `tete.json` et `visage3d.png` (sixième version, dans l'historique git, commit 8ed2612).
-- Aperçu : `tools/mathieu.html` (`?logo=48` : la tête du logo).
+- La tête : le dessin d'un seul trait (`trait.simple`, cheveux en forme seule, moustache aux pointes à peine relevées), posé sur le relief de la photo (`visage.png`, `dos.png`, `relief.png`, `relief.json`, par `tools/mathieu/build.py`). L'alpha du dessin : 1 la tête, 0,78 le buste de la photo, qui n'est plus montré. La photo n'est pas dans le dépôt.
+- Le corps : en 3D au trait (Obj3D), dans `js/mathieu.js` : t-shirt Patagonia (encolure côtelée, manches courtes, ourlet, logo pris dans `relief.json`), bras, jean, baskets. Articulé ; `Mathieu.pose(m, { x, y, s, turn, look, open, run, speed })` : `run` la phase de la foulée, `speed` de 0 (debout, il respire) à 1 (il court). `s` : des cheveux aux semelles ; `m.meta.head`, `m.meta.feet`. Jean et baskets : un choix par défaut, à confirmer par Mathieu.
+- La tête est 1,2 fois plus grande que nature (un personnage de dessin) ; elle ne tourne pas au-delà du trois quarts (`look`).
+- L'arrivée (aperçu `tools/mathieu.html?arrivee`) : tout petit au loin, il court vers nous jusqu'au milieu, s'arrête, puis la bouche biblique. À brancher sur le bouton de l'écran 1 (`index.html`, fil des chats).
+- Le logo du site (`js/logo.js`) : `Mathieu.create({ logo: true })`, la tête seule, inchangé.
+- De côté, chargées nulle part : `js/mathieu-tete.js` (quatrième version), `tete.json` et `visage3d.png` (sixième version).
 
 ## À faire, dans l'ordre
 
