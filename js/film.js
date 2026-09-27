@@ -301,14 +301,8 @@ function setup(o) {
   addEventListener('resize', measure);
   // le nom, en haut à gauche : retour au début
   const brand = $('#brand'); if (brand) brand.addEventListener('click', e => { e.preventDefault(); replay(); });
-  // l'accès réservé : tant que le code n'est pas entré, rien ne commence ; ensuite, le film se joue
-  Gate.init(() => {
-    const start = () => { opened = true; last = performance.now(); if (!reduced) { playing = true; syncPP(); } };
-    if (!root.classList.contains('entering')) { start(); return; }
-    // si l'on arrive de l'écran d'accès, le site apparaît en fondu une fois les polices prêtes
-    (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(() => requestAnimationFrame(() => requestAnimationFrame(() => {
-      root.classList.add('fading-in'); root.classList.remove('entering'); setTimeout(() => root.classList.remove('fading-in'), 1300); start(); })));
-  });
+  // le film se joue dès l'arrivée (le site est public : plus d'écran d'accès)
+  opened = true; last = performance.now(); if (!reduced) { playing = true; syncPP(); }
   requestAnimationFrame(frame);
 }
 

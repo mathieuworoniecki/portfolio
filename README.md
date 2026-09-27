@@ -8,13 +8,13 @@ Lancer un petit serveur (la 3D ne se charge pas en ouvrant le fichier directemen
 python3 tools/serve.py
 ```
 
-puis ouvrir http://localhost:8940. Aucune dépendance à installer ; three.js r128 est chargé depuis cdnjs. Code d'accès provisoire du développement : `portfolio`.
+puis ouvrir http://localhost:8940. Aucune dépendance à installer ; three.js r128 est chargé depuis cdnjs.
 
 ## Comment c'est construit
 
 ```
 index.html          un écran fixe : le fond, les toiles, l'en-tête, les calques des scènes, la barre du film
-css/site.css        le style : variables du thème, en-tête, sélecteurs, cadres à la craie, scènes, barre du film, accès
+css/site.css        le style : variables du thème, en-tête, sélecteurs, cadres à la craie, scènes, barre du film
 js/film.js          la ligne du temps : horloge T, lecture, seek, chapitres, barre à glisser, clavier, molette, geste,
                     temps dilaté (WARP), stations (hold), phrases (CAPS), prise à la souris, filtrage des clics
 js/scenes.js        les scènes, déclarées : { id, t0, t1, hold, enter, frame, draw, exit, click, grab… }
@@ -27,10 +27,8 @@ js/objects3d.js     le moteur 3D en traits ; bibliothèque vide sauf deux exempl
 js/theme.js         styles × couleurs, appliqués en direct ; par défaut Esquisse / gris
 js/picker.js        le sélecteur de thème et de langue ; chalkFrame
 js/i18n.js          les langues (fr, en pour l'instant) : data-i18n, L('clé')
-js/gate.js          l'accès réservé dans la page ; middleware.js côté serveur (Vercel), acces/ pour son écran
 tools/serve.py      serveur local sans cache (port 8940)
 tools/preview.py    l'aperçu en ligne (Artifact) : une page avec tout intégré
-tools/build_gate.mjs recopie chalk, grid et objects3d dans acces/
 ```
 
 ## La ligne du temps

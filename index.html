@@ -1,13 +1,11 @@
 <!doctype html>
-<html lang="fr" class="locked">
+<html lang="fr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<!-- verrouillé avant tout affichage : rien du site ne se voit tant que le code n'a pas été entré (js/gate.js) -->
-<script>(function(d){d.classList.add('locked');try{if(sessionStorage.getItem('pf-enter')){sessionStorage.removeItem('pf-enter');d.classList.add('entering')}}catch(e){}try{if(/(?:^|; )pf_ok=1/.test(document.cookie)||localStorage.getItem('pf-access')==='0e6a8e0b849ed9b064c5a25e1ee5592f427e3eb9d250e42069ce46147d00e8d4')d.classList.remove('locked')}catch(e){}
+<script>(function(d){
 /* le thème retenu (js/theme.js) : ses couleurs et polices, posées avant tout affichage */
 try{var c=null;if(c)c.split(/;(?![^(]*\))/).forEach(function(p){var i=p.indexOf(':');if(i>0){var k=p.slice(0,i);if(k==='color-scheme')d.style.colorScheme=p.slice(i+1);else d.style.setProperty(k,p.slice(i+1))}});var s=localStorage.getItem('pf-style');if(s)d.dataset.style=s}catch(e){}})(document.documentElement)</script>
-<style>.locked body>*:not(#gate):not(#stage):not(svg){visibility:hidden!important}.entering #obj,.entering #titles,.entering .scenes,.entering .top,.entering .film-ui{opacity:0!important}</style>
 <title data-i18n="meta.title">Mathieu — des trucs sur le web</title>
 <link rel="icon" href="/acces/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/acces/apple-touch-icon.png">
@@ -35,21 +33,6 @@ try{var c=null;if(c)c.split(/;(?![^(]*\))/).forEach(function(p){var i=p.indexOf(
 
 <!-- le grain de la craie, pour les dessins en SVG (cadres, accès) -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><filter id="chalk-rough"><feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" seed="3"/><feDisplacementMap in="SourceGraphic" scale="2.2"/></filter></defs></svg>
-
-<!-- l'accès réservé (js/gate.js) : le site reste caché tant que le code n'est pas entré -->
-<div id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-t">
-  <p class="gate-name" aria-hidden="true">Mathieu</p>
-  <p class="gate-kick" id="gate-t" data-i18n="gate.kick">Accès réservé</p>
-  <form class="gate-form" autocomplete="off">
-    <label class="vh" for="gate-code" data-i18n="gate.label">Code d'accès</label>
-    <div class="gate-field">
-      <svg class="gate-box" viewBox="0 0 320 76" preserveAspectRatio="none" aria-hidden="true"><g filter="url(#chalk-rough)"><path pathLength="1" d="M8 66 C 80 63, 170 69, 312 64"/><path class="gate-tick" pathLength="1" d="M292 34 L302 46 L322 16"/></g></svg>
-      <input id="gate-code" type="password" inputmode="text" autocapitalize="off" spellcheck="false" placeholder="code" data-i18n-attr="placeholder:gate.ph">
-    </div>
-    <button type="submit" class="gate-go" data-i18n="gate.go">Entrer</button>
-    <p class="gate-msg" aria-live="polite"></p>
-  </form>
-</div>
 
 <!-- l'en-tête : le nom (en attendant le logo), le thème au centre, la langue à droite -->
 <header class="top">
@@ -96,7 +79,6 @@ try{var c=null;if(c)c.split(/;(?![^(]*\))/).forEach(function(p){var i=p.indexOf(
 <script src="js/i18n.js"></script>
 <script>I18N.apply();</script>
 <script src="js/picker.js"></script>
-<script src="js/gate.js"></script>
 <script src="js/grid.js"></script>
 <script src="js/objects3d.js"></script>
 <script src="js/mathieu.js"></script>
