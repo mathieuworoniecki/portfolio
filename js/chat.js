@@ -289,7 +289,8 @@ function step(c, dt, opts) {
 function apply(c, opts) {
   const p = c.cur, D = c.D, b = c.b;
   // la vue : de trois quarts, d'un peu au-dessus ; tourné vers la gauche : un demi-tour (le corps est le même des deux côtés)
-  const yaw = c.face > 0 ? -VIEW.yaw : Math.PI + VIEW.yaw;
+  // (c.vyaw : un chat peut se montrer plus de profil ; l'interminable, sinon son long dos partirait en biais sur tout l'écran)
+  const vy = c.vyaw ?? VIEW.yaw, yaw = c.face > 0 ? -vy : Math.PI + vy;
   c.root.position.set(c.x, -c.y, c.z); c.root.scale.setScalar(c.s * b.s);
   qa.setFromAxisAngle(AX, VIEW.tilt); qb.setFromAxisAngle(AY, yaw); qa.multiply(qb); c.view.quaternion.copy(qa);
   // le corps : sa place, son tangage, écrasé ou étiré

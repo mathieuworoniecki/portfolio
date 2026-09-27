@@ -622,7 +622,9 @@ function live(c, dt) {
   const A = ANIMS[c.anim] || ANIMS.assis; A(c, c.tgt, c.at);
   if (c.pushing) { c.tgt[I.pitch] -= 0.12; c.tgt[I.look] = 0.3; c.tgt[I.eyes] = 1; }
   if (c.purr && Wd.t < c.purr && !c.pet) { ANIMS.ronron(c, c.tgt, c.at); }
-  c.s = sOf(c.d);
+  // la taille : porté, en chute, en saut ou perché, il garde celle qu'il avait au sol (un gros chat dans un carton déborde, il ne rapetisse pas) ; de retour au sol, elle revient en douceur
+  if (c.perch || c.jump || c.held || c.fall) { if (c.sK == null) c.sK = c.s || sOf(c.d); c.s = c.sK; }
+  else { c.sK = null; const s0 = sOf(c.d); c.s = c.s ? c.s + (s0 - c.s) * Math.min(1, dt * 3) : s0; }
   c.z = c.held ? 30000 : c.jump && c.zj != null ? c.zj : c.zp != null ? c.zp : zOf(c.d) + c.zo;
   if (c.bonk && Wd.t < c.bonk) { c.tgt[I.eyes] = 1; c.tgt[I.sqz] -= 0.1; c.tgt[I.hnod] -= 0.15; }
   H.live.forEach(f => f(c, dt));

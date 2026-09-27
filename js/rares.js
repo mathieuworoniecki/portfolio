@@ -77,6 +77,7 @@ ANIMS.longPas = (c, p, t) => { ANIMS.pas(c, p, t); p[I.pitch] = 0; p[I.look] = 0
 ANIMS.longPain = (c, p, t) => { ANIMS.pain(c, p, t); p[I.pitch] = 0; p[I.y] = c.D.h * 0.95; };
 function interminable() {
   const d = 0.22, c = spawn('interminable', { d, face: 1 }), len = c.b.body[0] * 2 + 0.6;
+  c.vyaw = 0;   // bien de profil : le dos reste à plat, d'un bord à l'autre
   c.b.s = Math.max(Wd.W * 1.3, 1000) / len / sOf(d); const half = c.b.body[0] * sc(c); c.x = -half - sc(c) * 0.5; c.zo = 0;
   c.q = [{ k: 'defile', half, air: true }, fn(c => { c.gone = true; })];
   return c;
@@ -371,5 +372,7 @@ H.click.push((x, y) => {
 // pour les voir tout de suite : ?rare=geant (ou interminable, ballon, eclair, totem, acrobate)
 try { const q = new URLSearchParams(location.search).get('rare'); if (q && LIST[q]) { R.next = 1; const t = setInterval(() => { if (Wd.W && Wd.t > 3 && go1(q)) clearInterval(t); }, 500); } } catch (e) {}
 
-return { ...LIST, lance: go1, R };
+// pour js/contacts.js : la réaction d'un visiteur à ce qui le touche (o.main : un geste léger, rien à renvoyer)
+const react = (c, o) => { if (c.rare && REACT[c.rare] && alive(c)) REACT[c.rare](c, o, zone(c)); };
+return { ...LIST, lance: go1, R, react, zone };
 })();

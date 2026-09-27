@@ -312,5 +312,5 @@ H.pre.push(() => {
   it.survolT = Wd.t; it.wob = Wd.t; it.wobA = LOURD[it.kind] ? 0.12 : 0.25;
 });
 
-return { corps, eparpille };
+return { corps, eparpille, debusque, bond, tremble, sortir };
 })();
