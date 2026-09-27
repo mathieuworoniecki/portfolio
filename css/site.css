@@ -291,3 +291,32 @@ html:not(.locked) #gate:not(.open){display:none}
 .tuto.on{opacity:1;scale:1}
 .tuto::after{content:"";position:absolute;left:var(--queue,50%);bottom:-9px;width:14px;height:14px;margin-left:-7px;background:inherit;
   border-right:2px solid rgb(var(--ink));border-bottom:2px solid rgb(var(--ink));transform:rotate(45deg) skew(6deg,6deg)}
+
+/* le menu des événements (js/menu.js) : un onglet sous le logo ; ouvert, une grille de pastilles dessinées au trait */
+.evts{position:fixed;left:14px;top:96px;z-index:25;display:flex;flex-direction:column;gap:8px;align-items:flex-start;opacity:0;pointer-events:none;transition:opacity .4s}
+.evts.vu{opacity:1;pointer-events:auto}
+.evts button{font:inherit;color:rgb(var(--ink));background:var(--bp-hi);border:2px solid rgb(var(--ink));cursor:pointer;padding:0}
+.evts svg{width:30px;height:30px;fill:none;stroke:rgb(var(--ink));stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.evts svg .p{fill:rgb(var(--ink));stroke:none}
+.evts svg .e{stroke:#e0a100;stroke-width:2.6}
+.evts svg .r1{stroke:#e74c3c}.evts svg .r2{stroke:#f1c40f}.evts svg .r3{stroke:#2ecc71}.evts svg .r4{stroke:#3498db}
+.evts-tab{display:flex;align-items:center;gap:.4rem;height:40px;padding:0 .8rem 0 .45rem!important;border-radius:20px 22px 19px 21px;
+  box-shadow:3px 3px 0 rgba(var(--ink),.18);font:400 1rem/1 var(--hand)!important;transition:transform .2s cubic-bezier(.3,1.6,.5,1)}
+.evts-tab svg{width:24px;height:24px;transition:transform .5s}
+.evts-tab:hover{transform:rotate(-3deg) scale(1.05)}
+.evts.ouvert .evts-tab svg{transform:rotate(144deg)}
+.evts-list{list-style:none;margin:0;padding:8px;display:grid;grid-template-columns:repeat(4,46px);gap:8px;background:rgba(var(--ink),.04);
+  border:2px dashed rgba(var(--ink),.35);border-radius:18px 14px 20px 16px;transform-origin:top left;scale:.6;opacity:0;visibility:hidden;
+  transition:scale .3s cubic-bezier(.3,1.6,.5,1),opacity .2s,visibility 0s .3s}
+.evts.ouvert .evts-list{scale:1;opacity:1;visibility:visible;transition:scale .35s cubic-bezier(.3,1.6,.5,1),opacity .2s}
+.evts-list li{position:relative}
+.evts-list button{width:46px;height:46px;display:grid;place-items:center;border-radius:50% 46% 52% 48%;box-shadow:2px 2px 0 rgba(var(--ink),.16);
+  transition:transform .2s cubic-bezier(.3,1.6,.5,1)}
+.evts-list button:hover,.evts-list button:focus-visible{transform:scale(1.14) rotate(-6deg)}
+.evts-list button.pop{animation:evts-pop .45s cubic-bezier(.3,1.6,.5,1)}
+@keyframes evts-pop{0%{transform:scale(.8)}60%{transform:scale(1.25) rotate(8deg)}100%{transform:none}}
+.evts-nom{position:absolute;left:50%;top:calc(100% + 4px);translate:-50% 0;white-space:nowrap;padding:.15rem .45rem;border-radius:8px;
+  background:rgb(var(--ink));color:var(--bp-hi);font:400 .9rem/1.2 var(--hand);pointer-events:none;opacity:0;transition:opacity .15s;z-index:2}
+.evts-list button:hover .evts-nom,.evts-list button:focus-visible .evts-nom{opacity:1}
+@media (max-width:700px){.evts{top:84px;left:10px}.evts-list{grid-template-columns:repeat(4,42px)}.evts-list button{width:42px;height:42px}.evts-tab span{display:none}}
+@media (prefers-reduced-motion:reduce){.evts *{transition:none!important;animation:none!important}}
