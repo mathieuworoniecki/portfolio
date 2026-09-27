@@ -45,7 +45,7 @@ torso = person & ~head & (yy > 540)
 b = im
 for _ in range(3): b = cv2.bilateralFilter(b, 9, 30, 7)
 g = cv2.cvtColor(b, cv2.COLOR_BGR2GRAY).astype(np.float32) / 255
-ink, hairm = trait.tete(im, person, L[:, :2], g, head=head)
+ink, hairm = trait.simple(im, person, L[:, :2], g, head)          # la version simple, d'un seul trait (trait.tete : le portrait détaillé)
 edge = cv2.morphologyEx(head.astype(np.uint8), cv2.MORPH_GRADIENT, np.ones((9, 9), np.uint8)) > 0
 
 # ——— le t-shirt : sa silhouette (celle de la photo), l'encolure côtelée, les coutures, quelques plis, le logo Patagonia ———
@@ -61,12 +61,9 @@ cx, cy = NL['c']; rx, ry = NL['r']
 d.line(arc(cx, cy, rx, ry, 0, np.pi), fill=20, width=9)                       # le bord de l'encolure (sous le cou)
 d.line(arc(cx, cy + 4, rx + 22, ry + 26, 0.05, np.pi - 0.05), fill=30, width=9)  # la côte
 d.line(arc(cx, cy - 2, rx + 20, ry * 0.35, np.pi, 2 * np.pi), fill=60, width=7)  # l'encolure derrière le cou
-for s in (-1, 1):                                                               # les coutures des manches, les plis
+for s in (-1, 1):                                                               # les coutures des manches (sans plis : la version simple)
     X = lambda x: cx + s * x
     d.line([(X(330), 690), (X(345), 780), (X(362), 880), (X(372), 1000), (X(378), 1100)], fill=40, width=7, joint='curve')
-    d.line([(X(300), 1020), (X(250), 1070), (X(215), 1150)], fill=110, width=5, joint='curve')
-    d.line([(X(390), 960), (X(330), 1000)], fill=120, width=5)
-    d.line([(X(160), 1150), (X(120), 1250)], fill=130, width=5)
 # le logo : les pics (le Fitz Roy) en noir sur un ciel rayé, dans un cadre ; le nom dessous
 lx, ly, lw, lh = cx - 95, 800, 190, 92
 d.rectangle([lx, ly, lx + lw, ly + lh], outline=20, width=7)
@@ -84,11 +81,11 @@ top = int(np.where(head.any(1))[0].min()); nape = 485
 # des mèches dessinées : des traits courbes qui partent du sommet du crâne
 hair = Image.new('L', (W0, H0), 255); dh_ = ImageDraw.Draw(hair); rng = np.random.default_rng(7)
 crown = (CX, top + 70)
-for i in range(420):
+for i in range(45):                                   # peu de mèches : la version simple
     x0, y0 = rng.uniform(CX - 230, CX + 230), rng.uniform(top - 10, nape + 10)
-    ang = np.arctan2(y0 - crown[1], x0 - crown[0]) + rng.normal(0, 0.25); ln = rng.uniform(18, 46)
+    ang = np.arctan2(y0 - crown[1], x0 - crown[0]) + rng.normal(0, 0.25); ln = rng.uniform(30, 60)
     pts = [(x0 + np.cos(ang + 0.02 * t) * ln * t / 6, y0 + np.sin(ang + 0.02 * t) * ln * t / 6) for t in range(7)]
-    dh_.line(pts, fill=int(rng.choice([22, 120], p=[0.3, 0.7])), width=int(rng.integers(3, 5)), joint='curve')
+    dh_.line(pts, fill=22, width=8, joint='curve')
 back = np.asarray(hair, np.float32) / 255
 # la limite des cheveux sur la nuque : un peu irrégulière ; la nuque et le cou en dessous, en clair
 hl = nape + 12 * np.sin(xx[0] / 23) * np.sin(xx[0] / 7)

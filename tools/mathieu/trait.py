@@ -182,3 +182,85 @@ def tete(im, m, L, g, bottom=640, head=None, contour=True):
       if cv2.contourArea(c) < 5000: continue
       p = smooth(c, 9); d.line([tuple(q) for q in p] + [tuple(p[0])], fill=INK, width=W + 1, joint='curve')
     return np.asarray(img, np.float32) / 255, hair
+
+def simple(im, m, L, g, head):
+    """La version simple (27 septembre : « plus simple, un trait qui me dessine, moins de détails ») : un seul trait de feutre, franc, pas de gris,
+    comme les chats. La silhouette, la ligne des cheveux et quelques mèches, les sourcils, les yeux en points avec un reflet,
+    le dessous du nez, la moustache en guidon (deux traits qui remontent en boucle), le sourire, le menton."""
+    H0, W0 = m.shape; yy, xx = np.mgrid[0:H0, 0:W0]
+    L = np.asarray(L, float)
+    def curve(idx, n=80, s=0, pts=None):
+      P = L[idx] if pts is None else np.asarray(pts, float)
+      tck, _ = splprep([P[:, 0], P[:, 1]], s=s, k=min(3, len(P) - 1)); x, y = splev(np.linspace(0, 1, n), tck); return np.stack([x, y], 1)
+    def smooth(c, k=7):
+      P = c[:, 0, :].astype(np.float32)
+      return np.stack([np.convolve(np.r_[P[-k:, i], P[:, i], P[:k, i]], np.ones(2 * k + 1) / (2 * k + 1), 'same')[k:-k] for i in (0, 1)], 1)
+    img = Image.new('L', (W0, H0), 255); d = ImageDraw.Draw(img)
+    fw = L[454, 0] - L[234, 0]; W = 0.042 * fw                    # un seul trait, proportionné au visage
+    OVAL = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109]
+    fm = np.zeros((H0, W0), np.uint8); cv2.fillPoly(fm, [L[OVAL].astype(np.int32)], 1); face = fm > 0
+    gb = cv2.GaussianBlur(g, (0, 0), 2)
+
+    # ——— les cheveux : la ligne des cheveux sur le front (loin du bord de la tête), et trois ou quatre mèches, les plus longues ———
+    hair = m & (gb < 0.40) & (yy < L[152, 1] - 0.5 * fw) & ~(face & (yy > L[10, 1] + 0.06 * fw))
+    hair = cv2.morphologyEx(hair.astype(np.uint8), cv2.MORPH_OPEN, np.ones((7, 7), np.uint8))
+    hair = cv2.morphologyEx(hair, cv2.MORPH_CLOSE, np.ones((15, 15), np.uint8))
+    inside_d = cv2.distanceTransform(head.astype(np.uint8), cv2.DIST_L2, 5)
+    cs, _ = cv2.findContours(hair, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    for c in cs:
+      if cv2.contourArea(c) < 3000: continue
+      p = smooth(c, 12); far = inside_d[np.clip(p[:, 1].astype(int), 0, H0 - 1), np.clip(p[:, 0].astype(int), 0, W0 - 1)] > 22
+      for run in np.split(np.arange(len(p)), np.where(np.diff(far.astype(int)) != 0)[0] + 1):
+        if far[run[0]] and len(run) > 40: brush(d, p[run][::3], W, INK, (0.2, 0.2), 0.3)
+    inner = cv2.erode(hair, np.ones((21, 21), np.uint8)) > 0
+    dn = cv2.GaussianBlur(g, (0, 0), 2.5) - cv2.GaussianBlur(g, (0, 0), 7)
+    sk = skeletonize(inner & (dn < -0.02)); n, lab, st, _ = cv2.connectedComponentsWithStats(sk.astype(np.uint8), 8)
+    for i in [i for i in np.argsort(-st[:, 4]) if i > 0][:4]:
+      ys, xs = np.where(lab == i); P = np.c_[xs, ys].astype(float)
+      if len(P) < 25: continue
+      c = P.mean(0); _, _, Vt = np.linalg.svd(P - c, full_matrices=False); Q = P[np.argsort((P - c) @ Vt[0])]; Q = Q[::max(1, len(Q) // 6)]
+      if len(Q) >= 3: brush(d, curve(None, 30, s=len(Q) * 30, pts=Q), W * 0.8, INK, (0.3, 0.6))
+
+    # ——— les sourcils : un trait, épais vers le nez, effilé vers la tempe ———
+    for up, lo in [([107, 66, 105, 63, 70], [55, 65, 52, 53, 46]), ([336, 296, 334, 293, 300], [285, 295, 282, 283, 276])]:
+      M = (curve(up, 30) + curve(lo, 30)) / 2
+      brush(d, M, W * 1.5, INK, (0.1, 0.6), 0.25)
+
+    # ——— les yeux : la paupière du haut, un gros point avec un reflet (comme les chats) ———
+    for up, lo, iris in [([33, 246, 161, 160, 159, 158, 157, 173, 133], [33, 7, 163, 144, 145, 153, 154, 155, 133], 468),
+                         ([263, 466, 388, 387, 386, 385, 384, 398, 362], [263, 249, 390, 373, 374, 380, 381, 382, 362], 473)]:
+      Up = curve(up, 40); Lo = curve(lo, 40); c = L[iris]
+      brush(d, Up[2:-2] + [0, -0.015 * fw], W * 0.9, INK, (0.3, 0.3), 0.3)
+      r = max(np.linalg.norm(L[iris + 1] - L[iris + 3]) / 2 * 0.85, 0.055 * fw)
+      d.ellipse([c[0] - r, c[1] - r, c[0] + r, c[1] + r], fill=INK)
+      d.ellipse([c[0] + r * 0.05, c[1] - r * 0.7, c[0] + r * 0.55, c[1] - r * 0.2], fill=255)
+
+    # ——— le nez : le dessous du bout, d'un trait ; un petit bout d'arête ———
+    brush(d, curve([98, 97, 2, 326, 327], 40, s=30), W * 0.85, INK, (0.3, 0.3), 0.2)
+    side = 1 if gb[int(L[209, 1]), int(L[209, 0])] > gb[int(L[429, 1]), int(L[429, 0])] else -1
+    br = L[[188, 174, 236, 198]] if side < 0 else L[[412, 399, 456, 420]]
+    brush(d, curve(None, 30, s=100, pts=br), W * 0.7, INK, (0.5, 0.3), 0.2)
+
+    # ——— la moustache en guidon : deux traits, épais sous le nez, qui s'effilent et remontent en boucle au-delà des coins de la bouche ———
+    UPO = [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291]; lipP = curve(UPO, 60)
+    cx, hw = L[0, 0], (L[291, 0] - L[61, 0]) / 2
+    for sg in (-1, 1):
+      xs = cx + sg * np.linspace(0.04 * fw, hw + 0.1 * fw, 30); u = np.linspace(0, 1, 30)
+      ys = np.interp(xs, lipP[:, 0], lipP[:, 1], left=lipP[0, 1], right=lipP[-1, 1]) - 0.035 * fw - 0.06 * fw * np.clip((u - 0.55) / 0.45, 0, 1) ** 2
+      P = np.c_[xs, ys]; tip = P[-1]
+      curl = [tip + [sg * 0.02 * fw, -0.03 * fw], tip + [sg * 0.005 * fw, -0.05 * fw], tip + [-sg * 0.012 * fw, -0.04 * fw]]
+      brush(d, curve(None, 50, s=0, pts=np.vstack([P[::5], curl])), W * 1.7, INK, (0.05, 0.75), 0.12)
+
+    # ——— la bouche : un sourire, d'un trait ; le menton ———
+    MID = [78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308]
+    Mq = curve(MID, 50); u = np.linspace(-1, 1, 50); Mq[:, 1] -= 0.03 * fw * u ** 4 - 0.01 * fw * (1 - u ** 2)
+    brush(d, Mq, W, INK, (0.2, 0.2), 0.3)
+    jaw = [234, 93, 132, 58, 172, 136, 150, 149, 176, 148, 152, 377, 400, 378, 379, 365, 397, 288, 361, 323, 454]
+    brush(d, curve(jaw, 160)[46:-46], W, INK, (0.2, 0.2), 0.3)
+
+    # ——— la silhouette ———
+    cs, _ = cv2.findContours(head.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    for c in cs:
+      if cv2.contourArea(c) < 5000: continue
+      p = smooth(smooth(c, 14)[:, None, :], 10); d.line([tuple(q) for q in p] + [tuple(p[0])], fill=INK, width=int(W * 1.1), joint='curve')
+    return np.asarray(img, np.float32) / 255, hair > 0

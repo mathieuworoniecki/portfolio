@@ -29,13 +29,13 @@ Retour arrière (flèche gauche, barre du film) : tout doit se rejouer à l'enve
 
 ## Mathieu en 3D : ce qui existe
 
-Sixième version (27 septembre). Mathieu a aimé le nouveau dessin au stylo et a demandé « une vraie 3D » : le dessin est maintenant posé sur une tête entière, qui fait le tour complet.
+Version simple (27 septembre, 12:10). La vraie tête 3D (sixième version) a été jugée « pire qu'avant » ; Mathieu veut « plus simple, un trait qui me dessine, moins de détails ». Retour au dessin posé sur un relief (troisième version), redessiné d'un seul trait.
 
-- `tools/mathieu/build.py` tire de sa photo de face le portrait au stylo (`media/mathieu/visage.png` ; `visage3d.png`, le même sans son contour, pour la 3D ; `tools/mathieu/trait.py`), le dos (`dos.png`) et la tête (`tete.json`, par `tools/mathieu/tete.py` : les 468 points 3D du visage de MediaPipe sur un crâne, la calotte des cheveux, les mèches, la mâchoire, et `proj`, le passage du modèle à la photo). La photo n'est pas dans le dépôt.
-- `js/mathieu.js` projette le dessin de face sur l'avant de la tête et des cheveux, celui de dos sur l'arrière ; les côtés n'ont que leurs contours, recalculés à chaque image comme pour les chats. Le papier est transparent, seul l'encre se voit. Oreilles, cou, buste en t-shirt Patagonia autour. `Mathieu.create()`, `Mathieu.pose(m, { x, y, s, turn, tilt, nod, open })`, `Mathieu.mouthAt(m)`. La bouche : la mâchoire descend en arc (le dessin la suit) ; entre les lèvres, de l'encre.
-- Le logo du site (`js/logo.js`) : `Mathieu.create({ logo: true })`, la tête seule jusqu'au menton ; elle fait maintenant le tour complet.
-- `js/mathieu-tete.js` (la quatrième version, au trait seul) reste de côté, chargée nulle part.
-- Aperçu : `tools/mathieu.html` (`?turn=1.57` un angle fixe, `?open=1` la bouche, `?logo=48` la tête du logo).
+- `tools/mathieu/build.py` tire de sa photo de face : le dessin (`media/mathieu/visage.png`, la tête par `trait.simple` : silhouette, ligne des cheveux et quatre mèches, sourcils, yeux en points avec un reflet, dessous du nez, moustache en guidon, sourire, menton ; un seul trait franc, pas de gris), le dos (`dos.png`, quelques mèches), le relief (`relief.png`, `relief.json`). `trait.tete` (le portrait détaillé) reste disponible. La photo n'est pas dans le dépôt.
+- `js/mathieu.js` pose le dessin sur ce relief : `Mathieu.create()`, `Mathieu.pose(m, { x, y, s, turn, tilt, open })`, `Mathieu.mouthAt(m)`. La bouche : la mâchoire descend et avance ; à sa place, de l'encre.
+- Le logo du site (`js/logo.js`) : `Mathieu.create({ logo: true })`, la tête seule ; un tour sans fin y devient un balancement de trois quarts en trois quarts.
+- De côté, chargées nulle part : la vraie tête au trait (`js/mathieu-tete.js`, quatrième version) ; `tete.json` et `visage3d.png` (sixième version, dans l'historique git, commit 8ed2612).
+- Aperçu : `tools/mathieu.html` (`?logo=48` : la tête du logo).
 
 ## À faire, dans l'ordre
 
