@@ -28,7 +28,7 @@ STEPS.etagere = (c, T, dt) => {   // posé sur une étagère : il reste à sa ha
   c.y = e.y + (Wd.t - e.wob < 0.4 ? Math.sin((Wd.t - e.wob) * 40) * 2 : 0); c.x = clamp(c.x, e.x - e.w * 0.45, e.x + e.w * 0.45); c.anim = T.anim || 'affut'; if (T.face) c.face = T.face;
   return T.t > T.dur;
 };
-STEPS.pendu = (c, T, dt) => {   // raté : pendu au bord par les griffes
+STEPS.griffes = (c, T, dt) => {   // raté : pendu au bord par les griffes
   const E = etageres(), e = E && E.L[T.i - 1]; if (!e) { c.fall = true; c.vy = 0; return true; }
   const k = sc(c); c.x = e.x + T.side * e.w * 0.46; c.y = e.y + k * 0.62 + Math.min(T.t, 0.3) * 20 * (T.glisse ? T.t : 0); c.face = -T.side; c.anim = 'accroche';
   if (!T.dit) { T.dit = 1; word(pick(['scriiitch', 'kkrrr !', '!!']), c.x, e.y - 10, 16); say(c, pick(['aaah', 'mia !', 'nyaa'])); T.dur = rnd(0.8, 1.6); T.ok = Math.random() < (c.b.s > 1.2 ? 0.4 : 0.65); }
@@ -47,12 +47,12 @@ function etape(c, i) {
   const E = etageres(); if (!E) return; const e = E.L[i - 1];
   if (!e) { const r = E.el.getBoundingClientRect(); c.q.unshift({ k: 'bond', x: clamp(c.x + sgn(r.left + 30 - c.x) * sc(c), r.left + 10, r.right - 10), y: r.top, air: true, then: () => ({ k: 'rebord', el: E.el, air: true }) }); return; }
   const rate = Math.random() < (c.b.s > 1.2 ? 0.35 : 0.22), side = sgn(c.x - e.x) || 1;
-  if (rate) { c.q.unshift({ k: 'bond', x: e.x + side * e.w * 0.46, y: e.y + sc(c) * 0.62, air: true, then: () => ({ k: 'pendu', i, side, air: true }) }); c.q.splice(1, 0, fn(c => etape(c, i + 1))); return; }
+  if (rate) { c.q.unshift({ k: 'bond', x: e.x + side * e.w * 0.46, y: e.y + sc(c) * 0.62, air: true, then: () => ({ k: 'griffes', i, side, air: true }) }); c.q.splice(1, 0, fn(c => etape(c, i + 1))); return; }
   c.q.unshift({ k: 'bond', x: e.x + rnd(-0.2, 0.2) * e.w, y: e.y, air: true, then: () => ({ k: 'etagere', i, dur: rnd(0.4, 1.2), air: true }) }, fn(c => etape(c, i + 1)));
 }
 H.think.push((c, add) => {
   if (c.rare || c.temp || c.perch || !etageres()) return;
-  if (Wd.cats.some(o => o.task && ['etagere', 'pendu', 'rebord'].includes(o.task.k))) return;
+  if (Wd.cats.some(o => o.task && ['etagere', 'griffes', 'rebord'].includes(o.task.k))) return;
   add((c.ch.grimpe || 0.5) * 0.35 + 0.05, () => grimpe(c));
 });
 // tombé (ou lâché) au-dessus d'une étagère : il s'y pose

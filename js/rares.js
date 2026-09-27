@@ -32,7 +32,8 @@ ANIMS.ecrase = (c, p, t) => {
 };
 function squash(o, dir) {
   if (Wd.t - (o.squashT ?? -9) < 2.5 || o.held || o.gone || o.hidden) return; o.squashT = Wd.t;   // caché (carton, coussin) : le géant passe dessus sans le voir
-  if (o.perch || o.jump) { interrupt(o); o.hidden = 0; o.fall = true; o.vx = dir * sc(o) * rnd(3, 5); o.vy = -sc(o) * rnd(3, 5); say(o, pick(['waaah !', 'miaaa !'])); return; }
+  if (o.perch || o.jump || o.fall || (o.task && o.task.air)) { interrupt(o);   // (en l'air ou pendu : projeté, pas aplati en plein vol)
+    o.accr = null; o.hidden = 0; o.fall = true; o.vx = dir * sc(o) * rnd(3, 5); o.vy = -sc(o) * rnd(3, 5); say(o, pick(['waaah !', 'miaaa !'])); return; }
   interrupt(o); o.fall = false; o.pet = null;
   o.q = [pose('ecrase', 1.35, { fx: o => word(pick(['splotch', 'plof', 'crouiik']), o.x, o.y - sc(o) * 0.4, 18) }), pose('secoue', 0.55), pose(pick(['boude', 'assis', 'etourdi']), rnd(1.5, 2.5), { fx: o => say(o, pick(['…', 'aïe', 'pfff', '@_@'])) })];
 }
@@ -82,6 +83,7 @@ STEPS.rouleau = (c, T, dt) => {
   // devant lui : les chats, écrasés ; les objets légers valsent, les lourds s'aplatissent
   Wd.cats.forEach(o => { if (o !== c && !o.rare && Math.abs(o.x - c.x) < T.Rb * 0.7 && sgn(o.x - c.x) !== -T.dir) squash(o, T.dir); });
   Wd.props.forEach(it => { if (it.mur || it.held || it.gHit === c || Math.abs(it.x - c.x) > T.Rb * 0.8 || !Wd.props.includes(it)) return; it.gHit = c;
+    if (it.run) { Chocs.bond(it, sOf(it.d) * 0.7); it.run.v *= 1.3; word('couic !', it.x, it.y - 30, 16); return; }   // la souris : un bond, elle continue sa course
     if (LOURD[it.kind] || it.kind === 'distrib') it.sqT = Wd.t; else { kick(it, T.dir); if (it.fall) { it.vx *= 2.2; it.vy *= 1.4; } } });
   return T.dir > 0 ? c.x > Wd.W + T.Rb * 2.4 : c.x < -T.Rb * 2.4;
 };
@@ -158,7 +160,7 @@ STEPS.zoom = (c, T, dt) => {
   c.y = floorAt(c.d); if (T.t < (T.wait || 0)) { c.hidden = 1; return false; } c.hidden = 0;
   if (c.stun > Wd.t) { c.anim = 'etourdi'; if ((T.sT = (T.sT || 0) - dt) < 0) { T.sT = 0.4; word(pick(['✦', '★', '✧']), c.x + rnd(-1, 1) * sc(c) * 0.4, c.y - sc(c) * 0.9, 16); } return false; }
   c.anim = 'galop'; c.face = T.dir; c.x += T.dir * Math.max(Wd.W / 0.75, sc(c) * 12) * dt;
-  Wd.props.forEach(it => { if (it.fall || it.held || it.mur || it.zoomT === T || LOURD[it.kind] || it.kind === 'distrib' || Math.abs(it.x - c.x) > sc(c) * 0.6) return; it.zoomT = T; kick(it, T.dir); if (it.fall) { it.vx *= 2.5; it.vy *= 1.5; } });
+  Wd.props.forEach(it => { if (it.fall || it.held || it.mur || it.zoomT === T || LOURD[it.kind] || it.kind === 'distrib' || Math.abs(it.x - c.x) > sc(c) * 0.6) return; it.zoomT = T; if (it.run) { Chocs.bond(it, sOf(it.d) * 0.6); it.run.v *= 1.3; return; } kick(it, T.dir); if (it.fall) { it.vx *= 2.5; it.vy *= 1.5; } });
   if ((T.dT = (T.dT || 0) + dt) > 0.04) { T.dT = 0; dust(c.x - T.dir * sc(c) * 0.5, floorAt(c.d), sc(c) * 0.35, 0.7); }
   Wd.cats.forEach(o => { if (o === c || o.rare || !free4(o) || Math.abs(o.x - c.x) > sc(o) * 0.8 || o.zoomT === T) return; o.zoomT = T;
     interrupt(o); o.face = -o.face; o.q = [pose('etourdi', rnd(1, 1.6), { fx: o => say(o, pick(['?!', 'hein ?', 'quoi ?'])) }), pose('assis', 1)]; });

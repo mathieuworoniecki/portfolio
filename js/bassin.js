@@ -131,5 +131,9 @@ H.draw.unshift(() => {
   Wd.fx.forEach(f => { if (f.k !== 'goutteB') return; const dt = t - f.t0, x = f.x + f.vx * dt, y = f.y + f.vy * dt + 600 * dt * dt; if (y > f.y1 && dt > 0.2) return; Chalk.dot(x, y, 1.9, 0.7 * Wd.a * (1 - dt / f.life), f.col); });
 });
 
-return { surface, colore, bain, bassins, FLOTTE };
+// une grosse éclaboussure (un lourd qui tombe dedans, js/liens.js) : les voisins sont arrosés
+function eclabousse(b, x, f) { const S = surface(b); gerbe(b, x, S.y, Math.round(14 * f), f); rond(b, x, S.y, 2 * f); rond(b, x, S.y, 1.2 * f);
+  Wd.cats.forEach(c => { if (!c.hp || c.held || c.rare || Math.abs(c.x - x) > S.rx * 1.6) return; c.wet = Wd.t; if (Math.random() < 0.6) say(c, pick(['hé !', 'mouillé !', 'pfff'])); }); }
+
+return { surface, colore, bain, bassins, FLOTTE, eclabousse, rond, gerbe };
 })();

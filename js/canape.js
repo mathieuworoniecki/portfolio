@@ -35,8 +35,8 @@ H.think.push((c, add) => {
   });
 });
 
-// lâché dessus : il rebondit (boing), puis s'y pose
-H.fall.push((c, dt) => {
+// lâché dessus : il rebondit (boing), puis s'y pose (en premier : sinon les places de l'assise le rattrapent avant le rebond)
+H.fall.unshift((c, dt) => {
   if (c.vy <= 0 || c.held) return false;
   for (const b of canapes()) {
     if (b.held || b.fall) continue; if (!(Wd.t - (c.relT ?? -9) < 3) && Math.abs(c.d - b.d) > 0.2) continue;

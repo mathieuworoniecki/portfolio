@@ -1037,7 +1037,7 @@ function vacFrame(dt) {
     const R = s0 * 0.9;
     // ce qui traîne sous la bouche s'envole vers elle
     Wd.props.forEach(it => { if (it.suck || it.held || it.run || it.mur || Math.abs(it.x - V.x) > R) return;
-      const temp = it.launched || (it.away && Wd.t - it.away > 2 && !it.tower); if (!temp) return;
+      const temp = it.launched || it.tmp || (it.away && Wd.t - it.away > 2 && !it.tower); if (!temp) return;   // (it.tmp : la feuille arrachée)
       it.suck = { t0: Wd.t, fx: it.fx, lift: it.lift }; it.on = null; it.fall = false; });
     Wd.kib.forEach(k => { if (!k.suck && Math.abs(k.x - V.x) < R) { k.suck = Wd.t; k.sx = k.x; k.sy = k.y; if (k.who) k.who = null; } });
     // les chats : ils filent de l'autre côté ; un curieux s'approche trop… aspiré, puis recraché
