@@ -1,6 +1,6 @@
 /* Le menu des événements (27/09, Mathieu : « sur la gauche, une sorte de menu kawaii avec des illustrations, qui nous permette de déclencher
    les événements spéciaux »).
-   Un petit onglet au bord gauche (« ✦ ») ; ouvert, une colonne de pastilles dessinées au trait : les chats rares, la horde, la tour de cartons,
+   Une barre au bord gauche, toujours là : une colonne de pastilles dessinées au trait : les chats rares, la horde, la tour de cartons,
    l'aspirateur, le distributeur fou, la bagarre, le colis, la mouche, le concert, la vitre, l'arc-en-ciel, le bain. Au survol, leur nom.
    Seulement sur l'écran des chats. */
 window.Menu = (() => {
@@ -40,16 +40,13 @@ const EV = [
 ].filter(([id]) => ICON[id]);
 
 const nav = document.createElement('nav'); nav.className = 'evts'; nav.setAttribute('aria-label', L_('menu.titre'));
-nav.innerHTML = `<button class="evts-tab" type="button" aria-expanded="false" title="${L_('menu.titre')}"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4 l4 11 l12 1 l-9 8 l3 12 l-10 -7 l-10 7 l3 -12 l-9 -8 l12 -1z"/></svg><span>${L_('menu.titre')}</span></button>
-<ul class="evts-list">${EV.map(([id]) => `<li><button type="button" data-ev="${id}" aria-label="${L_('menu.' + id)}"><svg viewBox="0 0 40 40" aria-hidden="true">${ICON[id]}</svg><span class="evts-nom">${L_('menu.' + id)}</span></button></li>`).join('')}</ul>`;
+// (27/09, Mathieu : « plutôt une barre sur le côté, avec tous les boutons directement accessibles », surtout sur téléphone)
+nav.innerHTML = `<ul class="evts-list">${EV.map(([id]) => `<li><button type="button" data-ev="${id}" aria-label="${L_('menu.' + id)}" title="${L_('menu.' + id)}"><svg viewBox="0 0 40 40" aria-hidden="true">${ICON[id]}</svg><span class="evts-nom">${L_('menu.' + id)}</span></button></li>`).join('')}</ul>`;
 document.body.appendChild(nav);
-const tab = nav.querySelector('.evts-tab');
-tab.addEventListener('click', () => { const o = !nav.classList.contains('ouvert'); nav.classList.toggle('ouvert', o); tab.setAttribute('aria-expanded', o); });
 nav.querySelectorAll('[data-ev]').forEach(b => b.addEventListener('click', e => {
   e.stopPropagation(); const ev = EV.find(v => v[0] === b.dataset.ev); if (!ev) return;
   try { ev[1](); } catch (err) { console.warn(err); }
   b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
-  if (matchMedia('(max-width: 700px)').matches) { nav.classList.remove('ouvert'); tab.setAttribute('aria-expanded', false); }
 }));
 // (les clics dans le menu ne tombent pas dans la scène : pas de chat qui tombe du ciel)
 ['pointerdown', 'click'].forEach(t => nav.addEventListener(t, e => e.stopPropagation()));
