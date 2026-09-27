@@ -36,6 +36,19 @@ function squash(o, dir) {
   interrupt(o); o.fall = false; o.pet = null;
   o.q = [pose('ecrase', 1.35, { fx: o => word(pick(['splotch', 'plof', 'crouiik']), o.x, o.y - sc(o) * 0.4, 18) }), pose('secoue', 0.55), pose(pick(['boude', 'assis', 'etourdi']), rnd(1.5, 2.5), { fx: o => say(o, pick(['…', 'aïe', 'pfff', '@_@'])) })];
 }
+// un visiteur énorme arrive (Mathieu, 27/09) : les chats de passage (ceux qu'on a fait tomber du ciel) détalent hors de l'écran,
+// les résidents filent à l'autre bout ou restent bouche bée
+function panique(x) {
+  Wd.cats.forEach(o => {
+    if (o.rare || o.held || o.hidden || o.gone || o.fight || o.fall) return; const away = sgn(o.x - x) || (Math.random() < 0.5 ? -1 : 1);
+    interrupt(o); o.pet = null; const cri = o => say(o, pick(['!!', 'AAAH', 'miaaa !', 'sauve qui peut !', 'au secours !']));
+    const saut = o.perch ? [hop(() => groundAt(K.inView(o.x + away * sc(o) * 1.2), Math.max(0, o.perch.it.d - 0.2)), { h: sc(o) * 0.6, zr: [0.1, 0.5] })] : [];
+    if (o.temp) o.q = [pose('sursaut', 0.45, { fx: cri }), ...saut, go(away < 0 ? -sc(o) * 1.5 : Wd.W + sc(o) * 1.5, { g: 'galop', v: rnd(1.1, 1.4) }), fn(o => { o.gone = true; })];
+    else if (Math.random() < 0.65) o.q = [pose('sursaut', 0.45, { fx: cri }), ...saut, go(K.inView(away < 0 ? rnd(0.02, 0.12) * Wd.W : rnd(0.88, 0.98) * Wd.W), { g: 'galop' }), pose('affut', rnd(1.5, 3), { face: -away }), pose('toilette', 2)];
+    else o.q = [...saut, pose('affut', rnd(2, 3.5), { face: -away, fx: o => say(o, pick(['waouh…', 'oh…', 'énorme…', '!!!'])) }), pose('assis', 1)];
+    o.task = null;
+  });
+}
 // les gros objets : aplatis puis, boing, leur forme revient (it.sq : voir Univers.place)
 H.pre.push(() => {
   Wd.props.forEach(it => { if (it.sqT == null) return; const e = Wd.t - it.sqT;
@@ -53,7 +66,7 @@ function geant(x) {
   const c = spawn('geant', { d: 0.02, face: dir }, Math.min(Wd.H * 1.25, Wd.W * 1.3)); c.zo = 3000;
   const Rb = sc(c) * 0.36; c.x = dir > 0 ? -Rb * 2.2 : Wd.W + Rb * 2.2;
   c.q = [{ k: 'rouleau', dir, Rb, air: true }, fn(c => { c.gone = true; })];
-  later(0.6, () => watchers(Wd.W / 2, 6).forEach(o => { interrupt(o); o.q = [pose('affut', rnd(0.8, 1.6), { face: -dir, fx: o => say(o, pick(['!!', 'oh non', '?!'])) })]; }));
+  later(0.4, () => panique(dir > 0 ? 0 : Wd.W));
   return c;
 }
 STEPS.rouleau = (c, T, dt) => {
@@ -78,14 +91,23 @@ ANIMS.longPain = (c, p, t) => { ANIMS.pain(c, p, t); p[I.pitch] = 0; p[I.y] = c.
 function interminable() {
   const d = 0.22, c = spawn('interminable', { d, face: 1 }), len = c.b.body[0] * 2 + 0.6;
   c.vyaw = 0;   // bien de profil : le dos reste à plat, d'un bord à l'autre
-  c.b.s = Math.max(Wd.W * 1.3, 1000) / len / sOf(d); const half = c.b.body[0] * sc(c); c.x = -half - sc(c) * 0.5; c.zo = 0;
+  // (long, mais pas géant : sa tête reste à peine plus grosse que celle d'un chat)
+  c.b.s = clamp(Math.max(Wd.W * 1.1, 900) / len / sOf(d), 1.1, 1.6); const half = c.b.body[0] * sc(c); c.x = -half - sc(c) * 0.5; c.zo = 0;
   c.q = [{ k: 'defile', half, air: true }, fn(c => { c.gone = true; })];
+  later(0.8, () => { if (alive(c)) panique(0); });
   return c;
+}
+// devant sa tête : les chats sont renversés (poussés en l'air) ou écrasés
+function bouscule(c) {
+  if (!c.hp) return; const hx = c.hp[0], r = c.b.head[0] * sc(c);
+  Wd.cats.forEach(o => { if (o === c || o.rare || o.held || o.hidden || o.gone || o.fall || o.d > 0.6 || o.x < hx - r || o.x > hx + r * 2.5 || Wd.t - (o.squashT ?? -9) < 2.5) return;
+    if (o.perch || Math.random() < 0.5) squash(o, 1);
+    else { o.squashT = Wd.t; interrupt(o); o.pet = null; o.fall = true; o.vx = sc(o) * rnd(3, 5); o.vy = -sc(o) * rnd(2.5, 4); o.spin = rnd(1, 2); say(o, pick(['waaah !', 'hé !', 'pousse-toi !'])); word(pick(['pouf', 'hop là']), o.x, o.y - sc(o), 18); } });
 }
 STEPS.defile = (c, T, dt) => {
   c.y = floorAt(c.d); c.face = 1; const v = Wd.W / 10;
   if (!T.ph) {   // il entre… et entre encore
-    c.anim = 'longPas'; c.x += v * dt;
+    c.anim = 'longPas'; c.x += v * dt; bouscule(c);
     if (!T.said && c.x + T.half > Wd.W * 0.3) { T.said = 1; say(c, pick(['bonjour', 'pardon…', 'je passe'])); }
     if (c.x + T.half > Wd.W * 0.94) { T.ph = 1; T.t1 = T.t; say(c, pick(['euh…', 'je fais une pause', 'mrr'])); }
   } else if (T.ph === 1) {   // couché en travers : il bloque le passage ; les autres sautent par-dessus
@@ -95,7 +117,7 @@ STEPS.defile = (c, T, dt) => {
         hop(() => groundAt(x, 0.5), { h: sc(c) * 0.35 + sc(o) * 0.5 }), pose('assis', 1, { fx: o => say(o, 'hop') })]; }); }
     if (T.t - T.t1 > 8) { T.ph = 2; say(c, pick(['bon, j\'y vais', 'à plus'])); }
   } else {   // et il repart… sans fin
-    c.anim = 'longPas'; c.x += v * 1.8 * dt;
+    c.anim = 'longPas'; c.x += v * 1.8 * dt; bouscule(c);
     if (c.x - T.half - sc(c) * 0.8 > Wd.W) return true;
   }
   return false;
