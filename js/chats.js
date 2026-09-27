@@ -493,7 +493,7 @@ function play(c, toy) {
   c.q.push(pose('assis', 1.5), fn(free));
 }
 function kick(it, dir) {
-  if (!it || it.fall) return; const s = sOf(it.d);
+  if (!it || it.fall) return; const s = sOf(it.d); it.on = null;   // empilé (la tasse sur sa caisse) : il quitte la pile
   if (it.r) { it.vx = dir * s * rnd(1.8, 3); it.fall = true; it.vy = s * rnd(0.4, 0.9); }
   else { it.vx = dir * s * rnd(1.2, 2); it.fall = true; it.vy = s * rnd(0.8, 1.4); it.tiltV = 0; }
 }
@@ -618,6 +618,7 @@ function live(c, dt) {
   // les petits effets : les z du sommeil
   if (c.task && c.task.zzz && (c.zt = (c.zt || 0) + dt) > 1.3) { c.zt = 0; const h = Chat.where(c, c.head); Wd.fx.push({ k: 'z', x: h[0] + c.face * sc(c) * 0.1, y: h[1] - sc(c) * 0.15, t0: Wd.t, life: 2.4, dx: c.face }); }
   // la pose
+  if (c.anim !== c.animP) { c.animP = c.anim; c.at = 0; }   // chaque pose a son propre temps (l'écrasé, le sursaut, le bâillement partent du début)
   const A = ANIMS[c.anim] || ANIMS.assis; A(c, c.tgt, c.at);
   if (c.pushing) { c.tgt[I.pitch] -= 0.12; c.tgt[I.look] = 0.3; c.tgt[I.eyes] = 1; }
   if (c.purr && Wd.t < c.purr && !c.pet) { ANIMS.ronron(c, c.tgt, c.at); }
@@ -875,6 +876,8 @@ function shoot(g) {
 function machines(dt) {
   Wd.props.forEach(g => {
     if (g.pivot) {
+      // plus personne ne le tient (le chat pendu est parti, on l'a délogé) : il remonte
+      if (g.pulling && !g.byHand && !Wd.cats.some(c => c.task && c.task.k === 'pendu' && c.task.g === g && c.task.on)) g.pulling = false;
       if (!g.pulling) { const u = Wd.t - (g.flick ?? -9); g.pull = u < 0.5 ? Math.sin(u / 0.5 * Math.PI) : (g.pull || 0) * Math.exp(-dt * 7); }
       if (g.pulling && g.pull > 0.75 && Wd.t > (g.next || 0)) { shoot(g); g.next = Wd.t + 0.3; }
     }
@@ -1118,7 +1121,7 @@ function click(x, y, S) {
 // Lâché sans avoir bougé, c'est une caresse : il ronronne.
 function grab(x, y) {
   if (!ready) return null; Wd.gx = x; Wd.gy = y;
-  const L = leverAt(x, y); if (L) return L;
+  const L = leverAt(x, y); if (L) { L.lever.byHand = true; return L; }
   const c = catAt(x, y); if (c) return c; const it = propAt(x, y); return it && !it.run ? it : null;
 }
 // le levier de la machine à cartons : son pommeau à l'écran
@@ -1164,13 +1167,13 @@ function pet(c, x, y) {
 function purr(c) { c.purr = Wd.t + 2.6; say(c, '♥'); later(0.5, () => say(c, 'rrrr', 0)); }
 function release(c, vx, vy) {
   if (!c || run(H.release, c, vx, vy)) return;
-  if (c.lever) { const g = c.lever; if (!g.pulling) { g.flick = Wd.t; shoot(g); } g.pulling = false; return; }
+  if (c.lever) { const g = c.lever; g.byHand = false; if (!g.pulling) { g.flick = Wd.t; shoot(g); } g.pulling = false; return; }
   if (c.pet) { const n = c.pet.n; c.pet = null; c.task = null; c.q = n > 5 ? [pose('petrit', rnd(2, 3.5), { fx: c => say(c, '♥') }), pose('pain', rnd(4, 8))] : [pose('assis', rnd(1, 2))]; if (!n) purr(c); return; }
   // un simple clic (sans soulever) : d'abord les modules (le coffre, la trappe coincée, le distributeur vide…), sinon une pichenette
   if (isProp(c)) { const it = c; if (!it.held) { if (!run(H.click, Wd.gx ?? it.x, Wd.gy ?? it.y)) poke(it, Wd.gx ?? it.x); return; }
     // lâché : il vole, tourne sur lui-même, rebondit, se pose (sur une caisse, s'il tombe dessus)
     it.held = false; drop(it, clamp(vx || 0, -1800, 1800), -clamp(vy || 0, -1800, 1800), clamp((vx || 0) * 0.004, -7, 7) + rnd(-1, 1)); return; }
-  if (!c.held) { if (!run(H.click, Wd.gx ?? c.x, Wd.gy ?? c.y)) purr(c); return; }
+  if (!c.held) { if (!run(H.click, Wd.gx ?? c.x, Wd.gy ?? c.y) && !c.fall && !c.jump) purr(c); return; }
   c.held = false; c.fall = true; c.vx = clamp(vx || 0, -1500, 1500); c.vy = clamp(vy || 0, -1500, 1500);
   // la pose change (pendu → en chute) : le corps reste où il est
   c.y += c.D.stand * sc(c); c.cur[I.y] = c.D.stand; c.spin = clamp((c.pend ? c.pend.th : 0) * c.face - c.vx * 0.002, -1.5, 1.5); c.pend = null;
