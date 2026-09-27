@@ -188,6 +188,9 @@ function pieces() {
   // la gamelle et ses croquettes
   P.gamelle = Obj3D.piece('u:gamelle', B => {
     B.solid(K.lathe([[0, 0], [0.16, 0], [0.17, 0.01], [0.14, 0.075], [0.13, 0.08], [0.115, 0.072], [0, 0.05]], 28));
+  });
+  // ses croquettes, à part : elles baissent quand on mange, la gamelle se vide (27/09)
+  P.gGrains = Obj3D.piece('u:gGrains', B => {
     for (let i = 0; i < 9; i++) { const a = i * 2.4, r = 0.02 + (i % 4) * 0.022; B.solid(new T.IcosahedronGeometry(0.016, 0).translate(Math.cos(a) * r, 0.062 + (i % 3) * 0.008, Math.sin(a) * r)); }
   });
   // la pelote : une boule, et des tours de laine (des grands cercles, dans tous les sens)
@@ -239,7 +242,7 @@ function make(kind, o) {
   else if (kind === 'plante') { put(P.plante); it.tilt = 0; it.box = { w: 0.2, h: 0.19, d: 0.2 }; }
   else if (kind === 'tasse') { put(P.tasse); it.tilt = 0; it.box = { w: 0.11, h: 0.11, d: 0.11 }; }
   else if (kind === 'coussin') { put(P.coussin); it.perches = [{ id: 'coussin', p: [0, 0.13, 0], w: 0.15 }]; }
-  else if (kind === 'gamelle') put(P.gamelle);
+  else if (kind === 'gamelle') { put(P.gamelle); const gr = new T.Group(); view.add(gr); put(P.gGrains, gr); parts.grains = gr; }
   else if (kind === 'distrib') { ['dSocle', 'dCorps', 'dBec'].forEach(k => put(P[k])); const j = new T.Group(); j.position.set(0, 0.46, 0); view.add(j); put(P.dBocal, j); parts.jar = j; it.bec = [0.24, 0.41, 0];
     const gr = new T.Group(); j.add(gr); put(P.dGrains, gr); parts.grains = gr; const ey = new T.Group(); view.add(ey); put(P.dYeux, ey); parts.yeux = ey; }
   else if (kind === 'lanceur') {

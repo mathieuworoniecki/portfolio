@@ -63,6 +63,13 @@ fam('pepins', 'Les petits pépins', 'Little mishaps', [
   ['pop', 'POP', 'POP', 'Un ballon et quelque chose de pointu… ou de lancé.', 'A balloon and something thrown at it.'],
   ['patatras', 'PATATRAS', 'CRASH', 'Faire tomber la pile de chatons.', 'Knock over the stack of kittens.'],
 ]);
+fam('faim', 'La faim', 'Hunger', [
+  ['gamellevide', 'Plus rien !', 'All gone!', 'Une gamelle, ça se vide.', 'A bowl runs out.'],
+  ['remplie', 'À table', 'Dinner is served', 'Et si le distributeur visait la gamelle ?', 'What if the dispenser aimed at the bowl?'],
+  ['fauxpoisson', 'Du faux', 'Fake fish', 'Un chat affamé, un poisson en tissu…', 'A hungry cat, a cloth fish…'],
+  ['vol', 'Le voleur', 'The thief', 'Des croquettes, deux chats, un seul est rapide.', 'Kibble, two cats, only one is quick.'],
+  ['suiveurs', 'Le cortège', 'The parade', 'Promener la gamelle pleine devant les gourmands.', 'Walk the full bowl past the greedy ones.'],
+]);
 fam('eau', 'L’eau et les couleurs', 'Water and colours', [
   ['mouille', 'Tout mouillé', 'Soaking wet', 'Il sort du bain, il s’ébroue.', 'Out of the bath, he shakes.'],
   ['seche', 'Le séchage', 'Blow-dry', 'Le souffleur sur un chat mouillé.', 'The blower on a wet cat.'],

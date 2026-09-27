@@ -455,7 +455,7 @@ function think(c) {
   const all = k => Wd.props.filter(p => p.kind === k && !p.busy && !p.fall && p.fade > 0.9);
   const beds = all('coussin').concat(all('panier'));
   if (beds.length) add(ch.dort * (beds.some(b => ch.coin === b.kind) ? 2 : 1), () => sleep(c, beds.find(b => ch.coin === b.kind) || pick(beds)));
-  const food = all('gamelle').concat(all('distrib'));
+  const food = all('gamelle').filter(g => !(g.stock <= 0.03)).concat(all('distrib'));   // (vide, la gamelle n'attire plus : js/faim.js)
   if (food.length) add(ch.mange * fav('gamelle'), () => eat(c, pick(food)));
   const water = all('eau').concat(all('bassin')); if (water.length) add(ch.mange * 0.7 + 0.4, () => eat(c, pick(water), true));
   if (Wd.kib.some(k => k.rest && !k.who)) add(7, () => crunch(c));
