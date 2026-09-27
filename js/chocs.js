@@ -123,5 +123,110 @@ H.pre.push(dt => {
   }
 });
 
-return { corps };
+/* ——— les croquettes : un choc au sol les disperse ; un clic les fait sauter ; le géant, l'éclair et le chat fou les envoient valser ——— */
+function eparpille(x, d, R, force) {
+  let n = 0;
+  Wd.kib.forEach(k => { if (!k.rest || k.who || k.suck || Math.abs(k.d - d) > 0.3) return; const dx = k.x - x; if (Math.abs(dx) > R) return;
+    const u = 1 - Math.abs(dx) / R; k.rest = false; k.vx = (sgn(dx) || (Math.random() < 0.5 ? -1 : 1)) * force * u * rnd(0.6, 1.2) + rnd(-40, 40); k.vy = -force * u * rnd(0.5, 1); n++; });
+  return n;
+}
+H.pre.push(dt => {
+  if (!Wd.kib.length) return;
+  // ce qui retombe au sol (un chat lancé, un objet) : les croquettes autour sautent
+  Wd.cats.forEach(c => { const s = sc(c);
+    if (c.fall && c.vy > s * 2 && K.floorAt(c.d) - c.y < c.vy * dt * 2 + s * 0.1) eparpille(c.x, c.d, s * 1.1, Math.min(c.vy * 0.6, 600));
+    // ce qui court vite dessus les chasse devant lui
+    const g = c.task && c.task.k === 'walk' && (c.task.g === 'galop' || c.fou) || (c.rare === 'geant' || c.rare === 'eclair');
+    if (g && !c.balai && !c.fall && !c.jump && Wd.t - (c.kibT ?? -9) > 0.15) { c.kibT = Wd.t; eparpille(c.x + c.face * s * 0.3, c.d, s * (c.rare === 'geant' ? 1.2 : 0.4), s * 2.5); }
+  });
+  Wd.props.forEach(it => { if (!it.fall || it.held || it.run || it.vy > 0) return; const s = sOf(it.d);
+    if (it.lift < Math.abs(it.vy) * dt * 2 + 4 && Math.abs(it.vy) > s * 1.5) eparpille(it.x, it.d, it.hull.w * it.s * 0.9, Math.min(Math.abs(it.vy) * 0.5, 450)); });
+});
+H.click.push((x, y) => {
+  const near = Wd.kib.filter(k => k.rest && !k.who && Math.hypot(k.x - x, k.y - y) < Math.max(14, Wd.s0 * 0.08)); if (!near.length) return false;
+  eparpille(x, near[0].d, Wd.s0 * 0.25, Wd.s0 * 2.4); word(pick(['tic', 'crr', 'pic']), x, y - 16, 14); return true;
+});
+
+/* ——— les boutons : un objet lancé dedans rebondit, le bouton tremble ——— */
+const boutons = () => ['#enter', '#stay'].map(q => document.querySelector(q)).filter(el => el && !el.disabled && el.getClientRects().length);
+function tremble(el) { if (el.animate && Wd.t - (el.chocT ?? -9) > 0.4) { el.chocT = Wd.t; el.animate([{ transform: 'none' }, { transform: 'rotate(-3deg) translateY(2px)' }, { transform: 'rotate(2deg)' }, { transform: 'none' }], { duration: 380, easing: 'ease-out' }); } }
+H.pre.push(dt => {
+  const B = boutons(); if (!B.length) return; const R = B.map(el => el.getBoundingClientRect());
+  const dans = (r, x, y, m) => x > r.left - m && x < r.right + m && y > r.top - m && y < r.bottom + m;
+  Wd.props.forEach(it => {
+    if (!it.fall || it.held || it.run || recent(it, 'btnT', 0.3)) return; const vx = it.vx || 0, vy = -(it.vy || 0), x = it.x, y = it.y - it.hull.h * it.s * 0.5, m = it.hull.w * it.s * 0.3;
+    R.forEach((r, i) => { if (!chemin(x, y, vx, vy, dt, (a, b) => dans(r, a, b, m))) return; it.btnT = Wd.t; tremble(B[i]);
+      // de haut ou de bas : il rebondit ; de côté : il repart en arrière
+      const cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2, s = sOf(it.d);
+      if (Math.abs(x - cx) / r.width > Math.abs(y - cy) / r.height) it.vx = -vx * 0.4; else { it.vy = y < cy ? Math.abs(it.vy || 0) * 0.4 + s * 0.5 : -Math.abs(it.vy || 0) * 0.3; it.vx = vx * 0.7; }
+      it.tiltV = (it.tiltV || 0) + rnd(-6, 6); word(pick(['toc', 'poc', 'bonk']), x, r.top - 14, 17); });
+  });
+  // un chat lancé de côté (ou par-dessous) : il se cogne (de haut, js/objets.js le pose dessus)
+  Wd.cats.forEach(c => {
+    if (!c.fall || c.held || c.rare || recent(c, 'btnT', 0.4) || (c.vy > 0 && Math.abs(c.vx) < c.vy * 1.2)) return; const s = sc(c), x = c.x, y = c.y - s * 0.35;
+    R.forEach((r, i) => { if (!chemin(x, y, c.vx, c.vy, dt, (a, b) => dans(r, a, b, s * 0.15))) return; c.btnT = Wd.t; tremble(B[i]);
+      c.vx = -c.vx * 0.35; c.vy = Math.max(c.vy, 0) * 0.3 + s * 0.3; c.spin = (c.spin || 0) + rnd(-1, 1); word('BONK', x, r.top - 14, 20); say(c, pick(['aïe', 'mia !', 'ouille'])); });
+  });
+});
+
+/* ——— le chat qu'on porte : les autres lèvent la tête ; balancé fort, il bouscule ce qu'il frôle ——— */
+H.pre.push(dt => {
+  Wd.cats.forEach(c => {
+    if (!c.held) { c.porteX = null; return; } const s = sc(c), px = c.porteX ?? c.x, py = c.porteY ?? c.y; c.porteX = c.x; c.porteY = c.y;
+    const vx = (c.x - px) / Math.max(dt, 1 / 120), vy = (c.y - py) / Math.max(dt, 1 / 120), sp = Math.hypot(vx, vy);
+    if (!recent(c, 'porteT', 2.5)) { c.porteT = Wd.t;
+      Wd.cats.forEach(o => { if (o !== c && K.free4(o) && !o.rare && Math.abs(o.x - c.x) < Wd.W * 0.3 && Math.random() < 0.45) { interrupt(o); o.q = [pose('affut', rnd(1, 2), { face: sgn(c.x - o.x) || o.face })]; if (Math.random() < 0.3) say(o, pick(['?', 'et moi ?', '!'])); } }); }
+    if (sp < s * 3) return; const bx = c.x, by = c.y + s * 0.2;   // (tenu par la peau du cou : le corps pend sous la main)
+    for (const o of Wd.cats) {
+      if (o === c || !cible(o) || recent(o, 'chocT', 1.2)) continue; const z = corps(o); if (!dans(z, bx, by) && !dans(z, bx, by + s * 0.3)) continue;
+      o.chocT = Wd.t; interrupt(o); o.pet = null; o.fall = true; o.vx = sgn(vx || 1) * sc(o) * rnd(1, 1.8); o.vy = -sc(o) * 1.2; o.spin = sgn(vx || 1) * 0.4;
+      say(o, pick(['hé !', 'attention !', 'mia !'])); say(c, pick(['pardon', 'wiii', 'oups'])); word(pick(['pof', 'boum']), z.x, z.y - z.ry, 18); break;
+    }
+    for (const it of Wd.props) {
+      if (!LEGER(it) || it.fall || it.held || it.run || it.tower || recent(it, 'chocT', 0.8) || !(touche(it, bx, by, s * 0.1) || touche(it, bx, by + s * 0.3, s * 0.1))) continue;
+      it.chocT = Wd.t; kick(it, sgn(vx || 1)); sortir(it); word(pick(['clang', 'bing']), it.x, it.y - it.hull.h * it.s - 10, 16); break;
+    }
+  });
+});
+
+/* ——— la bagarre : les voisins accourent voir, les peureux filent, ceux qui dormaient se réveillent ——— */
+H.pre.push(() => {
+  const F = [...new Set(Wd.cats.filter(c => c.fight).map(c => c.fight))];
+  F.forEach(f => {
+    if (f.vu) return; f.vu = true;
+    Wd.cats.forEach(o => {
+      if (f.L.includes(o) || o.rare || o.held || o.fall || o.hidden || Math.abs(o.x - f.x) > Wd.W * 0.45) return; const side = sgn(o.x - f.x) || 1;
+      if (o.perch) { o.face = -side; if (Math.random() < 0.6) say(o, pick(['!', '?!', 'ouh là'])); return; }
+      if (!K.free4(o) && !(o.task && o.task.k === 'pose')) return; interrupt(o);
+      const r = Math.random();
+      if (r < 0.35) o.q = [pose('affut', 0.5, { face: -side, fx: o => say(o, pick(['!', '?!'])) }), K.go(K.inView(o.x + side * Wd.W * 0.3), { g: 'galop' }), pose('toilette', 2)];
+      else if (r < 0.75) o.q = [K.go(K.inView(f.x + side * sc(o) * rnd(1.4, 2)), { g: 'trot', face: -side }), pose('affut', rnd(1.5, 2.5), { face: -side }), pose('assis', 1, { face: -side, fx: o => say(o, pick(['ouh là', 'vas-y !', '…', 'hé hé'])) })];
+      else o.q = [pose('affut', rnd(1.5, 2.5), { face: -side })];
+    });
+  });
+});
+
+/* ——— la souris de la horde : touchée, elle fait un bond et file plus vite ; elle saute par-dessus ce qui lui barre la route ——— */
+function bond(m, h) { if (m.bond && Wd.t - m.bond.t0 < m.bond.d) return; m.bond = { t0: Wd.t, d: 0.45, h: h || sOf(m.d) * 0.35 }; }
+H.pre.push(dt => {
+  Wd.props.forEach(m => {
+    if (!m.run) return; const s = sOf(m.d);
+    // en l'air (un bond)
+    if (m.bond) { const u = (Wd.t - m.bond.t0) / m.bond.d; if (u >= 1) { m.bond = null; m.lift = 0; } else m.lift = Math.sin(u * Math.PI) * m.bond.h; }
+    // un objet sur sa route : elle saute par-dessus
+    const nx = m.x + m.run.dir * s * 0.3;
+    const mur = Wd.props.find(it => it !== m && !it.run && !it.held && !it.mur && it.a > 0.5 && Math.abs(it.d - m.d) < 0.25 && Math.abs(it.x - nx) < it.hull.w * it.s * 0.5);
+    if (mur && !m.bond) bond(m, mur.hull.h * mur.s + s * 0.1);
+    // touchée : un objet ou un chat lancé
+    const hit = Wd.props.find(it => it !== m && it.fall && !it.held && Math.abs(it.x - m.x) < s * 0.3 && it.lift < s * 0.4 && Math.abs(it.d - m.d) < 0.35)
+      || Wd.cats.find(c => c.fall && !c.held && Math.abs(c.x - m.x) < sc(c) * 0.4 && K.floorAt(c.d) - c.y < sc(c) * 0.5);
+    if (hit && !recent(m, 'chocT', 0.8)) { m.chocT = Wd.t; bond(m, s * 0.5); m.run.v *= 1.25; word(pick(['couic !', 'hiii', 'couic']), m.x, m.y - s * 0.4, 16); }
+  });
+});
+H.click.unshift((x, y) => {
+  const m = Wd.props.find(m => m.run && Math.abs(m.x - x) < sOf(m.d) * 0.35 && Math.abs(m.y - sOf(m.d) * 0.1 - y) < sOf(m.d) * 0.35); if (!m) return false;
+  bond(m, sOf(m.d) * 0.5); m.run.v *= 1.2; word(pick(['couic !', 'hiii !', 'pas moi !']), m.x, m.y - sOf(m.d) * 0.4, 16); return true;
+});
+
+return { corps, eparpille };
 })();
