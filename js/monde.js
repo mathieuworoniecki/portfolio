@@ -183,6 +183,14 @@ H.live.push(c => {
   else if (c.poilPlat) { c.poilPlat = 0; if (window.Vie && Vie.puffs) Vie.puffs(c, 6); say(c, pick(['pouf ! ✨', 'frrr', 'tout doux'])); if (window.Dex) Dex.vu('regonfle'); }
 });
 
+// la tour s'écroule dans le bassin (27/09) : plouf général
+H.post.push(() => {
+  if (!Wd.P || !Wd.P.bassin) return;
+  for (const it of Wd.props) if (it.deTour && Wd.t - it.deTour < 4 && it.bainB && !it.tourPlouf) {
+    it.tourPlouf = 1; if (Wd.t - (Wd.tourPloufT || -9) > 3) { Wd.tourPloufT = Wd.t; word('PLOUF GÉNÉRAL', it.x, it.y - 60, 28); Wd.shake = { t0: Wd.t, a: 5 }; if (window.Dex) Dex.vu('tourplouf'); }
+  }
+});
+
 /* ——— le fil de la pelote fait trébucher ceux qui galopent (27/09, l'audit) ———
    Un chat au galop (la horde derrière la souris, la folie du soir) qui passe sur un fil bien déroulé s'y prend les pattes :
    il roule, s'emmêle, se débat ; la pelote est tirée d'un coup vers lui. */
@@ -195,7 +203,7 @@ H.post.push(() => {
     if (Math.abs(c.y - f) > sc(c) * 0.1) continue;
     const it = P.find(it => Math.abs(it.d - c.d) < 0.35 && it.trail.some(T => Math.abs(T[0] - c.x) < r && Math.abs(T[3] - f) < sc(c) * 0.3 && T[1] > T[3] - 4)); if (!it) continue;
     c.trebT = c.tangle = Wd.t; const temp = c.temp, dir = sgn(c.vx || -c.face) || 1; interrupt(c); c.task = null;
-    Wd.fx.push({ k: 'txt', text: pick(['emmêlé !', 'PATATRAS', 'woups']), x: c.x, y: c.y - sc(c) * 1.1, t0: Wd.t, life: 1.2, rot: rnd(-0.2, 0.2), size: 20 });
+    Wd.fx.push({ k: 'txt', text: pick(['emmêlé !', 'badaboum', 'woups']), x: c.x, y: c.y - sc(c) * 1.1, t0: Wd.t, life: 1.2, rot: rnd(-0.2, 0.2), size: 20 });
     K.dust(c.x, f, sOf(c.d) * 0.6, 1);
     if (!it.fall) K.drop(it, (sgn(c.x - it.x) || 1) * sOf(it.d) * rnd(1.5, 3), sOf(it.d) * 1.5, 0);
     c.q = [pose('etourdi', 0.7), pose('agrippe', 1.6, { fx: c => say(c, pick(['mrr ?!', 'au secours', 'lâche-moi, fil !'])) }), pose('secoue', 0.8), pose('assis', 0.8, { fx: c => { c.tangle = 0; it.unrav *= 0.6; } })];

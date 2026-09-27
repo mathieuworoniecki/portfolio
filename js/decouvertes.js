@@ -99,6 +99,8 @@ fam('eau', 'L’eau et les couleurs', 'Water and colours', [
   ['litmouille', 'Le lit mouillé', 'Soggy bed', 'Un chat trempé cherche où dormir.', 'A soaked cat looks for a bed.'],
   ['cartonmou', 'Carton mou', 'Soggy box', 'Le carton et l’eau ne sont pas amis.', 'Cardboard and water are not friends.'],
   ['regonfle', 'Pouf !', 'Poof!', 'Un poilu mouillé est tout plat… et une fois sec ?', 'A wet fluffy cat is all flat… and once dry?'],
+  ['vacarc', 'L’aspirateur arc-en-ciel', 'Rainbow vacuum', 'Le grand aspirateur, et une flaque qui brille.', 'The big vacuum, and a shiny puddle.'],
+  ['tourplouf', 'Plouf général', 'Everybody in!', 'La tour de caisses, tout près du bassin…', 'The crate tower, right next to the pool…'],
   ['raz', 'Raz-de-marée', 'Tidal wave', 'Le géant roule… et le bain est plein.', 'The giant rolls… while the bath is full.'],
 ]);
 fam('evts', 'Les événements', 'Events', [

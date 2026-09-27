@@ -880,11 +880,11 @@ function towerFrame(dt) {
   if (T.phase === 'debout') {
     // chaque chat perché au-dessus de la deuxième caisse fait pencher la pile
     const up = Wd.cats.filter(k => k.perch && k.perch.it.tower === T && T.boxes.indexOf(k.perch.it) >= 1).length;
-    T.w += dt * (0.05 + up * 0.14); const dir = T.dir || (T.dir = Math.random() < 0.5 ? -1 : 1);
+    T.w += dt * (0.05 + up * 0.14); const bs = Wd.P.bassin, x0 = xOf(T.boxes[0]), dir = T.dir || (T.dir = bs && !bs.held && Math.abs(xOf(bs) - x0) < Wd.W * 0.35 && Math.random() < 0.7 ? sgn(xOf(bs) - x0) : Math.random() < 0.5 ? -1 : 1);   // (27/09 : le bassin à côté l'attire : tout le monde à l'eau)
     T.boxes.forEach((b, i) => { if (b.on && i) b.tilt = Math.sin(T.t * 5 + i * 0.6) * T.w * 0.03 * i + dir * T.w * 0.02 * i; });
     if (T.w > 1 || T.t > 22) {
       T.phase = 'chute'; T.t = 0;
-      T.boxes.forEach((b, i) => { if (!i) return; const s = sOf(b.d); drop(b, dir * s * (0.5 + i * 0.35) * rnd(0.7, 1.3), s * rnd(0.2, 1), -dir * rnd(1.5, 4.5)); b.dT = clamp(T.d + rnd(-0.35, 0.35), 0, 1); });
+      T.boxes.forEach((b, i) => { if (!i) return; const s = sOf(b.d); b.deTour = Wd.t; drop(b, dir * s * (0.5 + i * 0.35) * rnd(0.7, 1.3), s * rnd(0.2, 1), -dir * rnd(1.5, 4.5)); b.dT = clamp(T.d + rnd(-0.35, 0.35), 0, 1); });
       const b = T.boxes[T.boxes.length - 1]; dust(xOf(b), b.y, sOf(b.d) * 0.8, 1);
       Wd.shake = { t0: Wd.t, a: 7 };
       if (window.Rares && Rares.panique) Rares.panique(xOf(T.boxes[0]));   // (la panique, comme pour le géant : js/rares.js)
@@ -1073,17 +1073,19 @@ function vacFrame(dt) {
 }
 function drawVac(S) {
   const V = Wd.vac; if (!V) return; const C = Chalk, s0 = Wd.s0, x = V.x, y = V.y, a = 0.85 * Wd.a, w = s0 * 0.28;
+  // (27/09) il a aspiré de l'arc-en-ciel : il en prend les couleurs (js/arcenciel.js, V.arcT)
+  const ARC = V.arcT > Wd.t && window.Arc ? Arc.COUL : null, col = k => ARC ? ARC[(k + Math.floor(Wd.t * 6)) % ARC.length] : undefined;
   // le rayon divin : de la lumière qui tombe du ciel autour du tuyau
-  for (let i = -3; i <= 3; i++) { const sp = i * s0 * 0.16; C.line(x + sp * 0.3, 0, x + sp, y - s0 * 0.1, 1, { w: 1.1, a: 0.16 * Wd.a, amp: 0.4, seed: 40 + i, tip: false, dash: [6, 9] }); }
+  for (let i = -3; i <= 3; i++) { const sp = i * s0 * 0.16; C.line(x + sp * 0.3, 0, x + sp, y - s0 * 0.1, 1, { w: 1.1, a: 0.16 * Wd.a, amp: 0.4, seed: 40 + i, tip: false, dash: [6, 9] , color: col(1) }); }
   // le tuyau (deux traits ondulés), les annelures
   const hose = k => { const P = []; for (let j = 0; j <= 12; j++) { const v = j / 12, yy = -10 + (y - s0 * 0.35 + 10) * v; P.push([x + k * w * 0.32 + Math.sin(v * 7 + Wd.t * 3) * s0 * 0.05 * (1 - v), yy]); } return P; };
-  C.stroke(hose(-1), 1, { w: 2, a, seed: 51, tip: false }); C.stroke(hose(1), 1, { w: 2, a, seed: 52, tip: false });
-  for (let j = 1; j < 6; j++) { const yy = (y - s0 * 0.35) * j / 6, xx = x + Math.sin(j / 6 * 7 + Wd.t * 3) * s0 * 0.05 * (1 - j / 6); C.line(xx - w * 0.32, yy, xx + w * 0.32, yy + 3, 1, { w: 1.2, a: a * 0.6, seed: 60 + j, tip: false }); }
+  C.stroke(hose(-1), 1, { w: 2, a, seed: 51, tip: false , color: col(2) }); C.stroke(hose(1), 1, { w: 2, a, seed: 52, tip: false , color: col(3) });
+  for (let j = 1; j < 6; j++) { const yy = (y - s0 * 0.35) * j / 6, xx = x + Math.sin(j / 6 * 7 + Wd.t * 3) * s0 * 0.05 * (1 - j / 6); C.line(xx - w * 0.32, yy, xx + w * 0.32, yy + 3, 1, { w: 1.2, a: a * 0.6, seed: 60 + j, tip: false , color: col(4) }); }
   // la bouche : un entonnoir large, ouvert vers le bas ; une auréole au-dessus
-  C.stroke([[x - w * 0.32, y - s0 * 0.35], [x - w, y], [x + w, y], [x + w * 0.32, y - s0 * 0.35]], 1, { w: 2.4, a, seed: 70, tip: false });
-  C.circle(x, y - s0 * 0.5, w * 0.7, w * 0.16, 1, { w: 1.6, a: a * 0.8, seed: 71 });
+  C.stroke([[x - w * 0.32, y - s0 * 0.35], [x - w, y], [x + w, y], [x + w * 0.32, y - s0 * 0.35]], 1, { w: 2.4, a, seed: 70, tip: false , color: col(5) });
+  C.circle(x, y - s0 * 0.5, w * 0.7, w * 0.16, 1, { w: 1.6, a: a * 0.8, seed: 71 , color: col(6) });
   // l'aspiration : des petits traits qui montent vers la bouche
-  if (V.ph === 'balaye') for (let i = 0; i < 7; i++) { const ph = (Wd.t * 2.2 + i / 7) % 1, sx = x + (i - 3) * s0 * 0.22 * (1 - ph), sy = Wd.floor - (Wd.floor - y) * ph; C.line(sx, sy + 8, sx + (x - sx) * 0.1, sy, 1, { w: 1.2, a: a * 0.5 * (1 - ph), seed: 80 + i, tip: false }); }
+  if (V.ph === 'balaye') for (let i = 0; i < 7; i++) { const ph = (Wd.t * 2.2 + i / 7) % 1, sx = x + (i - 3) * s0 * 0.22 * (1 - ph), sy = Wd.floor - (Wd.floor - y) * ph; C.line(sx, sy + 8, sx + (x - sx) * 0.1, sy, 1, { w: 1.2, a: a * 0.5 * (1 - ph), seed: 80 + i, tip: false , color: col(7) }); }
 }
 
 /* ——— les scénarios, chacun son tour (dans un ordre mélangé) ; js/scenarios.js en ajoute ——— */

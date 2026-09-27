@@ -98,7 +98,7 @@ H.post.push(() => {
       c.arcLx = c.x; c.arcN = (c.arcN || 0) + 1; T.push({ k: 'patte', x: c.x + (c.arcN % 2 ? 4 : -4), y: floorAt(c.d) + (c.arcN % 2 ? 2 : -2), r: sc(c) * 0.035, t0: Wd.t, life: 14, seed: c.arcN, d: c.d, col: COUL[c.arcN % 6] }); }
   });
   // l'aspirateur (js/chats.js, Wd.vac)
-  const V = Wd.vac; if (V && V.x != null) T.forEach(f => { if (!f.pouf && Math.abs(f.x - V.x) < sOf(f.d) * 0.6) f.pouf = Wd.t; });
+  const V = Wd.vac; if (V && V.x != null) T.forEach(f => { if (!f.pouf && Math.abs(f.x - V.x) < sOf(f.d) * 0.6) { f.pouf = Wd.t; if (f.k !== 'patte') { if (!(V.arcT > Wd.t)) word(pick(['✨ glou ✨', 'slurp ✨', 'hic ✨']), V.x, V.y - Wd.s0 * 0.6, 18); V.arcT = Wd.t + 12; if (window.Dex) Dex.vu('vacarc'); } } });
 });
 H.click.push((x, y) => {
   const f = T.find(f => f.k !== 'patte' && !f.pouf && Math.abs(x - f.x) < f.r + 12 && Math.abs(y - (f.y - f.r * 0.4)) < f.r + 14); if (!f) return false;
