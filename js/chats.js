@@ -784,7 +784,7 @@ function say(c, text, rot) { const h = Chat.where(c, c.head); Wd.fx.push({ k: 't
 function dust(x, y, r, a) { Wd.fx.push({ k: 'dust', x, y, r, a, t0: Wd.t, life: 0.5, seed: Math.floor(Math.random() * 99) }); }
 function drawFx(S) {
   const C = Chalk, t = Wd.t, K = S.K || 1;
-  Wd.fx = Wd.fx.filter(f => t - f.t0 < f.life);
+  { const F = Wd.fx; let n = 0; for (let i = 0; i < F.length; i++) if (t - F[i].t0 < F[i].life) F[n++] = F[i]; F.length = n; }   // (sur place : pas une nouvelle liste à chaque image)
   Wd.fx.forEach(f => {
     const u = (t - f.t0) / f.life, fade = (1 - sm((u - 0.6) / 0.4)) * Wd.a;
     if (f.k === 'txt') {

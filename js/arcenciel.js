@@ -18,16 +18,18 @@ const T = [];   // les traces : { k: 'pipi' | 'caca' | 'vomi' | 'patte', x, y, r
 function colore(o, dur) { if (!o) return; o.arcT = Math.max(o.arcT || 0, Wd.t + (dur || 25)); o.arcH = o.arcH ?? Math.random(); }
 const traits = M => [M.line, M.soft, M.out, M.out2].filter(x => x && x.color);
 H.post.push(() => {
-  const dark = document.documentElement.dataset.theme === 'dark' || (!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
-  [...Wd.cats, ...Wd.props].forEach(o => {
+  const dark = document.documentElement.dataset.theme === 'dark' || (!document.documentElement.dataset.theme && SOMBRE.matches);
+  const teinte = o => {
     if (!o.mats) return;
     if (o.arcT > Wd.t) {
       if (!o.arc0) o.arc0 = o.mats.map(M => traits(M).map(x => x.color.getHex()));
       const h = (o.arcH + Wd.t * 0.35) % 1, fin = Math.min(1, (o.arcT - Wd.t) / 3);   // (les trois dernières secondes, ça pâlit)
       o.mats.forEach((M, i) => traits(M).forEach((x, j) => { const c0 = o.arc0[i] && o.arc0[i][j]; x.color.setHSL((h + j * 0.08) % 1, 0.85, dark ? 0.66 : 0.5); if (fin < 1 && c0 != null) x.color.lerp(TMP.setHex(c0), 1 - fin); }));
     } else if (o.arc0) { o.mats.forEach((M, i) => traits(M).forEach((x, j) => { const c0 = o.arc0[i] && o.arc0[i][j]; if (c0 != null) x.color.setHex(c0); })); o.arc0 = null; }
-  });
+  };
+  for (const o of Wd.cats) teinte(o); for (const o of Wd.props) teinte(o);   // (sans recopier les deux listes à chaque image)
 });
+const SOMBRE = matchMedia('(prefers-color-scheme: dark)');
 const TMP = new Obj3D.T.Color();
 
 /* ——— la petite affaire ——— */
