@@ -91,7 +91,7 @@ function cibles() {
   const m = Wd.mouche; if (m) add('mouche', m, rond(m.x, m.y, 14), null, m.x, m.y);
   if (Vi.ptr.plume > Wd.t) add('plume', Vi.plume, rond(Vi.plume.x, Vi.plume.y, 14), null, Vi.plume.x, Vi.plume.y);
   const V = Wd.vac; if (V && V.ph !== 'remonte') { const s0 = Wd.s0; add('vac', V, (x, y, mm) => Math.abs(x - V.x) < s0 * 0.45 + mm && y > V.y - s0 * 0.9 - mm && y < V.y + s0 * 0.15 + mm, null, V.x, V.y); }
-  ['#enter', '#stay'].forEach(q => { const el = document.querySelector(q); if (!el || el.disabled || !el.getClientRects().length) return; const b = el.getBoundingClientRect();
+  K.boutons().forEach(({ el, r: b }) => {
     add('bouton', el, (x, y, mm) => x > b.left - mm && x < b.right + mm && y > b.top - mm && y < b.bottom + mm, null, (b.left + b.right) / 2, b.top); });
   for (const it of Wd.props) {
     if (it.held || it.suck || it.a < 0.5) continue; const s = sOf(it.d);
@@ -164,7 +164,7 @@ const REACT = {
     if (s.k === 'porte') dit(s.who, ['nooon', 'pas lui !', 'miaaa !'], 1); else dit(s.who, ['aïe', 'mia !'], 0.6); },
   bouton(t, s, dir) { Ch.tremble(t.ref); word(pick(['toc', 'poc', 'bonk']), t.x, t.y - 14, 16);
     // une lettre, un colis : ils glissent sur le côté (sinon ils rebondiraient sur le bouton sans fin)
-    const b = t.ref.getBoundingClientRect(), side = sgn(s.x - (b.left + b.right) / 2) || 1;
+    const b = K.rectOf(t.ref), side = sgn(s.x - (b.left + b.right) / 2) || 1;
     if (s.k === 'lettre') { s.ref.vx = side * Wd.s0 * 1.6; s.ref.vy = -Math.abs(s.ref.vy) * 0.3; }
     else if (s.k === 'colis') { s.ref.vx = side * sOf(s.ref.d) * 1.2; } else rebond(s, dir); if (s.k === 'rare') say(s.who, pick(['oups', 'pardon', 'hihi'])); },
   cache(t, s, dir) { const o = t.ref;

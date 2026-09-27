@@ -50,8 +50,10 @@ const visOf = st => VIS[st] || VIS.blueprint;
 const FR = {};   // les images, par style
 // préparées en arrière-plan après le chargement, quatre à la fois (jamais d'à-coup) ; en attendant, la première seulement
 let preparing = false;
+// (le sélecteur de thème est caché sur le site : alors on ne prépare rien, ce qui évitait un second rendu 3D au chargement)
+const cache_ = () => { const el = document.getElementById('theme-pick'); return !el || getComputedStyle(el).display === 'none'; };
 function prepare() {
-  if (preparing || !(window.Obj3D && Obj3D.ok && Obj3D.frames)) return; preparing = true;
+  if (preparing || cache_() || !(window.Obj3D && Obj3D.ok && Obj3D.frames)) return; preparing = true;
   const jobs = []; Object.keys(VIS).forEach(st => { FR[st] = []; for (let i = 0; i < SWING; i += 4) jobs.push([st, i]); });
   // d'abord la première image de chaque style (les vignettes), puis le reste
   const firsts = Object.keys(VIS).map(st => { FR[st].push(...Obj3D.frames(visOf(st).obj, 300, 220, [visOf(st).rot(0)], 190)); return st; });
@@ -62,7 +64,7 @@ function prepare() {
   if (window.__pvDone) __pvDone(); idle(run, { timeout: 400 });
 }
 const TITLE = 'MATHIEU';   // le mot écrit dans les aperçus
-const subject = st => { if (!preparing) prepare(); return FR[st] || []; };
+const subject = st => { if (cache_()) return []; if (!preparing) prepare(); return FR[st] || []; };
 addEventListener('load', () => setTimeout(prepare, 1500));
 const dpr = Math.min(window.devicePixelRatio || 1, 2);
 function layers(style, color, w, h) {

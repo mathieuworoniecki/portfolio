@@ -8,14 +8,14 @@ window.Parcours = (() => {
 if (!window.Chats || !Chats.K) return null;
 const K = Chats.K, { Wd, H, STEPS, rnd, pick, sgn, sc, sOf, say, floorAt, free4, interrupt, pose, go, fn, free, inView, clamp } = K;
 const word = (text, x, y, size) => Wd.fx.push({ k: 'txt', text, x, y, t0: Wd.t, life: 1.1, rot: rnd(-0.2, 0.2), size: size || 16 });
-const bouton = () => { const el = document.querySelector('#stay'); return el && !el.disabled && el.getClientRects().length ? el : null; };
+const bouton = () => { const o = K.boutons().find(o => o.el.id === 'stay'); return o ? o.el : null; };
 
 // les étagères, à l'écran (recalculées : le bouton peut bouger)
 let cache = null, cacheT = -1;
 function etageres() {
   if (Wd.t === cacheT) return cache; cacheT = Wd.t; cache = null;
   if (Wd.mode !== 'large' || Wd.W < 1000 || Wd.a < 0.5) return null; const el = bouton(); if (!el) return null;
-  const r = el.getBoundingClientRect(), s0 = Wd.s0, y0 = floorAt(1), h = y0 - r.top; if (h < s0 * 1.2) return null;
+  const r = K.rectOf(el), s0 = Wd.s0, y0 = floorAt(1), h = y0 - r.top; if (h < s0 * 1.2) return null;
   const n = clamp(Math.round(h / (s0 * 0.8)) - 1, 2, 4), w = s0 * 0.5, L = [];
   for (let i = 1; i <= n; i++) L.push({ i, x: r.left - s0 * (i % 2 ? 0.95 : 0.3), y: y0 - h * i / (n + 1), w, wob: (cache && cache[i - 1] && cache[i - 1].wob) || -9 });
   return (cache = { L, r, el });

@@ -402,7 +402,7 @@ H.think.push((c, add) => {
     c.q.push(go(inView(x - sgn(x - c.x || 1) * s * 0.6), { g: 'trot' }), pose('affut', rnd(0.8, 1.4), { face: sgn(x - c.x) || c.face, fx: c => say(c, pick(['là-haut !', 'hmm…', '!'])) }),
       fn(c => { const top = RECT().top + L.y0 + L.dy; if (L.st) return; c.q.unshift({ k: 'bond', x, y: top, air: true, then: () => ({ k: 'titre', air: true, row: L.row }) }); })); });
   // sur un bouton
-  const B = ['#enter', '#stay'].map(q => document.querySelector(q)).filter(el => el && !el.disabled && el.getClientRects().length);
+  const B = K.boutons().map(o => o.el);
   if (B.length) add(c.ch.grimpe * 0.3 + 0.1, () => { const el = pick(B), b = el.getBoundingClientRect(), x = clamp(c.x, b.left + s * 0.3, b.right - s * 0.3);
     c.q.push(go(inView(x - sgn(x - c.x || 1) * s * 0.5), { g: 'trot' }), pose('affut', rnd(0.6, 1.2), { face: sgn(x - c.x) || c.face }),
       fn(c => { const b = el.getBoundingClientRect(); if (!b.width || el.disabled) return; c.q.unshift({ k: 'bond', x: clamp(x, b.left + 8, b.right - 8), y: b.top, air: true, then: () => ({ k: 'rebord', el, air: true }) }); })); });

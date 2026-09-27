@@ -157,10 +157,10 @@ H.click.push((x, y) => {
 });
 
 /* ——— les boutons : un objet lancé dedans rebondit, le bouton tremble ——— */
-const boutons = () => ['#enter', '#stay'].map(q => document.querySelector(q)).filter(el => el && !el.disabled && el.getClientRects().length);
+const boutons = () => K.boutons().map(o => o.el);
 function tremble(el) { if (el.animate && Wd.t - (el.chocT ?? -9) > 0.4) { el.chocT = Wd.t; el.animate([{ transform: 'none' }, { transform: 'rotate(-3deg) translateY(2px)' }, { transform: 'rotate(2deg)' }, { transform: 'none' }], { duration: 380, easing: 'ease-out' }); } }
 H.pre.push(dt => {
-  const B = boutons(); if (!B.length) return; const R = B.map(el => el.getBoundingClientRect());
+  const B = boutons(); if (!B.length) return; const R = K.boutons().map(o => o.r);
   const dans = (r, x, y, m) => x > r.left - m && x < r.right + m && y > r.top - m && y < r.bottom + m;
   Wd.props.forEach(it => {
     if (!it.fall || it.held || it.run || recent(it, 'btnT', 0.3)) return; const vx = it.vx || 0, vy = -(it.vy || 0), x = it.x, y = it.y - it.hull.h * it.s * 0.5, m = it.hull.w * it.s * 0.3;

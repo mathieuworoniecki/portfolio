@@ -233,7 +233,10 @@ function unrig(R) { if (!R) return; scene.remove(R.root); rigs.delete(R); }
 /* ——— la toile ——— */
 function init(canvas) {
   try {
-    renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: true }); renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3)); renderer.setClearColor(0, 0);
+    // l'anticrénelage seulement sous 2,5 pixels par point : au-delà (la plupart des téléphones) l'œil ne voit pas les marches, et il coûtait
+    // quatre fois l'image plein écran à la carte graphique (27/09, « optimise tout »)
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    renderer = new T.WebGLRenderer({ canvas, antialias: dpr < 2.5, alpha: true, powerPreference: 'high-performance' }); renderer.setPixelRatio(dpr); renderer.setClearColor(0, 0);
     scene = new T.Scene(); camera = new T.OrthographicCamera(0, 1, 0, -1, 1, 4e5); camera.position.z = 2e5; ok = true;
   } catch (e) { ok = false; console.error(e); }
 }

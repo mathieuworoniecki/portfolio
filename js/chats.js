@@ -141,6 +141,15 @@ const grav = () => 2600 * Wd.s0 / 160;
 const later = (s, f) => { (Wd.later || (Wd.later = [])).push({ t: Wd.t + s, f }); };
 // le plafond de la scène : le bas du texte et des boutons encore visibles (rien ne doit monter plus haut)
 function ceilY() { let y = 0; document.querySelectorAll('[data-plafond]').forEach(e => { const r = e.getBoundingClientRect(); if (r.height) y = Math.max(y, r.bottom); }); return y || Wd.H * 0.4; }
+// les deux boutons (où l'on grimpe, où l'on se cogne) et leur place à l'écran : lus une fois par image, pour tous les modules
+// (27/09, « optimise tout » : chacun les relisait, plusieurs fois par image)
+let btnT = -1, btnP = 0, btnL = [];
+function boutons() {
+  const now = performance.now(); if (btnT === Wd.t && now - btnP < 100) return btnL; btnT = Wd.t; btnP = now; btnL = [];
+  ['#enter', '#stay'].forEach(q => { const el = document.querySelector(q); if (el && !el.disabled && el.getClientRects().length) btnL.push({ el, r: el.getBoundingClientRect() }); });
+  return btnL;
+}
+const rectOf = el => { const o = boutons().find(o => o.el === el); return o ? o.r : el.getBoundingClientRect(); };
 // la taille d'une unité : selon l'écran, et la place libre sous le texte (plus grand quand on reste jouer : le texte s'en va)
 const size0 = () => clamp(Math.min(Wd.W * (Wd.W < 760 ? 0.2 : 0.19), Wd.H * 0.19, (Wd.floor - Wd.ceil) * 0.95), 64, 165);
 function laters() { if (!Wd.later || !Wd.later.length) return; const due = Wd.later.filter(o => Wd.t >= o.t); if (!due.length) return; Wd.later = Wd.later.filter(o => Wd.t < o.t); due.forEach(o => o.f()); }
@@ -1245,7 +1254,7 @@ function release(c, vx, vy) {
 }
 
 // pour js/vie.js : le monde et ses outils
-const K = { Wd, H, ANIMS, STEPS, CARAC, SPEED, LOURD, I, sit, lie, blink, rnd, pick, clamp, sgn, sm, c01, lerp, later, sc, front, back, sOf, floorAt, zOf, xOf, grav, inView, groundAt, perchAt, beside,
+const K = { Wd, H, boutons, rectOf, ANIMS, STEPS, CARAC, SPEED, LOURD, I, sit, lie, blink, rnd, pick, clamp, sgn, sm, c01, lerp, later, sc, front, back, sOf, floorAt, zOf, xOf, grav, inView, groundAt, perchAt, beside,
   PORTE, SCEN, addCat, unCat, free, free4, zoomies, eat, play, climb, push, smash, interrupt, claim, go, pose, hop, fn, say, dust, startle, thud, drop, prop, unprop, kick, residents, leave, enter, catAt, propAt, freeD, stack, topOf, open, unbox, hide, sleep, idle, stroll, press, fire, folle, aspire,
   get MAXC() { return MAXC; } };
 return { K, ANIMS, CARAC, frame, draw, hide: hideAll, click, grab, drag, release, get clicks() { return Wd.clicks; }, get world() { return Wd; }, horde, tower, aspire, folle: () => folle(Wd.P.distrib), ouvre: () => { const b = Wd.props.find(p => p.launched && p.kind === 'caisse' && !p.busy && !p.fall), c = Wd.cats.find(free4); if (b && c) { interrupt(c); open(c, b); } }, fight: () => { const L = Wd.cats.filter(free4).slice(0, 2); if (L.length > 1) fight(L); }, quarrel: () => { const L = Wd.cats.filter(free4); if (L.length > 1) quarrel(L[0], L[1]); } };

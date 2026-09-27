@@ -10,7 +10,7 @@ sync(); addEventListener('themechange', sync);
 const c01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 let cv, ctx, W = 1, H = 1, dpr = 1, mode = 'deform', gy = 0, last = performance.now();
 let mx = -1e4, my = -1e4, sx = -1e4, sy = -1e4, act = 0, on = 0;
-const cells = new Map(), trail = [];
+const cells = new Map(), trail = []; let vu = '';
 
 function mark(x0, y0, x1, y1) {
   const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 6));
@@ -27,8 +27,8 @@ function init(canvas, initial) {
   }, { passive: true });
   document.documentElement.addEventListener('mouseleave', () => { on = 0; });
 }
-function resize(w, h) { W = w; H = h; dpr = Math.min(window.devicePixelRatio || 1, 3); cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
-function setMode(m) { mode = m; cells.clear(); trail.length = 0; }
+function resize(w, h) { W = w; H = h; dpr = Math.min(window.devicePixelRatio || 1, 3); cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); vu = ''; }
+function setMode(m) { mode = m; vu = ''; cells.clear(); trail.length = 0; }
 
 // une ligne de la grille, déformée autour de la souris (effet loupe)
 function warpLine(x0, y0, x1, y1) {
@@ -46,6 +46,9 @@ function frame(dy) {
   const now = performance.now(), dt = Math.min(0.05, (now - last) / 1000); last = now;
   gy = -(dy || 0);
   sx += (mx - sx) * 0.18; sy += (my - sy) * 0.18; act += (on - act) * 0.08;
+  // rien n'a bougé (la loupe au repos, le téléphone sans souris) : l'image d'avant reste, on ne redessine pas tout l'écran
+  // (27/09, « optimise tout » : la grille était retracée à chaque image, même immobile)
+  if (mode === 'deform') { const sig = [gy, W, H, dpr, INK, GA, DOTS, act > 0.01 ? Math.round(sx * 2) + ',' + Math.round(sy * 2) + ',' + Math.round(act * 300) : 0].join('|'); if (sig === vu) return; vu = sig; } else vu = '';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
   const oy = ((gy % MINOR) + MINOR) % MINOR, j0 = Math.floor(-gy / MINOR);
   ctx.lineWidth = 1;

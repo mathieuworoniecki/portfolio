@@ -345,6 +345,15 @@ function tailOutline(c, puff) {
 const wv = V(0, 0, 0);
 function where(c, g, pt) { c.root.updateMatrixWorld(true); wv.set(pt ? pt[0] : 0, pt ? pt[1] : 0, pt ? pt[2] : 0); g.localToWorld(wv); return [wv.x, -wv.y, wv.z]; }
 
+/* le préchauffage (27/09, « optimise tout ») : la première apparition d'une race coûtait ~120 ms (ses pièces modelées d'un coup) ;
+   une race par moment de repos du navigateur, après le chargement, et elles sont prêtes avant d'être appelées */
+function prewarm() {
+  const L = Object.keys(TYPES), idle = window.requestIdleCallback || (f => setTimeout(f, 80));
+  const run = () => { const id = L.shift(); if (!id) return; try { build(id); } catch (e) {} idle(run, { timeout: 1000 }); };
+  idle(run, { timeout: 1500 });
+}
+if (document.readyState === 'complete') prewarm(); else addEventListener('load', prewarm, { once: true });
+
 // la vue commune : tout est vu d'un peu au-dessus (les objets du décor aussi : js/univers.js)
 const VIEW = { tilt: 0.2, yaw: 0.34 };
 return { TYPES, BREEDS: TYPES, IDS, POSE, I, NP, PEN, create, destroy, rest, hipAt, toGround, gait, GAITS, step, apply, where, VIEW, dims, c01, sm, lerp };

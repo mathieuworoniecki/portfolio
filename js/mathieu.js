@@ -30,9 +30,12 @@ function load() {
   if (assets) return assets;
   const M = window.MATHIEU_MEDIA || {}, src = k => M[k] || BASE + k + '.png';
   const img = u => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = u; });
+  // le visage et le dos en WebP sans perte (mêmes pixels, 2,6 fois plus légers : 27/09, « optimise tout ») ; le PNG si le WebP manque
+  // (après avoir refait visage.png ou dos.png : python3 tools/webp.py)
+  const webp = k => M[k] ? img(M[k]) : img(BASE + k + '.webp').catch(() => img(src(k)));
   const tex = i => { const t = new T.Texture(i); t.minFilter = T.LinearFilter; t.generateMipmaps = false; t.needsUpdate = true; return t; };
   const meta = M.meta ? Promise.resolve(M.meta) : fetch(BASE + 'relief.json').then(r => r.json());
-  assets = Promise.all([img(src('visage')), img(src('dos')), img(src('relief')), meta]).then(([v, d, r, meta]) => {
+  assets = Promise.all([webp('visage'), webp('dos'), img(src('relief')), meta]).then(([v, d, r, meta]) => {
     const c = document.createElement('canvas'); c.width = G; c.height = G; const x = c.getContext('2d'); x.drawImage(r, 0, 0, G, G);
     return { front: tex(v), back: tex(d), data: x.getImageData(0, 0, G, G).data, meta };
   });

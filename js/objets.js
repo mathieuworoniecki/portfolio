@@ -217,17 +217,17 @@ H.think.push((c, add) => { if (Wd.t - (c.mangeT || -99) > 20) return; add(0.35, 
 H.post.push(() => Wd.cats.forEach(c => { if (c.anim === 'mange') c.mangeT = Wd.t; }));
 
 /* ——— les boutons : un chat qui tombe dessus s'y pose, un moment ——— */
-const ledges = () => ['#enter', '#stay'].map(q => document.querySelector(q)).filter(el => el && !el.disabled && el.getClientRects().length);
+const ledges = () => K.boutons();
 H.fall.push((c, dt) => {
   if (c.vy <= 0 || c.sulk) return false; const ny = c.y + (c.vy + K.grav() * dt) * dt;
-  for (const el of ledges()) {
-    const r = el.getBoundingClientRect(); const drop = Wd.t - (c.relT ?? -9) < 0.3 && c.y - sc(c) * 0.9 < r.top + r.height * 0.5; if (c.x < r.left + 6 || c.x > r.right - 6 || ((c.y > r.top + r.height * 0.75 || ny < r.top) && !drop)) continue;
+  for (const { el, r } of ledges()) {
+    const drop = Wd.t - (c.relT ?? -9) < 0.3 && c.y - sc(c) * 0.9 < r.top + r.height * 0.5; if (c.x < r.left + 6 || c.x > r.right - 6 || ((c.y > r.top + r.height * 0.75 || ny < r.top) && !drop)) continue;
     interrupt(c); c.fall = false; c.spin = 0; c.vx = 0; c.y = r.top; c.task = null; c.q = [{ k: 'rebord', el, air: true }]; say(c, pick(['hop', 'tadaa'])); return true;
   }
   return false;
 });
 STEPS.rebord = (c, T, dt) => {
-  const r = T.el.getBoundingClientRect(); if (!r.width || T.el.disabled || c.x < r.left - 4 || c.x > r.right + 4) { c.fall = true; c.vy = 0; c.task = null; return true; }
+  const r = K.rectOf(T.el); if (!r.width || T.el.disabled || c.x < r.left - 4 || c.x > r.right + 4) { c.fall = true; c.vy = 0; c.task = null; return true; }
   c.y = r.top; if (!T.plan) { T.plan = [['assis', rnd(2, 4)], [pick(['toilette', 'pain', 'assis']), rnd(3, 6)], ['miaule', 1.5]]; T.i = 0; T.u = 0; }
   const A = T.plan[T.i]; T.u += dt;
   if (!A) { const x = inView(c.x + c.face * sc(c) * rnd(0.5, 1)), d = rnd(0, 0.4); c.q.unshift(pose('affut', 0.5), hop(() => groundAt(x, d), { h: sc(c) * 0.3 }), pose('atterrit', 0.35)); return true; }
