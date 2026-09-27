@@ -45,6 +45,10 @@ fam('gestes', 'Avec la souris', 'With your hands', [
   ['rebelle', 'Il s’échappe', 'Escape artist', 'Tenu trop longtemps, il se débat.', 'Held too long, he wriggles free.'],
   ['plafond', 'Jusqu’au plafond', 'To the ceiling', 'Lancer un chat très, très haut.', 'Throw a cat very, very high.'],
   ['plume', 'La canne à plume', 'The feather wand', 'Elle dépasse du coffre à jouets.', 'It pokes out of the toy chest.'],
+  ['molette', 'La gratouille à la molette', 'Scroll-wheel scratch', 'La molette, sur un chat.', 'The scroll wheel, on a cat.'],
+  ['manivelle', 'La manivelle', 'The crank', 'La molette, sur le distributeur.', 'The scroll wheel, on the dispenser.'],
+  ['vagues', 'Les vagues', 'Waves', 'La molette, sur l’eau.', 'The scroll wheel, on the water.'],
+  ['psst', 'Psst psst', 'Psst psst', 'Appuyer longtemps dans le vide, sans bouger.', 'Press and hold on empty space, without moving.'],
   ['envol', 'Décollage', 'Lift-off', 'Le souffleur, pointé sur un chat.', 'The leaf blower, aimed at a cat.'],
 ]);
 fam('pepins', 'Les petits pépins', 'Little mishaps', [

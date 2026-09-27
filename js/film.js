@@ -231,6 +231,8 @@ addEventListener('wheel', e => {
   if (root.classList.contains('locked')) return;
   // en train de tenir quelque chose (ou juste lâché) : un pavé tactile envoie des crans quand un second doigt bouge, on les ignore
   if (drag.on || e.buttons || performance.now() - dragEnd < 700) { wheel.acc = 0; return; }
+  // sur un chat ou un objet, la molette sert au monde des chats (js/molette.js : la gratouille, la manivelle…)
+  if (window.Molette && Molette(e.clientX, e.clientY, e.deltaY * (e.deltaMode === 1 ? 16 : 1))) { wheel.acc = 0; return; }
   const now = performance.now(), dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? vh : 1), gap = now - wheel.last; wheel.last = now;
   // le même geste continue (verrou) : on l'ignore ; une pause, et c'est un nouveau geste
   if (wheel.fired && (now - wheel.lock < 650 || gap < 160)) return;
