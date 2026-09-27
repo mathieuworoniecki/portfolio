@@ -211,11 +211,11 @@ function layout() {
     P.panier = prop('panier', 0.34, 0.85);
     P.pelote = prop('pelote', 0.45, 0.02);
     P.poisson = prop('poisson', 0.4, 0.12);
+    // (Mathieu, 27/09 : « moins de cartons au départ, le décor est trop grand ») : un carton ouvert ; une caisse seulement sur un grand écran
     P.carton = prop('carton', 0.64, 0.8);
-    P.caisse = prop('caisse', 0.7, 0.5, { size: 2 });
-    P.tasse = prop('tasse', 0, 0.5); stack(P.tasse, P.caisse, 0.12);
-    P.caisse2 = prop('caisse', 0.77, 0.92, { size: 1 });
-    P.plante = prop('plante', 0, 0.92); stack(P.plante, P.caisse2, -0.06);
+    if (Wd.W >= 1200) { P.caisse = prop('caisse', 0.72, 0.6, { size: 1 }); P.tasse = prop('tasse', 0, 0.6); stack(P.tasse, P.caisse, 0.1); }
+    else P.tasse = prop('tasse', 0.71, 0.55);
+    P.plante = prop('plante', 0.78, 0.92);
     P.trappe = prop('trappe', 1, 0.9);
     // le distributeur au milieu : les chats y passent souvent
     P.distrib = prop('distrib', 0.5, 0.9, { yaw: -0.25 });
@@ -230,8 +230,7 @@ function layout() {
     P.arbre.big = 0.78;
     P.carton = prop('carton', 0.72, 0.88);
     P.trappe = prop('trappe', 1, 0.9); P.trappe.big = 0.85;
-    P.caisse = prop('caisse', 0.86, 0.55, { size: 1 });
-    P.tasse = prop('tasse', 0, 0.55); stack(P.tasse, P.caisse, 0.1);
+    P.tasse = prop('tasse', 0.86, 0.55);
     P.distrib = prop('distrib', 0.5, 0.97, { yaw: -0.25 });
     P.coffre = prop('coffre', 0.33, 0.5, { yaw: 0.25 });
   }

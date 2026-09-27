@@ -202,15 +202,19 @@ addEventListener('pointerdown', e => { downAt = onUI(e) || root.classList.contai
 addEventListener('pointerup', e => {
   const d = downAt; downAt = null; if (!d || d.grab || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 8 || performance.now() - d.t > 450) return;
   for (const sc of SC) if (sc.a > 0.5 && sc.click && sc.click(e.clientX, e.clientY, state(sc))) return;
+  if (chez()) return;   // chez les chats, un clic est toujours pour les chats : il ne relance jamais la lecture (Mathieu, 27/09)
   setPlaying(!(playing && !wait));
 });
 
 /* ——— le clavier, la molette, le geste : la page ne défile jamais ; un cran = un chapitre ——— */
-function step(dir) { const s = story(T), ci = chapterAt(s); if (dir > 0 && wait && ci === CH.length - 1) return; toChapter(ci + dir); }
+// l'écran des chats : on n'en sort que par la barre des chapitres ou le bouton « Entrer » (ni molette, ni geste, ni flèches, ni clic)
+const chez = () => SC.some(sc => sc.id === 'salut' && sc.a > 0.5);
+function step(dir) { if (chez()) return; step0(dir); }
+function step0(dir) { const s = story(T), ci = chapterAt(s); if (dir > 0 && wait && ci === CH.length - 1) return; toChapter(ci + dir); }
 addEventListener('keydown', e => {
   if (root.classList.contains('locked') || (e.target.closest && e.target.closest('input,select,.tp-panel'))) return;
   if (e.target.closest && e.target.closest('button,a') && (e.key === ' ' || e.key === 'Enter')) return;
-  if (e.key === ' ') { e.preventDefault(); setPlaying(!(playing && !wait)); }
+  if (e.key === ' ') { e.preventDefault(); if (!chez()) setPlaying(!(playing && !wait)); }
   else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') { e.preventDefault(); step(1); }
   else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') { e.preventDefault(); step(-1); }
   else if (e.key === 'Home') { e.preventDefault(); toChapter(0); }

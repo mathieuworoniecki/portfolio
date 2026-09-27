@@ -283,3 +283,11 @@ html:not(.locked) #gate:not(.open){display:none}
 
 /* un seul thème pour l'instant (js/theme.js : LOCK) : le sélecteur est caché */
 #theme-pick{display:none}
+
+/* le tuto et les indices (js/accueil.js) : une bulle au trait, sa queue pointe vers ce dont elle parle */
+.tuto{position:fixed;left:0;top:0;z-index:30;max-width:min(78vw,300px);padding:.55rem .85rem;background:var(--bp-hi);color:rgb(var(--ink));
+  font:400 clamp(.95rem,1.6vw,1.1rem)/1.3 var(--hand);border:2px solid rgb(var(--ink));border-radius:14px 16px 13px 15px;pointer-events:none;
+  box-shadow:3px 3px 0 rgba(var(--ink),.18);opacity:0;scale:.9;transition:opacity .3s,scale .3s cubic-bezier(.3,1.6,.5,1)}
+.tuto.on{opacity:1;scale:1}
+.tuto::after{content:"";position:absolute;left:var(--queue,50%);bottom:-9px;width:14px;height:14px;margin-left:-7px;background:inherit;
+  border-right:2px solid rgb(var(--ink));border-bottom:2px solid rgb(var(--ink));transform:rotate(45deg) skew(6deg,6deg)}
