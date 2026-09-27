@@ -315,7 +315,10 @@ function updProp(it, dt) {
     const x = it.fx * Wd.W; if (it.px !== undefined) it.spinA -= (x - it.px) / (it.r * s); it.px = x;
     it.spin.setFromAxisAngle(ZA, it.spinA);
     const T = it.trail, y = floorAt(it.d) - it.lift, L = T[T.length - 1];
-    if (!L || Math.hypot(L[0] - x, L[1] - y) > 7) { T.push([x, y]); if (T.length > 60) T.shift(); }
+    if (!L || Math.hypot(L[0] - x, L[1] - y) > 7) { T.push([x, y, 0, floorAt(it.d)]); if (T.length > 60) T.shift(); }
+    // le fil a du poids : ce qui est resté en l'air (pelote lancée, portée) retombe et se couche au sol
+    const g = grav();
+    T.forEach(P => { if (P[1] >= P[3]) return; P[2] += g * dt; P[1] = Math.min(P[3], P[1] + P[2] * dt); if (P[1] >= P[3]) P[2] = 0; });
   }
   if (it.parts.jar && it.folle) { it.parts.jar.rotation.z = Math.sin(Wd.t * 38) * 0.3; it.parts.jar.position.y = 0.46 + Math.abs(Math.sin(Wd.t * 25)) * 0.05; }
   else if (it.parts.jar) { const u = Wd.t - (it.shake ?? -9); it.parts.jar.rotation.z = Math.sin(u * 32) * 0.14 * Math.exp(-u * 3.5); it.parts.jar.position.y = 0.46 + Math.max(0, Math.sin(u * 16)) * 0.03 * Math.exp(-u * 4); }
@@ -666,6 +669,7 @@ function spread(dt) {
   });
   for (let i = 0; i < G.length; i++) for (let j = i + 1; j < G.length; j++) {
     const a = G[i], b = G[j], dd = b.d - a.d; if (Math.abs(dd) >= 0.3) continue;
+    if (a.rare || b.rare) continue;   // les visiteurs suivent leur numéro : ils passent devant ou derrière, sans pousser personne
     const dx = b.x - a.x, need = (sc(a) + sc(b)) * 0.52; if (Math.abs(dx) >= need) continue;
     if (walks(a) || walks(b)) {
       if (Math.abs(dd) >= 0.15) continue;   // en marchant, on se croise : l'un passe devant, l'autre derrière
@@ -675,8 +679,10 @@ function spread(dt) {
       m.d += clamp(lane - m.d, -dt * 0.9, dt * 0.9); if (m.task.d !== undefined && Math.abs(m.task.d - o.d) < 0.15) m.task.d = lane;
     } else {
       // deux chats à l'arrêt : ils se poussent doucement (un peu de côté, un peu en profondeur)
+      // (celui qu'on caresse ne bouge pas : sinon il glisserait sur les fesses sous la main ; l'autre s'écarte seul)
       const s = dx ? sgn(dx) : (a.id < b.id ? 1 : -1), push = Math.min(need - Math.abs(dx), sc(a) * 1.4 * dt);
-      a.x = inView(a.x - s * push / 2); b.x = inView(b.x + s * push / 2);
+      if (a.pet && b.pet) continue; const ka = a.pet ? 0 : b.pet ? 1 : 0.5;
+      a.x = inView(a.x - s * push * ka); b.x = inView(b.x + s * push * (1 - ka));
       const e = (dd ? sgn(dd) : 1) * dt * 0.05; a.d = clamp(a.d - e, 0, 0.6); b.d = clamp(b.d + e, 0, 0.6);
     }
   }
@@ -1152,7 +1158,10 @@ function drag(c, x, y) {
   // (sur le dos, le corps descend : la main qui caressait reste plus haut sans qu'on l'ait levée)
   if (c.pet) { const b = Chat.where(c, c.body), k = sc(c), P = c.pet, mx = c.D.a * k * 1.3 + 20;
     // (le corps bouge sous la main, il se cambre, roule : on juge aussi par rapport à l'endroit où la caresse a commencé)
-    if ((Math.abs(x - b[0]) > mx && Math.abs(x - P.x0) > mx) || (y < b[1] - c.D.h * k * (P.belly ? 3.4 : 1.6) - 20 && y < P.y0 - c.D.h * k * 1.2 - 20)) { c.pet = null; c.task = null; } else { pet(c, x, y); return; } }
+    // une fois la caresse lancée, seul un geste franc vers le haut le soulève : la main qui déborde de côté continue de caresser
+    // (avant, elle le « portait » sans qu'on le veuille, et porté, il finissait par griffer)
+    const haut = y < P.y0 - c.D.h * k * (P.n ? 3 : 1.2) - (P.n ? 60 : 20) && y < b[1] - c.D.h * k * (P.belly ? 3.4 : 1.6) - 20;
+    if (haut || (!P.n && Math.abs(x - b[0]) > mx && Math.abs(x - P.x0) > mx)) { c.pet = null; c.task = null; } else { pet(c, x, y); return; } }
   if (!c.held) { interrupt(c); c.fall = false; c.held = true; c.spin = 0; c.pend = { th: 0, w: 0, px: x, py: y, vx: 0, vy: 0, ax: 0 }; say(c, pick(['mia ?', '…', 'hé !'])); }
   c.hx = x; c.hy = y;
 }
@@ -1163,8 +1172,9 @@ function pet(c, x, y) {
     if (P.n % 2 === 0) Wd.fx.push({ k: 'heart', x: x + rnd(-10, 10), y: y - 14, t0: Wd.t, life: 1.3, r: clamp(sc(c) * 0.06, 6, 11) });
     if (P.n === 3) say(c, 'rrrr', 0); if (P.n === 7) say(c, 'rrrrrrr ♥', 0);
     // trop, c'est trop : le grincheux (et parfois un autre) donne un petit coup de patte
-    const lim = c.breed === 'grincheux' ? 5 : 12 + Math.floor(Math.random() * 10);
-    if (P.n >= lim && Math.random() < (c.breed === 'grincheux' ? 0.8 : 0.35)) { c.pet = null; c.task = null; c.q = [pose('tape', 0.5, { face: sgn(x - c.x) || c.face, fx: c => say(c, 'pfff !') }), go(inView(c.x - sgn(x - c.x) * sc(c) * 1.5), { g: 'trot' }), pose('toilette', 2.5)]; } } }
+    // (seul le grincheux griffe : Mathieu, 27/09, « il me griffe alors que je le caresse » ; les autres ne s'en lassent pas)
+    const lim = c.breed === 'grincheux' ? 5 : 1e9;
+    if (P.n >= lim && Math.random() < 0.8) { c.pet = null; c.task = null; c.q = [pose('tape', 0.5, { face: sgn(x - c.x) || c.face, fx: c => say(c, 'pfff !') }), go(inView(c.x - sgn(x - c.x) * sc(c) * 1.5), { g: 'trot' }), pose('toilette', 2.5)]; } } }
   P.t = Wd.t; c.face = c.face;
 }
 function purr(c) { c.purr = Wd.t + 2.6; say(c, '♥'); later(0.5, () => say(c, 'rrrr', 0)); }
