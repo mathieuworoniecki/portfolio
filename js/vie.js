@@ -385,6 +385,60 @@ function tombe() {
   return true;
 }
 
+/* ——— les lettres touchées (carnet des interactions) ———
+   Un clic sur une lettre : elle tremble (toc) ; trois clics rapides, elle tombe. Au sol, un clic l'envoie valser.
+   Un objet ou un chat lancé dedans la fait tomber (et rebondit) ; une lettre qui tombe sur un chat lui fait « bonk ». */
+// la lettre sous un point (en place, ou au sol)
+function lettreAt(x, y, m) {
+  const Ls = LETTERS(); if (!Ls) return null; const r = RECT(); m = m || 0;
+  return Ls.find(L => (!L.st || L.st === 'sol' || (L.st === 'fall' && Math.abs(L.vy) < 80)) && L.a > 0.5 && (() => {
+    const w = (L.x1 - L.x0) / 2, h = (L.y1 - L.y0) / 2, a = L.st ? L.rot : 0, ww = Math.abs(w * Math.cos(a)) + Math.abs(h * Math.sin(a)), hh = Math.abs(h * Math.cos(a)) + Math.abs(w * Math.sin(a));
+    return Math.abs(x - lx(L, r)) < ww + m && Math.abs(y - ly(L, r)) < hh + m; })()) || null;
+}
+H.click.push((x, y) => {
+  if (K.catAt(x, y) || K.propAt(x, y)) return false;
+  const L = lettreAt(x, y, 4); if (!L) return false; const s = Wd.s0, side = sgn(lx(L, RECT()) - x) || (Math.random() < 0.5 ? -1 : 1);
+  if (L.st) { tumble(L, side * s * rnd(1.5, 2.5), -s * rnd(1, 1.8), side * rnd(5, 10)); word(pick(['tac', 'hop', 'zou']), x, y - 20, 16); return true; }
+  L.clk = Wd.t - (L.clkT ?? -9) < 1.6 ? (L.clk || 0) + 1 : 1; L.clkT = Wd.t;
+  if (L.clk >= 3 && !TL.jeu) {
+    // trop secouée : elle se décroche (ce qui était assis dessus tombe avec)
+    L.clk = 0; tumble(L, side * s * rnd(0.3, 0.8), -s * rnd(0.3, 0.7), side * rnd(3, 6)); word(pick(['oups', 'crac', 'plic']), x, y - 20, 17);
+  } else { L.wob = Wd.t; L.wobA = 0.8 + L.clk * 0.6; word(pick(['toc', 'tic', 'toc toc']), x + rnd(-8, 8), y - 22, 15); }
+  // les chats d'à côté lèvent la tête
+  Wd.cats.forEach(c => { if (free4(c) && !c.rare && Math.abs(c.x - x) < Wd.W * 0.25 && Math.random() < 0.3) { interrupt(c); c.q = [pose('affut', rnd(0.8, 1.6), { face: sgn(x - c.x) || c.face })]; } });
+  return true;
+});
+// ce qui vole dans le titre : la lettre tombe, le projectile rebondit ; une lettre qui tombe cogne les têtes
+H.pre.push(dt => {
+  const Ls = LETTERS(); if (!Ls) return; const r = RECT();
+  const hitL = (x, y, vx, vy, m) => { for (let i = 0; i <= 3; i++) { const u = i / 3, L = lettreAt(x - vx * dt * u, y - vy * dt * u, m); if (L && (!L.st || L.st === 'sol')) return L; } return null; };
+  for (const it of Wd.props) {
+    if (!it.fall || it.held || it.suck || it.run || Wd.t - (it.lettreT ?? -9) < 0.4) continue;
+    const vx = it.vx || 0, vy = -(it.vy || 0), s = sOf(it.d); if (Math.hypot(vx, vy) < s * 1.2) continue;
+    const L = hitL(it.x, it.y - it.hull.h * it.s * 0.5, vx, vy, it.hull.w * it.s * 0.3); if (!L) continue;
+    it.lettreT = Wd.t; const d = sgn(vx) || 1;
+    if (L.st === 'sol' || !TL.jeu) tumble(L, vx * 0.6 + d * s * 0.3, Math.min(vy * 0.4, 0) - s * 0.4, d * rnd(5, 10));
+    it.vx = -vx * 0.35; it.vy = Math.abs(it.vy || 0) * 0.3 + s * 0.5; it.tiltV = (it.tiltV || 0) + rnd(-6, 6); word(pick(['tac', 'clac', 'toc']), lx(L, r), ly(L, r) - 20, 18);
+  }
+  for (const c of Wd.cats) {
+    // (tombé d'en haut, il s'y pose : c'est plus haut) ; lancé de côté ou vers le haut, il la décroche
+    if (!c.fall || c.held || c.rare || Wd.t - (c.lettreT ?? -9) < 0.4) continue; const s = sc(c);
+    if (Math.hypot(c.vx, c.vy) < s * 1.8 || (c.vy > 0 && Math.abs(c.vx) < c.vy * 1.3)) continue;
+    const L = hitL(c.x, c.y - s * 0.35, c.vx, c.vy, s * 0.2); if (!L) continue;
+    c.lettreT = Wd.t; const d = sgn(c.vx) || 1;
+    tumble(L, c.vx * 0.5, -s * rnd(0.5, 1), d * rnd(5, 10)); c.vx *= -0.3; c.vy = Math.max(c.vy, 0) * 0.3; word(pick(['BAM', 'clac', 'strike']), lx(L, r), ly(L, r) - 20, 20); say(c, pick(['aïe', 'oups', 'mia !']));
+  }
+  for (const L of Ls) {
+    if (L.st !== 'fall' || L.vy < 200 || Wd.t - (L.bonkT ?? -9) < 0.5) continue; const x = lx(L, r), y = ly(L, r) + (L.y1 - L.y0) / 2;
+    for (const c of Wd.cats) {
+      if (!c.hp || c.held || c.hidden || c.fall || Wd.t < (c.bonk || 0)) continue; const hr = c.b.head[0] * sc(c);
+      if (Math.abs(x - c.hp[0]) > hr + (L.x1 - L.x0) / 2 || Math.abs(y - (c.hp[1] - hr * 0.6)) > hr) continue;
+      L.bonkT = Wd.t; L.vy = -L.vy * 0.35; L.vx += sgn(x - c.x || 1) * 80; L.vr += rnd(-4, 4); c.bonk = Wd.t + 0.5;
+      say(c, pick(['bonk !', 'aïe', 'une lettre ?!', '?!'])); if (!c.rare && free4(c)) { interrupt(c); c.q = [pose('secoue', 0.5), pose('affut', rnd(0.8, 1.4), { face: sgn(x - c.x) || c.face })]; } break;
+    }
+  }
+});
+
 /* ——— le corps : ce qu'un chat fait de lui-même ———
    Il retombe toujours sur ses pattes… sauf de très haut (splat, des étoiles, il se secoue). Caressé longtemps, il se met sur le dos :
    le ventre, c'est un piège (il agrippe la main). Un bâillement en entraîne d'autres. Il éternue. Il a des amis (il va se frotter à eux)
