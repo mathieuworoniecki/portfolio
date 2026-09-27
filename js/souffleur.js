@@ -19,7 +19,7 @@ H.post.push(dt => {
   souffleurs().forEach(it => {
     // dans la main : la buse suit le geste (vers la droite, vers la gauche)
     if (it.held) { const s = sOf(it.d), hv = (it.hx - (it.phx ?? it.hx)) / Math.max(dt, 1 / 120); it.phx = it.hx; if (Math.abs(hv) > s * 1.2) it.dir = sgn(hv);
-      const yaw = (it.dir ?? -1) > 0 ? -0.35 : Math.PI + 0.35; it.yaw += (yaw - it.yaw) * Math.min(1, dt * 8); if (!it.onT) { it.onT = Wd.t; word('vrrr', it.x, it.y - it.s * 0.4, 16); } }
+      const yaw = (it.dir ?? -1) > 0 ? -0.35 : Math.PI + 0.35; it.yaw += (yaw - it.yaw) * Math.min(1, dt * 8); if (!it.onT) { it.onT = Wd.t; word('vrrr', it.x, it.y - it.s * 0.4, 16); if (window.Rares && Rares.panique && Wd.t - (Wd.paniqueSouf ?? -99) > 20) { Wd.paniqueSouf = Wd.t; Rares.panique(it.x); } } }
     else { it.phx = null; if (it.onT && !(it.puff > Wd.t)) it.onT = 0; }
     const on = it.held || it.puff > Wd.t; if (!on) { it.pw = Math.max(0, (it.pw || 0) - dt * 4); return; }
     if (!it.onT) it.onT = Wd.t; it.pw = Math.min(1, (it.pw || 0) + dt * 3);

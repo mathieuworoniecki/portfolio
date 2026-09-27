@@ -352,7 +352,18 @@ function addCat(o) {
   c.x = o.x ?? Wd.W / 2; c.face = o.face || (Math.random() < 0.5 ? -1 : 1); c.s = sOf(c.d); c.y = floorAt(c.d);
   Wd.cats.push(c); return c;
 }
-function unCat(c) { free(c); Chat.destroy(c); const i = Wd.cats.indexOf(c); if (i >= 0) Wd.cats.splice(i, 1); }
+// (Mathieu, 27/09 : « les chats ne peuvent pas juste disparaître, même si on les a fait pop : ils partent avec un événement, ou ils sortent
+//  de l'écran naturellement ») : un chat qu'on retirerait alors qu'il est encore visible s'en va d'abord à pied (c.adieu, plus bas)
+const visible = c => !c.hidden && c.hp && c.x > -sc(c) * 0.6 && c.x < Wd.W + sc(c) * 0.6 && Wd.a > 0.1;
+function unCat(c) {
+  if (!c.rare && !c.fin && visible(c)) { c.gone = false; c.adieu = true; return; }
+  free(c); Chat.destroy(c); const i = Wd.cats.indexOf(c); if (i >= 0) Wd.cats.splice(i, 1);
+}
+H.live.push(c => {
+  if (!c.adieu || c.fall || c.held || c.jump || c.fight || (c.task && c.task.sortie) || c.q.some(q => q.sortie)) return;
+  if (c.perch) { c.perch = null; c.fall = true; c.vy = 0; return; }
+  interrupt(c); const side = c.x < Wd.W / 2 ? -1 : 1; c.q = [go(side < 0 ? -sc(c) * 1.4 : Wd.W + sc(c) * 1.4, { g: c.temp ? 'galop' : 'trot', sortie: true }), fn(c => { c.fin = true; c.gone = true; })];
+});
 const sc = c => c.s * c.b.s;
 const front = c => (c.D.head[0] + c.b.head[0] * 0.7) * sc(c) * 0.94;
 const back = c => c.D.R(Math.PI) * sc(c) * 0.94;
@@ -860,6 +871,7 @@ function towerFrame(dt) {
       T.boxes.forEach((b, i) => { if (!i) return; const s = sOf(b.d); drop(b, dir * s * (0.5 + i * 0.35) * rnd(0.7, 1.3), s * rnd(0.2, 1), -dir * rnd(1.5, 4.5)); b.dT = clamp(T.d + rnd(-0.35, 0.35), 0, 1); });
       const b = T.boxes[T.boxes.length - 1]; dust(xOf(b), b.y, sOf(b.d) * 0.8, 1);
       Wd.shake = { t0: Wd.t, a: 7 };
+      if (window.Rares && Rares.panique) Rares.panique(xOf(T.boxes[0]));   // (la panique, comme pour le géant : js/rares.js)
       Wd.fx.push({ k: 'txt', text: 'boum !', x: xOf(T.boxes[0]), y: floorAt(T.d) - sOf(T.d) * 1.6, t0: Wd.t, life: 1.6, rot: -0.1, size: 26 });
     }
   } else if (T.phase === 'chute' && T.t > 12) { T.phase = 'fin'; T.t = 0; T.boxes.forEach(b => { b.fadeT = 0; }); }
@@ -1016,7 +1028,7 @@ function vacFrame(dt) {
   if (!Wd.vac) { if (Wd.t > (Wd.vacT || 0)) { Wd.vacT = Wd.t + 1; if (clutter() >= (Wd.mode === 'large' ? 14 : 7) && Wd.t > (Wd.vacCool || 0) && Math.random() < 0.035) aspire(); } return; }   // de temps en temps seulement, pas dès que ça déborde
   const V = Wd.vac, u = Wd.t - V.t0, s0 = Wd.s0, mouthY = Wd.floor - s0 * 1.05;
   V.y = V.ph === 'descend' ? -s0 + (mouthY + s0) * sm(u / 1.3) : V.ph === 'remonte' ? mouthY - (mouthY + s0 * 1.5) * sm((Wd.t - V.tu) / 1.2) : mouthY + Math.sin(u * 5) * 4;
-  if (V.ph === 'descend' && u > 1.3) { V.ph = 'balaye'; V.tb = Wd.t; Wd.fx.push({ k: 'txt', text: 'VROUUUM', x: V.x, y: mouthY - s0 * 0.9, t0: Wd.t, life: 1.6, rot: -0.1, size: 22 }); }
+  if (V.ph === 'descend' && u > 1.3) { V.ph = 'balaye'; V.tb = Wd.t; if (window.Rares && Rares.panique) Rares.panique(V.x); Wd.fx.push({ k: 'txt', text: 'VROUUUM', x: V.x, y: mouthY - s0 * 0.9, t0: Wd.t, life: 1.6, rot: -0.1, size: 22 }); }
   if (V.ph === 'balaye') {
     V.x += V.dir * Wd.W / 5.5 * dt;
     const R = s0 * 0.9;

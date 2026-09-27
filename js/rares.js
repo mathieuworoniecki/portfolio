@@ -41,8 +41,10 @@ function squash(o, dir) {
 function panique(x) {
   Wd.cats.forEach(o => {
     if (o.rare || o.held || o.hidden || o.gone || o.fight || o.fall) return; const away = sgn(o.x - x) || (Math.random() < 0.5 ? -1 : 1);
-    interrupt(o); o.pet = null; const cri = o => say(o, pick(['!!', 'AAAH', 'miaaa !', 'sauve qui peut !', 'au secours !']));
-    const saut = o.perch ? [hop(() => groundAt(K.inView(o.x + away * sc(o) * 1.2), Math.max(0, o.perch.it.d - 0.2)), { h: sc(o) * 0.6, zr: [0.1, 0.5] })] : [];
+    const P = o.perch; interrupt(o); o.pet = null; const cri = o => say(o, pick(['!!', 'AAAH', 'miaaa !', 'sauve qui peut !', 'au secours !']));
+    // (perché : il saute d'abord ; interrupt efface le perchoir, on le garde le temps de sauter)
+    if (P) o.perch = P;
+    const saut = P ? [hop(() => groundAt(K.inView(o.x + away * sc(o) * 1.2), Math.max(0, P.it.d - 0.2)), { h: sc(o) * 0.6, zr: [0.1, 0.5] })] : [];
     if (o.temp) o.q = [pose('sursaut', 0.45, { fx: cri }), ...saut, go(away < 0 ? -sc(o) * 1.5 : Wd.W + sc(o) * 1.5, { g: 'galop', v: rnd(1.1, 1.4) }), fn(o => { o.gone = true; })];
     else if (Math.random() < 0.65) o.q = [pose('sursaut', 0.45, { fx: cri }), ...saut, go(K.inView(away < 0 ? rnd(0.02, 0.12) * Wd.W : rnd(0.88, 0.98) * Wd.W), { g: 'galop' }), pose('affut', rnd(1.5, 3), { face: -away }), pose('toilette', 2)];
     else o.q = [...saut, pose('affut', rnd(2, 3.5), { face: -away, fx: o => say(o, pick(['waouh…', 'oh…', 'énorme…', '!!!'])) }), pose('assis', 1)];
@@ -396,5 +398,5 @@ try { const q = new URLSearchParams(location.search).get('rare'); if (q && LIST[
 
 // pour js/contacts.js : la réaction d'un visiteur à ce qui le touche (o.main : un geste léger, rien à renvoyer)
 const react = (c, o) => { if (c.rare && REACT[c.rare] && alive(c)) REACT[c.rare](c, o, zone(c)); };
-return { ...LIST, lance: go1, R, react, zone };
+return { ...LIST, lance: go1, R, react, zone, panique };
 })();
