@@ -401,7 +401,7 @@ function lieBack(c, p, t) {
   Chat.rest(c, p); c.rollT = Math.PI; const w = Math.sin(t * 2.5);
   p[I.y] = c.D.h * 0.8; p[I.sqz] = -0.06; p[I.look] = 1;
   p[I.fl] = 0.35 + w * 0.2; p[I.fr] = -0.15 - w * 0.2; p[I.hl] = 0.45 - w * 0.12; p[I.hr] = 0.05 + w * 0.12; p[I.fk] = p[I.fk2] = 0.95; p[I.hk] = 1;
-  p[I.htilt] = -2.45; p[I.hnod] = 0.1; p[I.tailUp] = -0.6; p[I.tailSide] = 1.2; p[I.tailCurl] = 0.2; p[I.tailWave] = 0.9; p[I.tailPhase] = t * 3;
+  p[I.htilt] = 2.95; p[I.hy] = -c.D.h * 0.7; p[I.hnod] = 0.1; p[I.tailUp] = -0.6; p[I.tailSide] = 1.2; p[I.tailCurl] = 0.2; p[I.tailWave] = 0.9; p[I.tailPhase] = t * 3;
 }
 // le demi-tour du corps : vers 0 dès qu'il n'est plus sur le dos
 H.live.push((c, dt) => { const T = c.rollT || 0; c.rollT = 0; if (!c.roll && !T) return; c.roll = (c.roll || 0) + (T - (c.roll || 0)) * Math.min(1, (dt || 0.016) * 7); if (!T && Math.abs(c.roll) < 0.01) c.roll = 0; });

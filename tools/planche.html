@@ -25,11 +25,13 @@ nav a.on{background:#222428;color:#DADBD8}
 <script src="../js/chat.js"></script>
 <script src="../js/univers.js"></script>
 <script src="../js/chats.js"></script>
+<script src="../js/vie.js"></script>
+<script src="../js/objets.js"></script>
 <script src="../js/poses.js"></script>
 <script src="../js/rares.js"></script>
 <script>
 (() => {
-const q = new URLSearchParams(location.search), anim = q.get('anim') || 'debout', ids = Chat.IDS;
+const q = new URLSearchParams(location.search), anim = q.get('anim') || 'debout', ids = q.get('ids') ? q.get('ids').split(',') : Chat.IDS;   // ?ids=miche,bleu : quelques chats, en grand
 const ANIMS = ['decor'].concat(window.Chats && Chats.ANIMS ? ['debout'].concat(Object.keys(Chats.ANIMS)) : ['debout']);
 document.getElementById('nav').innerHTML = ANIMS.map(a => `<a href="?anim=${a}" class="${a === anim ? 'on' : ''}">${a}</a>`).join('');
 Obj3D.init(document.getElementById('obj'));

@@ -40,34 +40,35 @@ const ANIMS = {
   galop(c, p, t) { Chat.rest(c, p); Chat.gait(c, p, 'galop', t * 2.6, 1); p[I.look] = 0.25; p[I.tailUp] = 0.3; p[I.tailCurl] = -0.2; p[I.tailPhase] = t * 8; p[I.px] = 1; },
   // assis : il regarde autour, cligne des yeux, la queue bat doucement
   assis(c, p, t) { sit(c, p); p[I.htilt] = Math.sin(t * 0.37) * 0.15; p[I.px] = Math.sin(t * 0.5); p[I.tailPhase] = t * 2; p[I.eyes] = blink(t); },
-  // la toilette, un vrai rituel (12 s) : lécher la patte (la langue sort), se frotter la joue jusqu'à l'oreille, se lécher le flanc
-  // (la tête tournée vers l'arrière), puis la patte arrière levée bien droite. c.tongue : la langue (dessinée à la craie, js/vie.js)
+  // la toilette, un petit rituel (10 s), lisible de face : lécher la patte levée contre la joue (la langue sort), se frotter la joue
+  // jusqu'à l'oreille, se lécher le poitrail (le nez dans le cou), puis une secousse de la tête et un air ravi.
+  // La patte reste hors de la tête (dessinée derrière elle, elle y disparaîtrait). c.tongue : la langue (dessinée à la craie, js/vie.js)
   toilette(c, p, t) {
-    const D = c.D, b = c.b, cyc = t % 12, ph = cyc < 3.4 ? 0 : cyc < 6.4 ? 1 : cyc < 9.2 ? 2 : 3, flick = Math.max(0, Math.sin(t * 10));
-    c.tongue = 0; c.lickTo = null;
-    if (ph < 2) {
-      sit(c, p, -0.05); const k = c.face > 0 ? 'fr' : 'fl', ki = k === 'fr' ? I.fk2 : I.fk, lick = ph === 0;
+    const D = c.D, b = c.b, cyc = t % 10, flick = Math.max(0, Math.sin(t * 11));
+    c.tongue = 0; c.lickTo = null; sit(c, p, -0.04); p[I.look] = 1; p[I.eyes] = 1; p[I.tailWave] = 0.25; p[I.tailPhase] = t * 1.5;
+    if (cyc < 6.2) {
+      // la patte (celle de devant, côté nous) levée contre la joue, le poignet qui monte et descend
+      const k = c.face > 0 ? 'fr' : 'fl', ki = k === 'fr' ? I.fk2 : I.fk, lick = cyc < 3.2, e = sm(cyc / 0.35) * (1 - sm((cyc - 5.85) / 0.35));
       const pitch = p[I.pitch], sx = 1 + p[I.stretch] - p[I.sqz] * 0.5, sy = 1 + p[I.sqz];
-      p[I.hnod] = lick ? 0.22 : 0.08; p[I.htilt] = lick ? 0.28 + Math.sin(t * 1.3) * 0.05 : 0.42 + Math.sin(t * 5) * 0.05; p[I.hy] = lick ? -D.h * 0.06 : -D.h * 0.04; p[I.look] = lick ? 0.5 : 0.75;
       const up = [Math.sin(pitch), Math.cos(pitch)], fwd = [Math.cos(pitch), -Math.sin(pitch)], hc = [D.head[0] * sx + p[I.hx], D.head[1] * sy + p[I.hy]];
-      // lécher : la patte levée devant la joue (le poignet cassé), la langue va la chercher ; frotter : la patte passe sur la joue, derrière l'oreille, et redescend
-      let tx, ty;
-      if (lick) { const m = b.head[1] * 0.25, f = b.head[0] * 1.15 + Math.sin(t * 10) * b.head[0] * 0.04; tx = hc[0] - up[0] * m + fwd[0] * f; ty = hc[1] - up[1] * m + fwd[1] * f; }
-      else { const u = (cyc - 3.4) / 3, w = 0.5 - 0.5 * Math.cos(u * Math.PI * 4), r = b.head[1] * (-0.3 + 1.15 * w), f = b.head[0] * (1.05 - 0.25 * w); tx = hc[0] + up[0] * r + fwd[0] * f; ty = hc[1] + up[1] * r + fwd[1] * f; }
-      const hip = D.hips.f, vx = tx - hip[0] * sx, vy = ty - hip[1] * sy;
-      p[I[k]] = Math.atan2(vx, -vy); p[ki] = clamp(Math.hypot(vx, vy) * 0.9 / D.ll, 0.3, 1.6);
-      p[I.eyes] = 1; if (lick) { c.tongue = 0.35 + 0.65 * flick; c.lickTo = k; } p[I.tailWave] = 0.2;
-    } else if (ph === 2) {
-      // le flanc : la tête tournée vers l'arrière (de profil), penchée sur le dos, la langue qui va et vient
-      sit(c, p, 0.02); const u = sm((cyc - 6.4) / 0.4) * (1 - sm((cyc - 8.8) / 0.4));
-      p[I.look] = 0.2 * (1 - u) + 0.1; p[I.hyaw] = u * 1.75; p[I.hx] = -D.head[0] * 0.5 * u; p[I.hy] = -D.h * 0.28 * u; p[I.hnod] = 0.3 * u; p[I.htilt] = -0.2 * u;
-      p[I.eyes] = 1; c.tongue = u > 0.8 ? 0.3 + 0.7 * flick : 0; c.lickTo = 'body'; p[I.tailWave] = 0.3; p[I.tailPhase] = t * 1.5;
+      // lécher : à hauteur de bouche, elle monte et descend sous la langue ; frotter : elle remonte la joue jusqu'à l'oreille, deux fois
+      const u = lick ? 0 : (cyc - 3.2) / 3, w = 0.5 - 0.5 * Math.cos(u * Math.PI * 4);
+      const m = lick ? -0.4 + Math.sin(t * 5.5) * 0.08 : -0.35 + 0.85 * w, f = lick ? 1.28 : 1.28 - 0.08 * w;
+      const tx = hc[0] + up[0] * b.head[1] * m + fwd[0] * b.head[0] * f, ty = hc[1] + up[1] * b.head[1] * m + fwd[1] * b.head[0] * f;
+      const hip = D.hips.f, vx = tx - hip[0] * sx, vy = ty - hip[1] * sy, ang = Math.atan2(vx, -vy), ext = clamp(Math.hypot(vx, vy) * 0.9 / D.ll, 0.3, 1.6);
+      p[I[k]] = lerp(p[I[k]], ang, e); p[ki] = lerp(p[ki], ext, e);
+      // la tête penchée vers la patte ; en frottant, elle suit la patte
+      p[I.htilt] = -(lick ? 0.22 + Math.sin(t * 5.5) * 0.05 : 0.3 + 0.12 * w) * e; p[I.hnod] = (lick ? 0.12 : 0.05) * e;
+      if (lick && e > 0.6) { c.tongue = 0.35 + 0.65 * flick; c.lickTo = k; }
+    } else if (cyc < 8.6) {
+      // le poitrail : le nez dans le cou, la tête qui va et vient, la langue qui passe
+      const e = sm((cyc - 6.2) / 0.35) * (1 - sm((cyc - 8.25) / 0.35)), bob = Math.sin(t * 7) * 0.5 + 0.5;
+      p[I.hnod] = (0.35 + 0.1 * bob) * e; p[I.hy] = -D.h * (0.12 + 0.04 * bob) * e; p[I.htilt] = Math.sin(t * 1.7) * 0.12 * e;
+      if (e > 0.7) { c.tongue = 0.3 + 0.6 * flick; c.lickTo = 'body'; }
     } else {
-      // la patte arrière : couché sur le flanc, la patte (celle qui nous fait face) levée bien droite, la tête penchée dessus
-      lie(c, p); const u = sm((cyc - 9.2) / 0.5) * (1 - sm((cyc - 11.5) / 0.5)), k = c.face > 0 ? 'hr' : 'hl';
-      p[I.y] += D.h * 0.1 * u; p[I.pitch] = 0.25 * u; p[I[k]] = lerp(p[I[k]], 2.7, u); p[I.hk] = lerp(p[I.hk], 1.4, u);
-      p[I.look] = 0.75 - 0.35 * u; p[I.hnod] = 0.5 * u; p[I.hy] = -D.h * 0.2 * u; p[I.hx] = -D.head[0] * 0.35 * u; p[I.htilt] = -0.3 * u;
-      p[I.eyes] = 1; c.tongue = u > 0.8 ? 0.3 + 0.7 * flick : 0; c.lickTo = k; p[I.tailWave] = 0.2;
+      // une secousse de la tête (brrr), puis l'air ravi, la queue contente
+      const u = cyc - 8.6, sh = u < 0.55 ? Math.sin(u * 45) * (1 - u / 0.55) : 0;
+      p[I.htilt] = sh * 0.35; p[I.sqz] += Math.abs(sh) * 0.03; p[I.eyes] = u < 0.55 ? 1 : 2; p[I.tailWave] = 0.6; p[I.tailPhase] = t * 4;
     }
   },
   // en boule, les yeux clos ; il respire

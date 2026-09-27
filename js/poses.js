@@ -47,7 +47,7 @@ ANIMS.roule = (c, p, t) => {
   c.rollT = Math.PI * (0.25 + 0.75 * u);
   p[I.y] = c.D.h * (0.95 - 0.15 * u); p[I.sqz] = -0.05; p[I.look] = 1; p[I.eyes] = u > 0.7 ? 2 : 0;
   p[I.fl] = 0.5 + w * 0.3; p[I.fr] = 0.1 - w * 0.3; p[I.hl] = 0.4 - w * 0.2; p[I.hr] = 0.1 + w * 0.2; p[I.fk] = p[I.fk2] = 0.85; p[I.hk] = 0.9;
-  p[I.htilt] = -2.2 * u; p[I.tailUp] = -0.5; p[I.tailSide] = 1; p[I.tailWave] = 1; p[I.tailPhase] = t * 5;
+  p[I.htilt] = 2.95 * u; p[I.hy] = -c.D.h * 0.7 * u; p[I.tailUp] = -0.5; p[I.tailSide] = 1; p[I.tailWave] = 1; p[I.tailPhase] = t * 5;
 };
 // le sursaut : droit en l'air, les quatre pattes raides, le dos rond, gonflé comme un pompon
 ANIMS.sursaut = (c, p, t) => {
