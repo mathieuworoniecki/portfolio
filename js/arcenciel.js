@@ -38,12 +38,12 @@ ANIMS.vomi = (c, p, t) => { K.sit(c, p, -0.2); p[I.hnod] = 0.45; p[I.mouth] = 1;
 function derriere(c) {
   const k = sc(c), bx = c.x - c.face * k * 0.6, cats = Wd.cats.filter(o => o !== c && !o.gone && !o.hidden && o.hp && Math.abs(o.x - bx) < k * 0.7 && Math.abs(o.d - c.d) < 0.2 && !o.held);
   if (cats.length) return cats[0];
-  return Wd.props.find(it => !it.held && !it.fall && !it.mur && !it.r && it.a > 0.5 && Math.abs(it.d - c.d) < 0.3 && Math.abs(it.x - bx) < (it.hull.w * 0.5 * it.s) + k * 0.2);
+  return Wd.props.find(it => !it.held && !it.fall && (!it.mur || it.fixe) && !it.r && it.a > 0.5 && Math.abs(it.d - c.d) < 0.3 && Math.abs(it.x - bx) < (it.hull.w * 0.5 * it.s) + k * 0.2);
 }
 function besoin(c) {
   c.besoinT = Wd.t + rnd(90, 200); const pipi = Math.random() < 0.55;
   // parfois, il choisit : contre un carton, une plante, le bassin (les chats aiment marquer)
-  const C = Wd.props.filter(it => ['carton', 'plante', 'caisse', 'bassin', 'coussin', 'panier', 'arbre'].includes(it.kind) && !it.held && !it.fall && it.a > 0.5 && !it.mur);
+  const C = Wd.props.filter(it => ['carton', 'plante', 'caisse', 'bassin', 'coussin', 'panier', 'arbre', 'canape', 'jungle', 'souffleur'].includes(it.kind) && !it.held && !it.fall && it.a > 0.5 && (!it.mur || it.kind === 'jungle'));
   const cible = pipi && C.length && Math.random() < 0.5 ? pick(C) : null;
   if (cible) { const dir = sgn(c.x - cible.x) || 1, x = inView(cible.x + dir * (cible.hull.w * 0.5 * cible.s + sc(c) * 0.45)); c.q.push(go(x, { d: Math.max(0, cible.d - 0.05), face: dir })); }
   c.q.push(pose('pousse', pipi ? 2 : 2.6, { fx: c => say(c, pick(['…', 'hmm', '(chut)'])) }),

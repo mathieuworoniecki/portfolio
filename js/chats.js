@@ -196,10 +196,10 @@ function prop(kind, fx, d, o) {
 }
 function unprop(it) { Univers.destroy(it); const i = Wd.props.indexOf(it); if (i >= 0) Wd.props.splice(i, 1); Wd.props.forEach(o => { if (o.on === it) o.on = null; if (o.target === it) o.target = null; }); }
 // l'encombrement de chaque objet (en unités) : pour tomber, rebondir, se poser sur une caisse, se laisser attraper
-const HULL = { bassin: { w: 1.28, h: 0.16 }, souffleur: { w: 0.7, h: 0.3 }, canape: { w: 1.66, h: 0.62 }, carton: { w: 0.56, h: 0.32 }, panier: { w: 0.72, h: 0.15 }, coussin: { w: 0.76, h: 0.15 }, gamelle: { w: 0.34, h: 0.08 }, eau: { w: 0.33, h: 0.17 },
+const HULL = { jungle: { w: 0.5, h: 0.34 }, feuille: { w: 0.28, h: 0.05 }, bassin: { w: 1.28, h: 0.16 }, souffleur: { w: 0.7, h: 0.3 }, canape: { w: 1.66, h: 0.62 }, carton: { w: 0.56, h: 0.32 }, panier: { w: 0.72, h: 0.15 }, coussin: { w: 0.76, h: 0.15 }, gamelle: { w: 0.34, h: 0.08 }, eau: { w: 0.33, h: 0.17 },
   distrib: { w: 0.4, h: 0.74 }, trappe: { w: 0.6, h: 0.5 }, arbre: { w: 1.5, h: 1.95 }, pelote: { w: 0.15, h: 0.15 }, poisson: { w: 0.3, h: 0.08 }, lanceur: { w: 0.6, h: 0.7 }, coffre: { w: 0.52, h: 0.3 } };
 // les lourds (ils tanguent, se laissent traîner lentement, tombent lourdement), ce qu'un chat bouscule en passant
-const LOURD = { arbre: 1, distrib: 1, lanceur: 1, coffre: 1, bassin: 1, canape: 1 }, LEGER = { pelote: 1, poisson: 1, tasse: 1, plante: 1 };
+const LOURD = { arbre: 1, distrib: 1, lanceur: 1, coffre: 1, bassin: 1, canape: 1 }, LEGER = { pelote: 1, poisson: 1, tasse: 1, plante: 1, feuille: 1 };
 const COL = { orange: 0xd0661f, bleu: 0x2f6fb0, vert: 0x3a6e46, rose: 0xc04a6c, gris: 0x6a6c70 };
 function layout() {
   Wd.props.slice().forEach(unprop); Wd.P = {}; Wd.extras = []; Wd.kib = []; const P = Wd.P, wide = Wd.mode === 'large';
@@ -221,6 +221,8 @@ function layout() {
     else P.tasse = prop('tasse', 0.71, 0.55);
     P.plante = prop('plante', Wd.W >= 1300 ? 0.86 : 0.78, 0.92);
     P.souffleur = prop('souffleur', 0.93, 0.2, { yaw: Math.PI + 0.35 });
+    // la jungle, sur les côtés d'un grand écran (Mathieu, 27/09)
+    if (Wd.W >= 1500) { P.jungle = prop('jungle', 0.05, 1, { yaw: 0.2 }); P.jungle.big = 1.3; P.jungle2 = prop('jungle', 0.955, 1, { yaw: -0.3 }); P.jungle2.big = 0.85; }
     P.trappe = prop('trappe', 1, 0.9);
     // le distributeur au milieu : les chats y passent souvent
     P.distrib = prop('distrib', 0.5, 0.9, { yaw: -0.25 });
@@ -312,7 +314,7 @@ function updProp(it, dt) {
   if ((LOURD[it.kind] || it.mur) && !it.held && !it.fall && !it.on && Math.abs(it.tilt) < 0.2) { const u = Wd.t - (it.wob ?? -9); it.tilt = Math.sin(u * 13) * 0.045 * (it.wobA || 1) * Math.exp(-u * 3) + (it.folle ? Math.sin(Wd.t * 31) * 0.05 : 0); }
   if (it.parts.levier) it.parts.levier.rotation.z = (it.lev0 ?? 0.3) + (it.pull || 0) * (it.levK ?? 1.3);
   // accrochée au mur : au bord droit, à sa hauteur (sous le texte), rien ne la fait bouger
-  if (it.mur) { it.fx = 1 + it.hull.w * 0.1 * s * (it.big || 1) / Wd.W; const L = clamp(floorAt(it.d) - (Wd.ceil || 0) - 0.6 * s * (it.big || 1) - 12, Wd.s0 * 0.45, Wd.s0 * 1.7); it.lift += (L - it.lift) * Math.min(1, dt * 4); it.vx = it.vy = 0; it.fall = false; }
+  if (it.mur && !it.fixe) { it.fx = 1 + it.hull.w * 0.1 * s * (it.big || 1) / Wd.W; const L = clamp(floorAt(it.d) - (Wd.ceil || 0) - 0.6 * s * (it.big || 1) - 12, Wd.s0 * 0.45, Wd.s0 * 1.7); it.lift += (L - it.lift) * Math.min(1, dt * 4); it.vx = it.vy = 0; it.fall = false; }
   if (it.swept && (it.fx < -0.2 || it.fx > 1.2)) { it.fadeT = it.fade = 0; it.gone = true; } else if (it.swept && !it.fall && !it.vx) it.swept = 0;
   if (!it.run && !it.mur && !it.swept && it.fx < m) { it.fx = m; it.vx = Math.abs(it.vx) * (it.r ? 0.6 : 0); }
   if (!it.run && !it.mur && !it.swept && it.fx > 1 - m) { it.fx = 1 - m; it.vx = -Math.abs(it.vx) * (it.r ? 0.6 : 0); }

@@ -8,6 +8,7 @@
      caisse   un carton fermé (o.size : 0, 1, 2), scotché, un petit dessin devant : on les empile, les pousse, les fait tomber
      panier   un lit rond en osier · poisson  un poisson en tissu (un jouet) · plante  une plante en pot · tasse  une tasse (à pousser du bord)
      distrib  le distributeur de croquettes (il a une tête, il crache des croquettes par son bec : it.bec) · eau  une fontaine à eau (it.jet) · bassin  le grand bassin, où l'on se baigne (it.eau, it.coupe, it.jet)
+     jungle  une grande plante de jungle, au mur (parts.feuilles : chaque feuille s'arrache) · feuille  une feuille arrachée
      souffleur  un souffleur (it.buse : le bout de la buse) · canape  un canapé (l'assise, le dossier, les accoudoirs : ses perchoirs)
      trappe   la machine à cartons accrochée au mur : seuls la bouche et le levier dépassent (it.mur, it.lev0, it.levK)
      lanceur  la machine à cartons : un canon (it.bouche, it.vise), un levier (parts.levier) ; elle projette des caisses
@@ -176,6 +177,14 @@ function pieces() {
     B.soft(segs([[0, 0.265, 0.25], [0, 0.265, -0.12]])); B.soft(segs([[0, 0.3, -0.12], [0, 0.6, -0.12]]));
     [[-0.74, 0.2], [0.74, 0.2], [-0.74, -0.2], [0.74, -0.2]].forEach(([x, z]) => B.solid(K.lathe([[0, 0], [0.03, 0], [0.035, 0.05], [0, 0.05]], 10).translate(x, 0, z)));
   });
+  // la jungle (Mathieu, 27/09 : « une partie jungle, sur un côté, seulement sur un plus grand écran ») : un grand pot, des tiges, de grandes feuilles
+  // (chaque feuille à part : on peut l'arracher, js/jungle.js)
+  const FEUILLE = K.roundPoly([[0, 0], [0.09, 0.05], [0.14, 0.16], [0.11, 0.3], [0.04, 0.4], [0, 0.42], [-0.04, 0.4], [-0.11, 0.3], [-0.14, 0.16], [-0.09, 0.05]], 0.03, 3);
+  P.feuille = Obj3D.piece('u:feuille', B => { B.solid(K.ext(FEUILLE, 0.008)); B.soft(segs([[0, 0.02, 0.005], [0, 0.38, 0.005]])); [0.12, 0.2, 0.28].forEach(y => { B.soft(segs([[0, y, 0.005], [0.08, y + 0.05, 0.005]])); B.soft(segs([[0, y, 0.005], [-0.08, y + 0.05, 0.005]])); }); });
+  P.jPot = Obj3D.piece('u:jpot', B => { B.solid(K.lathe([[0, 0], [0.16, 0], [0.21, 0.3], [0.23, 0.31], [0.23, 0.34], [0, 0.34]], 22)); B.soft(segs(ring(0.2, 0.26, 22))); });
+  P.jTige = Obj3D.piece('u:jtige', B => { B.solid(K.tube([[0, 0, 0], [0.02, 0.4, 0], [0, 0.8, 0]], 0.009, 5, 10)); });
+  // la feuille par terre (arrachée) : couchée
+  P.feuilleSol = Obj3D.piece('u:feuilleSol', B => { B.solid(K.tf(K.ext(FEUILLE, 0.008), [0, 0.01, 0.2], [-Math.PI / 2 + 0.1, 0, 0], 0.7)); });
   // la gamelle et ses croquettes
   P.gamelle = Obj3D.piece('u:gamelle', B => {
     B.solid(K.lathe([[0, 0], [0.16, 0], [0.17, 0.01], [0.14, 0.075], [0.13, 0.08], [0.115, 0.072], [0, 0.05]], 28));
@@ -248,6 +257,14 @@ function make(kind, o) {
     it.bouche = [-0.26 - Math.sin(1.22) * 0.22, 0.3 + Math.cos(1.22) * 0.22, 0]; it.vise = [-Math.sin(1.22), Math.cos(1.22)]; it.pivot = [-0.3, 0.12, 0.12];
   }
   else if (kind === 'eau') { put(P.fontaine); it.jet = [0, 0.172, 0]; }
+  else if (kind === 'jungle') { put(P.jPot); it.fixe = true; it.mur = true; parts.feuilles = [];
+    // des tiges en éventail ; au bout de chacune, une feuille (deux parfois)
+    [[-0.5, 1.05], [-0.25, 1.35], [0, 1.55], [0.22, 1.3], [0.45, 1.0], [-0.12, 0.85], [0.1, 0.95], [0.35, 1.5]].forEach(([a, h], i) => {
+      const t = new T.Group(); t.position.set(0, 0.3, (i % 3 - 1) * 0.06); t.rotation.z = -a * 0.6; t.scale.set(1, h / 0.8, 1); view.add(t); put(P.jTige, t);
+      const f = new T.Group(); f.position.set(-Math.sin(a * 0.6) * h * 0.98, 0.3 + Math.cos(a * 0.6) * h * 0.98, (i % 3 - 1) * 0.06); f.rotation.set(0.3 * (i % 2 ? 1 : -1), 0.5 * (i % 3 - 1), -a * 1.1);
+      const k = 0.85 + (i % 3) * 0.25; f.scale.set(k, k, k); view.add(f); put(P.feuille, f); parts.feuilles.push({ g: f, k, a, tip: [f.position.x, f.position.y, f.position.z], on: true }); });
+  }
+  else if (kind === 'feuille') { put(P.feuilleSol); }
   else if (kind === 'souffleur') { put(P.souffleur); it.buse = [0.56, 0.08, 0]; it.corps = [-0.02, 0.09, 0]; }
   else if (kind === 'canape') { put(P.canape);
     it.perches = [{ id: 'assiseG', p: [-0.33, 0.27, 0.06], w: 0.14, lv: 1 }, { id: 'assiseD', p: [0.33, 0.27, 0.06], w: 0.14, lv: 1 },

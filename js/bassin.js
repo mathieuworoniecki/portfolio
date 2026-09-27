@@ -131,5 +131,5 @@ H.draw.unshift(() => {
   Wd.fx.forEach(f => { if (f.k !== 'goutteB') return; const dt = t - f.t0, x = f.x + f.vx * dt, y = f.y + f.vy * dt + 600 * dt * dt; if (y > f.y1 && dt > 0.2) return; Chalk.dot(x, y, 1.9, 0.7 * Wd.a * (1 - dt / f.life), f.col); });
 });
 
-return { surface, colore, bain, bassins };
+return { surface, colore, bain, bassins, FLOTTE };
 })();
