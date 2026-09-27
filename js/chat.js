@@ -19,7 +19,9 @@ const T = Obj3D.T, K = Obj3D.kit, TAU = Math.PI * 2;
 const c01 = v => v < 0 ? 0 : v > 1 ? 1 : v, sm = v => { v = c01(v); return v * v * (3 - 2 * v); }, lerp = (a, b, t) => a + (b - a) * t;
 const V = (x, y, z) => new T.Vector3(x, y, z);
 function hsh(a, b) { let x = (Math.imul(a | 0, 374761393) + Math.imul((b | 0) + 1, 668265263)) | 0; x = Math.imul(x ^ (x >>> 13), 1274126177); x ^= x >>> 16; return (x >>> 0) / 4294967296; }
-const PEN = 2.8;   // l'épaisseur du trait, en px
+const PEN = 2.8;
+// un seul contour autour du chat (?trait=pieces : l'ancien dessin, pièce par pièce, pour comparer)
+const UNI = !/[?&]trait=pieces/.test(location.search);   // l'épaisseur du trait, en px
 
 /* ——— les chats : chacun sa silhouette, sa tête, ses yeux, sa couleur ———
    s : la taille · body [demi-longueur, demi-hauteur, rondeur (2 : ovale, plus : plus carré), demi-épaisseur], pear : le bas plus large, arch : le dos qui monte vers l'arrière
@@ -201,23 +203,24 @@ let uid = 0;
 function create(id, o) {
   o = o || {}; id = TYPES[id] ? id : IDS[Math.floor(Math.random() * IDS.length)];
   const b = TYPES[id], M = build(id), D = M.D, P = M.P;
-  const mats = Obj3D.mats(o.color ?? undefined, { fat: PEN, fatSoft: PEN * 0.8 }), all = [], G = () => new T.Group();
-  const put = (pp, parent) => { const q = Obj3D.mount(pp, mats); parent.add(q.g); all.push(q); return q; };
+  // UNI : le corps, les pattes et la queue n'ont qu'un contour (pas de trait sur le ventre là où passe une patte) ; la tête et les cuisses (assis) gardent le leur
+  const mats = Obj3D.mats(o.color ?? undefined, { fat: PEN, fatSoft: PEN * 0.8, uni: UNI ? 1 + (uid % 254) : 0 }), all = [], G = () => new T.Group();
+  const put = (pp, parent, own) => { const q = Obj3D.mount(pp, mats, own); parent.add(q.g); all.push(q); return q; };
   const root = G(), view = G(), body = G(), puffy = G(), headA = G(), head = G(), pupils = G();
   root.add(view); view.add(body); body.add(puffy); body.add(headA); headA.add(head); head.add(pupils);
-  put(P.body, puffy).g.scale.setScalar(1 / Z); put(P.head, head).g.scale.setScalar(1 / Z); put(P.face, head); put(P.pup, pupils);
-  const eyes = put(P.eyes, head), shut = put(P.shut, head), joy = put(P.joy, head), mouth = put(P.mouth, head);
+  put(P.body, puffy).g.scale.setScalar(1 / Z); put(P.head, head, true).g.scale.setScalar(1 / Z); put(P.face, head, true); put(P.pup, pupils, true);
+  const eyes = put(P.eyes, head, true), shut = put(P.shut, head, true), joy = put(P.joy, head, true), mouth = put(P.mouth, head, true);
   // les pattes : devant (f), derrière (h), à gauche (−z) et à droite (+z) ; la jambe s'étire, la patte reste ronde
   const legs = {}; [['fl', 'f', -1], ['fr', 'f', 1], ['hl', 'h', -1], ['hr', 'h', 1]].forEach(([k, w, s]) => {
     const g = G(), foot = G(); g.userData.hip = [D.hips[w][0], D.hips[w][1], s * D.hips[w][2]]; body.add(g);
     const q = put(P.leg, g); put(P.hip, g); g.add(foot); put(P.paw, foot); legs[k] = { g, m: q.g, foot }; });
   // les cuisses (assis) : de chaque côté, droites, et la patte arrière devant
-  const seats = [-1, 1].map(s => { const g = G(); body.add(g); const q = put(P.seat, g); q.g.scale.setScalar(1 / Z); const f = G(); f.position.set(D.seatR[0] * 0.55, -D.seatR[1] * 0.78, 0); g.add(f); put(P.paw, f); g.userData.s = s; return g; });
+  const seats = [-1, 1].map(s => { const g = G(); body.add(g); const q = put(P.seat, g, true); q.g.scale.setScalar(1 / Z); const f = G(); f.position.set(D.seatR[0] * 0.55, -D.seatR[1] * 0.78, 0); g.add(f); put(P.paw, f, true); g.userData.s = s; return g; });
   // la queue
   const tail = [], tailM = []; const tb = G(); body.add(tb); let tp = tb;
   P.tail.forEach((pp, i) => { const g = G(); if (i) g.position.set(M.sl, 0, 0); tp.add(g); tailM.push(put(pp, g).g); tail.push(g); tp = g; });
   // le contour de la queue : calculé à chaque image (deux traits parallèles à sa ligne, le bout arrondi) ; les segments ne font que cacher
-  const tailArr = new Float32Array((2 * P.tail.length + 8) * 6), tailLine = Obj3D.fatSegs(tailArr, mats.line); tailLine.renderOrder = 1; tailLine.frustumCulled = false; root.add(tailLine);
+  const tailArr = new Float32Array((2 * P.tail.length + 8) * 6), tailLine = Obj3D.fatSegs(tailArr, mats.out || mats.line); tailLine.renderOrder = 1; tailLine.frustumCulled = false; root.add(tailLine);
   const R = Obj3D.rig(root, all);
   const cat = { tailArr, tailLine, tailR: M.tailR, sl: M.sl,
     id: ++uid, breed: id, b, D, root, view, body, puffy, headA, head, pupils, legs, seats, tail, tailB: tb, tailM, eyes, shut, joy, mouth, mats: [mats], R, all, pw: M.pw,
@@ -299,7 +302,7 @@ function apply(c, opts) {
     g.rotation.set(0, ry, rz); c.tailM[i].scale.set(1, puff, puff); });
   tailOutline(c, puff);
   const a = c.a * (opts && opts.a !== undefined ? opts.a : 1);
-  c.mats.forEach(m => { m.line.opacity = Math.min(1, 0.95 * a); m.soft.opacity = 0.5 * a; });
+  c.mats.forEach(m => { m.line.opacity = Math.min(1, 0.95 * a); m.soft.opacity = 0.5 * a; if (m.out) m.out.opacity = m.line.opacity; });
   c.root.visible = a > 0.01;
 }
 /* le contour de la queue : sa ligne (les jointures) vue de face ; de chaque côté, à la distance du rayon, perpendiculairement ; le bout en demi-cercle.

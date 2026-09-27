@@ -155,7 +155,13 @@ function piece(key, build) {
 // o.fat : l'épaisseur du trait en px (un trait de stylo, arrondi aux bouts) ; sans, un trait fin d'un pixel
 function mats(color, o) {
   const c = color ?? inkNow();
-  if (o && o.fat) return { line: fatMat(c, o.fat, 1), soft: fatMat(c, o.fatSoft || o.fat * 0.7, 0.5), hid: null, nohid: true, fat: o.fat };
+  if (o && o.fat) {
+    const M = { line: fatMat(c, o.fat, 1), soft: fatMat(c, o.fatSoft || o.fat * 0.7, 0.5), hid: null, nohid: true, fat: o.fat };
+    // o.uni (1…255) : un seul contour autour de toutes les pièces (le corps, les pattes, la queue fondus ensemble, comme un dessin d'un trait).
+    // Les volumes inscrivent ce numéro au pochoir ; le contour, deux fois plus épais, ne se dessine que hors du pochoir : seule sa moitié extérieure reste.
+    if (o.uni) { M.out = fatMat(c, o.fat * 2, 1, o.uni); M.occ = OCC.clone(); Object.assign(M.occ, { stencilWrite: true, stencilRef: o.uni, stencilFunc: T.AlwaysStencilFunc, stencilZPass: T.ReplaceStencilOp }); }
+    return M;
+  }
   return { line: new T.LineBasicMaterial({ color: c, transparent: true, depthWrite: false }), soft: new T.LineBasicMaterial({ color: c, transparent: true, opacity: 0.5, depthWrite: false }),
     hid: new T.LineBasicMaterial({ color: c, transparent: true, opacity: 0, depthWrite: false, depthFunc: T.GreaterDepth }), nohid: true };
 }
@@ -165,7 +171,7 @@ function mats(color, o) {
    Le trait est un peu avancé vers la caméra (bias) : sur un contour, la moitié intérieure n'est pas cachée par le volume lui-même. */
 const FAT = { res: { value: new T.Vector2(1, 1) }, dpr: { value: 1 } };
 const fatQuad = (() => { const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute([0, -1, 0, 0, 1, 0, 1, -1, 0, 1, 1, 0], 3)); g.setIndex([0, 2, 1, 1, 2, 3]); return g; })();
-function fatMat(color, width, opacity) {
+function fatMat(color, width, opacity, ref) {
   const u = { color: { value: new T.Color(color) }, opacity: { value: opacity }, width: { value: width }, res: FAT.res, dpr: FAT.dpr };
   const m = new T.ShaderMaterial({ uniforms: u, transparent: true, depthWrite: false,
     vertexShader: `attribute vec3 a; attribute vec3 b; uniform float width; uniform vec2 res; uniform float dpr;
@@ -189,6 +195,8 @@ function fatMat(color, width, opacity) {
   // comme un matériau ordinaire : m.opacity, m.color.setHex(…)
   Object.defineProperty(m, 'opacity', { get: () => u.opacity.value, set: v => { if (u) u.opacity.value = v; } });
   m.color = u.color.value; m.fat = true;
+  // le contour d'un seul trait (js/chat.js) : jamais par-dessus le volume du même chat (le pochoir y porte son numéro)
+  if (ref) { m.stencilWrite = true; m.stencilRef = ref; m.stencilFunc = T.NotEqualStencilFunc; m.stencilFail = m.stencilZFail = m.stencilZPass = T.KeepStencilOp; }
   return m;
 }
 // un paquet de segments épais (arr : des paires de points [x,y,z, x,y,z…]) ; n : combien en montrer
@@ -197,14 +205,14 @@ function fatSegs(arr, M) {
   const ib = new T.InstancedInterleavedBuffer(arr, 6); g.setAttribute('a', new T.InterleavedBufferAttribute(ib, 3, 0)); g.setAttribute('b', new T.InterleavedBufferAttribute(ib, 3, 3));
   g.instanceCount = arr.length / 6; const o = new T.Mesh(g, M); o.userData.ib = ib; return o;
 }
-function mount(pp, M) {
+function mount(pp, M, own) {
   const g = new T.Group(), add = (o, ord) => { o.renderOrder = ord; o.frustumCulled = false; g.add(o); };
-  pp.occ.forEach(o => add(new T.Mesh(o, OCC), 0));
+  pp.occ.forEach(o => add(new T.Mesh(o, M.occ || OCC), 0));
   if (M.fat) {
     if (pp.crease) add(fatSegs(pp.crease.attributes.position.array, M.line), 1);
     if (pp.soft) add(fatSegs(pp.soft.attributes.position.array, M.soft), 1);
     let sil = null;
-    if (pp.cand.length) { const arr = new Float32Array(pp.cand.length / 2), o = fatSegs(arr, M.line); o.geometry.instanceCount = 0; add(o, 1); sil = { arr, fat: o }; }
+    if (pp.cand.length) { const arr = new Float32Array(pp.cand.length / 2), o = fatSegs(arr, M.out && !own ? M.out : M.line); o.geometry.instanceCount = 0; add(o, 1); sil = { arr, fat: o }; }
     return { g, pp, sil };
   }
   // les traits cachés : seulement s'ils se voient (M.hid.opacity) — sinon autant de dessins en moins par image
