@@ -14,15 +14,17 @@ const garde = () => { try { localStorage.setItem(KEY, JSON.stringify(fait)); } c
 /* ——— la bulle ——— */
 const bulle = document.createElement('div'); bulle.className = 'tuto'; bulle.setAttribute('aria-live', 'polite'); bulle.hidden = true;
 document.body.appendChild(bulle);
-let courant = null;   // { id, txt, at: () => [x, y] | null }
+let courant = null, taille = null;
+addEventListener('resize', () => { taille = null; });   // { id, txt, at: () => [x, y] | null }
 function montre(b) {
   if (!b) { if (courant) { bulle.classList.remove('on'); setTimeout(() => { if (!courant) bulle.hidden = true; }, 300); } courant = null; return; }
   if (courant && courant.id === b.id) { courant.at = b.at; return; }
-  courant = b; bulle.textContent = b.txt; bulle.hidden = false; requestAnimationFrame(() => bulle.classList.add('on'));
+  courant = b; bulle.textContent = b.txt; bulle.hidden = false; taille = null; requestAnimationFrame(() => bulle.classList.add('on'));
 }
 function place() {
   if (!courant) return; const p = courant.at(); if (!p || Wd.a < 0.6) { bulle.style.opacity = 0; return; } bulle.style.opacity = '';
-  const w = bulle.offsetWidth, h = bulle.offsetHeight, x = Math.max(12, Math.min(Wd.W - w - 12, p[0] - w / 2)), y = Math.max(12, p[1] - h - 18);
+  // (la taille de la bulle, mesurée une fois par texte : la relire à chaque image forçait le navigateur à tout recalculer)
+  if (!taille || !taille[0]) taille = [bulle.offsetWidth, bulle.offsetHeight]; const [w, h] = taille, x = Math.max(12, Math.min(Wd.W - w - 12, p[0] - w / 2)), y = Math.max(12, p[1] - h - 18);
   bulle.style.transform = `translate(${x | 0}px, ${y | 0}px)`; bulle.style.setProperty('--queue', `${Math.max(14, Math.min(w - 14, p[0] - x)) | 0}px`);
 }
 
