@@ -28,18 +28,23 @@ const UNI = !/[?&]trait=pieces/.test(location.search);   // l'épaisseur du trai
    head [demi-largeur, demi-hauteur, épaisseur], at : où se pose la tête (fractions du corps), cheek : les joues
    ear [hauteur, largeur (en angle), écart depuis le sommet (en angle)], legs [longueur, rayon, écart (fraction du corps)], tail [longueur, rayon, panache]
    Depuis le 27/09, tous dans le style de la miche (Mathieu) : lisses, deux points pour les yeux, peu de détails.
-   fluff : les touffes (0 : lisse) · eyes : rond (grands yeux, pupille et reflet), brillant (tout noir, deux reflets), point, blase (sourcils lourds), heureux (∩ ∩) · brow : un sourcil froncé
+   fluff : les touffes (0 : lisse) · eyes : rond (grands yeux, pupille et reflet), brillant (tout noir, deux reflets), point (un ovale plein, un gros et un petit reflet, à la kawaii), blase (sourcils lourds), heureux (∩ ∩) · brow : un sourcil froncé
    mouth : w (ω), grogne, blep (le bout de la langue) · coat : uni, tigre, taches · blush : les joues roses · col : la couleur du trait (null : l'encre du thème) */
 const TYPES = {
-  boule:     { nom: 'la boule', s: 1.15, body: [0.29, 0.27, 2, 0.26], pear: 0.1, head: [0.22, 0.18, 0.16], at: [0.42, 0.9], cheek: 0.14, ear: [0.07, 0.3, 0.62], legs: [0.07, 0.045, 0.5], tail: [0.34, 0.045, 0.9], fluff: 0, eyes: 'point', eye: 0.048, mouth: 'w', coat: 'uni', col: null },
-  grincheux: { nom: 'le grincheux', s: 1.05, body: [0.3, 0.2, 2.3, 0.2], pear: 0.06, head: [0.22, 0.15, 0.14], at: [0.62, 0.8], cheek: 0.16, ear: [0.05, 0.26, 0.72], legs: [0.1, 0.042, 0.55], tail: [0.42, 0.045, 1.6], fluff: 0, eyes: 'point', eye: 0.044, brow: 1, mouth: 'grogne', coat: 'uni', col: 0x4a3b30 },
-  long:      { nom: 'le long', s: 1, body: [0.52, 0.1, 2.4, 0.1], pear: 0, head: [0.15, 0.13, 0.11], at: [0.93, 0.7], cheek: 0.06, ear: [0.07, 0.3, 0.66], legs: [0.13, 0.034, 0.78], tail: [0.5, 0.03, 0.3], fluff: 0, eyes: 'point', eye: 0.033, mouth: 'w', coat: 'uni', col: 0xc0561a },
+  boule:     { nom: 'la boule', s: 1.15, body: [0.29, 0.27, 2, 0.26], pear: 0.1, head: [0.22, 0.18, 0.16], at: [0.42, 0.9], cheek: 0.14, ear: [0.07, 0.3, 0.62], legs: [0.07, 0.045, 0.5], tail: [0.34, 0.045, 0.9], fluff: 0, eyes: 'point', eye: 0.054, mouth: 'w', coat: 'uni', col: null },
+  grincheux: { nom: 'le grincheux', s: 1.05, body: [0.3, 0.2, 2.3, 0.2], pear: 0.06, head: [0.22, 0.15, 0.14], at: [0.62, 0.8], cheek: 0.16, ear: [0.05, 0.26, 0.72], legs: [0.1, 0.042, 0.55], tail: [0.42, 0.045, 1.6], fluff: 0, eyes: 'point', eye: 0.048, brow: 1, mouth: 'grogne', coat: 'uni', col: 0x4a3b30 },
+  long:      { nom: 'le long', s: 1, body: [0.52, 0.1, 2.4, 0.1], pear: 0, head: [0.15, 0.13, 0.11], at: [0.93, 0.7], cheek: 0.06, ear: [0.07, 0.3, 0.66], legs: [0.13, 0.034, 0.78], tail: [0.5, 0.03, 0.3], fluff: 0, eyes: 'point', eye: 0.037, mouth: 'w', coat: 'uni', col: 0xc0561a },
   chaton:    { nom: 'le chaton', s: 0.8, body: [0.19, 0.14, 2.2, 0.14], pear: 0.08, head: [0.21, 0.18, 0.15], at: [0.6, 1.05], cheek: 0.1, ear: [0.1, 0.32, 0.6], legs: [0.1, 0.036, 0.55], tail: [0.3, 0.03, 0.3], fluff: 0, eyes: 'brillant', eye: 0.06, mouth: 'blep', coat: 'uni', blush: 0, col: 0x6e4fb0 },
-  bleu:      { nom: 'le bleu', s: 1.05, body: [0.27, 0.15, 2.4, 0.15], pear: 0, arch: 0.35, head: [0.16, 0.14, 0.13], at: [0.86, 0.72], cheek: 0.04, ear: [0.12, 0.3, 0.68], legs: [0.18, 0.04, 0.62], tail: [0.5, 0.036, 0.25], fluff: 0, eyes: 'point', eye: 0.036, mouth: 'w', coat: 'uni', col: 0x1d20a6 },
-  miche:     { nom: 'la miche', s: 1, body: [0.3, 0.17, 2.8, 0.17], pear: 0.05, head: [0.18, 0.14, 0.13], at: [0.78, 0.72], cheek: 0.08, ear: [0.045, 0.34, 0.66], legs: [0.09, 0.042, 0.62], tail: [0.4, 0.035, 0.4], fluff: 0, eyes: 'point', eye: 0.036, mouth: 'w', coat: 'taches', col: null },
+  bleu:      { nom: 'le bleu', s: 1.05, body: [0.27, 0.15, 2.4, 0.15], pear: 0, arch: 0.35, head: [0.16, 0.14, 0.13], at: [0.86, 0.72], cheek: 0.04, ear: [0.12, 0.3, 0.68], legs: [0.18, 0.04, 0.62], tail: [0.5, 0.036, 0.25], fluff: 0, eyes: 'point', eye: 0.041, mouth: 'w', coat: 'uni', col: 0x1d20a6 },
+  miche:     { nom: 'la miche', s: 1, body: [0.3, 0.17, 2.8, 0.17], pear: 0.05, head: [0.18, 0.14, 0.13], at: [0.78, 0.72], cheek: 0.08, ear: [0.045, 0.34, 0.66], legs: [0.09, 0.042, 0.62], tail: [0.4, 0.035, 0.4], fluff: 0, eyes: 'point', eye: 0.041, mouth: 'w', coat: 'taches', col: null },
   rose:      { nom: 'la gourmande', s: 1, body: [0.26, 0.22, 2.1, 0.22], pear: 0.14, head: [0.21, 0.17, 0.14], at: [0.55, 0.88], cheek: 0.16, ear: [0.07, 0.34, 0.62], legs: [0.08, 0.046, 0.52], tail: [0.36, 0.04, 0.5], fluff: 0, eyes: 'heureux', eye: 0.045, mouth: 'w', coat: 'uni', blush: 0, col: 0xc04a6c },
-  tigre:     { nom: 'le tigré', s: 1, body: [0.28, 0.18, 2.3, 0.17], pear: 0.05, head: [0.18, 0.15, 0.13], at: [0.78, 0.78], cheek: 0.1, ear: [0.08, 0.3, 0.64], legs: [0.13, 0.04, 0.58], tail: [0.4, 0.036, 0.4], fluff: 0, eyes: 'point', eye: 0.04, mouth: 'w', coat: 'tigre', col: 0x2f6e8e },
-  reveur:    { nom: 'le rêveur', s: 0.95, body: [0.22, 0.2, 2.6, 0.16], pear: 0.08, head: [0.17, 0.14, 0.12], at: [0.62, 0.92], cheek: 0.05, ear: [0.09, 0.28, 0.64], legs: [0.12, 0.038, 0.52], tail: [0.44, 0.032, 0.3], fluff: 0, eyes: 'point', eye: 0.038, mouth: 'w', coat: 'uni', col: 0x3a6e46 }
+  tigre:     { nom: 'le tigré', s: 1, body: [0.28, 0.18, 2.3, 0.17], pear: 0.05, head: [0.18, 0.15, 0.13], at: [0.78, 0.78], cheek: 0.1, ear: [0.08, 0.3, 0.64], legs: [0.13, 0.04, 0.58], tail: [0.4, 0.036, 0.4], fluff: 0, eyes: 'point', eye: 0.045, mouth: 'w', coat: 'tigre', col: 0x2f6e8e },
+  reveur:    { nom: 'le rêveur', s: 0.95, body: [0.22, 0.2, 2.6, 0.16], pear: 0.08, head: [0.17, 0.14, 0.12], at: [0.62, 0.92], cheek: 0.05, ear: [0.09, 0.28, 0.64], legs: [0.12, 0.038, 0.52], tail: [0.44, 0.032, 0.3], fluff: 0, eyes: 'point', eye: 0.043, mouth: 'w', coat: 'uni', col: 0x3a6e46 },
+  nuage:     { nom: 'le nuage', s: 1.3, body: [0.3, 0.26, 2.1, 0.26], pear: 0.08, head: [0.23, 0.18, 0.16], at: [0.5, 0.88], cheek: 0.18, ear: [0.05, 0.3, 0.64], legs: [0.06, 0.05, 0.52], tail: [0.36, 0.06, 1], fluff: 0.06, eyes: 'point', eye: 0.05, mouth: 'w', coat: 'uni', col: null },
+  pompon:    { nom: 'le pompon', s: 0.72, body: [0.2, 0.18, 2.1, 0.17], pear: 0.06, head: [0.22, 0.18, 0.15], at: [0.55, 1], cheek: 0.14, ear: [0.08, 0.32, 0.6], legs: [0.07, 0.04, 0.52], tail: [0.26, 0.05, 1.4], fluff: 0.07, eyes: 'point', eye: 0.056, mouth: 'w', coat: 'uni', col: 0x9a6a1c },
+  gros:      { nom: 'le gros', s: 1.4, body: [0.33, 0.25, 2.4, 0.28], pear: 0.16, head: [0.19, 0.14, 0.14], at: [0.62, 0.78], cheek: 0.22, ear: [0.05, 0.32, 0.68], legs: [0.06, 0.05, 0.6], tail: [0.3, 0.04, 0.4], fluff: 0, eyes: 'point', eye: 0.042, mouth: 'w', coat: 'uni', col: 0x3e6b3a },
+  mini:      { nom: 'la puce', s: 0.6, body: [0.18, 0.13, 2.3, 0.13], pear: 0.05, head: [0.2, 0.17, 0.14], at: [0.62, 1.05], cheek: 0.1, ear: [0.11, 0.3, 0.6], legs: [0.1, 0.034, 0.55], tail: [0.34, 0.028, 0.3], fluff: 0, eyes: 'point', eye: 0.058, mouth: 'blep', coat: 'uni', col: null },
+  hirsute:   { nom: 'l\'ébouriffé', s: 1, body: [0.26, 0.18, 2.2, 0.17], pear: 0.04, head: [0.19, 0.15, 0.13], at: [0.74, 0.82], cheek: 0.12, ear: [0.09, 0.3, 0.64], legs: [0.12, 0.04, 0.58], tail: [0.4, 0.05, 1.2], fluff: 0.06, eyes: 'point', eye: 0.045, mouth: 'w', coat: 'uni', col: 0x7a3d8a },
 };
 const IDS = Object.keys(TYPES);
 
@@ -98,34 +103,32 @@ function build(id) {
   const b = TYPES[id], D = dims(b), P = {}, key = k => 'chat:' + id + ':' + k;
   // le corps : sa silhouette, ses touffes (moins dessous), son pelage
   P.body = Obj3D.piece(key('corps'), B => {
-    B.solid(blob(D.R, D.d, { tuft: b.fluff, k: b.fluff ? 30 : 0, n: 80, where: th => Math.sin(th) < -0.6 ? 0.25 : 1 }));
+    B.smooth(blob(D.R, D.d, { tuft: b.fluff, k: b.fluff ? 44 : 0, n: 80, where: th => Math.sin(th) < -0.6 ? 0.25 : 1 }));
     if (b.coat === 'tigre') [0.4, 0.55, 0.7].forEach((f, i) => [1, -1].forEach(sd => {
       const th = f * Math.PI, Q = []; for (let q = 0; q <= 6; q++) { const ph = Math.PI / 2 - sd * q / 6 * (0.5 + 0.15 * (i % 2)); Q.push(onBlob(D.R, D.d, th + Math.sin(q * 0.9) * 0.03, ph)); } B.lines(zup(segs(Q))); }));
     if (b.coat === 'taches') [[2.2, 0.7, 0.3], [1.2, 0.95, 0.22], [2.9, 1.1, 0.2], [0.6, 0.55, 0.16]].forEach(([th, ph, r], i) => [1, -1].forEach(sd => {
       const Q = []; for (let q = 0; q <= 16; q++) { const a = q / 16 * TAU, g = 1 + (hsh(q % 16, i) - 0.5) * 0.35; Q.push(onBlob(D.R, D.d, th + Math.cos(a) * r * g, sd > 0 ? ph + Math.sin(a) * r * g * 0.8 : Math.PI - ph - Math.sin(a) * r * g * 0.8)); } B.lines(zup(segs(Q))); }));
-    if (b.fluff) [[-0.35, 0.45], [-0.15, 0.5], [0.05, 0.47]].forEach(([th, ph]) => [1, -1].forEach(sd => {   // quelques mèches sur le poitrail
-      const c = onBlob(D.R, D.d, th, sd > 0 ? ph : Math.PI - ph), e = onBlob(D.R, D.d, th - 0.12, sd > 0 ? ph + 0.18 : Math.PI - ph - 0.18); B.soft(zup([...c, ...e])); }));
   });
-  // la tête : vue de face, plus large que haute, les joues rondes, les oreilles dans le contour (deux bosses au sommet)
+  // la tête : lisse même chez les poilus (ses touffes faisaient des traits sur le corps), vue de face, plus large que haute, les joues rondes, les oreilles dans le contour (deux bosses au sommet)
   const [ha, hh, hd] = b.head, cheek = b.cheek, hR0 = oval(ha, hh, 2.3, 0), [eh, ew, eo] = b.ear;
   const earAt = th => bump((th - (Math.PI / 2 - eo)) / ew) + bump((th - (Math.PI / 2 + eo)) / ew);
   const cheeks = th => Math.exp(-Math.pow((th - (TAU - 0.45)) / 0.45, 2)) + Math.exp(-Math.pow((th - (Math.PI + 0.45)) / 0.45, 2)) + Math.exp(-Math.pow((th + 0.45) / 0.45, 2));
   const HR0 = th => hR0(th) * (1 + cheek * cheeks(th)), HR = th => HR0(th) + eh * earAt(th);
   const zf = zOn(HR, hd), F = (u, v) => [u, v, zf(u, v) + hd * 0.05];
   P.head = Obj3D.piece(key('tete'), B => {
-    B.solid(blob(HR, hd, { tuft: b.fluff ? b.fluff * 1.3 : 0, k: b.fluff ? 26 : 0, n: b.fluff ? 0 : 180, m: 8, where: th => { const s = Math.sin(th); return s < 0.1 && s > -0.85 ? 1 : 0; } }));
-    // le dedans des oreilles : un trait qui suit leur bord, un peu en retrait
-    [-1, 1].forEach(s => { const c = Math.PI / 2 - s * eo, Q = []; for (let q = 0; q <= 12; q++) { const th = c + (q / 12 - 0.5) * ew * 1.2, r = HR0(th) + eh * earAt(th) * 0.55 - 0.004; Q.push(F(Math.cos(th) * r, Math.sin(th) * r)); } B.soft(zup(segs(Q))); });
+    // (smooth : seulement le contour, pas les arêtes vives : les oreilles faisaient des plis dessinés dans la tête)
+    B.smooth(blob(HR, hd, { n: 180, m: 8, where: th => { const s = Math.sin(th); return s < 0.1 && s > -0.85 ? 1 : 0; } }));
+    // les oreilles : juste leur bord, dans le contour de la tête (pas de trait dedans : Mathieu, 27/09)
   });
   // le visage : les yeux, la bouche, les moustaches, en traits posés sur la tête
-  const e = b.eye, ex = ha * (b.eyes === 'brillant' ? 0.44 : 0.42), ey = hh * 0.06;
+  const e = b.eye, ex = ha * (b.eyes === 'brillant' ? 0.44 : 0.45), ey = hh * 0.04;
   const arc = (cx, cy, rx, ry, a0, a1, n) => { const Q = []; n = n || 16; for (let q = 0; q <= n; q++) { const a = lerp(a0, a1, q / n); Q.push(F(cx + Math.cos(a) * rx, cy + Math.sin(a) * ry)); } return segs(Q); };
   // un rond plein (des cercles serrés), percé de reflets (holes : [x, y, r]) ; half : seulement la moitié basse
-  const fill = (B, cx, cy, rx, ry, holes, half) => {
-    const nR = Math.max(2, Math.ceil(Math.max(rx, ry) / 0.0065)), out = [];
-    for (let k = 0; k <= nR; k++) { const f = k / nR, n = Math.max(6, Math.round(28 * f)), a0 = half ? Math.PI : 0; let prev = null;
+  const fill = (B, cx, cy, rx, ry, holes, half, pad) => {
+    const nR = Math.max(2, Math.ceil(Math.max(rx, ry) / 0.0035)), out = [];
+    for (let k = 0; k <= nR; k++) { const f = k / nR, n = Math.max(8, Math.round(44 * f)), a0 = half ? Math.PI : 0; let prev = null;
       for (let q = 0; q <= n; q++) { const a = lerp(a0, TAU, q / n), x = cx + Math.cos(a) * rx * f, y = cy + Math.sin(a) * ry * f;
-        const inHole = (holes || []).some(h => Math.hypot(x - h[0], y - h[1]) < h[2] + 0.005), p = inHole ? null : F(x, y);
+        const inHole = (holes || []).some(h => Math.hypot(x - h[0], y - h[1]) < h[2] + (pad || 0.005)), p = inHole ? null : F(x, y);
         if (p && prev) out.push(...prev, ...p); prev = p; } }
     if (half) out.push(...F(cx - rx, cy), ...F(cx + rx, cy));
     B.lines(out);
@@ -145,7 +148,7 @@ function build(id) {
     const cx = s * ex;
     if (b.eyes === 'rond') { const px = cx + e * 0.08, py = ey - e * 0.06, r = e * 0.64; fill(B, px, py, r, r * 1.05, [[px - r * 0.35, py + r * 0.38, r * 0.3]]); B.lines(arc(px - r * 0.35, py + r * 0.38, r * 0.3, r * 0.3, 0, TAU, 12)); }
     if (b.eyes === 'brillant') { const r = e, H = [[cx - r * 0.3, ey + r * 0.38, r * 0.3], [cx + r * 0.32, ey - r * 0.42, r * 0.14]]; fill(B, cx, ey, r * 0.9, r, H); H.forEach(h => B.lines(arc(h[0], h[1], h[2], h[2], 0, TAU, 12))); }
-    if (b.eyes === 'point') fill(B, cx, ey, e * 0.62, e * 0.7, [[cx - e * 0.2, ey + e * 0.25, e * 0.16]]);
+    // 'point' : pas de traits ici, de vrais ovales pleins avec leurs reflets blancs (voir eyeDisc dans create)
     if (b.eyes === 'blase') fill(B, cx, ey + lid, e * 0.6, e * 0.6, null, true);
   }));
   // les yeux clos (le sommeil, un clignement) ; les yeux ravis (∩ ∩)
@@ -178,12 +181,12 @@ function build(id) {
   });
   // la cuisse (assis) : un gros rond sur le côté, et la patte arrière posée devant
   const [sr, sh2] = D.seatR, sR = oval(sr, sh2, 2.1, 0.05);
-  P.seat = Obj3D.piece(key('cuisse'), B => B.solid(blob(sR, D.d * 0.45, { n: 64, m: 7 })));
+  P.seat = Obj3D.piece(key('cuisse'), B => B.smooth(blob(sR, D.d * 0.45, { n: 64, m: 7 })));
   // la queue : neuf segments (en panache pour certains), le bout un peu plus fin
   const n = 9, sl = b.tail[0] / n, tr = b.tail[1], bush = b.tail[2], rAt = t => tr * (1 + bush * Math.pow(Math.sin(Math.min(1, t * 1.15) * Math.PI), 0.9) * 0.9) * (1 - 0.25 * t) * (t > 0.92 ? 1 - (t - 0.92) * 4 : 1);
   P.tail = []; for (let i = 0; i < n; i++) { const r0 = rAt(i / n), r1 = rAt((i + 1) / n); P.tail.push(Obj3D.piece(key('queue' + i), B => { B.occ(K.latheX([[0, r0], [sl * 0.5, (r0 + r1) / 2], [sl, r1]], 12)); B.occ(new T.SphereGeometry(r1, 12, 8).translate(sl, 0, 0)); if (!i) B.occ(new T.SphereGeometry(r0, 12, 8)); })); }
   const tailR = []; for (let i = 0; i <= n; i++) tailR.push(rAt(i / n));
-  return { P, D, n, sl, HR, F, pw, tailR };
+  return { P, D, n, sl, HR, F, pw, tailR, eye: { ex, ey, e, z: F(0, ey)[2] } };
 }
 
 /* ——— une pose : les noms des cases ———
@@ -204,12 +207,20 @@ let uid = 0;
 function create(id, o) {
   o = o || {}; id = TYPES[id] ? id : IDS[Math.floor(Math.random() * IDS.length)];
   const b = TYPES[id], M = build(id), D = M.D, P = M.P;
-  // UNI : le corps, les pattes et la queue n'ont qu'un contour (pas de trait sur le ventre là où passe une patte) ; la tête et les cuisses (assis) gardent le leur
-  const mats = Obj3D.mats(o.color ?? undefined, { fat: PEN, fatSoft: PEN * 0.8, uni: UNI ? 1 + (uid % 254) : 0 }), all = [], G = () => new T.Group();
+  // UNI : le corps, les pattes et la queue n'ont qu'un contour (pas de trait sur le ventre là où passe une patte) ; la tête a son contour à elle (sans les plis des oreilles), les cuisses (assis) aussi
+  const mats = Obj3D.mats(o.color ?? undefined, { fat: PEN, fatSoft: PEN * 0.8, uni: UNI ? 1 + (uid % 127) * 2 : 0, uni2: UNI ? 2 + (uid % 127) * 2 : 0 }), all = [], G = () => new T.Group();
   const put = (pp, parent, own) => { const q = Obj3D.mount(pp, mats, own); parent.add(q.g); all.push(q); return q; };
   const root = G(), view = G(), body = G(), puffy = G(), headA = G(), head = G(), pupils = G();
   root.add(view); view.add(body); body.add(puffy); body.add(headA); headA.add(head); head.add(pupils);
-  put(P.body, puffy).g.scale.setScalar(1 / Z); put(P.head, head, true).g.scale.setScalar(1 / Z); put(P.face, head, true); put(P.pup, pupils, true);
+  put(P.body, puffy).g.scale.setScalar(1 / Z); put(P.head, head, 2).g.scale.setScalar(1 / Z); put(P.face, head, true); put(P.pup, pupils, true);
+  // les yeux kawaii : un ovale plein à l'encre, un gros reflet blanc en haut, un petit en bas (des disques, pas des traits : bords nets)
+  const discs = [];
+  if (b.eyes === 'point') { const E = M.eye, disc = new T.CircleGeometry(1, 32);
+    const ink = new T.MeshBasicMaterial({ color: mats.line.color, transparent: true }), glint = new T.MeshBasicMaterial({ color: 0xffffff, transparent: true });
+    [-1, 1].forEach(s => { const cx = s * E.ex;
+      [[cx, E.ey, E.e * 0.8, E.e * 0.95, ink, 0], [cx - E.e * 0.22, E.ey + E.e * 0.3, E.e * 0.3, E.e * 0.3, glint, 1], [cx + E.e * 0.27, E.ey - E.e * 0.4, E.e * 0.13, E.e * 0.13, glint, 2]].forEach(([x, y, rx, ry, m, k]) => {
+        const o = new T.Mesh(disc, m); o.position.set(x, y, E.z + E.e * (0.3 + k * 0.1)); o.scale.set(rx, ry, 1); o.renderOrder = 1; o.frustumCulled = false; pupils.add(o); }); });
+    discs.push(ink, glint); }
   const eyes = put(P.eyes, head, true), shut = put(P.shut, head, true), joy = put(P.joy, head, true), mouth = put(P.mouth, head, true);
   // les pattes : devant (f), derrière (h), à gauche (−z) et à droite (+z) ; la jambe s'étire, la patte reste ronde
   const legs = {}; [['fl', 'f', -1], ['fr', 'f', 1], ['hl', 'h', -1], ['hr', 'h', 1]].forEach(([k, w, s]) => {
@@ -224,7 +235,7 @@ function create(id, o) {
   const tailArr = new Float32Array((2 * P.tail.length + 8) * 6), tailLine = Obj3D.fatSegs(tailArr, mats.out || mats.line); tailLine.renderOrder = 1; tailLine.frustumCulled = false; root.add(tailLine);
   const R = Obj3D.rig(root, all);
   const cat = { tailArr, tailLine, tailR: M.tailR, sl: M.sl,
-    id: ++uid, breed: id, b, D, root, view, body, puffy, headA, head, pupils, legs, seats, tail, tailB: tb, tailM, eyes, shut, joy, mouth, mats: [mats], R, all, pw: M.pw,
+    id: ++uid, breed: id, b, D, root, view, body, puffy, headA, head, pupils, legs, seats, tail, tailB: tb, tailM, eyes, shut, joy, mouth, mats: [mats], discs, R, all, pw: M.pw,
     cur: new Float32Array(NP), tgt: new Float32Array(NP), rate: 10,
     // où il est : à l'écran (px), sa taille (px par unité), vers où il regarde (face : 1 à droite, −1 à gauche), un tour entier du corps (spin), sa profondeur (z)
     x: 0, y: 0, s: 160, face: 1, spin: 0, z: 0, a: 1
@@ -303,7 +314,7 @@ function apply(c, opts) {
     g.rotation.set(0, ry, rz); c.tailM[i].scale.set(1, puff, puff); });
   tailOutline(c, puff);
   const a = c.a * (opts && opts.a !== undefined ? opts.a : 1);
-  c.mats.forEach(m => { m.line.opacity = Math.min(1, 0.95 * a); m.soft.opacity = 0.5 * a; if (m.out) m.out.opacity = m.line.opacity; });
+  c.mats.forEach(m => { m.line.opacity = Math.min(1, 0.95 * a); m.soft.opacity = 0.5 * a; if (m.out) m.out.opacity = m.line.opacity; if (m.out2) m.out2.opacity = m.line.opacity; }); c.discs.forEach(m => { m.opacity = Math.min(1, a); });
   c.root.visible = a > 0.01;
 }
 /* le contour de la queue : sa ligne (les jointures) vue de face ; de chaque côté, à la distance du rayon, perpendiculairement ; le bout en demi-cercle.

@@ -159,7 +159,10 @@ function mats(color, o) {
     const M = { line: fatMat(c, o.fat, 1), soft: fatMat(c, o.fatSoft || o.fat * 0.7, 0.5), hid: null, nohid: true, fat: o.fat };
     // o.uni (1…255) : un seul contour autour de toutes les pièces (le corps, les pattes, la queue fondus ensemble, comme un dessin d'un trait).
     // Les volumes inscrivent ce numéro au pochoir ; le contour, deux fois plus épais, ne se dessine que hors du pochoir : seule sa moitié extérieure reste.
-    if (o.uni) { M.out = fatMat(c, o.fat * 2, 1, o.uni); M.occ = OCC.clone(); Object.assign(M.occ, { stencilWrite: true, stencilRef: o.uni, stencilFunc: T.AlwaysStencilFunc, stencilZPass: T.ReplaceStencilOp }); }
+    const uni = r => { const occ = OCC.clone(); Object.assign(occ, { stencilWrite: true, stencilRef: r, stencilFunc: T.AlwaysStencilFunc, stencilZPass: T.ReplaceStencilOp }); return [fatMat(c, o.fat * 2, 1, r), occ]; };
+    if (o.uni) [M.out, M.occ] = uni(o.uni);
+    // o.uni2 : un second contour d'un seul trait (la tête, sur le corps : son bord se voit, ses plis dedans non)
+    if (o.uni2) { [M.out2, M.occ2] = uni(o.uni2); M.out2.uniforms.width.value = o.fat * 1.6; }   // un peu moins épais : sous le menton, le trait doublait
     return M;
   }
   return { line: new T.LineBasicMaterial({ color: c, transparent: true, depthWrite: false }), soft: new T.LineBasicMaterial({ color: c, transparent: true, opacity: 0.5, depthWrite: false }),
@@ -205,14 +208,16 @@ function fatSegs(arr, M) {
   const ib = new T.InstancedInterleavedBuffer(arr, 6); g.setAttribute('a', new T.InterleavedBufferAttribute(ib, 3, 0)); g.setAttribute('b', new T.InterleavedBufferAttribute(ib, 3, 3));
   g.instanceCount = arr.length / 6; const o = new T.Mesh(g, M); o.userData.ib = ib; return o;
 }
+// own : la pièce garde son propre trait (true) ou a le second contour unique (2 : la tête)
 function mount(pp, M, own) {
   const g = new T.Group(), add = (o, ord) => { o.renderOrder = ord; o.frustumCulled = false; g.add(o); };
-  pp.occ.forEach(o => add(new T.Mesh(o, M.occ || OCC), 0));
+  const two = own === 2 && M.out2, occ = two ? M.occ2 : own ? OCC : M.occ || OCC;
+  pp.occ.forEach(o => add(new T.Mesh(o, occ), 0));
   if (M.fat) {
     if (pp.crease) add(fatSegs(pp.crease.attributes.position.array, M.line), 1);
     if (pp.soft) add(fatSegs(pp.soft.attributes.position.array, M.soft), 1);
     let sil = null;
-    if (pp.cand.length) { const arr = new Float32Array(pp.cand.length / 2), o = fatSegs(arr, M.out && !own ? M.out : M.line); o.geometry.instanceCount = 0; add(o, 1); sil = { arr, fat: o }; }
+    if (pp.cand.length) { const arr = new Float32Array(pp.cand.length / 2), o = fatSegs(arr, two ? M.out2 : M.out && !own ? M.out : M.line); o.geometry.instanceCount = 0; add(o, 1); sil = { arr, fat: o }; }
     return { g, pp, sil };
   }
   // les traits cachés : seulement s'ils se voient (M.hid.opacity) — sinon autant de dessins en moins par image

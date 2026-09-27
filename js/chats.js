@@ -159,7 +159,12 @@ const CARAC = {
   miche:     { dort: 2.5, mange: 3, joue: 0.5, grimpe: 0.3, carton: 1.2, pousse: 0.4, casse: 0.4, flane: 1, pose: 2, dispute: 0.3, fou: 0.1, g: 'pas', coin: 'gamelle' },
   rose:      { dort: 1.5, mange: 3, joue: 1.2, grimpe: 0.6, carton: 0.8, pousse: 0.4, casse: 0.6, flane: 1.2, pose: 2, dispute: 0.2, fou: 0.4, g: 'pas', coin: 'coussin' },
   tigre:     { dort: 1, mange: 1, joue: 1.5, grimpe: 1.2, carton: 0.8, pousse: 2.5, casse: 3, flane: 1.5, pose: 1, dispute: 1.5, fou: 0.8, g: 'trot', coin: 'caisse' },
-  reveur:    { dort: 3, mange: 0.8, joue: 0.8, grimpe: 1, carton: 2, pousse: 0.2, casse: 0.2, flane: 1.2, pose: 2.5, dispute: 0.1, fou: 0.2, g: 'pas', coin: 'panier' }
+  reveur:    { dort: 3, mange: 0.8, joue: 0.8, grimpe: 1, carton: 2, pousse: 0.2, casse: 0.2, flane: 1.2, pose: 2.5, dispute: 0.1, fou: 0.2, g: 'pas', coin: 'panier' },
+  nuage:     { dort: 3.5, mange: 2, joue: 0.5, grimpe: 0.2, carton: 0.8, pousse: 0.2, casse: 0.2, flane: 1, pose: 2.5, dispute: 0.2, fou: 0.1, g: 'pas', coin: 'coussin' },
+  pompon:    { dort: 1, mange: 1.2, joue: 3.5, grimpe: 0.8, carton: 2.5, pousse: 0.5, casse: 0.8, flane: 1, pose: 1, dispute: 0.3, fou: 1.8, g: 'trot', coin: 'carton' },
+  gros:      { dort: 3, mange: 4, joue: 0.3, grimpe: 0.1, carton: 0.6, pousse: 0.6, casse: 0.5, flane: 0.8, pose: 2.5, dispute: 0.5, fou: 0.05, g: 'pas', coin: 'gamelle' },
+  mini:      { dort: 1, mange: 1, joue: 3, grimpe: 2, carton: 2, pousse: 0.3, casse: 0.6, flane: 1.5, pose: 0.8, dispute: 0.2, fou: 2.5, g: 'trot', coin: 'plateau' },
+  hirsute:   { dort: 1.2, mange: 1.2, joue: 1.5, grimpe: 1.5, carton: 1, pousse: 1.5, casse: 1.5, flane: 2, pose: 1, dispute: 1.2, fou: 1.2, g: 'trot', coin: 'caisse' }
 };
 const SPEED = { pas: 0.32, trot: 0.62, galop: 1.5 };
 
