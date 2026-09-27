@@ -7,7 +7,7 @@
      pelote   une pelote de laine (sa couleur), qui roule ; le fil qui traîne est dessiné à la craie (js/chats.js)
      caisse   un carton fermé (o.size : 0, 1, 2), scotché, un petit dessin devant : on les empile, les pousse, les fait tomber
      panier   un lit rond en osier · poisson  un poisson en tissu (un jouet) · plante  une plante en pot · tasse  une tasse (à pousser du bord)
-     distrib  le distributeur de croquettes (il a une tête, il crache des croquettes par son bec : it.bec) · eau  une fontaine à eau (it.jet)
+     distrib  le distributeur de croquettes (il a une tête, il crache des croquettes par son bec : it.bec) · eau  une fontaine à eau (it.jet) · bassin  le grand bassin, où l'on se baigne (it.eau, it.coupe, it.jet)
      trappe   la machine à cartons accrochée au mur : seuls la bouche et le levier dépassent (it.mur, it.lev0, it.levK)
      lanceur  la machine à cartons : un canon (it.bouche, it.vise), un levier (parts.levier) ; elle projette des caisses
      coffre   le coffre à jouets : le couvercle (parts.couvercle) s'ouvre ; la canne à plume en sort (js/jouets.js)
@@ -150,6 +150,14 @@ function pieces() {
     B.solid(K.lathe([[0, 0], [0.15, 0], [0.165, 0.015], [0.16, 0.065], [0.148, 0.07], [0.138, 0.052], [0.03, 0.048], [0.028, 0.14], [0.042, 0.15], [0.036, 0.168], [0, 0.172]], 28));
     B.soft(segs(ring(0.11, 0.052, 26))); B.soft(segs(ring(0.07, 0.052, 20)));
   });
+  // le grand bassin (Mathieu, 27/09 : « une grande fontaine, un peu centrale, où les chats peuvent se baigner ») :
+  // une vasque basse et large, l'eau (un disque : ce qui est dessous ne se voit plus), une colonne, une coupe en haut d'où l'eau jaillit
+  P.bassin = Obj3D.piece('u:bassin', B => {
+    B.solid(K.lathe([[0, 0], [0.6, 0], [0.64, 0.02], [0.64, 0.13], [0.62, 0.15], [0.58, 0.15], [0.57, 0.04], [0, 0.04]], 40));
+    B.soft(segs(ring(0.61, 0.15, 40)));
+    B.solid(K.lathe([[0, 0.04], [0.06, 0.04], [0.05, 0.1], [0.04, 0.38], [0.2, 0.42], [0.22, 0.46], [0.2, 0.47], [0.03, 0.45], [0.03, 0.5], [0.045, 0.52], [0, 0.54]], 24));
+  });
+  P.bassinEau = Obj3D.piece('u:bassinEau', B => { B.solid(K.lathe([[0, 0.105], [0.575, 0.105], [0.575, 0.11], [0, 0.11]], 40)); });
   // la gamelle et ses croquettes
   P.gamelle = Obj3D.piece('u:gamelle', B => {
     B.solid(K.lathe([[0, 0], [0.16, 0], [0.17, 0.01], [0.14, 0.075], [0.13, 0.08], [0.115, 0.072], [0, 0.05]], 28));
@@ -222,6 +230,10 @@ function make(kind, o) {
     it.bouche = [-0.26 - Math.sin(1.22) * 0.22, 0.3 + Math.cos(1.22) * 0.22, 0]; it.vise = [-Math.sin(1.22), Math.cos(1.22)]; it.pivot = [-0.3, 0.12, 0.12];
   }
   else if (kind === 'eau') { put(P.fontaine); it.jet = [0, 0.172, 0]; }
+  else if (kind === 'bassin') { put(P.bassin); put(P.bassinEau); it.jet = [0, 0.54, 0]; it.coupe = { y: 0.46, r: 0.21 }; it.eau = { y: 0.11, r: 0.57 };
+    // dans l'eau (bain : le bas du corps caché sous la surface), et sur le rebord
+    it.perches = [{ id: 'bainG', p: [-0.3, 0.02, 0.18], w: 0.1, bain: true }, { id: 'bainD', p: [0.3, 0.02, 0.18], w: 0.1, bain: true }, { id: 'bainF', p: [0, 0.02, 0.36], w: 0.1, bain: true },
+      { id: 'bordG', p: [-0.58, 0.15, 0.2], w: 0.06 }, { id: 'bordD', p: [0.58, 0.15, 0.2], w: 0.06 }]; }
   else if (kind === 'pelote') { const g = new T.Group(); g.position.set(0, 0.075, 0); view.add(g); put(P.pelote, g); parts.ball = g; it.r = 0.075; }
   else if (kind === 'souris') {
     const body = new T.Group(); view.add(body); parts.body = body; put(P.sCorps, body);

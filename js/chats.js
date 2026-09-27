@@ -191,15 +191,15 @@ function prop(kind, fx, d, o) {
   Object.assign(it, { fx, d, dT: d, lift: 0, vx: 0, vy: 0, tiltV: 0, fall: false, on: null, onDx: 0, busy: null, fade: 1, fadeT: 1, spinA: 0, trail: it.r ? [] : null, col: o.color });
   it.tilt = 0; it.hull = it.box || HULL[kind] || { w: 0.3, h: 0.2 };
   if (o.yaw !== undefined) it.yaw = o.yaw;
-  it.big = { distrib: 1.5, eau: 1.3, lanceur: 1.15, trappe: 1.1 }[kind] || 1;   // le distributeur et la fontaine, un peu plus grands que nature
+  it.big = { distrib: 1.5, eau: 1.3, bassin: 1.25, lanceur: 1.15, trappe: 1.1 }[kind] || 1;   // le distributeur et la fontaine, un peu plus grands que nature
   Wd.props.push(it); return it;
 }
 function unprop(it) { Univers.destroy(it); const i = Wd.props.indexOf(it); if (i >= 0) Wd.props.splice(i, 1); Wd.props.forEach(o => { if (o.on === it) o.on = null; if (o.target === it) o.target = null; }); }
 // l'encombrement de chaque objet (en unités) : pour tomber, rebondir, se poser sur une caisse, se laisser attraper
-const HULL = { carton: { w: 0.56, h: 0.32 }, panier: { w: 0.72, h: 0.15 }, coussin: { w: 0.76, h: 0.15 }, gamelle: { w: 0.34, h: 0.08 }, eau: { w: 0.33, h: 0.17 },
+const HULL = { bassin: { w: 1.28, h: 0.16 }, carton: { w: 0.56, h: 0.32 }, panier: { w: 0.72, h: 0.15 }, coussin: { w: 0.76, h: 0.15 }, gamelle: { w: 0.34, h: 0.08 }, eau: { w: 0.33, h: 0.17 },
   distrib: { w: 0.4, h: 0.74 }, trappe: { w: 0.6, h: 0.5 }, arbre: { w: 1.5, h: 1.95 }, pelote: { w: 0.15, h: 0.15 }, poisson: { w: 0.3, h: 0.08 }, lanceur: { w: 0.6, h: 0.7 }, coffre: { w: 0.52, h: 0.3 } };
 // les lourds (ils tanguent, se laissent traîner lentement, tombent lourdement), ce qu'un chat bouscule en passant
-const LOURD = { arbre: 1, distrib: 1, lanceur: 1, coffre: 1 }, LEGER = { pelote: 1, poisson: 1, tasse: 1, plante: 1 };
+const LOURD = { arbre: 1, distrib: 1, lanceur: 1, coffre: 1, bassin: 1 }, LEGER = { pelote: 1, poisson: 1, tasse: 1, plante: 1 };
 const COL = { orange: 0xd0661f, bleu: 0x2f6fb0, vert: 0x3a6e46, rose: 0xc04a6c, gris: 0x6a6c70 };
 function layout() {
   Wd.props.slice().forEach(unprop); Wd.P = {}; Wd.extras = []; Wd.kib = []; const P = Wd.P, wide = Wd.mode === 'large';
@@ -208,7 +208,9 @@ function layout() {
   P.arbre = prop('arbre', ex(wide ? 0.8 : 0.62) + 0.012, 0.75, { yaw: 0.4 });
   if (wide) {
     P.coussin = prop('coussin', 0.25, 0.3);
-    P.panier = prop('panier', 0.34, 0.85);
+    // le grand bassin, un peu au centre (Mathieu, 27/09)
+    P.bassin = prop('bassin', 0.36, 0.62);
+    P.panier = prop('panier', 0.66, 0.22);
     P.pelote = prop('pelote', 0.45, 0.02);
     P.poisson = prop('poisson', 0.4, 0.12);
     // (Mathieu, 27/09 : « moins de cartons au départ, le décor est trop grand ») : un carton ouvert ; une caisse seulement sur un grand écran
@@ -220,12 +222,12 @@ function layout() {
     // le distributeur au milieu : les chats y passent souvent
     P.distrib = prop('distrib', 0.5, 0.9, { yaw: -0.25 });
     P.gamelle = prop('gamelle', 0.56, 0.5);
-    P.eau = prop('eau', 0.95, 0.9);
     // le coffre à jouets : la canne à plume dedans (js/jouets.js)
     P.coffre = prop('coffre', 0.87, 0.55, { yaw: -0.3 });
   } else {
     P.coussin = prop('coussin', 0.56, 0.3);
     P.pelote = prop('pelote', 0.68, 0.0);
+    P.bassin = prop('bassin', 0.36, 0.72); P.bassin.big = 0.9;
     // sur un téléphone, l'arbre et la machine rapetissent un peu (la place manque)
     P.arbre.big = 0.78;
     P.carton = prop('carton', 0.72, 0.88);
@@ -423,7 +425,7 @@ function think(c) {
   if (beds.length) add(ch.dort * (beds.some(b => ch.coin === b.kind) ? 2 : 1), () => sleep(c, beds.find(b => ch.coin === b.kind) || pick(beds)));
   const food = all('gamelle').concat(all('distrib'));
   if (food.length) add(ch.mange * fav('gamelle'), () => eat(c, pick(food)));
-  const water = all('eau'); if (water.length) add(ch.mange * 0.7 + 0.4, () => eat(c, pick(water), true));
+  const water = all('eau').concat(all('bassin')); if (water.length) add(ch.mange * 0.7 + 0.4, () => eat(c, pick(water), true));
   if (Wd.kib.some(k => k.rest && !k.who)) add(7, () => crunch(c));
   const toys = all('pelote').concat(all('poisson'));
   if (toys.length) add(ch.joue, () => play(c, pick(toys)));
@@ -468,7 +470,7 @@ function sleep(c, bed) {
     hop(() => groundAt(inView(xOf(bed) + sgn(Math.random() - 0.5) * sc(c) * 0.9), Math.max(0, bed.d - 0.15))), fn(free));
 }
 function eat(c, g, drink) {
-  claim(c, g); const w = g.kind === 'distrib' ? 0.3 : g.kind === 'eau' ? 0.16 : -0.1;
+  claim(c, g); const w = g.kind === 'distrib' ? 0.3 : g.kind === 'eau' ? 0.16 : g.kind === 'bassin' ? 0.95 : -0.1;
   c.q.push(fn(c => { const b = beside(c, xOf(g), sc(c) * w); c.q.unshift(go(b.x, { d: Math.max(0, g.d - 0.04), face: b.face })); }),
     pose('mange', rnd(3.5, 6), { fx: c => say(c, drink ? 'lap lap' : 'miam') }), pose('toilette', rnd(2, 3)), fn(free));
 }

@@ -189,7 +189,8 @@ H.think.push((c, add) => {
     const b = pick(cb); claim(c, b);
     // il se place à côté, le dos tourné au carton
     c.q.push(fn(c => { const w = K.beside(c, K.xOf(b), b.hull.w / 2 * b.s + front(c) * 0.25); c.q.unshift(go(inView(w.x), { d: Math.max(0, b.d - 0.03), face: -w.face })); }),
-      pose('marque', 2.2, { fx: c => { c.face = sgn(c.x - b.x) || c.face; later(0.7, () => { if (!Wd.props.includes(b)) return; say(c, 'psss'); b.marked = Wd.t;
+      pose('marque', 2.2, { fx: c => { c.face = sgn(c.x - b.x) || c.face; later(0.7, () => { if (!Wd.props.includes(b)) return; say(c, 'psss'); b.marked = Wd.t; window.Arc && Arc.colore(b, 40);   // (arc-en-ciel, js/arcenciel.js)
+
         V.push({ k: 'flaque', x: (c.x + b.x) / 2, y: floorAt(b.d) + 3, s: b.s, t0: Wd.t, life: 30, seed: Math.floor(Math.random() * 99), it: b }); }); } }),
       pose('assis', 1.2, { fx: c => say(c, pick(['à moi.', 'voilà.', 'hmpf.'])) }), fn(free));
   });
@@ -266,7 +267,8 @@ function drawBits() {
     else if (f.k === 'patte') { const ctx = C.ctx; if (!ctx) return; ctx.fillStyle = ink((0.3 * a).toFixed(3)); ctx.beginPath(); ctx.ellipse(f.x, f.y, f.r, f.r * 0.55, 0, 0, TAU); ctx.fill();
       for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.ellipse(f.x + i * f.r * 0.8, f.y - f.r * 0.85, f.r * 0.32, f.r * 0.22, 0, 0, TAU); ctx.fill(); } }
     else if (f.k === 'flaque') { const ctx = C.ctx; if (!ctx) return; const aa = f.it && !Wd.props.includes(f.it) ? a * 0.3 : a, r = f.s * 0.2 * Math.min(1, (t - f.t0) / 1.2);
-      ctx.fillStyle = `rgba(214,190,90,${(0.22 * aa).toFixed(3)})`; ctx.beginPath(); ctx.ellipse(f.x, f.y, r * 0.8, r * 0.18, 0, 0, TAU); ctx.fill();
+      // (arc-en-ciel, comme tout pipi : js/arcenciel.js)
+      const CO = window.Arc ? Arc.COUL : ['214,190,90']; CO.forEach((co, i) => { const q = 1 - i / CO.length; ctx.fillStyle = `rgba(${co},${(0.3 * aa).toFixed(3)})`; ctx.beginPath(); ctx.ellipse(f.x, f.y, r * 0.8 * q, r * 0.18 * q, 0, 0, TAU); ctx.fill(); });
       if (t - f.t0 > 1 && f.it && f.it.marked) { const b = f.it; for (let i = -1; i <= 1; i++) { const x = b.x + i * b.s * 0.14, y0 = b.y - (b.box ? b.box.h : 0.4) * b.s - 6, P = [];
         for (let k = 0; k <= 8; k++) P.push([x + Math.sin(k * 1.2 + t * 3 + i) * 4, y0 - k * 3.5 - ((t * 10 + i * 7) % 8)]); C.stroke(P, 1, { w: 1.2, a: 0.45 * aa, seed: f.seed + i, tip: false, amp: 0.1, color: '120,140,60' }); } } }
     else if (f.k === 'goutte') { const dt = t - f.t0, x = f.x + f.vx * dt, y = f.y + f.vy * dt + 500 * dt * dt; if (y > f.y1) return; C.dot(x, y, 1.7, 0.6 * a, '60,110,180'); }
