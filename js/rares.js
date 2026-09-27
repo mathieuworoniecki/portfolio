@@ -246,6 +246,61 @@ STEPS.degonfle = (c, T, dt) => {
   return c.y < -s * 2;
 };
 
+/* ——— à la main (27/09, Mathieu : « il faut pouvoir drag tous les chats spéciaux ») ———
+   le géant : trop lourd pour le soulever, mais on le fait rouler où l'on veut (il glousse) ;
+   le ballon : on le tient par son fil, il flotte au-dessus de la main ; lâché, il s'envole ;
+   l'acrobate (décroché de son fil), l'éclair, l'interminable : on les soulève par la peau du cou comme les autres ;
+   lâchés, ils retombent et reprennent leur numéro (l'éclair repart en trombe, l'interminable s'en va) ;
+   le totem : attraper un chaton fait s'écrouler la pile, on garde celui qu'on tient. */
+const prenable = c => c.rare && alive(c) && !c.hidden && c.hp && !(c.task && c.task.k === 'degonfle');
+// (le corps, ou la tête : celle de l'interminable est bien loin de son milieu)
+const sousMain = (c, x, y) => inZone(zone(c), x, y) || Math.hypot(x - c.hp[0], y - c.hp[1]) < c.b.head[0] * sc(c) * 1.3;
+H.grab.push((x, y) => Wd.cats.filter(prenable).sort((a, b) => b.z - a.z).find(c => sousMain(c, x, y)) || null);
+function ecroule(T) {
+  T.L.forEach((k, i) => { if (!alive(k)) return; interrupt(k); k.rare = null; k.fall = true; k.vx = (i - 1.5) * sc(k) * rnd(1, 2); k.vy = -sc(k) * rnd(1, 2); k.spin = rnd(-2, 2); k.stay = Wd.t - k.born + rnd(8, 20); if (i) say(k, pick(['waaah', 'aaah !', 'miaaa'])); });
+  word('PATATRAS', T.L[0].x, T.L[0].y - sc(T.L[0]) * 3, 30);
+}
+H.drag.push((c, x, y) => {
+  if (!c || !c.rare || c.hull) return false; c.tire = true;
+  if (c.rare === 'geant') {
+    // on le pousse : il roule vers la main
+    const T = c.task; if (T && T.k === 'rouleau' && Math.abs(x - c.x) > T.Rb * 0.3) T.dir = sgn(x - c.x);
+    if (Wd.t - (c.saidT ?? -9) > 1.6) { c.saidT = Wd.t; say(c, pick(['hihi', 'trop lourd !', 'hé ho', 'on roule ?'])); word(pick(['hnnng', 'pousse pousse']), x, y - 30, 20); }
+    return true;
+  }
+  if (c.rare === 'ballon') {
+    if (!c.task || c.task.k !== 'tenu') { interrupt(c); const b = Chat.where(c, c.body); c.task = { k: 'tenu', air: true, t: 0, ox: b[0] - x, oy: b[1] - y }; say(c, pick(['hihi', 'pouic', 'on se promène ?'])); }
+    c.task.hx = x; c.task.hy = y; return true;
+  }
+  if (c.rare === 'totem') { const T = R.totem; if (T && T.L.includes(c)) ecroule(T); c.rare = null; return false; }   // un chaton comme un autre
+  // les autres : soulevés par la peau du cou (le reste : js/chats.js, drag)
+  if (!c.held) { interrupt(c); c.fil = null; c.fall = false; c.held = true; c.spin = 0; c.pend = { th: 0, w: 0, px: x, py: y, vx: 0, vy: 0, ax: 0 }; c.suite = c.rare; say(c, pick(['hé !', 'lâche-moi !', 'wiii', '?!'])); }
+  return false;
+});
+H.release.push(c => {
+  if (!c || !c.rare || c.hull) return false; const tire = c.tire; c.tire = false;
+  if (!tire) return false;   // un simple clic : sa réaction (H.click)
+  if (c.rare === 'geant') return true;
+  if (c.rare === 'ballon') { if (c.task && c.task.k === 'tenu') { c.task = null; c.q = [{ k: 'envole', air: true }, fn(c => { c.gone = true; })]; say(c, pick(['bye !', 'wiiii', 'au revoir'])); } return true; }
+  return false;
+});
+// tenu par son fil : il flotte au-dessus de la main, un peu en retard
+STEPS.tenu = (c, T, dt) => {
+  c.anim = 'ballon'; if (T.hx == null) return false; const b = Chat.where(c, c.body), s = sc(c);
+  // (pris n'importe où, il glisse doucement jusqu'à pendre au bout de son fil, au-dessus de la main)
+  const k = Math.min(1, dt * 5), r = Math.min(1, dt * 1.5); T.ox += (0 - T.ox) * r; T.oy += (-(c.D.h * 1.1 + 1.2) * s - T.oy) * r;
+  c.x += (T.hx + T.ox - b[0]) * k; c.y += (T.hy + T.oy - b[1]) * k; c.face = sgn(T.hx - b[0]) || c.face;
+  return false;
+};
+STEPS.envole = (c, T, dt) => { c.anim = 'ballon'; const s = sc(c); c.y -= s * (0.6 + T.t * 0.8) * dt; c.x += Math.sin(T.t * 1.3) * s * 0.4 * dt; return c.y < -s * 2.5; };
+// lâché, retombé : il reprend son numéro
+H.live.push(c => {
+  if (!c.suite || c.held || c.fall || !alive(c)) return; const k = c.suite; c.suite = null;
+  if (k === 'eclair') { const dir = c.x < Wd.W / 2 ? -1 : 1; c.q.push(fn(c => say(c, pick(['bon.', 'ZOOM !', 'trop lent !']))), { k: 'zoom', dir, air: true }, fn(c => { c.gone = true; })); }
+  else if (k === 'interminable') c.q.push(fn(c => say(c, pick(['bon, j\'y vais', 'pfff']))), { k: 'defile', half: c.b.body[0] * sc(c), ph: 2, air: true }, fn(c => { c.gone = true; }));
+  else c.q.push(fn(c => say(c, pick(['bon…', 'salut !', 'la prochaine fois'])))) ;   // l'acrobate : il s'en va à pied (sans rien à faire, un visiteur part)
+});
+
 /* ——— la craie : le fil de l'acrobate, la ficelle du ballon ——— */
 H.draw.push(() => {
   const C = window.Chalk; if (!C || !C.ctx) return;

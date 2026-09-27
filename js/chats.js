@@ -132,7 +132,7 @@ const ANIMS = {
 const Wd = { on: false, W: 0, H: 0, floor: 0, depth: 60, s0: 150, t: 0, f: 0, cats: [], props: [], fx: [], mode: '', a: 1,
   nextIn: 1.5, nextScen: 14, scen: 0, tower: null, clicks: 0, P: {}, kib: [], nextKib: 9, extras: [], nextExtra: 0 };
 // les crochets : js/vie.js y branche la suite de la vie des chats (la chasse, les pièges, la rébellion…) sans tout mettre ici
-const H = { think: [], live: [], fall: [], bonk: [], pre: [], post: [], draw: [], drag: [], release: [], click: [], fire: [], shoot: [] };
+const H = { think: [], live: [], fall: [], bonk: [], pre: [], post: [], draw: [], grab: [], drag: [], release: [], click: [], fire: [], shoot: [] };
 const run = (L, a, b, c, d) => { for (const f of L) if (f(a, b, c, d)) return true; return false; };
 const TAU2 = Math.PI / 2, sgn = v => v < 0 ? -1 : 1, clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const zOf = d => (1 - d) * 6000, kOf = d => 1 - 0.16 * d, floorAt = d => Wd.floor - d * Wd.depth, sOf = d => Wd.s0 * kOf(d);
@@ -1122,6 +1122,7 @@ function click(x, y, S) {
 function grab(x, y) {
   if (!ready) return null; Wd.gx = x; Wd.gy = y;
   const L = leverAt(x, y); if (L) return L;
+  for (const f of H.grab) { const k = f(x, y); if (k) return k; }   // (les visiteurs de js/rares.js)
   const c = catAt(x, y); if (c) return c; const it = propAt(x, y); return it && !it.run ? it : null;
 }
 // le levier de la machine à cartons : son pommeau à l'écran
