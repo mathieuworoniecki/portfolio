@@ -1,5 +1,7 @@
 # Plan : le clic sur le bouton, puis l'écran 2 (l'espace)
 
+> **Remplacé le 27 septembre 2026 (20:28).** Mathieu a changé la transition : au clic sur « Entrer dans mon univers », un trou noir s'ouvre au milieu de l'écran et aspire tout dans une spirale ; on arrive dans l'espace (écran 2), où seuls les chats ressortent. Le fil « Chats et univers du portfolio » la construit avec l'écran 2. Ce qui suit (Mathieu qui arrive en courant, la bouche biblique, le tunnel) n'est plus le plan ; le modèle 3D reste, pour le logo (`Mathieu.create({ logo: true })`) et pour plus tard.
+
 Noté d'après le message de Mathieu du 26 septembre 2026 (11:54), pour ne pas le perdre. Rien de tout cela n'est encore branché dans la page : l'écran 1 (le monde des chats) vit dans `index.html`, `js/chats.js`, `js/univers.js` ; Mathieu en 3D vit à part, dans `js/mathieu.js` (aperçu : `tools/mathieu.html`).
 
 ## Ce que Mathieu a demandé (ses mots, reformulés)
