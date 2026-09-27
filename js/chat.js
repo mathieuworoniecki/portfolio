@@ -27,18 +27,19 @@ const UNI = !/[?&]trait=pieces/.test(location.search);   // l'épaisseur du trai
    s : la taille · body [demi-longueur, demi-hauteur, rondeur (2 : ovale, plus : plus carré), demi-épaisseur], pear : le bas plus large, arch : le dos qui monte vers l'arrière
    head [demi-largeur, demi-hauteur, épaisseur], at : où se pose la tête (fractions du corps), cheek : les joues
    ear [hauteur, largeur (en angle), écart depuis le sommet (en angle)], legs [longueur, rayon, écart (fraction du corps)], tail [longueur, rayon, panache]
-   fluff : les touffes (0 : lisse) · eyes : rond (grands yeux, pupille et reflet), brillant (tout noir, deux reflets), point, blase (sourcils lourds), heureux (∩ ∩)
+   Depuis le 27/09, tous dans le style de la miche (Mathieu) : lisses, deux points pour les yeux, peu de détails.
+   fluff : les touffes (0 : lisse) · eyes : rond (grands yeux, pupille et reflet), brillant (tout noir, deux reflets), point, blase (sourcils lourds), heureux (∩ ∩) · brow : un sourcil froncé
    mouth : w (ω), grogne, blep (le bout de la langue) · coat : uni, tigre, taches · blush : les joues roses · col : la couleur du trait (null : l'encre du thème) */
 const TYPES = {
-  boule:     { nom: 'la boule', s: 1.15, body: [0.29, 0.27, 2, 0.26], pear: 0.1, head: [0.22, 0.18, 0.16], at: [0.42, 0.9], cheek: 0.14, ear: [0.07, 0.3, 0.62], legs: [0.07, 0.045, 0.5], tail: [0.34, 0.045, 0.9], fluff: 0.08, eyes: 'rond', eye: 0.052, mouth: 'w', coat: 'uni', col: null },
-  grincheux: { nom: 'le grincheux', s: 1.05, body: [0.3, 0.2, 2.3, 0.2], pear: 0.06, head: [0.22, 0.15, 0.14], at: [0.62, 0.8], cheek: 0.16, ear: [0.05, 0.26, 0.72], legs: [0.1, 0.042, 0.55], tail: [0.42, 0.045, 1.6], fluff: 0.06, eyes: 'blase', eye: 0.045, mouth: 'grogne', coat: 'uni', col: 0x4a3b30 },
-  long:      { nom: 'le long', s: 1, body: [0.52, 0.1, 2.4, 0.1], pear: 0, head: [0.15, 0.13, 0.11], at: [0.93, 0.7], cheek: 0.06, ear: [0.07, 0.3, 0.66], legs: [0.13, 0.034, 0.78], tail: [0.5, 0.03, 0.3], fluff: 0, eyes: 'point', eye: 0.032, mouth: 'w', coat: 'tigre', col: 0xc0561a },
-  chaton:    { nom: 'le chaton', s: 0.8, body: [0.19, 0.14, 2.2, 0.14], pear: 0.08, head: [0.21, 0.18, 0.15], at: [0.6, 1.05], cheek: 0.1, ear: [0.1, 0.32, 0.6], legs: [0.1, 0.036, 0.55], tail: [0.3, 0.03, 0.3], fluff: 0, eyes: 'brillant', eye: 0.06, mouth: 'blep', coat: 'uni', blush: 1, col: 0x6e4fb0 },
-  bleu:      { nom: 'le bleu', s: 1.05, body: [0.27, 0.15, 2.4, 0.15], pear: 0, arch: 0.35, head: [0.16, 0.14, 0.13], at: [0.86, 0.72], cheek: 0.04, ear: [0.12, 0.3, 0.68], legs: [0.18, 0.04, 0.62], tail: [0.5, 0.036, 0.25], fluff: 0, eyes: 'rond', eye: 0.045, mouth: 'w', coat: 'uni', col: 0x1d20a6 },
+  boule:     { nom: 'la boule', s: 1.15, body: [0.29, 0.27, 2, 0.26], pear: 0.1, head: [0.22, 0.18, 0.16], at: [0.42, 0.9], cheek: 0.14, ear: [0.07, 0.3, 0.62], legs: [0.07, 0.045, 0.5], tail: [0.34, 0.045, 0.9], fluff: 0, eyes: 'point', eye: 0.048, mouth: 'w', coat: 'uni', col: null },
+  grincheux: { nom: 'le grincheux', s: 1.05, body: [0.3, 0.2, 2.3, 0.2], pear: 0.06, head: [0.22, 0.15, 0.14], at: [0.62, 0.8], cheek: 0.16, ear: [0.05, 0.26, 0.72], legs: [0.1, 0.042, 0.55], tail: [0.42, 0.045, 1.6], fluff: 0, eyes: 'point', eye: 0.044, brow: 1, mouth: 'grogne', coat: 'uni', col: 0x4a3b30 },
+  long:      { nom: 'le long', s: 1, body: [0.52, 0.1, 2.4, 0.1], pear: 0, head: [0.15, 0.13, 0.11], at: [0.93, 0.7], cheek: 0.06, ear: [0.07, 0.3, 0.66], legs: [0.13, 0.034, 0.78], tail: [0.5, 0.03, 0.3], fluff: 0, eyes: 'point', eye: 0.033, mouth: 'w', coat: 'uni', col: 0xc0561a },
+  chaton:    { nom: 'le chaton', s: 0.8, body: [0.19, 0.14, 2.2, 0.14], pear: 0.08, head: [0.21, 0.18, 0.15], at: [0.6, 1.05], cheek: 0.1, ear: [0.1, 0.32, 0.6], legs: [0.1, 0.036, 0.55], tail: [0.3, 0.03, 0.3], fluff: 0, eyes: 'brillant', eye: 0.06, mouth: 'blep', coat: 'uni', blush: 0, col: 0x6e4fb0 },
+  bleu:      { nom: 'le bleu', s: 1.05, body: [0.27, 0.15, 2.4, 0.15], pear: 0, arch: 0.35, head: [0.16, 0.14, 0.13], at: [0.86, 0.72], cheek: 0.04, ear: [0.12, 0.3, 0.68], legs: [0.18, 0.04, 0.62], tail: [0.5, 0.036, 0.25], fluff: 0, eyes: 'point', eye: 0.036, mouth: 'w', coat: 'uni', col: 0x1d20a6 },
   miche:     { nom: 'la miche', s: 1, body: [0.3, 0.17, 2.8, 0.17], pear: 0.05, head: [0.18, 0.14, 0.13], at: [0.78, 0.72], cheek: 0.08, ear: [0.045, 0.34, 0.66], legs: [0.09, 0.042, 0.62], tail: [0.4, 0.035, 0.4], fluff: 0, eyes: 'point', eye: 0.036, mouth: 'w', coat: 'taches', col: null },
-  rose:      { nom: 'la gourmande', s: 1, body: [0.26, 0.22, 2.1, 0.22], pear: 0.14, head: [0.21, 0.17, 0.14], at: [0.55, 0.88], cheek: 0.16, ear: [0.07, 0.34, 0.62], legs: [0.08, 0.046, 0.52], tail: [0.36, 0.04, 0.5], fluff: 0, eyes: 'heureux', eye: 0.045, mouth: 'w', coat: 'uni', blush: 1, col: 0xc04a6c },
-  tigre:     { nom: 'le tigré', s: 1, body: [0.28, 0.18, 2.3, 0.17], pear: 0.05, head: [0.18, 0.15, 0.13], at: [0.78, 0.78], cheek: 0.1, ear: [0.08, 0.3, 0.64], legs: [0.13, 0.04, 0.58], tail: [0.4, 0.036, 0.4], fluff: 0.03, eyes: 'rond', eye: 0.04, mouth: 'w', coat: 'tigre', col: 0x2f6e8e },
-  reveur:    { nom: 'le rêveur', s: 0.95, body: [0.22, 0.2, 2.6, 0.16], pear: 0.08, head: [0.17, 0.14, 0.12], at: [0.62, 0.92], cheek: 0.05, ear: [0.09, 0.28, 0.64], legs: [0.12, 0.038, 0.52], tail: [0.44, 0.032, 0.3], fluff: 0, eyes: 'heureux', eye: 0.038, mouth: 'w', coat: 'uni', col: 0x3a6e46 }
+  rose:      { nom: 'la gourmande', s: 1, body: [0.26, 0.22, 2.1, 0.22], pear: 0.14, head: [0.21, 0.17, 0.14], at: [0.55, 0.88], cheek: 0.16, ear: [0.07, 0.34, 0.62], legs: [0.08, 0.046, 0.52], tail: [0.36, 0.04, 0.5], fluff: 0, eyes: 'heureux', eye: 0.045, mouth: 'w', coat: 'uni', blush: 0, col: 0xc04a6c },
+  tigre:     { nom: 'le tigré', s: 1, body: [0.28, 0.18, 2.3, 0.17], pear: 0.05, head: [0.18, 0.15, 0.13], at: [0.78, 0.78], cheek: 0.1, ear: [0.08, 0.3, 0.64], legs: [0.13, 0.04, 0.58], tail: [0.4, 0.036, 0.4], fluff: 0, eyes: 'point', eye: 0.04, mouth: 'w', coat: 'tigre', col: 0x2f6e8e },
+  reveur:    { nom: 'le rêveur', s: 0.95, body: [0.22, 0.2, 2.6, 0.16], pear: 0.08, head: [0.17, 0.14, 0.12], at: [0.62, 0.92], cheek: 0.05, ear: [0.09, 0.28, 0.64], legs: [0.12, 0.038, 0.52], tail: [0.44, 0.032, 0.3], fluff: 0, eyes: 'point', eye: 0.038, mouth: 'w', coat: 'uni', col: 0x3a6e46 }
 };
 const IDS = Object.keys(TYPES);
 
@@ -98,7 +99,7 @@ function build(id) {
   // le corps : sa silhouette, ses touffes (moins dessous), son pelage
   P.body = Obj3D.piece(key('corps'), B => {
     B.solid(blob(D.R, D.d, { tuft: b.fluff, k: b.fluff ? 30 : 0, n: 80, where: th => Math.sin(th) < -0.6 ? 0.25 : 1 }));
-    if (b.coat === 'tigre') [0.3, 0.4, 0.5, 0.6, 0.7, 0.8].forEach((f, i) => [1, -1].forEach(sd => {
+    if (b.coat === 'tigre') [0.4, 0.55, 0.7].forEach((f, i) => [1, -1].forEach(sd => {
       const th = f * Math.PI, Q = []; for (let q = 0; q <= 6; q++) { const ph = Math.PI / 2 - sd * q / 6 * (0.5 + 0.15 * (i % 2)); Q.push(onBlob(D.R, D.d, th + Math.sin(q * 0.9) * 0.03, ph)); } B.lines(zup(segs(Q))); }));
     if (b.coat === 'taches') [[2.2, 0.7, 0.3], [1.2, 0.95, 0.22], [2.9, 1.1, 0.2], [0.6, 0.55, 0.16]].forEach(([th, ph, r], i) => [1, -1].forEach(sd => {
       const Q = []; for (let q = 0; q <= 16; q++) { const a = q / 16 * TAU, g = 1 + (hsh(q % 16, i) - 0.5) * 0.35; Q.push(onBlob(D.R, D.d, th + Math.cos(a) * r * g, sd > 0 ? ph + Math.sin(a) * r * g * 0.8 : Math.PI - ph - Math.sin(a) * r * g * 0.8)); } B.lines(zup(segs(Q))); }));
@@ -132,6 +133,7 @@ function build(id) {
   const lid = e * 0.15;
   P.eyes = Obj3D.piece(key('yeux'), B => [-1, 1].forEach(s => {
     const cx = s * ex;
+    if (b.brow) B.lines(segs([F(cx - s * e * 1.1, ey + e * 1.35), F(cx + s * e * 1.1, ey + e * 0.95)]));   // un sourcil froncé, pas plus
     if (b.eyes === 'rond') B.lines(arc(cx, ey, e, e * 1.08, 0, TAU, 26));
     if (b.eyes === 'blase') {
       const a0 = Math.asin(lid / e); B.lines(arc(cx, ey, e, e, Math.PI - a0, TAU + a0, 18)); B.lines(segs([F(cx - e * 1.15, ey + lid), F(cx + e * 1.15, ey + lid)]));
@@ -161,7 +163,6 @@ function build(id) {
       B.lines(segs([F(x0, y0), [lerp(x0, x1, 0.5), lerp(y0, y1, 0.5) + hh * 0.03, hd * 0.25], [x1, y1, hd * 0.1]]));
     }));
     if (b.blush) [-1, 1].forEach(s => [0, 1, 2].forEach(k => { const x = s * ha * 0.64 + (k - 1) * ha * 0.08; B.soft(segs([F(x - ha * 0.025, ny - hh * 0.02), F(x + ha * 0.025, ny + hh * 0.1)])); }));
-    if (b.coat === 'tigre') [-1, 0, 1].forEach(k => B.lines(segs([F(k * ha * 0.14, hh * 0.72 - Math.abs(k) * hh * 0.08), F(k * ha * 0.12, hh * 0.46 - Math.abs(k) * hh * 0.06)])));
   });
   // la bouche ouverte (le miaulement, le feulement) : un petit ovale sous le nez
   P.mouth = Obj3D.piece(key('bouche'), B => B.lines(arc(0, ny - nw * 2.3, nw * 1.1, nw * 1.4, 0, TAU, 14)));
