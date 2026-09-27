@@ -266,5 +266,8 @@ H.click.push((x, y) => {
   return !!go1(k, k === 'acrobate' || k === 'geant' ? x : undefined);
 });
 
+// pour les voir tout de suite : ?rare=geant (ou interminable, ballon, eclair, totem, acrobate)
+try { const q = new URLSearchParams(location.search).get('rare'); if (q && LIST[q]) { R.next = 1; const t = setInterval(() => { if (Wd.W && Wd.t > 3 && go1(q)) clearInterval(t); }, 500); } } catch (e) {}
+
 return { ...LIST, lance: go1, R };
 })();
