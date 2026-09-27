@@ -68,7 +68,7 @@ H.fall.push((c, dt) => {
     // (il traverse la surface pendant cette image : à faible cadence, il peut la franchir d'un coup)
     if (Math.abs(c.x - S.x) > S.rx * 0.9 || c.y + c.vy * dt < S.y - 4 || c.y > S.y + S.ry) continue;
     const pe = b.perches.filter(p => p.bain).sort((p, q) => Math.abs(Univers.at(b, p.p)[0] - c.x) - Math.abs(Univers.at(b, q.p)[0] - c.x))[0];
-    interrupt(c); c.fall = false; c.vx = c.vy = 0; c.spin = 0; c.perch = { it: b, pe, dx: 0 }; c.wet = Wd.t;
+    interrupt(c); c.fall = false; c.vx = c.vy = 0; c.spin = 0; c.perch = { it: b, pe, dx: 0 }; c.wet = Wd.t; c.trempe = Wd.t; if (arc(b) && window.Arc) { Arc.colore(c, 30); if (window.Dex) Dex.vu('bainarc'); }   /* (27/09, Mathieu : tombé dedans, il est trempé et laisse des traces ; l'eau arc-en-ciel le colore) */
     gerbe(b, c.x, S.y, 16, 1.4); rond(b, c.x, S.y, 2); word(pick(['PLOUF', 'SPLASH']), c.x, S.y - 40, 26); say(c, EAU[c.breed] === 0 ? pick(['KSSSS !!', 'AU SECOURS', 'NOOON']) : c.b.s >= 1.3 ? pick(['je flotte ♥', 'glouglou', 'plof ♥']) : pick(['MIAAA !', 'NYAAA', '!!!']));
     c.q = [pose('sursaut', 0.6), hop(() => groundAt(inView(xOf(b) + (sgn(c.x - b.x) || 1) * (b.hull.w * 0.5 * b.s + sc(c) * rnd(0.6, 1.1))), Math.max(0, b.d - rnd(0.1, 0.3))), { zr: [0.3, 0.65] }),
       pose('secoue', 1.2, { fx: c => ebroue(c) }), pose('boude', rnd(2, 4), { fx: c => say(c, pick(['pfff.', 'hmpf', 'trempé…'])) }), fn(free)];
@@ -93,7 +93,7 @@ H.post.push(dt => {
     // emporté : ça déborde
     if ((b.held || b.fall) && Math.random() < 0.5) gerbe(b, S.x + rnd(-1, 1) * S.rx, S.y, 1, 0.6);
     // les chats dans l'eau : ils flottent un peu, font des ronds
-    Wd.cats.forEach(c => { if (!c.perch || c.perch.it !== b || !c.perch.pe.bain) return; c.wet = Wd.t; c.y += Math.sin(Wd.t * 2 + c.x) * 1.5; if (Math.random() < dt * 1.2) rond(b, c.x + rnd(-10, 10), S.y + rnd(-3, 3), 0.9); });
+    Wd.cats.forEach(c => { if (!c.perch || c.perch.it !== b || !c.perch.pe.bain) return; c.wet = Wd.t; c.trempe = Wd.t; if (arc(b) && window.Arc && !(c.arcT > Wd.t + 20)) Arc.colore(c, 30); c.y += Math.sin(Wd.t * 2 + c.x) * 1.5; if (Math.random() < dt * 1.2) rond(b, c.x + rnd(-10, 10), S.y + rnd(-3, 3), 0.9); });
     // la souris qui passe sur l'eau
     const P = Wd.ptr; if (P && P.on && Wd.t - P.moved < 0.2 && dedans(S, P.x, P.y) && Wd.t - (b.ptrT ?? -9) > 0.18) { b.ptrT = Wd.t; rond(b, P.x, P.y, 0.6); }
   });

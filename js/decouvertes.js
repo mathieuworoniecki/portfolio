@@ -77,6 +77,9 @@ fam('eau', 'L’eau et les couleurs', 'Water and colours', [
   ['arc', 'Un chat arc-en-ciel', 'A rainbow cat', 'Une flaque qui brille, quelqu’un marche dedans.', 'A shiny puddle, someone steps in it.'],
   ['arcmouille', 'Arc-en-ciel et mouillé', 'Rainbow and wet', 'Les deux à la fois.', 'Both at once.'],
   ['bassinarc', 'Le bassin arc-en-ciel', 'Rainbow pool', 'Ce qui tombe dans l’eau peut la colorer.', 'What falls in the water can colour it.'],
+  ['fontarc', 'La fontaine qui brille', 'Sparkling fountain', 'Un petit besoin… tout près de la fontaine.', 'A little accident… right by the fountain.'],
+  ['bainarc', 'Bain de couleurs', 'Colour bath', 'Plonger dans une eau qui brille.', 'Dive into shiny water.'],
+  ['bulles', 'Ça pétille', 'Fizzy', 'Boire à une fontaine arc-en-ciel.', 'Drink from a rainbow fountain.'],
   ['raz', 'Raz-de-marée', 'Tidal wave', 'Le géant roule… et le bain est plein.', 'The giant rolls… while the bath is full.'],
 ]);
 fam('evts', 'Les événements', 'Events', [

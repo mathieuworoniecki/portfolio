@@ -132,6 +132,23 @@ if (K.STEPS.chasse && Ba) {
   };
 }
 
+/* ——— trempé (27/09, Mathieu : « si un chat tombe dedans il est mouillé et laisse des traces, y compris de pas ») ———
+   Tombé à l'eau (ou sorti du bain), il reste trempé une vingtaine de secondes (sauf si on le sèche) : il goutte partout, ses pattes laissent des traces.
+   L'eau de la fontaine arc-en-ciel : qui la boit devient arc-en-ciel (« ça pétille »). */
+H.live.push(c => {
+  if (c.trempe && Wd.t - c.trempe < 20 && c.wet >= c.trempe && !c.perch) c.wet = Math.max(c.wet, Wd.t - 3);
+  if (!mouille(c) || c.hidden || c.perch) return;
+  if (Wd.t > (c.goutteT || 0)) {
+    c.goutteT = Wd.t + (c.held || c.fall ? 0.08 : /pas|trot|galop/.test(c.anim) ? 0.22 : 0.6);
+    const b = Chat.where(c, c.body), col = c.arcT > Wd.t && window.Arc ? pick(Arc.COUL) : '60,110,180';
+    Wd.fx.push({ k: 'goutteB', x: b[0] + rnd(-0.3, 0.3) * sc(c), y: b[1] + sc(c) * 0.1, vx: rnd(-15, 15), vy: 0, y1: floorAt(c.d) + rnd(-2, 2), t0: Wd.t, life: 0.9, col });
+  }
+});
+H.live.push(c => {
+  if (c.anim !== 'mange' || c.rare) return; const e = Wd.props.find(p => p.kind === 'eau' && p.arcT > Wd.t && Math.abs(p.x - c.x) < p.s * 0.9 && Math.abs(p.d - c.d) < 0.3); if (!e) return;
+  if (!(c.arcT > Wd.t + 15) && window.Arc) { Arc.colore(c, 30); say(c, pick(['ça pétille ✨', 'hic ✨', 'miam… des couleurs ?'])); if (window.Dex) Dex.vu('bulles'); }
+});
+
 /* ——— le fil de la pelote fait trébucher ceux qui galopent (27/09, l'audit) ———
    Un chat au galop (la horde derrière la souris, la folie du soir) qui passe sur un fil bien déroulé s'y prend les pattes :
    il roule, s'emmêle, se débat ; la pelote est tirée d'un coup vers lui. */

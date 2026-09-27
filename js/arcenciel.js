@@ -43,7 +43,7 @@ function derriere(c) {
 function besoin(c) {
   c.besoinT = Wd.t + rnd(90, 200); const pipi = Math.random() < 0.55;
   // parfois, il choisit : contre un carton, une plante, le bassin (les chats aiment marquer)
-  const C = Wd.props.filter(it => ['carton', 'plante', 'caisse', 'bassin', 'coussin', 'panier', 'arbre', 'canape', 'jungle', 'souffleur'].includes(it.kind) && !it.held && !it.fall && it.a > 0.5 && (!it.mur || it.kind === 'jungle'));
+  const C = Wd.props.filter(it => ['carton', 'plante', 'caisse', 'bassin', 'eau', 'coussin', 'panier', 'arbre', 'canape', 'jungle', 'souffleur'].includes(it.kind) && !it.held && !it.fall && it.a > 0.5 && (!it.mur || it.kind === 'jungle'));
   const cible = pipi && C.length && Math.random() < 0.5 ? pick(C) : null;
   if (cible) { const dir = sgn(c.x - cible.x) || 1, x = inView(cible.x + dir * (cible.hull.w * 0.5 * cible.s + sc(c) * 0.45)); c.q.push(go(x, { d: Math.max(0, cible.d - 0.05), face: dir })); }
   c.q.push(pose('pousse', pipi ? 2 : 2.6, { fx: c => say(c, pick(['…', 'hmm', '(chut)'])) }),
@@ -55,6 +55,7 @@ function lache(c, pipi) {
   T.push({ k: pipi ? 'pipi' : 'caca', x, y, r: k * (pipi ? 0.3 : 0.14), t0: Wd.t, life: 45, seed: Math.floor(Math.random() * 99), d: c.d });
   if (!pipi) return;
   const o = derriere(c); if (!o) return;
+  if (o.kind === 'eau') { dansLeau(o.x, o.d); return; }
   if (o.kind === 'bassin') { colore(o, 40); window.Bassin && Bassin.colore(o); word(pick(['✨ arc-en-ciel !', 'oups ✨']), o.x, o.y - o.s * 0.5, 17); return; }
   colore(o, o.hull ? 40 : 25);
   if (!o.hull) { interrupt(o); o.q = [pose('sursaut', 0.6, { fx: o => say(o, pick(['HÉ !', '!!', 'mais ?!'])) }), pose('secoue', 0.8), pose('boude', rnd(2, 4)), fn(free)]; }
@@ -75,10 +76,17 @@ H.think.push((c, add) => {
 function vomit(c, pourquoi) {
   if (!Wd.cats.includes(c) || c.held) return; interrupt(c);
   c.q = [pose('hoquet', 1.3, { fx: c => say(c, pick(['hic', 'hoc…', 'blbl'])) }), pose('vomi', 1.5, { fx: c => { Wd.fx.push({ k: 'nyan', c, t0: Wd.t, life: 1.5 }); later(1.3, () => {
-      if (!Wd.cats.includes(c)) return; const k = sc(c); T.push({ k: 'vomi', x: c.x + c.face * k * 0.9, y: floorAt(c.d) + 2, r: k * 0.32, t0: Wd.t, life: 40, seed: Math.floor(Math.random() * 99), d: c.d }); }); } }),
+      if (!Wd.cats.includes(c)) return; const k = sc(c); T.push({ k: 'vomi', x: c.x + c.face * k * 0.9, y: floorAt(c.d) + 2, r: k * 0.32, t0: Wd.t, life: 40, seed: Math.floor(Math.random() * 99), d: c.d }); dansLeau(c.x + c.face * k * 0.9, c.d); }); } }),
     pose('assis', 1.2, { fx: c => say(c, pick(['ouf… ✨', 'ça va mieux', pourquoi === 'feuille' ? 'plus jamais de feuille' : 'mrr'])) }), fn(free)];
 }
 
+// (27/09, Mathieu : « l'eau de la fontaine peut devenir arc-en-ciel si un chat fait pipi ou vomit dedans ») : vomi au-dessus du bassin ou de la fontaine
+function dansLeau(x, d) {
+  const pres = k => Wd.props.find(it => it.kind === k && !it.held && Math.abs(it.d - d) < 0.35 && Math.abs(it.x - x) < it.hull.w * it.s * 0.6);
+  const o = pres('eau') || pres('bassin'); if (!o) return;   // (la petite fontaine d'abord : le grand bassin la recouvre souvent)
+  colore(o, 40); if (o.kind === 'bassin' && window.Bassin) Bassin.colore(o);
+  word(pick(['✨ arc-en-ciel !', 'oups ✨', 'l’eau brille !']), o.x, o.y - o.s * 0.4, 17); if (window.Dex) Dex.vu(o.kind === 'eau' ? 'fontarc' : 'bassinarc');
+}
 /* ——— les pattes qui y marchent ; le clic qui nettoie ; l'aspirateur ——— */
 H.post.push(() => {
   for (let i = T.length - 1; i >= 0; i--) { const f = T[i]; if (Wd.t - f.t0 > f.life || f.pouf && Wd.t - f.pouf > 0.6) T.splice(i, 1); }
@@ -140,5 +148,5 @@ H.draw.push(() => {
   });
 });
 
-return { colore, vomit, besoin, T, COUL };
+return { colore, vomit, besoin, dansLeau, T, COUL };
 })();
