@@ -34,7 +34,7 @@ const ALLOW = {
   rare: S('cache porte vol perche prop lance lettre lettreSol bouton plume mouche vac kib souris'),
   souris: S('perche cache porte vol rare prop lance lettreSol kib vac'),
   colis: S('cache vol prop lance souris lettre lettreSol bouton kib'),
-  kib: S('cache prop lance lettre lettreSol mouche'),
+  kib: S('cache prop lance lettre lettreSol mouche souris'),
   lettre: S('cache porte vol prop lance souris bouton kib mouche vac'),
   vac: S('porte prop plume mouche'),
   mouche: S('cache souris prop lance lettreSol kib plume vac'),
