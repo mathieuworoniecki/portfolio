@@ -1,6 +1,7 @@
 /* Mathieu, en entier : sa tête dessinée d'un trait d'après sa photo (tools/mathieu/build.py, trait.py), posée sur un relief ; son corps en 3D, au trait, comme les chats.
    La tête : une grille de 256 × 256 sommets, texturée (visage.png ; de dos, dos.png), creusée par le relief de la photo (relief.png) ;
-   de face et de trois quarts, on le reconnaît. Le corps (Obj3D) : le t-shirt Patagonia (l'encolure côtelée, les manches courtes, l'ourlet, le logo),
+   de face et de trois quarts, on le reconnaît ; ses bords s'enroulent dans un crâne en 3D (les cheveux, les oreilles, la nuque, le cou) :
+   il tourne en entier, de profil (le contour du relief suit le nez, la bouche, le menton) comme de dos. Le corps (Obj3D) : le t-shirt Patagonia (l'encolure côtelée, les manches courtes, l'ourlet, le logo),
    les bras, le jean, les baskets ; articulé (hanches, épaules, coudes, genoux, chevilles) : il se tient debout, ou il court.
 
    La bouche : la mâchoire (relief.png, canal g : le visage sous la ligne des lèvres, jusqu'au menton) est une seconde copie de la grille,
@@ -37,44 +38,70 @@ function load() {
   const meta = M.meta ? Promise.resolve(M.meta) : fetch(BASE + 'relief.json').then(r => r.json());
   assets = Promise.all([webp('visage'), webp('dos'), img(src('relief')), meta]).then(([v, d, r, meta]) => {
     const c = document.createElement('canvas'); c.width = G; c.height = G; const x = c.getContext('2d'); x.drawImage(r, 0, 0, G, G);
-    return { front: tex(v), back: tex(d), data: x.getImageData(0, 0, G, G).data, meta };
+    const data = x.getImageData(0, 0, G, G).data; x.clearRect(0, 0, G, G); x.drawImage(v, 0, 0, G, G);
+    return { front: tex(v), back: tex(d), data, alpha: x.getImageData(0, 0, G, G).data, meta };
   });
   return assets;
 }
 
 /* ——— la tête : la grille ——— */
-function geometry(A) {
-  const g = new T.PlaneGeometry(1, 1, G - 1, G - 1), n = G * G, dep = new Float32Array(n), jaw = new Float32Array(n);
-  const [d0, d1] = A.meta.depth, hx = A.meta.head[0], hy = A.meta.head[1], p = g.attributes.position;
+// recto (le corps entier) : le relief s'enroule vers le crâne (ENROULE) ; ses normales servent au contour en 3D (hull)
+function geometry(A, recto) {
+  const g = new T.PlaneGeometry(1, 1, G - 1, G - 1), n = G * G, dep = new Float32Array(n), jaw = new Float32Array(n), bord = new Float32Array(n);
+  const [d0, d1] = A.meta.depth, hx = A.meta.head[0], hy = A.meta.head[1], p = g.attributes.position, [ek, eh, en, et, ey] = ENROULE;
+  // chaque rangée de la tête du dessin : son centre et sa demi-largeur (d'après l'alpha), pour enrouler ses bords
+  const row = [];
+  for (let j = 0; j < G; j++) { let a = -1, b = -1; for (let i = 0; i < G; i++) if (A.alpha[(j * G + i) * 4 + 3] > 240) { if (a < 0) a = i; b = i; } row.push(a < 0 ? null : [((a + b + 1) / 2) / G - hx, Math.max(0.02, (b - a + 1) / 2 / G)]); }
+  // au-dessus et au-dessous de la tête : la rangée la plus proche (pas de marche entre deux rangées, qui étirerait des triangles)
+  for (let j = 1; j < G; j++) if (!row[j]) row[j] = row[j - 1]; for (let j = G - 2; j >= 0; j--) if (!row[j]) row[j] = row[j + 1];
+  // et la plus large des rangées voisines (la pointe de la mèche, fine, s'enroule comme le reste des cheveux, sans marches)
+  const large = row.map((r, j) => { let best = r; for (let k = Math.max(0, j - 12); k <= Math.min(G - 1, j + 12); k++) if (row[k] && (!best || row[k][1] > best[1])) best = row[k]; return best; });
   for (let i = 0; i < n; i++) {
+    const x = p.getX(i) + 0.5 - hx, y = p.getY(i) - 0.5 + hy;          // l'origine : le centre de la tête
     dep[i] = d0 + (d1 - d0) * A.data[i * 4] / 255; jaw[i] = A.data[i * 4 + 1] / 255;
-    p.setX(i, p.getX(i) + 0.5 - hx); p.setY(i, p.getY(i) - 0.5 + hy);     // l'origine : le centre de la tête
+    const r = large[Math.floor(i / G)];
+    if (recto && r) {
+      const u = Math.min(1, Math.abs(x - r[0]) / r[1]); bord[i] = u; const k = Math.max(0, Math.min(1, (y + 0.13) / 0.05));
+      dep[i] -= ek * u * u + (en + (eh - en) * k) * u ** 8 + et * Math.min(0.18, Math.max(0, y - ey)) ** 2;
+    }
+    p.setXYZ(i, x, y, dep[i]);
   }
   g.setAttribute('aDepth', new T.BufferAttribute(dep, 1)); g.setAttribute('aJaw', new T.BufferAttribute(jaw, 1));
+  if (recto) { g.computeVertexNormals(); g.setAttribute('aBord', new T.BufferAttribute(bord, 1)); }
   return g;
 }
-// part 0 : toute la figure, sauf la mâchoire quand la bouche s'ouvre (sa place devient de l'encre) ; part 1 : la mâchoire seule, qui descend
+// part 0 : toute la figure, sauf la mâchoire quand la bouche s'ouvre (sa place devient de l'encre) ; part 1 : la mâchoire seule, qui descend ; part 2 : le contour
 // cut : rien sous cette hauteur (en fractions du cadre) ; seule la tête du dessin (son alpha : 1 la tête, 0,78 le buste de la photo, remplacé par le corps en 3D)
-function material(A, part, cut) {
-  const u = { front: { value: A.front }, back: { value: A.back }, ink: { value: new T.Color(inkNow()) }, paper: { value: new T.Color(paperNow()) }, open: { value: 0 }, opacity: { value: 1 } };
-  return new T.ShaderMaterial({ uniforms: u, side: T.DoubleSide, transparent: true,
-    vertexShader: `attribute float aDepth; attribute float aJaw; uniform float open;
+// recto (le corps entier) : le dos du relief ne se voit pas (il est dans le crâne) ; le contour dessiné au bord de la tête ne reste que de face (face > 0,5 ; 1 de face, 0 tournée),
+// ensuite, c'est le contour en 3D (part 2 : la grille repoussée le long de ses normales, dont on ne dessine que l'envers, en encre : elle dépasse au bord de ce qu'on voit)
+function material(A, part, cut, recto) {
+  const u = { front: { value: A.front }, back: { value: A.back }, ink: { value: new T.Color(inkNow()) }, paper: { value: new T.Color(paperNow()) }, open: { value: 0 }, opacity: { value: 1 }, face: { value: 1 }, off: { value: 0 } };
+  const hull = part === 2;
+  return new T.ShaderMaterial({ uniforms: u, side: hull ? T.BackSide : T.DoubleSide, transparent: true,
+    vertexShader: `attribute float aDepth; attribute float aJaw; ${hull ? 'attribute float aBord; varying float vBord;' : ''} uniform float open; uniform float off;
       varying vec2 vUv; varying float vJaw;
       void main() {
-        vUv = uv; vJaw = aJaw;
+        vUv = uv; vJaw = aJaw; ${hull ? 'vBord = aBord;' : ''}
         vec3 p = vec3(position.xy, aDepth);
-        ${part ? `p.y -= open * ${DROP.toFixed(3)}; p.z += open * ${PUSH.toFixed(3)};` : ''}
+        ${hull ? 'p += normal * off;' : ''}
+        ${part === 1 ? `p.y -= open * ${DROP.toFixed(3)}; p.z += open * ${PUSH.toFixed(3)};` : ''}
         gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
       }`,
-    fragmentShader: `uniform sampler2D front; uniform sampler2D back; uniform vec3 ink; uniform vec3 paper; uniform float open; uniform float opacity;
-      varying vec2 vUv; varying float vJaw;
+    fragmentShader: `uniform sampler2D front; uniform sampler2D back; uniform vec3 ink; uniform vec3 paper; uniform float open; uniform float opacity; uniform float face;
+      varying vec2 vUv; varying float vJaw; ${hull ? 'varying float vBord;' : ''}
       void main() {
-        vec4 t = gl_FrontFacing ? texture2D(front, vUv) : texture2D(back, vec2(1.0 - vUv.x, vUv.y));
+        ${recto && !hull ? 'if (!gl_FrontFacing) discard;   /* le dos du relief : dans le crâne */' : ''}
+        vec4 t = gl_FrontFacing ? texture2D(front, vUv) : texture2D(${recto ? 'front, vUv' : 'back, vec2(1.0 - vUv.x, vUv.y)'});
         if (t.a < 0.9) discard;
         if (vUv.y < ${(1 - cut).toFixed(4)}) discard;
         float l = t.r;
-        ${part ? `if (vJaw < 0.5) discard; if (vJaw < 0.62) l = 0.0;   /* le bord de la mâchoire : un trait */`
-               : `if (open > 0.015 && vJaw > 0.5) l = 0.0;             /* la place de la mâchoire : le fond de la bouche */`}
+        ${hull ? `if (vBord > 0.5) discard;   /* les bords enroulés : c'est le crâne qui fait le contour */
+        if (open > 0.015 && vJaw > 0.5) discard; if (vUv.y < ${(1 - cut + 0.03).toFixed(4)}) discard; l = 0.0;` : ''}
+        ${recto && !hull ? `/* le contour dessiné au bord de la tête : de face seulement */
+        if (face < 0.5) for (int i = 0; i < 8; i++) { float an = float(i) * 0.7854; vec2 d = vec2(cos(an), sin(an));
+          if (texture2D(front, vUv + d * 0.012).a < 0.9 || texture2D(front, vUv + d * 0.024).a < 0.9 || texture2D(front, vUv + d * 0.036).a < 0.9) { l = 1.0; break; } }` : ''}
+        ${part === 1 ? `if (vJaw < 0.5) discard; if (vJaw < 0.62) l = 0.0;   /* le bord de la mâchoire : un trait */`
+               : part === 0 ? `if (open > 0.015 && vJaw > 0.5) l = 0.0;             /* la place de la mâchoire : le fond de la bouche */` : ''}
         gl_FragColor = vec4(mix(ink, paper, l), opacity);
       }` });
 }
@@ -104,12 +131,12 @@ const JOINTS = [...Object.entries(OS).map(([n, [p, x, y, z]]) => [n, p, x, y, z]
   ...COTES.flatMap(([c, sd]) => Object.entries(OS2).map(([n, [p, x, y, z]]) => [n + c, OS2[p] ? p + c : p, sd * x, y, z]))];
 const segs = (pts, out) => { for (let i = 1; i < pts.length; i++) out.push(...pts[i - 1], ...pts[i]); return out; };
 /* un volume en sections : des anneaux [a, w, df, db, c] le long de l'axe (y, ou z pour les pieds) : a la position, w la demi-largeur (x),
-   df et db l'épaisseur devant et derrière, c le décalage du centre ; les bouts sont fermés */
+   df et db l'épaisseur devant et derrière, c le décalage du centre (en z ; un 6e nombre : en x) ; les bouts sont fermés */
 function loft(R, o) {
   o = o || {}; const n = o.n || 24, P = [], I = [], Z = o.axis === 'z';
-  R.forEach(([a, w, df, db, c0]) => { for (let j = 0; j < n; j++) { const t = j / n * Math.PI * 2, s = Math.sin(t), c = Math.cos(t), d = (c0 || 0) + (c > 0 ? df ?? w : db ?? df ?? w) * c; P.push(w * s, Z ? d : a, Z ? a : d); } });
+  R.forEach(([a, w, df, db, c0, cx]) => { for (let j = 0; j < n; j++) { const t = j / n * Math.PI * 2, s = Math.sin(t), c = Math.cos(t), d = (c0 || 0) + (c > 0 ? df ?? w : db ?? df ?? w) * c; P.push(w * s + (cx || 0), Z ? d : a, Z ? a : d); } });
   for (let i = 0; i < R.length - 1; i++) for (let j = 0; j < n; j++) { const a = i * n + j, b = i * n + (j + 1) % n; I.push(a, a + n, b, b, a + n, b + n); }
-  if (o.cap !== false) [0, R.length - 1].forEach((i, e) => { const r = R[i], k = P.length / 3; P.push(0, Z ? r[4] || 0 : r[0], Z ? r[0] : r[4] || 0); for (let j = 0; j < n; j++) { const u = i * n + j, v = i * n + (j + 1) % n; if (e) I.push(u, v, k); else I.push(u, k, v); } });
+  if (o.cap !== false) [0, R.length - 1].forEach((i, e) => { const r = R[i], k = P.length / 3; P.push(r[5] || 0, Z ? r[4] || 0 : r[0], Z ? r[0] : r[4] || 0); for (let j = 0; j < n; j++) { const u = i * n + j, v = i * n + (j + 1) % n; if (e) I.push(u, v, k); else I.push(u, k, v); } });
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g.setIndex(I); return g;
 }
 // un point sur un volume en sections, à la hauteur a et à l'angle t (0 devant, π/2 sur son flanc x+), un peu au-dessus du tissu (lift)
@@ -118,7 +145,8 @@ function on(R, a, t, lift, Z) {
   const A = R[i - 1], B = R[i], f = B[0] === A[0] ? 0 : Math.max(0, Math.min(1, (a - A[0]) / (B[0] - A[0]))), L = (x, y) => (x ?? 0) + ((y ?? 0) - (x ?? 0)) * f;
   const w = L(A[1], B[1]) + (lift || 0), c = Math.cos(t), s = Math.sin(t), df = L(A[2] ?? A[1], B[2] ?? B[1]), db = L(A[3] ?? A[2] ?? A[1], B[3] ?? B[2] ?? B[1]);
   const d = L(A[4], B[4]) + ((c > 0 ? df : db) + (lift || 0)) * c;
-  return Z ? [w * s, d, a] : [w * s, a, d];
+  const x = w * s + L(A[5], B[5]);
+  return Z ? [x, d, a] : [x, a, d];
 }
 const around = (R, a, lift, n, t0, t1, Z) => { const P = []; n = n || 40; t0 = t0 ?? 0; t1 = t1 ?? Math.PI * 2; for (let i = 0; i <= n; i++) P.push(on(R, a, t0 + (t1 - t0) * i / n, lift, Z)); return P; };
 const along = (R, a0, a1, t, lift, n, Z) => { const P = []; n = n || 12; for (let i = 0; i <= n; i++) P.push(on(R, a0 + (a1 - a0) * i / n, typeof t === 'function' ? t(i / n) : t, lift, Z)); return P; };
@@ -150,6 +178,21 @@ const HABITS = {
   tige: [[-0.088, 0.015, 0.02, 0.01, -0.06], [-0.078, 0.05, 0.07, 0.035, -0.06], [-0.02, 0.057, 0.075, 0.04, -0.065], [0.04, 0.059, 0.052, 0.04, -0.08], [0.1, 0.057, 0.037, 0.034, -0.09], [0.125, 0.052, 0.031, 0.03, -0.092]],
   bout: [[-0.03, 0.055, 0.03, 0.03, 0.005], [0.03, 0.053, 0.028, 0.022, 0], [0.07, 0.043, 0.02, 0.018, -0.003], [0.088, 0.01, 0.008, 0.008, -0.003]]
 };
+/* la tête en volume, derrière le dessin du visage (27/09, 18:13 : « il manque encore des traits sur mon visage derrière ou sur les côtés ») :
+   le crâne et ses cheveux (leur contour, la limite des cheveux sur les tempes, autour des oreilles, sur la nuque), les oreilles, le cou.
+   Dans le repère de la tête (le centre de la tête à 0, les fractions du cadre de la photo) ; les largeurs viennent du contour du dessin,
+   un peu en retrait : de face, le visage (le relief) les cache, et son contour dessiné fait celui de la tête ; tournée, c'est le contour en 3D du relief et du crâne. Devant, le crâne reste sous le relief ; derrière, il fait l'arrière de la tête.
+   Le relief, lui, s'enroule : ses bords (les joues, les cheveux, le cou) partent en arrière et rentrent dans le crâne et le cou (ENROULE), pour que de trois quarts et de profil
+   le visage ne flotte pas devant la tête comme un masque. (tools/mathieu : le crâne est ajusté pour rester 0,04 sous le relief enroulé.) */
+const ENROULE = [0.09, 0.1, 0.02, 5.0, 0.1];   // le recul des bords (en douceur ; puis au ras du bord : la tête, le cou) ; le recul du haut des cheveux, à partir de quelle hauteur
+const CRANE = [[0.2818, 0.01, 0.007, 0.004, -0.14, 0.029], [0.2806, 0.025, 0.017, 0.011, -0.14, 0.029], [0.277, 0.045, 0.03, 0.02, -0.14, 0.029], [0.2714, 0.06, 0.04, 0.026, -0.14, 0.029], [0.262, 0.068, 0.045, 0.03, -0.14, 0.029], [0.25, 0.087, 0.045, 0.06, -0.14, 0.024], [0.235, 0.117, 0.045, 0.08, -0.14, 0.022],
+  [0.215, 0.131, 0.07, 0.095, -0.14, 0.024], [0.19, 0.143, 0.09, 0.102, -0.14, 0.024], [0.15, 0.161, 0.11, 0.107, -0.14, 0.014], [0.1, 0.155, 0.12, 0.107, -0.14, 0.012],
+  [0.04, 0.149, 0.12, 0.104, -0.14, 0.002], [-0.01, 0.151, 0.12, 0.1, -0.14, -0.004], [-0.045, 0.145, 0.11, 0.09, -0.14, -0.002], [-0.075, 0.117, 0.1, 0.065, -0.14, 0.004],
+  [-0.1, 0.107, 0.08, 0.04, -0.14, -0.004], [-0.12, 0.097, 0.06, 0.03, -0.14, -0.002], [-0.135, 0.02, 0.02, 0.02, -0.13, 0.0]];
+const COU = [[-0.08, 0.1, 0.12, 0.075, -0.08, -0.003], [-0.15, 0.103, 0.13, 0.076, -0.08, -0.003], [-0.26, 0.105, 0.13, 0.078, -0.08, -0.003]];
+// la limite des cheveux, d'un côté : [hauteur, angle] (0 devant, π/2 sur le côté) : au-dessus de l'oreille, derrière elle, la nuque (devant, c'est le dessin)
+const CHEVEUX = [[0.075, 1.5], [0.088, 1.62], [0.082, 1.82], [0.045, 1.97], [-0.015, 2.12], [-0.055, 2.4], [-0.072, 2.8], [-0.076, Math.PI]];
+const OREILLE = { y: 0.025, z: -0.15, r: [0.018, 0.058, 0.036] };   // le centre de l'oreille (x : au bord du crâne), ses demi-axes
 
 function build(meta) {
   const P = {}, K = 'mathieu:corps2:', kit = Obj3D.kit, pc = (k, f) => (P[k] = Obj3D.piece(K + k, f));
@@ -223,6 +266,21 @@ function build(meta) {
     segs(around(R, 0.045, E, 20, -1.3, 1.3, true), L);         // le bout renforcé
     B.lines(L);
   });
+  // 4. la tête en volume : le crâne (et ses cheveux), le cou, les oreilles
+  pc('crane', B => {
+    B.smooth(loft(CRANE, { n: 64 }));
+    const L = []; [1, -1].forEach(sd => segs(CHEVEUX.map(([y, t]) => on(CRANE, y, sd * t, E)), L));
+    B.lines(L);
+  });
+  pc('cou', B => { B.smooth(loft(COU, { cap: false })); const F = []; [1, -1].forEach(sd => segs(along(COU, -0.1, -0.22, Math.PI - sd * 0.45, E, 6), F)); B.soft(F); });
+  // l'oreille : une coquille plate, collée au crâne ; dedans, le repli du bord (un C ouvert vers l'avant) et le creux
+  [['oreille', 1], ['oreille-', -1]].forEach(([k, sd]) => pc(k, B => {
+    const [a, b, c] = OREILLE.r, g = new T.SphereGeometry(1, 16, 12); g.scale(a, b, c); B.smooth(g);
+    const face = (y, z) => [sd * (a * Math.sqrt(Math.max(0, 1 - (y / b) ** 2 - (z / c) ** 2)) + 0.003), y, z], F = [];
+    const C = []; for (let i = 0; i <= 14; i++) { const u = 0.35 + i / 14 * (Math.PI * 2 - 0.9); C.push(face(0.036 * Math.cos(u) + 0.004, -0.022 * Math.sin(u) - 0.002)); } segs(C, F);
+    const D = []; for (let i = 0; i <= 8; i++) { const u = 0.8 + i / 8 * 2.6; D.push(face(0.014 * Math.cos(u) - 0.004, -0.01 * Math.sin(u) + 0.004)); } segs(D, F);
+    B.soft(F);
+  }));
   return P;
 }
 // les pièces de chaque articulation, et leur couche ; u : dans le contour unique du tronc (sinon, un contour à soi)
@@ -245,8 +303,8 @@ function create(opt) {
     if (!m.R) return;
     const M = A.meta, cut = logo ? M.chin + LOGO_BAS : (M.neck ? M.neck[2] + 0.012 : M.chin + 0.06);
     // la tête : la grille, sa mâchoire, le trou noir ; dans son groupe, qui se tourne et hoche
-    const head = new T.Group(), geo = geometry(A), mk = part => { const x = new T.Mesh(geo, material(A, part, cut)); x.frustumCulled = false; x.renderOrder = 1; head.add(x); return x; };
-    const mesh = mk(0), jaw = mk(1); jaw.visible = false; m.jaw = jaw;
+    const head = new T.Group(), geo = geometry(A, !logo), mk = part => { const x = new T.Mesh(geo, material(A, part, cut, !logo)); x.frustumCulled = false; x.renderOrder = 1; head.add(x); return x; };
+    const mesh = mk(0), jaw = mk(1); jaw.visible = false; m.jaw = jaw; if (!logo) m.hull = mk(2);
     const hole = new T.Mesh(new T.CircleGeometry(1, 48), new T.MeshBasicMaterial({ color: inkNow(), transparent: true })); hole.frustumCulled = false; head.add(hole); hole.visible = false;
     Object.assign(m, { mesh, hole, head, A: M });
     if (logo) {
@@ -266,6 +324,9 @@ function create(opt) {
       });
       // la tête : un peu plus grande que nature (un dessin), le bas de son cou dans l'encolure, au-dessus de l'articulation du cou
       J.cou.add(head); head.scale.setScalar(TETE); head.position.y = (cut - M.head[1]) * TETE;
+      // derrière le visage : le crâne et le cou (dans le contour du tronc), les oreilles (leur propre contour), dans toutes les couches
+      m.crane = [put('crane', head, 'os peau habits', 1), put('cou', head, 'os peau habits', 1)];
+      [['oreille', 1], ['oreille-', -1]].forEach(([k, sd]) => { const w = on(CRANE, OREILLE.y, sd * Math.PI / 2, 0), x = put(k, head, 'os peau habits', 0); x.g.position.set(w[0] - sd * 0.012, OREILLE.y, OREILLE.z); x.g.rotation.set(-0.15, sd * 0.5, 0); });
       // la racine : le centre de la tête
       const hc = [0, 0, 0]; for (let n = 'cou'; n; n = OS[n][0]) { hc[1] += OS[n][2]; } hc[1] += head.position.y;
       body.position.y = -hc[1]; m.body = body;
@@ -316,22 +377,25 @@ function pose(m, o) {
     m.turn.rotation.set((p.tilt ?? 0) - (p.nod ?? 0), Math.sin(p.turn ?? 0) * 0.7, p.roll ?? 0, 'YXZ');
   } else {
     m.turn.rotation.set(p.tilt ?? 0, p.turn ?? 0, p.roll ?? 0, 'YXZ');
-    // la tête ne va pas au-delà du trois quarts (le relief vient d'une photo de face)
-    // la tête vient d'une photo de face : de profil, elle s'aplatit. Elle reste donc de trois quarts au plus, de face ou de dos,
-    // et passe vite de l'un à l'autre quand le corps est de profil (un coup de tête, comme un personnage de dessin animé)
-    const TAU = Math.PI * 2, rel = (((p.turn ?? 0) % TAU) + TAU + Math.PI) % TAU - Math.PI, cl = x => Math.max(-0.72, Math.min(0.72, x));
-    const back = Math.max(0, Math.min(1, (Math.abs(rel) - 1.62) / 0.2)), bw = back * back * (3 - 2 * back), sg = rel < 0 ? -1 : 1;
-    const want = (1 - bw) * cl(rel) + bw * (sg * Math.PI + cl(rel - sg * Math.PI));
-    m.head.rotation.set(-(p.nod ?? 0), want - rel + Math.max(-0.5, Math.min(0.5, p.look ?? 0)), 0, 'YXZ');
+    // la tête tourne avec le corps : le visage (le relief de la photo) devant, le crâne, les oreilles et le cou en volume autour ; look : la tête seule
+    const look = Math.max(-0.5, Math.min(0.5, p.look ?? 0)); m.head.rotation.set(-(p.nod ?? 0), look, 0, 'YXZ');
+    // de face, le contour dessiné ; tournée, le contour en 3D (et plus du tout de dos : le crâne le cache)
+    const TAU = Math.PI * 2, rel = Math.abs((((p.turn ?? 0) + look) % TAU + TAU + Math.PI) % TAU - Math.PI), sm = (a, b, x) => { x = Math.max(0, Math.min(1, (x - a) / (b - a))); return x * x * (3 - 2 * x); };
+    const face = 1 - sm(0.2, 0.6, rel);
     stride(m, p.run ?? 0, Math.max(0, Math.min(1, p.speed ?? 0)), performance.now() / 1000);
     // la couche à montrer : le squelette, le corps nu, ou habillé
     const cc = m.couches[p.couche] ? p.couche : 'habits'; Object.entries(m.couches).forEach(([l, xs]) => { if (l !== cc) xs.forEach(x => { x.g.visible = false; }); }); m.couches[cc].forEach(x => { x.g.visible = true; });
+    // de face, le crâne et le cou en volume s'effacent : le contour, c'est le dessin (les deux se relaient, face = 0,5 : un tiers de quart de tour)
+    if (face >= 0.5) m.crane.forEach(x => { x.g.visible = false; });
     const w = Math.max(1.2, Math.min(9, u * PEN));
+    m.mesh.material.uniforms.face.value = face; m.hull.visible = face < 0.5 && rel < 2.3;
+    m.mesh.visible = rel < 2.3;   // presque de dos : le visage est derrière la tête
+    m.hull.material.uniforms.off.value = w * 0.9 / (u * TETE); m.hull.material.uniforms.opacity.value = a;
     m.M.line.uniforms.width.value = w; m.M.soft.uniforms.width.value = w * 0.6; m.M.out.uniforms.width.value = w * 2; [m.M.line, m.M.out].forEach(x => { x.opacity = a; }); m.M.soft.opacity = a * 0.5;
   }
   const open = Math.max(0, Math.min(1, p.open ?? 0)), M = m.A.mouth, gap = open * DROP;
-  [m.mesh, m.jaw].forEach(x => { x.material.uniforms.open.value = open; x.material.uniforms.opacity.value = a; }); m.jaw.visible = open > 0.015;
-  m.hole.visible = open > 0.015; m.hole.material.opacity = a;
+  [m.mesh, m.jaw].forEach(x => { x.material.uniforms.open.value = open; x.material.uniforms.opacity.value = a; }); m.jaw.visible = open > 0.015 && m.mesh.visible;
+  m.hole.visible = open > 0.015 && m.mesh.visible; m.hole.material.opacity = a;
   m.hole.position.set(M.x - m.A.head[0], -(M.y - m.A.head[1]) - gap / 2, M.z - 0.01); m.hole.scale.set(M.jaw, gap / 2 + 0.01, 1);
   return m;
 }
@@ -346,7 +410,7 @@ function mouthAt(m) {
 }
 addEventListener('themechange', () => all.forEach(m => {
   if (!m.mesh) return; const c = inkNow();
-  [m.mesh, m.jaw].forEach(x => { x.material.uniforms.ink.value.setHex(c); x.material.uniforms.paper.value.setHex(paperNow()); }); m.hole.material.color.setHex(c);
+  [m.mesh, m.jaw, m.hull].forEach(x => { if (x) { x.material.uniforms.ink.value.setHex(c); x.material.uniforms.paper.value.setHex(paperNow()); } }); m.hole.material.color.setHex(c);
   if (m.M) [m.M.line, m.M.soft, m.M.out].forEach(x => x.color.setHex(c));
 }));
 return { create, destroy, pose, mouthAt, load };
