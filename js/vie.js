@@ -385,6 +385,29 @@ function tombe() {
   return true;
 }
 
+/* ——— tout là-haut, de lui-même : un grand bond du sol sur le titre ou sur un bouton (carnet des interactions) ——— */
+// un saut en cloche vers un point (T.x, T.y) qui n'est pas un perchoir ; arrivé, la suite (T.then) prend le relais
+STEPS.bond = (c, T, dt) => {
+  if (!T.x0) { T.x0 = c.x; T.y0 = c.y; T.dur = clamp(0.55 + Math.hypot(T.x - c.x, T.y - c.y) / (sc(c) * 7), 0.6, 1.1); c.face = sgn(T.x - c.x) || c.face; T.H = Math.abs(T.y - c.y) * 0.3 + sc(c) * 0.3; }
+  const u = Math.min(1, T.t / T.dur); c.x = T.x0 + (T.x - T.x0) * u; c.y = T.y0 + (T.y - T.y0) * u - T.H * 4 * u * (1 - u); c.anim = u < 0.1 || u > 0.88 ? 'atterrit' : 'saut';
+  if (u >= 1) { c.y = T.y; if (T.then) c.q.unshift(T.then()); return true; }
+  return false;
+};
+H.think.push((c, add) => {
+  if (c.rare || c.temp || c.perch || TL.jeu || Wd.t < 12 || Wd.cats.some(o => o.task && (o.task.k === 'titre' || o.task.k === 'rebord' || o.task.k === 'bond'))) return;
+  const Ls = LETTERS(); if (!Ls) return; const r = RECT(), s = sc(c);
+  // monter sur le titre : une lettre en place, pas trop loin
+  const row = Math.max(...Ls.map(L => L.row)), cand = Ls.filter(L => !L.st && L.a > 0.9 && L.row === row && Math.abs(r.left + L.cx - c.x) < Wd.W * 0.35);
+  if (cand.length) add(c.ch.grimpe * 0.35 + 0.1, () => { const L = pick(cand), x = r.left + L.cx;
+    c.q.push(go(inView(x - sgn(x - c.x || 1) * s * 0.6), { g: 'trot' }), pose('affut', rnd(0.8, 1.4), { face: sgn(x - c.x) || c.face, fx: c => say(c, pick(['là-haut !', 'hmm…', '!'])) }),
+      fn(c => { const top = RECT().top + L.y0 + L.dy; if (L.st) return; c.q.unshift({ k: 'bond', x, y: top, air: true, then: () => ({ k: 'titre', air: true, row: L.row }) }); })); });
+  // sur un bouton
+  const B = ['#enter', '#stay'].map(q => document.querySelector(q)).filter(el => el && !el.disabled && el.getClientRects().length);
+  if (B.length) add(c.ch.grimpe * 0.3 + 0.1, () => { const el = pick(B), b = el.getBoundingClientRect(), x = clamp(c.x, b.left + s * 0.3, b.right - s * 0.3);
+    c.q.push(go(inView(x - sgn(x - c.x || 1) * s * 0.5), { g: 'trot' }), pose('affut', rnd(0.6, 1.2), { face: sgn(x - c.x) || c.face }),
+      fn(c => { const b = el.getBoundingClientRect(); if (!b.width || el.disabled) return; c.q.unshift({ k: 'bond', x: clamp(x, b.left + 8, b.right - 8), y: b.top, air: true, then: () => ({ k: 'rebord', el, air: true }) }); })); });
+});
+
 /* ——— les lettres touchées (carnet des interactions) ———
    Un clic sur une lettre : elle tremble (toc) ; trois clics rapides, elle tombe. Au sol, un clic l'envoie valser.
    Un objet ou un chat lancé dedans la fait tomber (et rebondit) ; une lettre qui tombe sur un chat lui fait « bonk ». */
@@ -623,5 +646,5 @@ H.draw.push(S => {
   drawTraps(); drawLumps(); drawTongues(); drawBodies(); drawPlume();
 });
 
-return { ptr, plume, V, tombe, TL, puffs };
+return { ptr, plume, V, tombe, TL, puffs, tumble, LETTERS, RECT, lx, ly };
 })();

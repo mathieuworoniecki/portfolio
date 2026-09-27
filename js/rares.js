@@ -301,6 +301,47 @@ H.live.push(c => {
   else c.q.push(fn(c => say(c, pick(['bon…', 'salut !', 'la prochaine fois'])))) ;   // l'acrobate : il s'en va à pied (sans rien à faire, un visiteur part)
 });
 
+/* ——— les visiteurs et le reste du monde (carnet des interactions) ——— */
+// l'éclair et le totem : les chats de la maison les regardent passer (les perchés aussi, de là-haut)
+function spectateurs(c, n, quoi) {
+  const dir = c.face || 1;
+  watchers(Wd.W / 2, n).forEach(o => { interrupt(o); o.q = [pose('affut', rnd(1, 2), { face: sgn(c.x - o.x) || -dir, fx: o => say(o, pick(quoi)) })]; });
+  Wd.cats.forEach(o => { if (o.perch && !o.rare && !o.held && Math.random() < 0.7) { o.face = sgn(c.x - o.x) || o.face; if (Math.random() < 0.5) say(o, pick(quoi)); } });
+}
+H.pre.push(() => {
+  Wd.cats.forEach(c => {
+    if (!c.rare || c.vu || !c.task || c.hidden || c.x < 0 || c.x > Wd.W) return;
+    if (c.rare === 'eclair' && c.task.k === 'zoom') { c.vu = 1; later(0.25, () => spectateurs(c, 4, ['?!', 'quoi ?', 'hein ?!', 'c\'était quoi ?'])); }
+    else if (c.rare === 'totem' && c.task.k === 'totem') { c.vu = 1; spectateurs(c, 3, ['oh !', 'des chatons !', 'hihi', 'attention !']);
+      // un curieux les suit un moment
+      const o = watchers(c.x, 1)[0]; if (o) { o.q.push(go(() => clamp(c.x - c.face * sc(o) * 1.3, 20, Wd.W - 20), { g: 'trot' }), pose('dresse', rnd(1, 1.6), { face: c.face })); } }
+  });
+});
+// l'interminable et le totem ne passent plus au travers du décor : ce qui est devant eux est poussé (les gros tanguent, il s'excuse)
+H.pre.push(() => {
+  Wd.cats.forEach(c => {
+    const T = c.task; if (!c.hp || !T || !((c.rare === 'interminable' && T.k === 'defile' && T.ph !== 1) || (c.rare === 'totem' && T.k === 'totem'))) return;
+    const s = sc(c), x = c.rare === 'totem' ? c.x + c.face * s * 0.35 : c.hp[0] + c.face * s * 0.3;
+    Wd.props.forEach(it => {
+      if (it.fall || it.held || it.run || it.mur || it.tower || it.pushT === T || Math.abs(it.d - c.d) > 0.35 || Math.abs(it.x - x) > it.hull.w * it.s * 0.5) return; it.pushT = T;
+      if (LOURD[it.kind] || it.kind === 'distrib') { it.wob = Wd.t; it.wobA = 0.6; say(c, pick(['pardon', 'oups', 'excusez-moi'])); if (c.rare === 'totem' && R.totem && R.totem.wob == null) R.totem.wob = R.totem.t - 1; }
+      else { kick(it, c.face); if (it.fall) { it.vx *= 0.8; } word(pick(['pouf', 'tac']), it.x, it.y - it.hull.h * it.s - 10, 15); }
+    });
+  });
+});
+// les croquettes sur un visiteur : chacun à sa façon (le géant les renvoie haut, l'acrobate et l'interminable les croquent, le ballon fait pouic)
+H.pre.push(() => {
+  const L = Wd.cats.filter(c => c.rare && alive(c) && !c.hidden && c.hp); if (!L.length || !Wd.kib.length) return;
+  Wd.kib.forEach(k => {
+    if (k.rest || k.suck || k.vy <= 0 || Wd.t < k.t0) return;
+    for (const c of L) { const z = zone(c); if (!inZone(z, k.x, k.y)) continue; const quoi = c.rare;
+      if (quoi === 'acrobate' || quoi === 'interminable') { k.gone = true; if (Wd.t - (c.kibT ?? -9) > 1.2) { c.kibT = Wd.t; say(c, pick(['miam', 'crounch', 'merci !'])); } }
+      else { k.vy = -Math.abs(k.vy) * (quoi === 'geant' ? 1.1 : 0.6) - 120; k.vx += rnd(-120, 120);
+        if (Wd.t - (c.kibT ?? -9) > 1.5) { c.kibT = Wd.t; say(c, pick(quoi === 'geant' ? ['hihi', 'ça pique'] : quoi === 'ballon' ? ['pouic', 'pouic pouic'] : quoi === 'eclair' ? ['?!'] : ['hé !', 'des croquettes !'])); } }
+      break; }
+  });
+});
+
 /* ——— la craie : le fil de l'acrobate, la ficelle du ballon ——— */
 H.draw.push(() => {
   const C = window.Chalk; if (!C || !C.ctx) return;

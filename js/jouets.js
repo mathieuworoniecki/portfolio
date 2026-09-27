@@ -82,6 +82,19 @@ H.click.unshift((x, y) => {
   if (J.st === 'posee' && nearStick(x, y)) { J.st = 'main'; const e = ends(); J.hx = e ? e[1][0] : x; J.hy = e ? e[1][1] : y; return true; }
   return false;
 });
+// le coffre sert aussi aux chats : on s'assoit dessus ; un joueur soulève le couvercle et en sort la canne tout seul
+H.think.push((c, add) => {
+  const b = box(); if (!b || c.temp || c.rare || b.held || b.fall || b.busy || Wd.t < 15) return; const s = sc(c), side = sgn(c.x - b.x) || 1, pe = b.perches && b.perches[0];
+  if (pe) add(0.25 + c.ch.grimpe * 0.2, () => { K.claim(c, b);
+    c.q.push(go(inView(b.x + side * s * 0.8), { g: 'trot', face: -side }), pose('affut', 0.5, { face: -side }), K.hop(() => K.perchAt(b, pe, rnd(-0.05, 0.05)), { live: true, zr: [0, 0.4] }),
+      pose(pick(['assis', 'pain', 'toilette']), rnd(4, 9), { fx: c => { if (Math.random() < 0.4) say(c, pick(['mon coffre', 'mrrp', '♥'])); } }), fn(K.free)); });
+  if (J.st === 'coffre') add(0.12 + c.ch.joue * 0.25, () => { K.claim(c, b);
+    c.q.push(go(inView(b.x + side * s * 0.75), { g: 'trot', face: -side }), pose('affut', rnd(0.5, 1), { face: -side }),
+      pose('tape', 0.7, { face: -side, fx: c => { J.lid = Wd.t + 1.4; say(c, pick(['!', 'hmm ?'])); } }),
+      pose('tape', 0.6, { face: -side, fx: c => { if (J.st !== 'coffre' || !box()) return; plant(b.x + side * s * 1.3, b.d * 0.5);
+        Wd.fx.push({ k: 'txt', text: pick(['il a trouvé la canne !', 'à moi le jouet !']), x: b.x, y: b.y - b.hull.h * b.s - Wd.s0 * 0.3, t0: Wd.t, life: 1.6, rot: -0.06, size: 17 }); } }),
+      fn(K.free), { k: 'chasse', max: rnd(6, 10) }); });
+});
 // le coffre part (aspiré, remis à sa place) : la canne rangée revient avec lui ; une canne plantée reste
 H.pre.push(() => { if (J.st === 'main' && !mouse() && Wd.t - J.lid > 30) plant(J.hx, 0.12); });
 
