@@ -72,7 +72,7 @@ H.pre.push(dt => {
     if (b) { h.d = h.dT = b.d; h.lift = Math.max(0, floorAt(b.d) - h.y); }
   }
   for (const b of B) {
-    if (b.held || b.fall || b.sqT != null || b.kind === 'bassin') continue; const w = b.hull.w * b.s * 0.5;
+    if (b.held || b.fall || b.sqT != null || b.kind === 'bassin' || b.kind === 'canape') continue; const w = b.hull.w * b.s * 0.5;
     const L = Wd.props.find(h => h !== b && LOURDS(h) && !h.held && Math.abs(h.d - b.d) < 0.22 && Math.abs(h.x - b.x) < w * 0.8 + h.hull.w * h.s * 0.3 && (h.fall ? h.lift < b.hull.h * b.s : true) && h.down && Wd.t - h.down < 60);
     const was = b.sq || 0;
     if (L) { if (was < 0.5) { vide(b, sgn(b.x - L.x) * sOf(b.d) * 2, 1.2); Ch() && Ch().sortir(b); word(pick(['CRAC', 'scrountch', 'crouic']), b.x, b.y - 30, 24); dust(b.x, floorAt(b.d), w, 1); } b.sq = Math.min(0.85, was + dt * 8); }

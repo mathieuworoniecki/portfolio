@@ -8,6 +8,7 @@
      caisse   un carton fermé (o.size : 0, 1, 2), scotché, un petit dessin devant : on les empile, les pousse, les fait tomber
      panier   un lit rond en osier · poisson  un poisson en tissu (un jouet) · plante  une plante en pot · tasse  une tasse (à pousser du bord)
      distrib  le distributeur de croquettes (il a une tête, il crache des croquettes par son bec : it.bec) · eau  une fontaine à eau (it.jet) · bassin  le grand bassin, où l'on se baigne (it.eau, it.coupe, it.jet)
+     souffleur  un souffleur (it.buse : le bout de la buse) · canape  un canapé (l'assise, le dossier, les accoudoirs : ses perchoirs)
      trappe   la machine à cartons accrochée au mur : seuls la bouche et le levier dépassent (it.mur, it.lev0, it.levK)
      lanceur  la machine à cartons : un canon (it.bouche, it.vise), un levier (parts.levier) ; elle projette des caisses
      coffre   le coffre à jouets : le couvercle (parts.couvercle) s'ouvre ; la canne à plume en sort (js/jouets.js)
@@ -158,6 +159,23 @@ function pieces() {
     B.solid(K.lathe([[0, 0.04], [0.06, 0.04], [0.05, 0.1], [0.04, 0.38], [0.2, 0.42], [0.22, 0.46], [0.2, 0.47], [0.03, 0.45], [0.03, 0.5], [0.045, 0.52], [0, 0.54]], 24));
   });
   P.bassinEau = Obj3D.piece('u:bassinEau', B => { B.solid(K.lathe([[0, 0.105], [0.575, 0.105], [0.575, 0.11], [0, 0.11]], 40)); });
+  // le souffleur (Mathieu, 27/09 : « un objet type souffleur par terre : si je le prends, ça souffle tous les objets légers, et les chats aussi, qui vont partout en l'air ») :
+  // un corps arrondi, une poignée, une longue buse ; deux yeux
+  P.souffleur = Obj3D.piece('u:souffleur', B => {
+    B.solid(K.ext(K.roundPoly([[-0.16, 0], [0.1, 0], [0.12, 0.17], [-0.15, 0.19]], 0.05, 4), 0.17));
+    B.solid(K.tube([[-0.11, 0.18, 0], [-0.07, 0.29, 0], [0.05, 0.29, 0], [0.09, 0.17, 0]], 0.018, 8, 20));
+    B.solid(K.tf(K.latheX([[0.09, 0], [0.09, 0.05], [0.52, 0.032], [0.56, 0.036], [0.56, 0.028], [0.53, 0]], 18), [0, 0.08, 0]));
+    [-0.08, -0.02].forEach(x => B.lines(segs(ring(0.014, 0, 12).map(p => [x + p[0], 0.11 + p[2], 0.086]))));
+    B.soft(segs([[-0.075, 0.07, 0.086], [-0.05, 0.06, 0.086], [-0.025, 0.07, 0.086]]));
+  });
+  // le canapé : une assise, un dossier, deux accoudoirs, deux coussins, quatre petits pieds
+  P.canape = Obj3D.piece('u:canape', B => {
+    B.solid(K.ext(K.roundPoly([[-0.68, 0.05], [0.68, 0.05], [0.68, 0.26], [-0.68, 0.26]], 0.05, 4), 0.5));
+    B.solid(K.tf(K.ext(K.roundPoly([[-0.68, 0.24], [0.68, 0.24], [0.66, 0.62], [-0.66, 0.62]], 0.08, 4), 0.14), [0, 0, -0.19]));
+    [-1, 1].forEach(sd => B.solid(K.ext(K.roundPoly([[sd * 0.66, 0.05], [sd * 0.82, 0.05], [sd * 0.84, 0.42], [sd * 0.64, 0.42]][sd > 0 ? 'slice' : 'reverse'](), 0.06, 4), 0.52)));
+    B.soft(segs([[0, 0.265, 0.25], [0, 0.265, -0.12]])); B.soft(segs([[0, 0.3, -0.12], [0, 0.6, -0.12]]));
+    [[-0.74, 0.2], [0.74, 0.2], [-0.74, -0.2], [0.74, -0.2]].forEach(([x, z]) => B.solid(K.lathe([[0, 0], [0.03, 0], [0.035, 0.05], [0, 0.05]], 10).translate(x, 0, z)));
+  });
   // la gamelle et ses croquettes
   P.gamelle = Obj3D.piece('u:gamelle', B => {
     B.solid(K.lathe([[0, 0], [0.16, 0], [0.17, 0.01], [0.14, 0.075], [0.13, 0.08], [0.115, 0.072], [0, 0.05]], 28));
@@ -230,6 +248,10 @@ function make(kind, o) {
     it.bouche = [-0.26 - Math.sin(1.22) * 0.22, 0.3 + Math.cos(1.22) * 0.22, 0]; it.vise = [-Math.sin(1.22), Math.cos(1.22)]; it.pivot = [-0.3, 0.12, 0.12];
   }
   else if (kind === 'eau') { put(P.fontaine); it.jet = [0, 0.172, 0]; }
+  else if (kind === 'souffleur') { put(P.souffleur); it.buse = [0.56, 0.08, 0]; it.corps = [-0.02, 0.09, 0]; }
+  else if (kind === 'canape') { put(P.canape);
+    it.perches = [{ id: 'assiseG', p: [-0.33, 0.27, 0.06], w: 0.14, lv: 1 }, { id: 'assiseD', p: [0.33, 0.27, 0.06], w: 0.14, lv: 1 },
+      { id: 'dossier', p: [0.2, 0.62, -0.19], w: 0.3, lv: 2 }, { id: 'accoudoirG', p: [-0.74, 0.43, 0.02], w: 0.05, lv: 1 }, { id: 'accoudoirD', p: [0.74, 0.43, 0.02], w: 0.05, lv: 1 }]; }
   else if (kind === 'bassin') { put(P.bassin); put(P.bassinEau); it.jet = [0, 0.54, 0]; it.coupe = { y: 0.46, r: 0.21 }; it.eau = { y: 0.11, r: 0.57 };
     // dans l'eau (bain : le bas du corps caché sous la surface), et sur le rebord
     it.perches = [{ id: 'bainG', p: [-0.3, 0.02, 0.18], w: 0.1, bain: true }, { id: 'bainD', p: [0.3, 0.02, 0.18], w: 0.1, bain: true }, { id: 'bainF', p: [0, 0.02, 0.36], w: 0.1, bain: true },
