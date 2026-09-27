@@ -63,6 +63,8 @@ function geometry(A, recto) {
     if (recto && r) {
       const u = Math.min(1, Math.abs(x - r[0]) / r[1]); bord[i] = u; const k = Math.max(0, Math.min(1, (y + 0.13) / 0.05));
       dep[i] -= ek * u * u + (en + (eh - en) * k) * u ** 8 + et * Math.min(0.18, Math.max(0, y - ey)) ** 2;
+      // sous le menton, le cou de la photo est trop épais : son devant recule (le dessous de la mâchoire apparaît de profil)
+      const c = Math.max(0, Math.min(1, (-0.175 - y) / 0.025)); dep[i] -= 0.045 * c * c * (3 - 2 * c) * (1 - u * u);
     }
     p.setXYZ(i, x, y, dep[i]);
   }
@@ -95,7 +97,7 @@ function material(A, part, cut, recto) {
         if (t.a < 0.9) discard;
         if (vUv.y < ${(1 - cut).toFixed(4)}) discard;
         float l = t.r;
-        ${hull ? `if (vBord > 0.5) discard;   /* les bords enroulés : c'est le crâne qui fait le contour */
+        ${hull ? `if (vBord > 0.5 || texture2D(front, vUv + vec2(0.0, 0.03)).a < 0.9) discard;   /* les bords enroulés, le haut des cheveux : c'est le crâne qui fait le contour */
         if (open > 0.015 && vJaw > 0.5) discard; if (vUv.y < ${(1 - cut + 0.03).toFixed(4)}) discard; l = 0.0;` : ''}
         ${recto && !hull ? `/* le contour dessiné au bord de la tête : de face seulement */
         if (face < 0.5) for (int i = 0; i < 8; i++) { float an = float(i) * 0.7854; vec2 d = vec2(cos(an), sin(an));
@@ -136,7 +138,7 @@ function loft(R, o) {
   o = o || {}; const n = o.n || 24, P = [], I = [], Z = o.axis === 'z';
   R.forEach(([a, w, df, db, c0, cx]) => { for (let j = 0; j < n; j++) { const t = j / n * Math.PI * 2, s = Math.sin(t), c = Math.cos(t), d = (c0 || 0) + (c > 0 ? df ?? w : db ?? df ?? w) * c; P.push(w * s + (cx || 0), Z ? d : a, Z ? a : d); } });
   for (let i = 0; i < R.length - 1; i++) for (let j = 0; j < n; j++) { const a = i * n + j, b = i * n + (j + 1) % n; I.push(a, a + n, b, b, a + n, b + n); }
-  if (o.cap !== false) [0, R.length - 1].forEach((i, e) => { const r = R[i], k = P.length / 3; P.push(r[5] || 0, Z ? r[4] || 0 : r[0], Z ? r[0] : r[4] || 0); for (let j = 0; j < n; j++) { const u = i * n + j, v = i * n + (j + 1) % n; if (e) I.push(u, v, k); else I.push(u, k, v); } });
+  if (o.cap !== false) [0, R.length - 1].forEach((i, e) => { const r = R[i], k = P.length / 3, h = e ? 0 : o.tip || 0; P.push(r[5] || 0, Z ? r[4] || 0 : r[0] + h, Z ? r[0] : r[4] || 0); for (let j = 0; j < n; j++) { const u = i * n + j, v = i * n + (j + 1) % n; if (e) I.push(u, v, k); else I.push(u, k, v); } });
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g.setIndex(I); return g;
 }
 // un point sur un volume en sections, à la hauteur a et à l'angle t (0 devant, π/2 sur son flanc x+), un peu au-dessus du tissu (lift)
@@ -168,7 +170,7 @@ const PEAU = {
 // les habits
 const HABITS = {
   // le t-shirt : un peu ample, il tombe droit sur les hanches ; ouvert à l'encolure et en bas
-  tshirt: [[-0.37, 0.235, 0.14, 0.13], [-0.2, 0.235, 0.14, 0.125], [0, 0.242, 0.142, 0.12], [0.1, 0.257, 0.152, 0.12, 0.005], [0.2, 0.266, 0.152, 0.12, 0.005], [0.28, 0.262, 0.142, 0.12], [0.34, 0.232, 0.112, 0.112, -0.005], [0.38, 0.172, 0.092, 0.09, -0.01], [0.405, 0.112, 0.077, 0.07, -0.01]],
+  tshirt: [[-0.37, 0.235, 0.14, 0.13], [-0.2, 0.235, 0.14, 0.125], [0, 0.242, 0.142, 0.12], [0.1, 0.257, 0.152, 0.12, 0.005], [0.2, 0.266, 0.152, 0.12, 0.005], [0.28, 0.262, 0.142, 0.12], [0.34, 0.232, 0.112, 0.112, -0.005], [0.38, 0.175, 0.095, 0.09, -0.005], [0.405, 0.13, 0.085, 0.075, -0.005]],
   manche: [[0.075, 0.015, 0.015, 0.015, -0.005], [0.06, 0.07], [0.02, 0.098, 0.095, 0.095], [-0.08, 0.1, 0.098, 0.098], [-0.19, 0.097, 0.094, 0.094]],
   // le jean : les hanches (la ceinture un peu sous le nombril), les jambes droites, l'ourlet qui tombe sur la basket
   jean: [[0.12, 0.215, 0.125, 0.13], [0.06, 0.23, 0.13, 0.145], [-0.02, 0.24, 0.135, 0.155, -0.005], [-0.1, 0.225, 0.125, 0.14], [-0.16, 0.13, 0.09, 0.09], [-0.175, 0.02, 0.02, 0.02]],
@@ -185,14 +187,16 @@ const HABITS = {
    Le relief, lui, s'enroule : ses bords (les joues, les cheveux, le cou) partent en arrière et rentrent dans le crâne et le cou (ENROULE), pour que de trois quarts et de profil
    le visage ne flotte pas devant la tête comme un masque. (tools/mathieu : le crâne est ajusté pour rester 0,04 sous le relief enroulé.) */
 const ENROULE = [0.09, 0.1, 0.02, 5.0, 0.1];   // le recul des bords (en douceur ; puis au ras du bord : la tête, le cou) ; le recul du haut des cheveux, à partir de quelle hauteur
-const CRANE = [[0.2818, 0.01, 0.007, 0.004, -0.14, 0.029], [0.2806, 0.025, 0.017, 0.011, -0.14, 0.029], [0.277, 0.045, 0.03, 0.02, -0.14, 0.029], [0.2714, 0.06, 0.04, 0.026, -0.14, 0.029], [0.262, 0.068, 0.045, 0.03, -0.14, 0.029], [0.25, 0.087, 0.045, 0.06, -0.14, 0.024], [0.235, 0.117, 0.045, 0.08, -0.14, 0.022],
-  [0.215, 0.131, 0.07, 0.095, -0.14, 0.024], [0.19, 0.143, 0.09, 0.102, -0.14, 0.024], [0.15, 0.161, 0.11, 0.107, -0.14, 0.014], [0.1, 0.155, 0.12, 0.107, -0.14, 0.012],
-  [0.04, 0.149, 0.12, 0.104, -0.14, 0.002], [-0.01, 0.151, 0.12, 0.1, -0.14, -0.004], [-0.045, 0.145, 0.11, 0.09, -0.14, -0.002], [-0.075, 0.117, 0.1, 0.065, -0.14, 0.004],
-  [-0.1, 0.107, 0.08, 0.04, -0.14, -0.004], [-0.12, 0.097, 0.06, 0.03, -0.14, -0.002], [-0.135, 0.02, 0.02, 0.02, -0.13, 0.0]];
-const COU = [[-0.08, 0.1, 0.12, 0.075, -0.08, -0.003], [-0.15, 0.103, 0.13, 0.076, -0.08, -0.003], [-0.26, 0.105, 0.13, 0.078, -0.08, -0.003]];
-// la limite des cheveux, d'un côté : [hauteur, angle] (0 devant, π/2 sur le côté) : au-dessus de l'oreille, derrière elle, la nuque (devant, c'est le dessin)
-const CHEVEUX = [[0.075, 1.5], [0.088, 1.62], [0.082, 1.82], [0.045, 1.97], [-0.015, 2.12], [-0.055, 2.4], [-0.072, 2.8], [-0.076, Math.PI]];
-const OREILLE = { y: 0.025, z: -0.15, r: [0.018, 0.058, 0.036] };   // le centre de l'oreille (x : au bord du crâne), ses demi-axes
+// (pas d'anneau trop petit : leurs points, trop proches, se confondent et le contour se perd)
+const CRANE = [[0.2935, 0.03, 0.033, 0.033, -0.14, 0.024], [0.292, 0.043, 0.048, 0.047, -0.14, 0.024],
+  [0.287, 0.061, 0.067, 0.066, -0.14, 0.024], [0.28, 0.075, 0.084, 0.082, -0.14, 0.024], [0.272, 0.085, 0.094, 0.093, -0.14, 0.024], [0.26, 0.09, 0.1, 0.098, -0.14, 0.024], [0.235, 0.117, 0.11, 0.112, -0.14, 0.022], [0.215, 0.131, 0.12, 0.118, -0.14, 0.024], [0.19, 0.143, 0.12, 0.122, -0.14, 0.024],
+  [0.15, 0.161, 0.11, 0.124, -0.14, 0.014], [0.1, 0.155, 0.12, 0.12, -0.14, 0.012], [0.04, 0.149, 0.12, 0.11, -0.14, 0.002], [-0.01, 0.151, 0.12, 0.095, -0.14, -0.004],
+  [-0.045, 0.145, 0.11, 0.075, -0.14, -0.002], [-0.075, 0.117, 0.1, 0.052, -0.14, 0.004], [-0.1, 0.107, 0.08, 0.035, -0.14, -0.004], [-0.12, 0.097, 0.06, 0.025, -0.14, -0.002],
+  [-0.135, 0.02, 0.02, 0.02, -0.13, 0.0]];
+const COU = [[-0.08, 0.1, 0.1, 0.075, -0.06, -0.003], [-0.15, 0.103, 0.09, 0.072, -0.055, -0.003], [-0.2, 0.104, 0.05, 0.068, -0.05, -0.003], [-0.26, 0.105, 0.05, 0.068, -0.05, -0.003]];
+// la limite des cheveux, d'un côté : [hauteur, angle] (0 devant, π/2 sur le côté) : la tempe, la patte devant l'oreille, au-dessus d'elle, derrière elle, la nuque
+const CHEVEUX = [[0.11, 1.24], [0.06, 1.31], [0.012, 1.35], [0.03, 1.43], [0.075, 1.5], [0.088, 1.62], [0.082, 1.82], [0.045, 1.97], [-0.015, 2.12], [-0.055, 2.4], [-0.072, 2.8], [-0.076, Math.PI]];
+const OREILLE = { y: 0.025, z: -0.165, r: [0.018, 0.058, 0.036] };   // le centre de l'oreille (x : au bord du crâne), ses demi-axes
 
 function build(meta) {
   const P = {}, K = 'mathieu:corps2:', kit = Obj3D.kit, pc = (k, f) => (P[k] = Obj3D.piece(K + k, f));
@@ -268,7 +272,7 @@ function build(meta) {
   });
   // 4. la tête en volume : le crâne (et ses cheveux), le cou, les oreilles
   pc('crane', B => {
-    B.smooth(loft(CRANE, { n: 64 }));
+    B.smooth(loft(CRANE, { n: 36, tip: 0.01 }));   // le sommet bombé, pas trop de côtés (sinon, en haut, les faces presque plates perdent le trait)
     const L = []; [1, -1].forEach(sd => segs(CHEVEUX.map(([y, t]) => on(CRANE, y, sd * t, E)), L));
     B.lines(L);
   });
@@ -323,7 +327,7 @@ function create(opt) {
         (MONTAGE[base] || []).forEach(([k, l, u]) => put(k === 'jambe' && cote === 'D' ? 'jambe-' : k, J[n], l, u));
       });
       // la tête : un peu plus grande que nature (un dessin), le bas de son cou dans l'encolure, au-dessus de l'articulation du cou
-      J.cou.add(head); head.scale.setScalar(TETE); head.position.y = (cut - M.head[1]) * TETE;
+      J.cou.add(head); head.scale.setScalar(TETE); head.position.set(0, (cut - M.head[1]) * TETE, 0.06);   // un peu en avant : le cou au milieu de l'encolure
       // derrière le visage : le crâne et le cou (dans le contour du tronc), les oreilles (leur propre contour), dans toutes les couches
       m.crane = [put('crane', head, 'os peau habits', 1), put('cou', head, 'os peau habits', 1)];
       [['oreille', 1], ['oreille-', -1]].forEach(([k, sd]) => { const w = on(CRANE, OREILLE.y, sd * Math.PI / 2, 0), x = put(k, head, 'os peau habits', 0); x.g.position.set(w[0] - sd * 0.012, OREILLE.y, OREILLE.z); x.g.rotation.set(-0.15, sd * 0.5, 0); });
