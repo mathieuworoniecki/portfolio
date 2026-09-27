@@ -154,6 +154,7 @@ function suivante() {
 }
 function vu(id) {
   const d = PAR[id]; if (!d || vus[id]) return false; vus[id] = Date.now(); garde(); file.push(d); suivante(); compte();
+  try { dispatchEvent(new CustomEvent('dex', { detail: id })); } catch (e) {}   // (les hauts faits écoutent : js/hautsfaits.js)
   if (id.startsWith('rare-') && ['geant', 'interminable', 'ballon', 'eclair', 'totem', 'acrobate'].every(k => vus['rare-' + k])) vu('tousrares');
   if (window.Scenarios && Scenarios.gerbe && Wd.a > 0.5) Scenarios.gerbe(70, Wd.H - 120, 10, 200);
   return true;
