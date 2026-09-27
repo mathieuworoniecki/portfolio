@@ -62,7 +62,7 @@ function frame(now) {
   const yOf = s => (Hh - 80) / 2 - (0.5 - hy) * s;
   let s = base, x = W / 2 + (hx - 0.5) * base, y = yOf(base), tr = turn, op = openT;
   // il se balance de trois quarts en trois quarts (le relief vient d'une photo de face : de profil, il s'aplatit)
-  if (spin) { sw += dt; tr = turn = Math.sin(sw * 0.7) * 0.75; }
+  if (spin) { tr = turn += dt * 0.5; }
   // l'arrivée : minuscule au loin, il grossit en tournant (un tour et demi qui ralentit), se pose, puis la bouche biblique
   if (arr >= 0) {
     arr += dt; const k = sm(arr / 2.5), b = sm((arr - 3.2) / 1.6);

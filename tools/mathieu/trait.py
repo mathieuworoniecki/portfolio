@@ -2,7 +2,7 @@
 Le trait : un pinceau-feutre, épais au milieu et effilé aux bouts (brush), comme un dessin fait à la main ; deux encres, INK (franc) et SOFT (pâle).
 Ce qui vient des 478 points du visage (MediaPipe) : les yeux (paupières, iris, pupille et reflet), les sourcils, le nez, la bouche, la mâchoire.
 Ce qui vient de la photo : la silhouette, la masse des cheveux et leurs mèches (les creux sombres de la photo, amincis en traits effilés),
-la forme de la moustache (rendue symétrique, pleine), le creux des oreilles. """
+la forme de la moustache (rendue symétrique, en poils), le creux des oreilles. """
 import cv2, numpy as np
 from PIL import Image, ImageDraw
 from scipy.interpolate import splprep, splev
@@ -28,8 +28,9 @@ def brush(d, P, w, fill=INK, taper=(0.25, 0.25), wmin=0.3):
     for (x, y), kk in zip(P, k):
         r = w * kk / 2; d.ellipse([x - r, y - r, x + r, y + r], fill=fill)
 
-def tete(im, m, L, g, bottom=640, head=None):
+def tete(im, m, L, g, bottom=640, head=None, contour=True):
     """im : la photo (BGR), m : la silhouette, L : les points du visage (x, y), g : la photo lissée en gris (0 à 1).
+    contour=False : sans la silhouette (la vraie 3D la trace elle-même, selon la vue).
     Rend le dessin (0 : encre, 1 : papier) et le masque des cheveux."""
     H0, W0 = m.shape; yy, xx = np.mgrid[0:H0, 0:W0]
     # des yeux et une bouche un peu plus grands (ce qu'il a demandé) : on écarte leurs points autour de leur centre
@@ -72,10 +73,16 @@ def tete(im, m, L, g, bottom=640, head=None):
       if len(Q) < 3: continue
       brush(d, curve(None, 30, s=len(Q) * 4, pts=Q), w * (0.8 if st[i, 4] > 40 else 0.6), INK if st[i, 4] > 60 else SOFT, (0.3, 0.45))
     # le contour des cheveux : lissé, mais en gardant les pics
+    hm = (head if head is not None else m & (yy < bottom)).astype(np.uint8); inside_d = cv2.distanceTransform(hm, cv2.DIST_L2, 5)
     cs, _ = cv2.findContours(hair.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     for c in cs:
       if cv2.contourArea(c) < 600: continue
-      p = smooth(c, 6); d.line([tuple(q) for q in p] + [tuple(p[0])], fill=INK, width=W, joint='curve')
+      p = smooth(c, 6); p = np.vstack([p, p[:1]])
+      if contour: d.line([tuple(q) for q in p], fill=INK, width=W, joint='curve'); continue
+      # sans la silhouette : seulement la ligne des cheveux sur le front et les tempes (loin du bord de la tête)
+      far = inside_d[np.clip(p[:, 1].astype(int), 0, H0 - 1), np.clip(p[:, 0].astype(int), 0, W0 - 1)] > 16
+      for run in np.split(np.arange(len(p)), np.where(np.diff(far.astype(int)) != 0)[0] + 1):
+        if far[run[0]] and len(run) > 8: brush(d, p[run], W, INK, (0.2, 0.2), 0.3)
 
     # ——— les sourcils : un trait plein, épais vers le nez, effilé vers la tempe ———
     for up, lo in [([107, 66, 105, 63, 70], [55, 65, 52, 53, 46]), ([336, 296, 334, 293, 300], [285, 295, 282, 283, 276])]:
@@ -112,11 +119,11 @@ def tete(im, m, L, g, bottom=640, head=None):
     side = 1 if gb[int(L[209, 1]), int(L[209, 0])] > gb[int(L[429, 1]), int(L[429, 0])] else -1   # le côté le plus sombre de l'arête
     br = L[[193, 245, 188, 174, 236, 198, 209]] if side < 0 else L[[417, 465, 412, 399, 456, 420, 429]]
     brush(d, curve(None, 50, s=200, pts=br[[0, 2, 3, 4, 5]]), 6, SOFT, (0.5, 0.2))
-    brush(d, curve([98, 97, 2, 326, 327], 40, s=20), w, INK, (0.25, 0.25))                   # le dessous du bout
+    brush(d, curve([98, 97, 2, 326, 327], 40, s=20)[4:-4], w * 0.8, INK, (0.35, 0.35), 0.2)                   # le dessous du bout
     for wing in ([64, 98, 97], [294, 327, 326]):                                                # les ailes, fines : un nez étroit
       P = curve(wing, 30); P = P.mean(0) + (P - P.mean(0)) * 0.8; brush(d, P, w * 0.9, INK, (0.4, 0.1))
 
-    # ——— la moustache : pleine, symétrique, fine, en guidon (les pointes un peu relevées au-delà des coins de la bouche) ———
+    # ——— la moustache : symétrique, fine, en guidon (les pointes un peu relevées au-delà des coins de la bouche) ———
     skin = np.median(gb[face & (yy > L[1, 1]) & (yy < L[0, 1]) & ~(np.abs(xx - L[1, 0]) < 0.12 * fw)])
     mbox = (yy > L[2, 1] + 4) & (yy < L[0, 1] + 6) & (np.abs(xx - L[0, 0]) < (L[291, 0] - L[61, 0]) * 0.75)
     must = cv2.morphologyEx((mbox & (gb < skin - 0.12)).astype(np.uint8), cv2.MORPH_CLOSE, np.ones((9, 9), np.uint8)) > 0
@@ -131,10 +138,22 @@ def tete(im, m, L, g, bottom=640, head=None):
     th = np.clip(th, 0.03 * fw, 0.052 * fw) * np.clip(1 - ((au - 0.45) / 0.55).clip(0) ** 1.2, 0.06, 1)
     th = th * (1 - 0.35 * np.exp(-(uu / 0.08) ** 2))                     # le petit creux au milieu, sous le nez
     lift = 0.05 * fw * (np.clip((au - corner) / (1 - corner), 0, 1) ** 1.8)  # les pointes remontent (le guidon)
-    bot = lipY - 0.018 * fw - lift + 0.01 * fw * au ** 2; top = bot - th     # un peu au-dessus de la lèvre : la bouche reste une bouche
-    d.polygon([tuple(q) for q in np.vstack([np.c_[xsM, top], np.c_[xsM, bot][::-1]])], fill=INK)
-    for x0, sg in ((xsM[0], -1), (xsM[-1], 1)):
-      y0 = bot[0]; d.line([(x0, y0), (x0 + sg * 5, y0 - 5)], fill=INK, width=3)
+    bot = lipY - 0.03 * fw - lift + 0.01 * fw * au ** 2; top = bot - th     # un peu au-dessus de la lèvre : la bouche reste une bouche
+    # des poils, pas un aplat (un aplat se lit comme une lèvre) : de courts traits effilés, qui partent du milieu vers les pointes,
+    # du haut de la moustache vers son bas ; serrés et foncés au milieu des côtés, plus rares et pâles vers les pointes
+    rng = np.random.default_rng(5); mid = (top + bot) / 2
+    for side in (-1, 1):
+      for k in range(22):
+        f = (k + rng.uniform(0.1, 0.9)) / 22                              # de 0 (sous le nez) à 1 (la pointe)
+        i0 = int(round(30 + side * (0.06 + 0.86 * f) * 30)); i1 = int(np.clip(i0 + side * rng.integers(4, 7), 0, 60))
+        if th[i0] < 2.5: continue
+        a0 = np.array([xsM[i0], top[i0] + th[i0] * rng.uniform(0.0, 0.25)])
+        a1 = np.array([xsM[i1], bot[i1] - th[i1] * rng.uniform(0.0, 0.2)])
+        brush(d, [a0, (a0 + a1) / 2 + [0, th[i0] * 0.08], a1], (5.5 if f < 0.75 else 4) * (1.05 - 0.3 * f), INK if f < 0.8 else SOFT, (0.35, 0.5), 0.25)
+    # les pointes : un trait fin qui remonte en s'effilant (le guidon)
+    for i0, sg in ((6, -1), (54, 1)):
+      p0 = np.array([xsM[i0], mid[i0]]); tip = np.array([xsM[0] if sg < 0 else xsM[-1], mid[i0] - 0.03 * fw])
+      brush(d, [p0, (p0 + tip) / 2 + [0, 0.004 * fw], tip + [sg * 0.012 * fw, -0.012 * fw]], 4.5, INK, (0.05, 0.7), 0.15)
 
     # ——— la bouche : la ligne des lèvres (les coins relevés : un sourire), la lèvre du bas, pâle ———
     MID = [78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308]; LOO = [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291]
@@ -158,7 +177,7 @@ def tete(im, m, L, g, bottom=640, head=None):
     # ——— la mâchoire, le menton : un trait effilé qui part sous l'oreille ; toute la silhouette, en trait franc ———
     jaw = [234, 93, 132, 58, 172, 136, 150, 149, 176, 148, 152, 377, 400, 378, 379, 365, 397, 288, 361, 323, 454]
     brush(d, curve(jaw, 160)[42:-42], W * 1.05, INK, (0.15, 0.15), 0.3)
-    cs, _ = cv2.findContours((head if head is not None else m & (yy < bottom)).astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    cs, _ = cv2.findContours((head if head is not None else m & (yy < bottom)).astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) if contour else ([], None)
     for c in cs:
       if cv2.contourArea(c) < 5000: continue
       p = smooth(c, 9); d.line([tuple(q) for q in p] + [tuple(p[0])], fill=INK, width=W + 1, joint='curve')

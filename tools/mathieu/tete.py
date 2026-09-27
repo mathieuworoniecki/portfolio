@@ -23,7 +23,7 @@ P = np.array([[p.x * W0, p.y * H0, p.z * W0] for p in fm.multi_face_landmarks[0]
 
 # ——— le repère : le centre du crâne, l'échelle (le visage = 1) ———
 k = 1 / (P[152, 1] - P[10, 1])
-C = np.array([(P[234, 0] + P[454, 0]) / 2, (P[33, 1] + P[263, 1]) / 2 + 20, (P[234, 2] + P[454, 2]) / 2 - 15])
+C = np.array([(P[234, 0] + P[454, 0]) / 2, (P[33, 1] + P[263, 1]) / 2 + 0.027 / k, (P[234, 2] + P[454, 2]) / 2 - 0.02 / k])
 L = np.stack([(P[:, 0] - C[0]) * k, -(P[:, 1] - C[1]) * k, -(P[:, 2] - C[2]) * k], 1)
 # la tête un peu penchée sur la photo : on la redresse (la ligne des yeux à l'horizontale)
 a = np.arctan2(L[263, 1] - L[33, 1], L[263, 0] - L[33, 0]); ca, sa = np.cos(-a), np.sin(-a)
@@ -35,11 +35,9 @@ def grow(idx, c, f):                                     # agrandir un trait aut
 EYES = {'d': [33, 246, 161, 160, 159, 158, 157, 173, 133, 7, 163, 144, 145, 153, 154, 155, 468, 469, 470, 471, 472],
         'g': [263, 466, 388, 387, 386, 385, 384, 398, 362, 249, 390, 373, 374, 380, 381, 382, 473, 474, 475, 476, 477]}
 for s, idx in EYES.items():                              # de plus grands yeux (sur la photo il les plisse un peu)
-    c = L[idx[:16]].mean(0); grow(idx[:16], c, 1.3); L[idx[:16], 1] = c[1] + (L[idx[:16], 1] - c[1]) * 1.4
-    grow(idx[16:], c, 1.3)
+    c = L[idx[:16]].mean(0); L[idx, 0] = c[0] + (L[idx, 0] - c[0]) * 1.15; L[idx, 1] = c[1] + (L[idx, 1] - c[1]) * 1.3   # comme le dessin (trait.py)
 LIPS = sorted(set([61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291, 146, 91, 181, 84, 17, 314, 405, 321, 375, 78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308, 95, 88, 178, 87, 14, 317, 402, 318, 324]))
-mc = L[[13, 14]].mean(0); grow(LIPS, mc, 1.15)
-grow(LIPS, mc, 1.0); L[LIPS, 1] = mc[1] + (L[LIPS, 1] - mc[1]) * 1.15   # des lèvres un peu plus pleines
+mc = L[[13, 14]].mean(0); L[LIPS, 0] = mc[0] + (L[LIPS, 0] - mc[0]) * 1.08; L[LIPS, 1] = mc[1] + (L[LIPS, 1] - mc[1]) * 1.1   # comme le dessin
 
 # ——— le visage : sa profondeur z(x, y), sur l'enveloppe des points ———
 from scipy.spatial import Delaunay
@@ -239,6 +237,8 @@ data = dict(nu=NU, nv=NV + 1, head=r4(V), jaw=r4(JW), hair=r4(HV), lines=lines, 
             ears=[np.round([L[234, 0] * 1.02, L[234, 1] - 0.02, L[234, 2] - 0.12], 4).tolist(), np.round([L[454, 0] * 1.02, L[454, 1] - 0.02, L[454, 2] - 0.12], 4).tolist()],
             mouth=dict(x=round(float(mc[0]), 4), y=round(float(mc[1]), 4), z=round(float(on_face(mc[0], mc[1], 0)), 4), w=round(float(jw), 4), hw=round(float((L[291, 0] - L[61, 0]) / 2), 4)),
             lip=np.round(lip[:, :2], 4).tolist(),
-            chin=round(float(L[152, 1]), 4), top=round(float(max(HV[..., 1].max(), top_s)), 4))
+            chin=round(float(L[152, 1]), 4),
+            proj=dict(c=[round(float(C[0]), 2), round(float(C[1]), 2)], k=float(k), a=float(a), mx=float(mx), thin=THIN),   # proj : du modèle à la photo (le dessin de build.py)
+            top=round(float(max(HV[..., 1].max(), top_s)), 4))
 out.write_text(json.dumps(data, separators=(',', ':')))
 print(out, len(out.read_text()) // 1024, 'Ko', 'haut', data['top'], 'menton', data['chin'], 'bouche', data['mouth'])
