@@ -30,13 +30,31 @@ const ICON = {
   bain: '<path d="M5 24 h30 q0 10 -15 10 q-15 0 -15 -10z"/>' + tete(20, 20, 7) + yeux(20, 20, 3) + '<circle cx="9" cy="14" r="2"/><circle cx="31" cy="11" r="2.5"/><circle cx="28" cy="5" r="1.5"/>',
 };
 const libres = () => Wd.cats.filter(c => K.free4(c) && !c.temp && !c.rare);
+// (27/09, Mathieu : « certains événements doivent être spectaculaires ») : chaque bouton annonce son événement en grand, l'écran tremble,
+// une gerbe d'étoiles ; et s'il n'y a pas assez de chats disponibles, on les libère (ou il en tombe du ciel) au lieu de ne rien faire
+function dispo(n) {
+  const L = Wd.cats.filter(c => !c.rare && !c.temp && !c.held && !c.fall && !c.hidden && !c.fight && c.hp && c.x > 0 && c.x < Wd.W).slice(0, n);
+  L.forEach(c => { if (!K.free4(c)) { const pe = c.perch; K.interrupt(c); if (pe) c.q = [K.hop(() => K.groundAt(K.inView(c.x + K.rnd(-1, 1) * K.sc(c)), Math.max(0, pe.it.d - 0.2)))]; } });
+  for (let i = L.length; i < n; i++) { const k = K.addCat({ x: Wd.W * K.rnd(0.2, 0.8) }); k.y = -K.sc(k) * 1.2; k.fall = true; k.vy = 0; k.vx = 0; k.spin = Math.PI; k.stay = K.rnd(60, 120); }
+  return L.length >= n;
+}
+const quand = (n, f) => { if (dispo(n)) setTimeout(f, 350); else setTimeout(f, 2200); };
+const annonce = document.createElement('div'); annonce.className = 'evts-annonce'; annonce.setAttribute('aria-live', 'polite'); document.body.appendChild(annonce);
+function dit(id) {
+  annonce.textContent = L_('menu.' + id) + ' !'; annonce.classList.remove('go'); void annonce.offsetWidth; annonce.classList.add('go');
+  Wd.shake = { t0: Wd.t, a: 4 };
+  if (window.Scenarios && Scenarios.gerbe) Scenarios.gerbe(Wd.W / 2, (Wd.ceil || Wd.H * 0.3) + 40, 26, 360);
+  // les chats lèvent la tête
+  Wd.cats.forEach(c => { if (!c.rare && c.hp && Math.random() < 0.45) K.say(c, pick(['!', '?!', 'oh !'])); });
+}
 const EV = [
   ['geant', () => Rares.lance('geant')], ['interminable', () => Rares.lance('interminable')], ['ballon', () => Rares.lance('ballon')],
   ['eclair', () => Rares.lance('eclair')], ['totem', () => Rares.lance('totem')], ['acrobate', () => Rares.lance('acrobate')],
-  ['horde', () => Chats.horde()], ['tour', () => Chats.tower()], ['aspirateur', () => Chats.aspire()], ['folle', () => Chats.folle()],
-  ['bagarre', () => Chats.fight()], ['colis', () => Scenarios.colis()], ['mouche', () => Scenarios.mouche()], ['concert', () => Scenarios.concert()], ['vitre', () => Scenarios.vitre()],
-  ['arc', () => { const c = pick(libres()); if (c && window.Arc) Arc.vomit(c, 'menu'); }],
-  ['bain', () => { const b = window.Bassin && Bassin.bassins()[0]; if (!b) return; libres().slice(0, 3).forEach(c => { K.interrupt(c); Bassin.bain(c, b); }); }],
+  ['horde', () => Chats.horde()], ['tour', () => { if (Wd.tower) Wd.tower.w = 2; else Chats.tower(); }], ['aspirateur', () => Chats.aspire()], ['folle', () => Chats.folle()],
+  ['bagarre', () => quand(2, () => Chats.fight())], ['colis', () => Scenarios.colis(true)], ['mouche', () => Scenarios.mouche()],
+  ['concert', () => quand(3, () => Scenarios.concert())], ['vitre', () => quand(1, () => Scenarios.vitre())],
+  ['arc', () => quand(3, () => { const L = libres().slice(0, 3); L.forEach((c, i) => setTimeout(() => { if (window.Arc && Wd.cats.includes(c)) Arc.vomit(c, 'menu'); }, i * 700)); })],
+  ['bain', () => quand(3, () => { const b = window.Bassin && Bassin.bassins()[0]; if (!b) return; libres().slice(0, 4).forEach(c => { K.interrupt(c); Bassin.bain(c, b); }); })],
 ].filter(([id]) => ICON[id]);
 
 const nav = document.createElement('nav'); nav.className = 'evts'; nav.setAttribute('aria-label', L_('menu.titre'));
@@ -45,7 +63,7 @@ nav.innerHTML = `<ul class="evts-list">${EV.map(([id]) => `<li><button type="but
 document.body.appendChild(nav);
 nav.querySelectorAll('[data-ev]').forEach(b => b.addEventListener('click', e => {
   e.stopPropagation(); const ev = EV.find(v => v[0] === b.dataset.ev); if (!ev) return;
-  try { ev[1](); } catch (err) { console.warn(err); }
+  dit(ev[0]); try { ev[1](); } catch (err) { console.warn(err); }
   b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
 }));
 // (les clics dans le menu ne tombent pas dans la scène : pas de chat qui tombe du ciel)

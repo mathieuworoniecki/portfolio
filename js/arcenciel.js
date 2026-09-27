@@ -131,7 +131,7 @@ H.draw.push(() => {
   });
   // le ruban de Nyan Cat : six bandes qui ondulent, de la bouche jusqu'au sol
   Wd.fx.forEach(e => {
-    if (e.k === 'etoile') { const dt = t - e.t0; if (dt > e.life) return; etoile(ctx, e.x + e.vx * dt, e.y + e.vy * dt + 400 * dt * dt, 3.5, e.col, Wd.a * (1 - dt / e.life)); return; }
+    if (e.k === 'etoile') { const dt = t - e.t0; if (dt > e.life) return; etoile(ctx, e.x + e.vx * dt * (e.frein ? Math.exp(-dt * e.frein) : 1), e.y + e.vy * dt * (e.frein ? Math.exp(-dt * e.frein) : 1) + (e.g ?? 400) * dt * dt, (e.r || 3.5) * (e.tw ? 0.7 + 0.3 * Math.sin(t * 20 + e.x) : 1), e.col, Wd.a * (1 - dt / e.life)); return; }
     if (e.k !== 'nyan' || !Wd.cats.includes(e.c) || !e.c.hp) return; const dt = t - e.t0; if (dt > e.life) return;
     const c = e.c, k = sc(c), m = [e.c.hp[0] + c.face * k * 0.12, e.c.hp[1] + k * 0.08], g = floorAt(c.d), L = Math.min(1, dt / 0.35), a = Wd.a * Math.min(1, (e.life - dt) / 0.3), bw = Math.max(2, k * 0.028);
     for (let i = 0; i < 6; i++) { const P = []; for (let j = 0; j <= 16; j++) { const u = j / 16 * L, x = m[0] + c.face * u * k * 0.9, y = m[1] + (g - m[1]) * u * u + (i - 2.5) * bw + Math.sin(u * 12 - t * 14) * bw * 0.8; P.push([x, y]); }

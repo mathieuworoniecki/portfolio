@@ -17,9 +17,23 @@ const idle = () => Wd.cats.filter(c => !c.temp && free4(c) && !c.hidden && c.x >
 const zOver = 25000;
 
 /* ——— le colis ——— */
-function colis() {
+// (27/09, Mathieu : « le cadeau, il n'y a rien après » : il s'ouvre tout seul s'il n'y a pas de curieux, en tremblant, et ça explose :
+//  une gerbe d'étoiles, puis une vraie surprise — des chatons, une pluie de pelotes ou de poissons, un feu d'artifice, une fontaine de croquettes, un visiteur)
+const SURPRISES = ['chatons', 'pelotes', 'poissons', 'artifice', 'croquettes', 'visiteur'];
+const COUL = ['231,76,60', '241,196,15', '46,204,113', '52,152,219', '155,89,182', '230,126,34'];
+// une gerbe : des étoiles de couleur qui partent en rond (grosses, qui scintillent, freinées comme un feu d'artifice) et des rayons de craie
+function gerbe(x, y, n, v) { v = v || 420; for (let i = 0; i < n; i++) { const a = i / n * TAU + rnd(-0.15, 0.15), r = rnd(0.6, 1) * v * 1.6; Wd.fx.push({ k: 'etoile', x, y, vx: Math.cos(a) * r, vy: Math.sin(a) * r, frein: 2.2, g: 90, r: rnd(4, 8), tw: 1, t0: Wd.t, life: rnd(1.2, 2), col: pick(COUL) }); }
+  Wd.fx.push({ k: 'rayons', x, y, R: v * 0.45, t0: Wd.t, life: 0.55, n: 14 }); }
+function drawRayons() { const C = Chalk; Wd.fx.forEach(e => { if (e.k !== 'rayons') return; const u = (Wd.t - e.t0) / e.life; if (u > 1) return;
+  for (let i = 0; i < e.n; i++) { const a = i / e.n * TAU, r0 = e.R * (0.25 + u * 0.8), r1 = e.R * (0.45 + u * 1.1); C.stroke([[e.x + Math.cos(a) * r0, e.y + Math.sin(a) * r0], [e.x + Math.cos(a) * r1, e.y + Math.sin(a) * r1]], 1, { w: 2.4, a: (1 - u) * 0.9 * Wd.a, seed: 200 + i, tip: false, amp: 0.2 }); } }); }
+function ouvre(b) {   // il tremble, il saute… et BOUM
+  if (!Wd.props.includes(b) || b.ouvert) return; b.ouvert = true; b.busy = b.busy || { colis: 1 };
+  [0, 0.45, 0.9].forEach((t, i) => later(t, () => { if (!Wd.props.includes(b)) return; b.wob = Wd.t; b.wobA = 1 + i; K.drop(b, 0, sOf(b.d) * (0.6 + i * 0.4), rnd(-2, 2)); word(['…', '!', '!!!'][i], b.x, b.y - b.s * (0.7 + i * 0.1), 20 + i * 6); }));
+  later(1.5, () => { if (!Wd.props.includes(b)) return; b.spot = [b.fx, b.d]; K.unprop(b); });
+}
+function colis(vite) {
   const d = rnd(0.25, 0.5), s = sOf(d), fx = pick([0.3, 0.42, 0.58, 0.7]) + rnd(-0.03, 0.03);
-  const b = K.prop('caisse', fx, d, { size: 2 }); b.launched = Wd.t; b.fall = true; b.lift = Wd.H; b.vy = -s * 0.5; b.para = true; b.surprise = pick(['chaton', 'pelotes', 'poisson', 'chaton']); b.zo = 60;
+  const b = K.prop('caisse', fx, d, { size: 2 }); b.launched = Wd.t; b.fall = true; b.lift = vite ? Wd.H * 0.5 : Wd.H; b.vy = -s * 0.5; b.para = true; b.surprise = pick(SURPRISES); b.zo = 60;
   later(1.2, () => { const c = idle()[0]; if (c) say(c, pick(['?!', 'un colis !', 'oh ?'])); });
 }
 H.pre.push(dt => Wd.props.slice().forEach(b => {
@@ -27,10 +41,11 @@ H.pre.push(dt => Wd.props.slice().forEach(b => {
     if (b.fall && b.vy < 0) { b.vy = Math.max(b.vy, -b.s * 1.1); b.tilt = Math.sin(Wd.t * 2.3) * 0.12; b.tiltV = 0; b.vx = Math.sin(Wd.t * 0.9) * b.s * 0.15; }
     if (!b.fall) { b.para = false; b.tilt = 0; word('ploc', b.x, b.y - b.s * 0.5); dust(b.x, b.y, b.s * 0.4, 0.8);
       // on vient voir : deux curieux, tapis devant ; le plus hardi l'ouvre
+      b.ouvreT = Wd.t + 6;   // personne ne l'ouvre ? il s'ouvre tout seul
       idle().slice(0, 2).forEach((c, i) => { interrupt(c); c.q = [fn(c => { const w = K.beside(c, b.x, sc(c) * 0.4); c.q.unshift(go(inView(w.x), { d: Math.max(0, b.d - 0.06), face: w.face })); }), pose('affut', rnd(1, 2)), ...(i === 0 ? [fn(c => { if (Wd.props.includes(b) && !b.busy) K.open(c, b); })] : [pose('assis', 2)])]; });
     }
   }
-  if (b.surprise && !b.fall && b.kind === 'caisse') b.spot = [b.fx, b.d];
+  if (b.surprise && !b.fall && b.kind === 'caisse') { b.spot = [b.fx, b.d]; if (b.ouvreT && Wd.t > b.ouvreT && !b.held && (!b.busy || b.busy.colis)) ouvre(b); }
 }));
 // ouvert (le carton remplace la caisse) : la surprise en sort
 const seen = new Set();
@@ -38,11 +53,23 @@ H.post.push(() => {
   Wd.props.forEach(b => { if (b.surprise) seen.add(b); });
   seen.forEach(b => {
     if (Wd.props.includes(b)) return; seen.delete(b); if (b.suck || b.swept || !b.spot) return;
-    const x = b.spot[0] * Wd.W, d = b.spot[1], s = sOf(d); word(pick(['surprise !', 'ta-daa !', 'oh !']), x, floorAt(d) - s * 0.8, 22);
-    if (b.surprise === 'chaton' && Wd.cats.length < K.MAXC + 3) { const k = K.addCat({ id: 'chaton', x, d }); k.y = floorAt(d) - s * 0.3; k.fall = true; k.vy = -s * 3; k.vx = rnd(-1, 1) * s; say(k, 'mia !'); }
-    else { const n = b.surprise === 'pelotes' ? 3 : 1; for (let i = 0; i < n; i++) { const it = K.prop(b.surprise === 'pelotes' ? 'pelote' : 'poisson', b.spot[0], clamp(d - 0.1, 0, 1)); it.launched = Wd.t; it.fall = true; it.lift = s * 0.3; it.vy = s * rnd(2, 3); it.vx = rnd(-1.5, 1.5) * s; } }
+    jaillit(b.spot[0] * Wd.W, b.spot[1], b.surprise);
   });
 });
+function jaillit(x, d, quoi) {
+  const s = sOf(d), y = floorAt(d) - s * 0.5, fx = x / Wd.W;
+  Wd.shake = { t0: Wd.t, a: 6 }; dust(x, floorAt(d), s * 0.9, 1); gerbe(x, y, 40, 520);
+  word(pick(['SURPRISE !', 'TA-DAAA !', 'BOUM !']), x, y - s * 1.1, 52, -0.08); later(0.25, () => gerbe(x + rnd(-1, 1) * s, y - s * 0.8, 24, 300));
+  // tout le monde sursaute et regarde
+  Wd.cats.forEach(c => { if (c.rare || c.held || c.fall || !c.hp || Math.abs(c.x - x) > Wd.W * 0.6 || !free4(c)) return; interrupt(c); c.q = [pose('sursaut', 0.6), pose('affut', rnd(1, 2), { face: sgn(x - c.x) || c.face })]; if (Math.random() < 0.5) later(0.3, () => say(c, pick(['oooh !', 'waouh', '!!']))); });
+  const lance = (kind, n, v) => { for (let i = 0; i < n; i++) later(i * 0.12, () => { const it = K.prop(kind, clamp(fx + rnd(-0.02, 0.02), 0.03, 0.97), clamp(d + rnd(-0.12, 0.05), 0, 1)); it.launched = Wd.t; it.fall = true; it.lift = s * 0.4; it.vy = s * rnd(3, 4.5) * (v || 1); it.vx = rnd(-1.8, 1.8) * s; it.tiltV = rnd(-6, 6); }); };
+  if (quoi === 'chatons' || quoi === 'chaton') { const n = Math.max(1, Math.min(3, K.MAXC + 4 - Wd.cats.length)); for (let i = 0; i < n; i++) later(i * 0.25, () => { const k = K.addCat({ id: 'chaton', x, d }); k.y = floorAt(d) - s * 0.3; k.fall = true; k.vy = -s * rnd(3, 4.2); k.vx = (i - (n - 1) / 2) * s * 1.4 + rnd(-0.3, 0.3) * s; k.spin = rnd(-1, 1); k.stay = rnd(50, 90); say(k, pick(['mia !', 'miaou !', 'coucou !'])); }); }
+  else if (quoi === 'pelotes') lance('pelote', 6);
+  else if (quoi === 'poissons' || quoi === 'poisson') { lance('poisson', 3); for (let i = 0; i < 6; i++) later(0.6 + i * 0.2, () => { const it = K.prop('poisson', rnd(0.15, 0.85), rnd(0.1, 0.5)); it.launched = Wd.t; it.fall = true; it.lift = Wd.H; it.vy = 0; it.tiltV = rnd(-4, 4); }); later(0.8, () => word('il pleut des poissons !', Wd.W / 2, (Wd.ceil || Wd.H * 0.3) + 40, 24)); }
+  else if (quoi === 'artifice') { for (let i = 0; i < 6; i++) later(0.3 + i * 0.35, () => { const ax = Wd.W * rnd(0.2, 0.8), ay = (Wd.ceil || Wd.H * 0.25) + rnd(20, 140); gerbe(ax, ay, 34, 380); word(pick(['boum', 'pchiii', 'paf !']), ax, ay - 20, 18); }); later(0.6, () => Wd.cats.forEach(c => { if (!c.rare && c.hp && Math.random() < 0.6) say(c, pick(['oooh', 'aaah', '✨'])); })); }
+  else if (quoi === 'croquettes') { const k = Wd.s0 / 160; for (let i = 0; i < 45 && Wd.kib.length < 140; i++) Wd.kib.push({ x, y: y - s * 0.2, vx: rnd(-520, 520) * k, vy: -rnd(500, 1000) * k, d: rnd(0, 0.12), t0: Wd.t + i * 0.02, rest: false, spin: Math.random() * 6 }); word('miam !!!', x, y - s * 1.3, 26); }
+  else if (quoi === 'visiteur' && window.Rares && Rares.lance) later(0.4, () => Rares.lance(pick(['geant', 'ballon', 'totem', 'acrobate', 'eclair', 'interminable'])));
+}
 function drawParachutes() {
   const C = Chalk; Wd.props.forEach(b => { if (!b.para || b.a < 0.1) return; const s = b.s, w = b.box.w * s, top = b.y - b.box.h * s, cx = b.x + Math.sin(Wd.t * 2.3) * s * 0.1, cy = top - s * 0.95, R = s * 0.7, P = [];
     for (let i = 0; i <= 24; i++) { const q = Math.PI + i / 24 * Math.PI; P.push([cx + Math.cos(q) * R, cy + Math.sin(q) * R * 0.6]); }
@@ -214,8 +241,8 @@ H.pre.push(() => {
 });
 
 /* ——— la craie d'ici ——— */
-H.draw.push(() => { drawParachutes(); drawFog(); drawFly(); });
+H.draw.push(() => { drawParachutes(); drawFog(); drawFly(); drawRayons(); });
 
 K.SCEN.push(colis, mouche, concert, vitre);
-return { colis, mouche, concert, tunnel, vitre };
+return { colis, mouche, concert, tunnel, vitre, gerbe, jaillit };
 })();
