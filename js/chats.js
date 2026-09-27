@@ -399,6 +399,7 @@ const STEPS = {
   wait(c, T) { c.anim = T.anim || 'assis'; return T.until(c) || T.t > (T.max || 8); }
 };
 // où poser un chat sur un perchoir (dx : en unités, le long du perchoir)
+const PORTE = { panier: 1, coussin: 1, coffre: 1, caisse: 1, arbre: 1 };
 function perchAt(it, pe, dx) { const p = Univers.at(it, [pe.p[0] + (dx || 0), pe.p[1], pe.p[2]]); return { x: p[0], y: p[1], z: p[2], d: it.d, perch: { it, pe, dx: dx || 0 } }; }
 const groundAt = (x, d) => ({ x, y: floorAt(d), z: zOf(d), d });
 // se placer à côté d'une chose (tx) pour la regarder : à sa gauche ou à sa droite, selon d'où l'on vient
@@ -614,7 +615,8 @@ function live(c, dt) {
   }
   // sur un perchoir : il suit son objet (qui peut glisser, pencher, tomber)
   if (c.perch) { const { it, pe, dx } = c.perch;
-    if ((it.fall || it.held) && !(it.kind === 'carton' && Math.abs(it.tilt || 0) < 1.2) || it.suck || !Wd.props.includes(it)) { const vx = it.vx || 0; interrupt(c); c.hidden = 0; c.fall = true; c.vx = vx; c.vy = -sOf(it.d) * 0.6; }
+    // (porté avec son coussin, son panier, sa caisse, son arbre : il reste dessus, et s'y accroche, js/accroche.js)
+    if ((it.fall || it.held) && !(it.kind === 'carton' && Math.abs(it.tilt || 0) < 1.2) && !(it.held && PORTE[it.kind] && Math.abs(it.tilt || 0) < 1.2) || it.suck || !Wd.props.includes(it)) { const vx = it.vx || 0; interrupt(c); c.hidden = 0; c.fall = true; c.vx = vx; c.vy = -sOf(it.d) * 0.6; }
     else { const p = Univers.at(it, [pe.p[0] + dx, pe.p[1], pe.p[2]]); c.x = p[0]; c.y = p[1]; c.zp = p[2]; c.d = it.d; } }
   else c.zp = null;
   if (!c.perch && !c.jump && !c.fall && !c.held && !(c.task && (c.task.k === 'climb' || c.task.air))) c.y = floorAt(c.d);
@@ -1220,7 +1222,7 @@ function release(c, vx, vy) {
 
 // pour js/vie.js : le monde et ses outils
 const K = { Wd, H, ANIMS, STEPS, CARAC, SPEED, LOURD, I, sit, lie, blink, rnd, pick, clamp, sgn, sm, c01, lerp, later, sc, front, back, sOf, floorAt, zOf, xOf, grav, inView, groundAt, perchAt, beside,
-  SCEN, addCat, unCat, free, free4, zoomies, eat, play, climb, push, smash, interrupt, claim, go, pose, hop, fn, say, dust, startle, thud, drop, prop, unprop, kick, residents, leave, enter, catAt, propAt, freeD, stack, topOf, open, unbox, hide, sleep, idle, stroll, press, fire, folle, aspire,
+  PORTE, SCEN, addCat, unCat, free, free4, zoomies, eat, play, climb, push, smash, interrupt, claim, go, pose, hop, fn, say, dust, startle, thud, drop, prop, unprop, kick, residents, leave, enter, catAt, propAt, freeD, stack, topOf, open, unbox, hide, sleep, idle, stroll, press, fire, folle, aspire,
   get MAXC() { return MAXC; } };
 return { K, ANIMS, CARAC, frame, draw, hide: hideAll, click, grab, drag, release, get clicks() { return Wd.clicks; }, get world() { return Wd; }, horde, tower, aspire, folle: () => folle(Wd.P.distrib), ouvre: () => { const b = Wd.props.find(p => p.launched && p.kind === 'caisse' && !p.busy && !p.fall), c = Wd.cats.find(free4); if (b && c) { interrupt(c); open(c, b); } }, fight: () => { const L = Wd.cats.filter(free4).slice(0, 2); if (L.length > 1) fight(L); }, quarrel: () => { const L = Wd.cats.filter(free4); if (L.length > 1) quarrel(L[0], L[1]); } };
 })();
