@@ -32,7 +32,11 @@ Retour arrière (flèche gauche, barre du film) : tout doit se rejouer à l'enve
 Corps entier (27 septembre, 14:48). Mathieu : « fais tout le reste de mon corps, car quand on va cliquer sur le bouton je vais arriver en courant au milieu de la scène ».
 
 - La tête : le dessin d'un seul trait (`trait.simple`, cheveux en forme seule, moustache aux pointes à peine relevées), posé sur le relief de la photo (`visage.png`, `dos.png`, `relief.png`, `relief.json`, par `tools/mathieu/build.py`). L'alpha du dessin : 1 la tête, 0,78 le buste de la photo, qui n'est plus montré. La photo n'est pas dans le dépôt.
-- Le corps : en 3D au trait (Obj3D), dans `js/mathieu.js` : t-shirt Patagonia (encolure côtelée, manches courtes, ourlet, logo pris dans `relief.json`), bras, jean, baskets. Articulé ; `Mathieu.pose(m, { x, y, s, turn, look, open, run, speed })` : `run` la phase de la foulée, `speed` de 0 (debout, il respire) à 1 (il court). `s` : des cheveux aux semelles ; `m.meta.head`, `m.meta.feet`. Jean et baskets : un choix par défaut, à confirmer par Mathieu.
+- Le corps (27 septembre, 15:39 : « revois profondément le corps, couche par couche, le squelette, les points ») : dans `js/mathieu.js`, trois couches, `Mathieu.pose(m, { couche })` et les boutons de l'aperçu :
+  1. `os` : le squelette, 24 articulations (bassin, lombaires, thorax, cou ; de chaque côté clavicule, épaule, coude, poignet, doigts, pouce, hanche, genou, cheville, orteils) et leurs os ;
+  2. `peau` : le corps nu, des volumes en sections ovales sur chaque os (bassin, ventre, cage, bras, avant-bras, mains, cuisses, mollets, pieds) ;
+  3. `habits` (par défaut) : t-shirt Patagonia (encolure côtelée, coutures d'épaules, manches et ourlets, plis, logo pris dans `relief.json`), jean (braguette, poches devant et derrière, coutures, plis, ourlets), baskets (tige, bout qui plie, semelle, lacets) ; avant-bras et mains nus. Le tronc a un seul contour (pochoir 255).
+  La foulée bouge toutes les articulations (`run`, `speed`) ; debout, il respire. Jean et baskets : un choix par défaut, à confirmer par Mathieu.
 - La tête est 1,2 fois plus grande que nature (un personnage de dessin) ; elle ne tourne pas au-delà du trois quarts (`look`).
 - L'arrivée (aperçu `tools/mathieu.html?arrivee`) : tout petit au loin, il court vers nous jusqu'au milieu, s'arrête, puis la bouche biblique. À brancher sur le bouton de l'écran 1 (`index.html`, fil des chats).
 - Le logo du site (`js/logo.js`) : `Mathieu.create({ logo: true })`, la tête seule, inchangé.

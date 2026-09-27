@@ -9,18 +9,18 @@
    Les images : media/mathieu/ (visage.png, dos.png, relief.png, relief.json) ; ou window.MATHIEU_MEDIA = { visage, dos, relief, meta } (l'aperçu en ligne).
    Mathieu.create() crée le pantin (il apparaît quand ses images sont chargées) ; Mathieu.create({ logo: true }) : la tête seule, pour le logo du site
    (s : des pointes des cheveux au menton ; turn qui augmente sans fin devient un balancement de trois quarts en trois quarts, le relief venant d'une photo de face) ;
-   Mathieu.pose(m, { x, y, s, turn, tilt, nod, look, open, run, speed, a }) le pose :
+   Mathieu.pose(m, { x, y, s, turn, tilt, nod, look, open, run, speed, couche, a }) le pose :
      x, y : le centre de la tête à l'écran (px ; m.meta.head : où il est dans le cadre, en fractions ; m.meta.feet : les pieds)
      s : la taille du cadre, des pointes des cheveux aux semelles (px ; en logo, jusqu'au menton)
      turn : le tour sur lui-même (radians, 0 de face) · tilt : pencher en avant · look : la tête seule, à gauche ou à droite · open : la bouche, de 0 à 1 (biblique)
      run : où il en est de sa foulée (radians, qui augmente : 2π par paire de pas) · speed : 0 debout, 1 il court
+     couche : 'habits' (par défaut), 'peau' (le corps nu, en volumes), 'os' (le squelette : ses articulations et ses os)
    Mathieu.mouthAt(m) : le centre du trou noir à l'écran et ses demi-axes (px), pour y plonger (docs/plan-transition.md). */
 window.Mathieu = (() => {
 if (!window.Obj3D || !Obj3D.T) return null;
 const T = Obj3D.T, G = 256;
 const DROP = 0.2, PUSH = 0.06;     // la mâchoire, bouche grande ouverte : combien elle descend, combien elle avance (en fractions du cadre)
 const HAUT = 0.06, LOGO_BAS = 0.04;  // le haut des cheveux dans l'image ; en logo, on coupe un peu sous le menton
-const PEN = 0.013;                 // le trait du corps, en fractions du cadre de la photo (comme celui du dessin de la tête)
 const BASE = (() => { const s = document.currentScript && document.currentScript.src; try { return s ? new URL('../media/mathieu/', s).href : 'media/mathieu/'; } catch (e) { return 'media/mathieu/'; } })();
 const inkNow = () => (window.THEME && THEME.inkHex) ?? 0x222428, paperNow = () => (window.THEME && THEME.fog) ?? 0xdadbd8;
 
@@ -76,70 +76,150 @@ function material(A, part, cut) {
       }` });
 }
 
-/* ——— le corps : des volumes (Obj3D), en fractions du cadre de la photo, comme la tête ———
-   Les mesures (le centre de la tête à 0) : le cou finit à -0,23, les épaules à -0,34, les hanches à -1,1, les chevilles à -2,12, le sol à -2,2 :
-   un peu plus de cinq têtes de haut, un corps de dessin, pas de mannequin. Chaque pièce est modelée autour de son articulation. */
-const HIP = -1.05, LEGX = 0.13, LEGY = -0.05, THIGH = 0.52, SHIN = 0.5, SOL = -2.2;
-const SHX = 0.265, SHY = 0.7, ARM = 0.4, FORE = 0.36, NECK = 0.82;     // les épaules, le cou : au-dessus des hanches
-const ZS = 0.62, ZC = -0.03;
-const TETE = 1.2;                                                    // la tête, plus grande que nature : un personnage de dessin                                         // le buste : aplati d'avant en arrière, un peu en retrait de la tête
+/* ——— le corps, couche par couche (27 septembre : « revois profondément le corps… couche par couche, le squelette, les points ») ———
+   1. le squelette (couche 'os') : les articulations (des points) et les os qui les relient : le bassin, deux vertèbres (lombaires, thorax), le cou ;
+      de chaque côté la clavicule, l'épaule, le coude, le poignet, les doigts, le pouce ; la hanche, le genou, la cheville, les orteils.
+   2. le corps (couche 'peau') : des volumes modelés sur chaque os (le bassin, le ventre, la cage, les deltoïdes, les biceps, les avant-bras,
+      les mains et leurs doigts, les cuisses, les mollets, les pieds), en sections ovales plus ou moins pleines devant et derrière.
+   3. les habits (couche 'habits', par défaut) : le t-shirt (l'encolure côtelée, les coutures d'épaules, les manches et leurs ourlets, l'ourlet du bas,
+      des plis, le logo Patagonia), le jean (la ceinture et ses passants, la braguette, les poches devant et derrière, les coutures, les plis, les ourlets),
+      les baskets (la tige, la semelle, le bout, les lacets, le col) ; ce qui reste nu : les avant-bras, les mains.
+   Unités : les fractions du cadre de la photo, comme la tête ; le centre de la tête à 0 ; y vers le haut, z vers nous. */
+const TETE = 1.2;                  // la tête, plus grande que nature : un personnage de dessin
+const PEN = 0.012;                 // le trait du corps, en fractions du cadre de la photo (comme celui du dessin de la tête)
+const SOL = -2.25;                 // les semelles
+// le squelette : chaque articulation, sa place au repos par rapport à la précédente [parent, x, y, z] ; x des deux côtés : multiplié par ±1
+const OS = { bassin: [null, 0, -1.05, 0], lombaires: ['bassin', 0, 0.06, -0.01], thorax: ['lombaires', 0, 0.3, 0], cou: ['thorax', 0, 0.4, 0.01] };
+const OS2 = {
+  clavicule: ['thorax', 0.035, 0.33, 0.03], epaule: ['clavicule', 0.2, -0.03, -0.04], coude: ['epaule', 0, -0.36, 0], poignet: ['coude', 0, -0.31, 0],
+  doigts: ['poignet', 0, -0.085, 0], pouce: ['poignet', -0.005, -0.02, 0.035],
+  hanche: ['bassin', 0.11, -0.08, 0], genou: ['hanche', 0, -0.5, 0], cheville: ['genou', 0, -0.5, -0.01], orteils: ['cheville', 0, -0.1, 0.12]
+};
+const COTES = [['G', 1], ['D', -1]];           // G : sa gauche (à droite pour nous), D : sa droite
+// toutes les articulations : [nom, parent, x, y, z]
+const JOINTS = [...Object.entries(OS).map(([n, [p, x, y, z]]) => [n, p, x, y, z]),
+  ...COTES.flatMap(([c, sd]) => Object.entries(OS2).map(([n, [p, x, y, z]]) => [n + c, OS2[p] ? p + c : p, sd * x, y, z]))];
 const segs = (pts, out) => { for (let i = 1; i < pts.length; i++) out.push(...pts[i - 1], ...pts[i]); return out; };
-const ring = (r, y, n, zs, zc, f) => { const c = []; for (let i = 0; i <= n; i++) { const t = i / n * Math.PI * 2; c.push([r * Math.sin(t), y + (f ? f(t) : 0), r * Math.cos(t) * (zs || 1) + (zc || 0)]); } return c; };
-// un profil [rayon, hauteur], du bas vers le haut, tourné autour de y
-const lathe = (P, n) => new T.LatheGeometry(P.map(([r, y]) => new T.Vector2(Math.max(r, 1e-4), y)), n || 32);
-// un membre : une gélule, de 0 (rayon r0) à -L (rayon r1), les bouts arrondis
-function capsule(r0, r1, L) {
-  const P = [];
-  for (let i = 0; i <= 6; i++) { const a = -Math.PI / 2 + i / 6 * Math.PI / 2; P.push([r1 * Math.cos(a), -L + r1 * Math.sin(a)]); }
-  for (let i = 0; i <= 6; i++) { const a = i / 6 * Math.PI / 2; P.push([r0 * Math.cos(a), r0 * Math.sin(a)]); }
-  return lathe(P, 24);
+/* un volume en sections : des anneaux [a, w, df, db, c] le long de l'axe (y, ou z pour les pieds) : a la position, w la demi-largeur (x),
+   df et db l'épaisseur devant et derrière, c le décalage du centre ; les bouts sont fermés */
+function loft(R, o) {
+  o = o || {}; const n = o.n || 24, P = [], I = [], Z = o.axis === 'z';
+  R.forEach(([a, w, df, db, c0]) => { for (let j = 0; j < n; j++) { const t = j / n * Math.PI * 2, s = Math.sin(t), c = Math.cos(t), d = (c0 || 0) + (c > 0 ? df ?? w : db ?? df ?? w) * c; P.push(w * s, Z ? d : a, Z ? a : d); } });
+  for (let i = 0; i < R.length - 1; i++) for (let j = 0; j < n; j++) { const a = i * n + j, b = i * n + (j + 1) % n; I.push(a, a + n, b, b, a + n, b + n); }
+  if (o.cap !== false) [0, R.length - 1].forEach((i, e) => { const r = R[i], k = P.length / 3; P.push(0, Z ? r[4] || 0 : r[0], Z ? r[0] : r[4] || 0); for (let j = 0; j < n; j++) { const u = i * n + j, v = i * n + (j + 1) % n; if (e) I.push(u, v, k); else I.push(u, k, v); } });
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g.setIndex(I); return g;
 }
+// un point sur un volume en sections, à la hauteur a et à l'angle t (0 devant, π/2 sur son flanc x+), un peu au-dessus du tissu (lift)
+function on(R, a, t, lift, Z) {
+  let i = 1; while (i < R.length - 1 && (a - R[i - 1][0]) * (a - R[i][0]) > 0) i++;
+  const A = R[i - 1], B = R[i], f = B[0] === A[0] ? 0 : Math.max(0, Math.min(1, (a - A[0]) / (B[0] - A[0]))), L = (x, y) => (x ?? 0) + ((y ?? 0) - (x ?? 0)) * f;
+  const w = L(A[1], B[1]) + (lift || 0), c = Math.cos(t), s = Math.sin(t), df = L(A[2] ?? A[1], B[2] ?? B[1]), db = L(A[3] ?? A[2] ?? A[1], B[3] ?? B[2] ?? B[1]);
+  const d = L(A[4], B[4]) + ((c > 0 ? df : db) + (lift || 0)) * c;
+  return Z ? [w * s, d, a] : [w * s, a, d];
+}
+const around = (R, a, lift, n, t0, t1, Z) => { const P = []; n = n || 40; t0 = t0 ?? 0; t1 = t1 ?? Math.PI * 2; for (let i = 0; i <= n; i++) P.push(on(R, a, t0 + (t1 - t0) * i / n, lift, Z)); return P; };
+const along = (R, a0, a1, t, lift, n, Z) => { const P = []; n = n || 12; for (let i = 0; i <= n; i++) P.push(on(R, a0 + (a1 - a0) * i / n, typeof t === 'function' ? t(i / n) : t, lift, Z)); return P; };
+const E = 0.004;                                   // les traits des habits : juste au-dessus du tissu
+
+// les volumes du corps nu (couche 'peau')
+const PEAU = {
+  bassin: [[0.1, 0.01, 0.01, 0.01], [0.09, 0.17, 0.1, 0.1], [0.02, 0.215, 0.115, 0.13], [-0.05, 0.225, 0.12, 0.14, -0.005], [-0.1, 0.2, 0.11, 0.12], [-0.15, 0.12, 0.08, 0.08], [-0.165, 0.02, 0.02, 0.02]],
+  ventre: [[-0.02, 0.2, 0.11, 0.11], [0.1, 0.19, 0.105, 0.1], [0.22, 0.2, 0.11, 0.1], [0.34, 0.21, 0.12, 0.1]],
+  cage: [[-0.04, 0.21, 0.12, 0.1], [0.1, 0.235, 0.135, 0.105, 0.005], [0.2, 0.25, 0.14, 0.11, 0.005], [0.28, 0.25, 0.13, 0.11], [0.34, 0.22, 0.1, 0.1, -0.005], [0.38, 0.16, 0.08, 0.08, -0.01], [0.41, 0.08, 0.06, 0.06, -0.01], [0.42, 0.01, 0.01, 0.01, -0.01]],
+  bras: [[0.065, 0.01], [0.05, 0.055], [0.01, 0.075, 0.07, 0.07], [-0.1, 0.07, 0.065, 0.066], [-0.25, 0.058, 0.055, 0.055], [-0.35, 0.048], [-0.375, 0.01]],
+  avantbras: [[0.035, 0.01], [0.02, 0.047], [-0.06, 0.053, 0.05, 0.05], [-0.2, 0.042, 0.038, 0.038], [-0.3, 0.033, 0.03, 0.03], [-0.325, 0.01]],
+  paume: [[0.012, 0.006, 0.012, 0.012], [0, 0.02, 0.03, 0.03], [-0.04, 0.024, 0.045, 0.045], [-0.085, 0.021, 0.043, 0.043], [-0.097, 0.006, 0.03, 0.03]],
+  cuisse: [[0.065, 0.01], [0.04, 0.09], [-0.05, 0.105, 0.1, 0.1], [-0.25, 0.09, 0.085, 0.09], [-0.45, 0.068, 0.065, 0.07], [-0.52, 0.055, 0.05, 0.05], [-0.545, 0.01]],
+  mollet: [[0.04, 0.01], [0.02, 0.058], [-0.08, 0.064, 0.055, 0.075, -0.005], [-0.2, 0.058, 0.05, 0.07, -0.01], [-0.4, 0.042, 0.04, 0.042], [-0.49, 0.036], [-0.515, 0.01]],
+  pied: [[-0.07, 0.01, 0.01, 0.01, -0.07], [-0.06, 0.035, 0.04, 0.04, -0.07], [0, 0.042, 0.05, 0.045, -0.075], [0.07, 0.048, 0.03, 0.035, -0.09], [0.1, 0.046, 0.025, 0.03, -0.095], [0.115, 0.01, 0.01, 0.01, -0.095]],
+  orteils: [[-0.03, 0.045, 0.022, 0.025, 0.005], [0.03, 0.044, 0.018, 0.02, 0.002], [0.055, 0.03, 0.012, 0.014, 0], [0.065, 0.008, 0.006, 0.006, 0]]
+};
+// les habits
+const HABITS = {
+  // le t-shirt : un peu ample, il tombe droit sur les hanches ; ouvert à l'encolure et en bas
+  tshirt: [[-0.37, 0.235, 0.14, 0.13], [-0.2, 0.235, 0.14, 0.125], [0, 0.242, 0.142, 0.12], [0.1, 0.257, 0.152, 0.12, 0.005], [0.2, 0.266, 0.152, 0.12, 0.005], [0.28, 0.262, 0.142, 0.12], [0.34, 0.232, 0.112, 0.112, -0.005], [0.38, 0.172, 0.092, 0.09, -0.01], [0.405, 0.112, 0.077, 0.07, -0.01]],
+  manche: [[0.075, 0.015, 0.015, 0.015, -0.005], [0.06, 0.07], [0.02, 0.098, 0.095, 0.095], [-0.08, 0.1, 0.098, 0.098], [-0.19, 0.097, 0.094, 0.094]],
+  // le jean : les hanches (la ceinture un peu sous le nombril), les jambes droites, l'ourlet qui tombe sur la basket
+  jean: [[0.12, 0.215, 0.125, 0.13], [0.06, 0.23, 0.13, 0.145], [-0.02, 0.24, 0.135, 0.155, -0.005], [-0.1, 0.225, 0.125, 0.14], [-0.16, 0.13, 0.09, 0.09], [-0.175, 0.02, 0.02, 0.02]],
+  jambe: [[0.07, 0.02], [0.05, 0.115, 0.11, 0.115], [-0.1, 0.12, 0.115, 0.12], [-0.3, 0.105, 0.1, 0.105], [-0.5, 0.088, 0.085, 0.088], [-0.56, 0.02]],
+  bas: [[0.05, 0.02], [0.03, 0.086], [-0.2, 0.08, 0.078, 0.08], [-0.4, 0.08, 0.078, 0.08], [-0.5, 0.088, 0.09, 0.084]],
+  // la basket : la tige (sur la cheville), l'avant (sur les orteils, qui plie), la semelle en deux
+  tige: [[-0.088, 0.015, 0.02, 0.01, -0.06], [-0.078, 0.05, 0.07, 0.035, -0.06], [-0.02, 0.057, 0.075, 0.04, -0.065], [0.04, 0.059, 0.052, 0.04, -0.08], [0.1, 0.057, 0.037, 0.034, -0.09], [0.125, 0.052, 0.031, 0.03, -0.092]],
+  bout: [[-0.03, 0.055, 0.03, 0.03, 0.005], [0.03, 0.053, 0.028, 0.022, 0], [0.07, 0.043, 0.02, 0.018, -0.003], [0.088, 0.01, 0.008, 0.008, -0.003]]
+};
+
 function build(meta) {
-  const P = {}, key = k => 'mathieu:corps1:' + k;
-  // le t-shirt : de l'ourlet (aux hanches) à l'encolure ; les épaules arrondies ; le logo sur le cœur
-  const TOR = [[0.265, -0.05], [0.265, 0.12], [0.272, 0.3], [0.285, 0.5], [0.29, 0.62], [0.275, 0.7], [0.235, 0.76], [0.17, 0.8], [0.115, 0.83], [0.1, 0.86]];
-  const rT = y => { for (let i = 1; i < TOR.length; i++) if (y <= TOR[i][1]) { const [r0, y0] = TOR[i - 1], [r1, y1] = TOR[i]; return r0 + (r1 - r0) * (y - y0) / (y1 - y0); } return TOR[TOR.length - 1][0]; };
-  P.torse = Obj3D.piece(key('torse'), B => {
-    const g = lathe(TOR, 40); g.scale(1, 1, ZS); g.translate(0, 0, ZC); B.smooth(g);
-    const L = [];
-    // l'encolure côtelée : deux traits, plus bas devant
-    const col = (dr, dy) => ring(rT(0.8) + dr, 0.8 + dy, 40, ZS, ZC, t => -0.03 * Math.max(0, Math.cos(t)) ** 2);
-    segs(col(0.004, 0), L); segs(col(0.006, -0.03), L);
-    // l'ourlet du bas
-    segs(ring(rT(-0.03) + 0.004, -0.03, 48, ZS, ZC), L);
-    // le logo Patagonia, sur le cœur (à sa gauche : à droite pour nous), posé sur le tissu
-    const lx = 0.11, ly = 0.6, ls = 0.42;
-    (meta.logo || []).forEach(p => segs(p.map(([x, y]) => { const X = lx + x * ls, Y = ly + y * ls, r = rT(Y) + 0.004; return [X, Y, Math.sqrt(Math.max(0, r * r - X * X)) * ZS + ZC]; }), L));
+  const P = {}, K = 'mathieu:corps2:', kit = Obj3D.kit, pc = (k, f) => (P[k] = Obj3D.piece(K + k, f));
+  // 1. le squelette : un point par articulation, un os vers chacune de ses suivantes
+  const kids = {}; JOINTS.forEach(([n, p, x, y, z]) => { if (p) (kids[p] = kids[p] || []).push(0, 0, 0, x, y, z); });
+  (kids.cou = kids.cou || []).push(0, 0, 0, 0, (meta.head[1] - HAUT) * TETE + 0.25, 0);          // jusqu'au sommet du crâne
+  JOINTS.forEach(([n]) => pc('os:' + n, B => { B.smooth(new T.SphereGeometry(0.02, 10, 8)); if (kids[n]) B.lines(kids[n]); }));
+  // 2. le corps nu
+  const S = PEAU;
+  pc('peau:bassin', B => B.smooth(loft(S.bassin))); pc('peau:ventre', B => B.smooth(loft(S.ventre))); pc('peau:cage', B => B.smooth(loft(S.cage, { n: 32 })));
+  pc('peau:bras', B => B.smooth(loft(S.bras))); pc('peau:avantbras', B => B.smooth(loft(S.avantbras)));
+  pc('peau:paume', B => B.smooth(loft(S.paume, { n: 16 })));
+  // les doigts serrés, d'un bloc (une moufle : à cette taille, quatre doigts ne font que des gribouillis), qui se plie ; le pouce à part
+  pc('peau:doigts', B => B.smooth(loft([[0.008, 0.012, 0.03, 0.03], [0, 0.02, 0.042, 0.042], [-0.045, 0.019, 0.04, 0.04], [-0.065, 0.015, 0.03, 0.03], [-0.075, 0.006, 0.012, 0.012]], { n: 16 })));
+  pc('peau:pouce', B => { const g = loft([[0.012, 0.006], [0, 0.016], [-0.04, 0.014], [-0.055, 0.005]], { n: 12 }); g.rotateX(0.5); B.smooth(g); });
+  pc('peau:cuisse', B => B.smooth(loft(S.cuisse))); pc('peau:mollet', B => B.smooth(loft(S.mollet)));
+  pc('peau:pied', B => B.smooth(loft(S.pied, { axis: 'z', n: 20 }))); pc('peau:orteils', B => B.smooth(loft(S.orteils, { axis: 'z', n: 20 })));
+  // 3. les habits
+  const H = HABITS;
+  pc('tshirt', B => {
+    const R = H.tshirt, L = [], F = [];
+    B.smooth(loft(R, { n: 40, cap: false }));
+    // l'encolure côtelée (deux traits, plus bas devant), les coutures des épaules, l'ourlet
+    segs(around(R, 0.405, E, 48), L); segs(around(R, 0.385, E, 48).map((p, i, a) => { const t = i / (a.length - 1) * Math.PI * 2; p[1] -= 0.02 * Math.max(0, Math.cos(t)) ** 2; return p; }), L);
+    [1, -1].forEach(sd => segs(along(R, 0.395, 0.3, sd * Math.PI / 2 * 0.72, E, 8), L));
+    segs(around(R, -0.35, E, 48), L);
+    // des plis : à la taille, sous les bras
+    [1, -1].forEach(sd => { segs(along(R, -0.3, -0.18, u => sd * (1.1 - 0.25 * u), E, 6), F); segs(along(R, 0.24, 0.12, u => sd * (1.35 - 0.3 * u), E, 6), F); segs(along(R, -0.25, -0.15, u => sd * (0.55 + 0.1 * u), E, 5), F); });
+    // le logo Patagonia, sur le cœur (à sa gauche : à droite pour nous)
+    const lx = 0.1, ly = 0.25, ls = 0.4;
+    (meta.logo || []).forEach(p => segs(p.map(([x, y]) => { const Y = ly + y * ls, w = on(R, Y, Math.PI / 2, E)[0]; return on(R, Y, Math.asin(Math.max(-1, Math.min(1, (lx + x * ls) / w))), E); }), L));
+    B.lines(L).soft(F);
+  });
+  pc('manche', B => { const R = H.manche; B.smooth(loft(R, { cap: false })); B.lines(segs(around(R, -0.185, E, 28), [])); B.soft(segs(along(R, -0.06, -0.15, Math.PI * 0.9, E, 5), [])); });
+  pc('jean', B => {
+    const R = H.jean, L = [], F = [];
+    B.smooth(loft(R, { n: 40 }));
+    // la ceinture et le haut des poches sont sous le t-shirt, qui tombe sur les hanches (a = 0) : on ne voit que ce qui dépasse dessous
+    // la braguette (sa couture en J), le bas des poches devant, les poches derrière, la couture de l'entrejambe
+    segs([...along(R, -0.01, -0.07, 0.075, E, 5), ...along(R, -0.07, -0.1, u => 0.075 * (1 - u), E, 3)], F);
+    [1, -1].forEach(sd => {
+      segs(along(R, -0.01, -0.05, u => sd * (0.75 + 0.6 * u), E, 6), F);
+      const bk = (a, t) => on(R, a, t, E); segs([bk(-0.01, Math.PI - sd * 0.25), bk(-0.11, Math.PI - sd * 0.28), bk(-0.13, Math.PI - sd * 0.55), bk(-0.11, Math.PI - sd * 0.82), bk(-0.01, Math.PI - sd * 0.85)], L);
+    });
+    B.lines(L).soft(F);
+  });
+  // les jambes du jean : la couture sur le côté (dehors), deux plis doux au pli du genou, derrière ; en bas, l'ourlet et le tissu qui tombe sur la basket
+  [['jambe', 1], ['jambe-', -1]].forEach(([k, sd]) => pc(k, B => { const R = H.jambe; B.smooth(loft(R)); const F = []; segs(along(R, 0.0, -0.52, sd * Math.PI / 2, E, 10), F); [-0.44, -0.48].forEach(a => segs(around(R, a, E, 8, Math.PI - 0.5, Math.PI + 0.5), F)); B.soft(F); }));
+  pc('bas', B => { const R = H.bas; B.smooth(loft(R, { cap: false })); B.lines(segs(around(R, -0.495, E, 28), [])); const F = []; segs(around(R, -0.42, E, 8, -0.7, 0.2), F); segs(around(R, -0.45, E, 8, 0.4, 1.1), F); B.soft(F); });
+  pc('tige', B => {
+    const R = H.tige, L = [], F = []; B.smooth(loft(R, { axis: 'z', n: 28 }));
+    // la semelle (la moitié du talon), le col, les lacets
+    const so = kit.roundPoly([[-0.05, -0.085], [0.05, -0.085], [0.06, 0.1], [-0.058, 0.1]], 0.03, 5); B.solid(kit.topExt(so, 0.028, -0.117));
+    for (let k = 0; k < 4; k++) { const z = 0.03 + k * 0.022, y = on(R, z, 0, E, true)[1]; F.push(-0.026, y, z, 0.026, y + 0.004, z); }
+    segs(along(R, 0.0, 0.1, 0.42, E, 6, true), F); segs(along(R, 0.0, 0.1, -0.42, E, 6, true), F);
+    B.lines(L).soft(F);
+  });
+  pc('bout', B => {
+    const R = H.bout, L = []; B.smooth(loft(R, { axis: 'z', n: 28 }));
+    const so = kit.roundPoly([[-0.058, -0.03], [0.058, -0.03], [0.05, 0.075], [0, 0.095], [-0.05, 0.075]], 0.025, 5); B.solid(kit.topExt(so, 0.028, -0.017));
+    segs(around(R, 0.045, E, 20, -1.3, 1.3, true), L);         // le bout renforcé
     B.lines(L);
   });
-  // le jean : les hanches, l'entrejambe
-  P.bassin = Obj3D.piece(key('bassin'), B => {
-    const g = lathe([[0.05, -0.2], [0.2, -0.17], [0.27, -0.1], [0.285, 0], [0.28, 0.1]], 32); g.scale(1, 1, ZS); g.translate(0, 0, ZC); B.smooth(g);
-  });
-  P.cuisse = Obj3D.piece(key('cuisse'), B => B.smooth(capsule(0.115, 0.09, THIGH)));
-  P.mollet = Obj3D.piece(key('mollet'), B => {
-    B.smooth(capsule(0.09, 0.075, SHIN - 0.02));
-    B.lines(segs(ring(0.083, -SHIN + 0.1, 24), []));                // l'ourlet du jean
-  });
-  // les baskets : une coque allongée vers l'avant, la semelle, les lacets
-  P.pied = Obj3D.piece(key('pied'), B => {
-    const g = new T.SphereGeometry(1, 20, 14); g.scale(0.085, 0.06, 0.16); g.translate(0, -0.025, 0.06); B.smooth(g);
-    const so = []; for (let i = 0; i <= 32; i++) { const t = i / 32 * Math.PI * 2; so.push([Math.sin(t) * 0.086, -0.05, 0.06 + Math.cos(t) * 0.162]); }
-    const S = [];
-    for (let k = 0; k < 3; k++) { const z = 0.08 + k * 0.03; S.push(-0.03, 0.01 - k * 0.006, z, 0.03, 0.01 - k * 0.006, z); }
-    B.lines(segs(so, [])).soft(S);
-  });
-  // le bras : la manche courte (évasée, son ourlet), le bras nu dessous
-  P.bras = Obj3D.piece(key('bras'), B => {
-    B.smooth(capsule(0.062, 0.055, ARM));
-    B.smooth(lathe([[0.088, -0.19], [0.092, -0.1], [0.086, 0], [0.05, 0.065]], 24));
-    B.lines(segs(ring(0.088, -0.19, 24), []));
-  });
-  P.avantbras = Obj3D.piece(key('avantbras'), B => B.smooth(capsule(0.056, 0.045, FORE)));
-  // la main : un rond, simple, comme les pattes des chats
-  P.main = Obj3D.piece(key('main'), B => { const g = new T.SphereGeometry(1, 16, 12); g.scale(0.05, 0.062, 0.045); g.translate(0, -0.045, 0); B.smooth(g); });
   return P;
 }
+// les pièces de chaque articulation, et leur couche ; u : dans le contour unique du tronc (sinon, un contour à soi)
+const MONTAGE = {
+  bassin: [['peau:bassin', 'peau', 1], ['jean', 'habits', 1]], lombaires: [['peau:ventre', 'peau', 1]], thorax: [['peau:cage', 'peau', 1], ['tshirt', 'habits', 1]],
+  epaule: [['peau:bras', 'peau habits'], ['manche', 'habits', 1]], coude: [['peau:avantbras', 'peau habits']], poignet: [['peau:paume', 'peau habits']],
+  doigts: [['peau:doigts', 'peau habits']], pouce: [['peau:pouce', 'peau habits']],
+  hanche: [['peau:cuisse', 'peau'], ['jambe', 'habits']], genou: [['peau:mollet', 'peau'], ['bas', 'habits']],
+  cheville: [['peau:pied', 'peau'], ['tige', 'habits']], orteils: [['peau:orteils', 'peau'], ['bout', 'habits']]
+};
 
 /* ——— le pantin ——— */
 const all = new Set();
@@ -161,26 +241,24 @@ function create(opt) {
       m.frame = [HAUT, cut];
       m.meta = { head: [M.head[0], (M.head[1] - HAUT) / (cut - HAUT)] };
     } else {
-      // le corps : les articulations (des groupes emboîtés), les pièces montées dessus
-      const P = build(M); m.M = Obj3D.mats(inkNow(), { fat: 3, fatSoft: 2 });
-      const grp = (parent, x, y, z) => { const g = new T.Group(); g.position.set(x || 0, y || 0, z || 0); parent.add(g); return g; };
-      const put = (pp, g) => { const x = Obj3D.mount(pp, m.M, true); g.add(x.g); list.push(x); return x; };
-      const J = m.J = {};
-      J.hips = grp(turn, 0, HIP); put(P.bassin, J.hips);
-      J.spine = grp(J.hips); put(P.torse, J.spine);
-      J.neck = grp(J.spine, 0, NECK, 0.01); J.neck.add(head); head.scale.setScalar(TETE); head.position.y = (-HIP - NECK) * TETE;     // la tête : un peu plus grande que nature (un dessin), son cou dans l'encolure
-      [-1, 1].forEach(sd => {
-        const k = sd < 0 ? 'R' : 'L';                      // sa droite est à notre gauche
-        const th = J['thigh' + k] = grp(J.hips, sd * LEGX, LEGY); put(P.cuisse, th);
-        const kn = J['knee' + k] = grp(th, 0, -THIGH); put(P.mollet, kn);
-        const an = J['ankle' + k] = grp(kn, 0, -SHIN); put(P.pied, an);
-        const sh = J['shoulder' + k] = grp(J.spine, sd * SHX, SHY); put(P.bras, sh);
-        const el = J['elbow' + k] = grp(sh, 0, -ARM); put(P.avantbras, el);
-        const wr = J['wrist' + k] = grp(el, 0, -FORE); put(P.main, wr);
+      // le corps : les articulations (des groupes emboîtés, d'après le squelette), les pièces de chaque couche montées dessus
+      const P = build(M); m.M = Obj3D.mats(inkNow(), { fat: 3, fatSoft: 2, uni: 255 });
+      const J = m.J = {}, body = new T.Group(); turn.add(body); m.couches = { os: [], peau: [], habits: [] };
+      JOINTS.forEach(([n, p, x, y, z]) => { const g = new T.Group(); g.position.set(x, y, z); (p ? J[p] : body).add(g); J[n] = g; g.userData.rest = [x, y, z]; });
+      const put = (key, g, layers, uni) => { const x = Obj3D.mount(P[key], m.M, !uni); g.add(x.g); list.push(x); layers.split(' ').forEach(l => m.couches[l].push(x)); return x; };
+      JOINTS.forEach(([n]) => {
+        put('os:' + n, J[n], 'os', false);
+        const base = n.replace(/[GD]$/, ''), cote = n.endsWith('D') && OS2[base] ? 'D' : 'G';
+        (MONTAGE[base] || []).forEach(([k, l, u]) => put(k === 'jambe' && cote === 'D' ? 'jambe-' : k, J[n], l, u));
       });
-      m.frame = [M.head[1] - (M.head[1] - HAUT) * TETE, M.head[1] - SOL];                   // des cheveux aux semelles, en fractions du cadre de la photo
-      const f = m.frame[1] - m.frame[0];
-      m.meta = { head: [0.5, (M.head[1] - m.frame[0]) / f], feet: [0.5, 1] };
+      // la tête : un peu plus grande que nature (un dessin), le bas de son cou dans l'encolure, au-dessus de l'articulation du cou
+      J.cou.add(head); head.scale.setScalar(TETE); head.position.y = (cut - M.head[1]) * TETE;
+      // la racine : le centre de la tête
+      const hc = [0, 0, 0]; for (let n = 'cou'; n; n = OS[n][0]) { hc[1] += OS[n][2]; } hc[1] += head.position.y;
+      body.position.y = -hc[1]; m.body = body;
+      const top = (M.head[1] - HAUT) * TETE, f = top - (SOL - hc[1]);
+      m.frame = [0, f];
+      m.meta = { head: [0.5, top / f], feet: [0.5, 1] };
     }
     m.ready = true;
     pose(m, {});
@@ -190,25 +268,30 @@ function create(opt) {
 }
 function destroy(m) { if (!m) return; Obj3D.unrig(m.R); m.R = null; all.delete(m); }
 
-// la foulée : l'angle de chaque articulation (radians), selon la phase ph et l'allure k (0 debout, 1 il court)
+// la foulée : l'angle de chaque articulation (radians), selon la phase ph et l'allure k (0 debout, 1 il court) ; t : le temps (il respire)
 function stride(m, ph, k, t) {
-  const J = m.J, s = Math.sin, c = Math.cos, bend = x => Math.max(0, x);
-  [['L', 0], ['R', Math.PI]].forEach(([n, o]) => {
-    const f = ph + o, sw = s(f);                      // la cuisse : devant (sw > 0) ou derrière
-    J['thigh' + n].rotation.set(-(0.72 * sw + 0.12) * k, 0, 0);
-    // le genou plie quand la jambe revient vers l'avant (la jambe en l'air), un peu à l'appui
-    J['knee' + n].rotation.set((0.15 + 1.25 * bend(c(f)) ** 1.3 + 0.25 * bend(-sw)) * k, 0, 0);
-    J['ankle' + n].rotation.set(k * (-0.2 * sw + 0.15), 0, 0);
-    // les bras : à l'opposé des jambes, les coudes pliés ; debout, le long du corps
-    const a = -s(f + Math.PI);
-    J['shoulder' + n].rotation.set(-0.75 * a * k, 0, (n === 'L' ? 1 : -1) * (0.13 + 0.05 * k));
-    J['elbow' + n].rotation.set(-(0.15 + 1.2 * k + 0.25 * k * bend(a)), 0, 0);
+  const J = m.J, s = Math.sin, c = Math.cos, pos = x => Math.max(0, x), br = s(t * 1.6), R = (j, x, y, z) => J[j].rotation.set(x, y, z);
+  // le tronc : le bassin rebondit à chaque pas, tourne avec la jambe qui avance et penche vers l'appui ; les vertèbres tournent à l'opposé ; la tête reste droite
+  J.bassin.position.y = OS.bassin[2] + k * (0.045 * Math.abs(s(ph)) - 0.035) + (1 - k) * 0.003 * br;
+  R('bassin', 0.05 * k, -0.1 * s(ph) * k, 0.04 * c(ph) * k);
+  R('lombaires', 0.07 * k, 0.09 * s(ph) * k, -0.03 * c(ph) * k);
+  R('thorax', 0.07 * k + 0.012 * br * (1 - k), 0.12 * s(ph) * k, -0.02 * c(ph) * k);
+  R('cou', -0.13 * k, -0.11 * s(ph) * k, 0.01 * c(ph) * k);
+  COTES.forEach(([n, sd]) => {
+    const f = ph + (sd > 0 ? 0 : Math.PI), sw = s(f), up = c(f);     // sw > 0 : la jambe est devant ; up > 0 : elle revient vers l'avant, en l'air
+    // la jambe : la cuisse, le genou qui plie en l'air (et un peu à l'appui), la cheville, les orteils qui plient quand le pied pousse
+    R('hanche' + n, -(0.7 * sw + 0.1) * k, 0, sd * 0.03);
+    R('genou' + n, (0.1 + 1.35 * pos(up) ** 1.3 + 0.2 * pos(-sw)) * k, 0, 0);
+    R('cheville' + n, k * (0.12 - 0.3 * sw + 0.3 * pos(-sw) * pos(-up)), 0, 0);
+    R('orteils' + n, -k * 0.7 * pos(-sw) * pos(-up), 0, 0);
+    // le bras : à l'opposé de la jambe du même côté ; l'épaule monte un peu quand il avance ; le coude plié ; le poing à moitié fermé
+    R('clavicule' + n, 0, 0, sd * 0.05 * k * pos(-sw));
+    R('epaule' + n, (0.7 * sw - 0.05) * k, -sd * 0.25 * k, sd * (0.12 + 0.14 * k));
+    R('coude' + n, -(0.14 + 1.2 * k + 0.35 * k * pos(-sw)), 0, 0);
+    R('poignet' + n, -0.12 * k, 0, -sd * 0.08);
+    R('doigts' + n, 0, 0, -sd * (0.3 + 1.0 * k));
+    R('pouce' + n, 0, 0, -sd * (0.15 + 0.45 * k));
   });
-  // le buste penché en avant, qui tourne un peu avec les épaules ; les hanches à l'opposé ; il rebondit à chaque pas ; debout, il respire
-  J.spine.rotation.set(0.14 * k + 0.01 * s(t * 1.6) * (1 - k), 0.14 * s(ph) * k, 0);
-  J.hips.rotation.set(0, -0.08 * s(ph) * k, 0);
-  J.hips.position.y = HIP + k * (0.05 * Math.abs(s(ph)) - 0.03) + (1 - k) * 0.004 * s(t * 1.6);
-  J.neck.rotation.set(-0.12 * k, -0.1 * s(ph) * k, 0);        // la tête reste droite, le regard devant
 }
 
 function pose(m, o) {
@@ -223,8 +306,10 @@ function pose(m, o) {
     // la tête ne va pas au-delà du trois quarts (le relief vient d'une photo de face)
     m.head.rotation.set(-(p.nod ?? 0), Math.max(-0.7, Math.min(0.7, p.look ?? 0)), 0, 'YXZ');
     stride(m, p.run ?? 0, Math.max(0, Math.min(1, p.speed ?? 0)), performance.now() / 1000);
+    // la couche à montrer : le squelette, le corps nu, ou habillé
+    const cc = m.couches[p.couche] ? p.couche : 'habits'; Object.entries(m.couches).forEach(([l, xs]) => { if (l !== cc) xs.forEach(x => { x.g.visible = false; }); }); m.couches[cc].forEach(x => { x.g.visible = true; });
     const w = Math.max(1.2, Math.min(9, u * PEN));
-    m.M.line.uniforms.width.value = w; m.M.soft.uniforms.width.value = w * 0.6; m.M.line.opacity = a; m.M.soft.opacity = a * 0.5;
+    m.M.line.uniforms.width.value = w; m.M.soft.uniforms.width.value = w * 0.6; m.M.out.uniforms.width.value = w * 2; [m.M.line, m.M.out].forEach(x => { x.opacity = a; }); m.M.soft.opacity = a * 0.5;
   }
   const open = Math.max(0, Math.min(1, p.open ?? 0)), M = m.A.mouth, gap = open * DROP;
   [m.mesh, m.jaw].forEach(x => { x.material.uniforms.open.value = open; x.material.uniforms.opacity.value = a; }); m.jaw.visible = open > 0.015;
@@ -244,7 +329,7 @@ function mouthAt(m) {
 addEventListener('themechange', () => all.forEach(m => {
   if (!m.mesh) return; const c = inkNow();
   [m.mesh, m.jaw].forEach(x => { x.material.uniforms.ink.value.setHex(c); x.material.uniforms.paper.value.setHex(paperNow()); }); m.hole.material.color.setHex(c);
-  if (m.M) [m.M.line, m.M.soft].forEach(x => x.color.setHex(c));
+  if (m.M) [m.M.line, m.M.soft, m.M.out].forEach(x => x.color.setHex(c));
 }));
 return { create, destroy, pose, mouthAt, load };
 })();

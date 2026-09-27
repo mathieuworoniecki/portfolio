@@ -6,7 +6,7 @@
 <title>Mathieu en 3D</title>
 <!-- L'aperçu de Mathieu en 3D (js/mathieu.js), à part du film : il se balance de trois quarts en trois quarts, un curseur ouvre la bouche.
      python3 tools/serve.py, puis http://localhost:8940/tools/mathieu.html
-     les images : media/mathieu/ (tools/mathieu/build.py) · ?open=0.6 (la bouche) · ?turn=0.5 (un angle fixe, sans tourner) · ?t=3 (un temps fixe, pour les essais) · ?arrivee (il arrive de loin, en boucle) · ?logo (la tête seule, en petit, comme dans l'en-tête) · ?run=1.2 (il court, figé à cette phase avec ?t) -->
+     les images : media/mathieu/ (tools/mathieu/build.py) · ?open=0.6 (la bouche) · ?turn=0.5 (un angle fixe, sans tourner) · ?t=3 (un temps fixe, pour les essais) · ?arrivee (il arrive de loin, en boucle) · ?logo (la tête seule, en petit, comme dans l'en-tête) · ?run=1.2 (il court, figé à cette phase avec ?t) · ?couche=os|peau|habits (le squelette, le corps nu, habillé) -->
 <style>
 html,body{margin:0;height:100%;background:#DADBD8;color:#222428;overflow:hidden;font:15px system-ui}
 canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
@@ -28,6 +28,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
   <button id="run">Court</button>
   <button id="arr">Arrivée</button>
   <button id="bible">Bouche biblique</button>
+  <span class="couches"><button data-c="os">Squelette</button><button data-c="peau">Corps</button><button data-c="habits">Habillé</button></span>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="../js/theme.js"></script>
@@ -47,6 +48,10 @@ const logo = q.has('logo'), m = window.MATHIEU_APERCU = Mathieu.create({ logo })
 let spin = !q.has('turn') && !q.has('run'), openT = +(q.get('open') || 0), open = openT, arr = q.has('arrivee') ? 0 : -1, turn = +(q.get('turn') || 0), bible = -1;
 let running = q.has('run'), ph = +(q.get('run') || 0), speed = running ? 1 : 0;
 $('open').value = openT; $('run').classList.toggle('on', running);
+// les couches du corps : le squelette, le corps nu, habillé
+let couche = q.get('couche') || 'habits';
+const cb = [...document.querySelectorAll('.couches button')], montre = () => cb.forEach(b => b.classList.toggle('on', b.dataset.c === couche)); montre();
+cb.forEach(b => { b.onclick = () => { couche = b.dataset.c; montre(); }; });
 $('open').oninput = e => { openT = +e.target.value; bible = -1; };
 $('spin').onclick = () => { spin = !spin; $('spin').classList.toggle('on', spin); };
 $('run').onclick = () => { running = !running; $('run').classList.toggle('on', running); };
@@ -78,7 +83,7 @@ function frame(now) {
   open += (op - open) * Math.min(1, dt * 10); if (q.has('t')) open = op;
   // le logo : la tête seule, petite, en haut à gauche, qui tourne
   if (logo) { s = +(q.get('logo') || 56); x = 16 + s * 0.45; y = 16 + s * (m.meta ? m.meta.head[1] : 0.4); }
-  Mathieu.pose(m, { x, y, s, turn: tr, tilt: 0.02, open, nod: Math.sin(t * 0.8) * 0.03, run: ph, speed });
+  Mathieu.pose(m, { x, y, s, turn: tr, tilt: 0.02, open, nod: Math.sin(t * 0.8) * 0.03, run: ph, speed, couche });
   if (m.ready && $('etat').textContent.startsWith('Chargement')) $('etat').hidden = true;
   Obj3D.render(); requestAnimationFrame(frame);
 }
