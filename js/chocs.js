@@ -48,9 +48,14 @@ H.fall.unshift((c, dt) => {
   // sur un autre chat
   for (const o of Wd.cats) {
     if (o === c || !cible(o) || Math.abs(o.d - c.d) > 0.4 || recent(o, 'chocT', 1.2)) continue;
-    const z = corps(o); if (!chemin(px, py, c.vx, c.vy, dt, (x, y) => dans(z, x, y))) continue;
-    c.chocT = o.chocT = Wd.t; interrupt(o); o.pet = null;
+    const z = corps(o); if (!chemin(px, py, c.vx, c.vy, dt, (x, y) => dans(z, x, y) || (c.vy > 0 && dans(z, x, y + s * 0.3)))) continue;   // (les pattes aussi : un gros qui tombe touche le petit avant que son ventre n'y soit)
+    c.chocT = o.chocT = Wd.t;
+    // (27/09, l'audit : le poids compte) la puce sur le gros rebondit, le gros ne sent presque rien ; le gros sur la puce, c'est la crêpe
+    const mc = Math.pow(c.b.s, 3), mo = Math.pow(o.b.s, 3), k = mc / mo;
+    if (k < 0.45) { o.face = sgn(c.x - o.x) || o.face; say(o, pick(['hm ?', 'quoi ?', '…'])); c.vy = -s * rnd(3.5, 4.5); c.vx = (sgn(c.x - o.x) || 1) * s * rnd(1.5, 2.5); c.spin = rnd(-2, 2); say(c, pick(['boiiing', 'wiii', 'rebond !'])); word('boing', z.x, z.y - z.ry, 18); return false; }
+    interrupt(o); o.pet = null;
     if (c.vy > 0 && Math.abs(c.vx) < c.vy * 1.2) {
+      if (k > 2.2) { o.q = [pose('ecrase', 2.2, { fx: o => { word('CRÊPE', o.x, z.y - z.ry, 26); o.crepe = Wd.t; } }), pose('secoue', 0.6), pose('boude', rnd(2, 3), { fx: o => say(o, pick(['…aplati', 'je suis une crêpe', '@_@'])) })]; c.vy = -s * rnd(1, 1.6); c.vx = (sgn(c.x - o.x) || 1) * s * 0.6; say(c, pick(['oups', 'pardon…', 'c’était mou'])); dust(z.x, K.floorAt(o.d), s * 0.7, 1); if (window.Dex) Dex.vu('crepe'); return false; }
       // tombé dessus : l'autre est aplati, lui rebondit
       o.q = [pose('ecrase', 0.9, { fx: o => word(pick(['plof', 'pouf', 'splotch']), o.x, z.y - z.ry, 20) }), pose('secoue', 0.5), pose(pick(['feule', 'boude', 'etourdi']), rnd(1.2, 2), { fx: o => say(o, pick(['hé !', 'aïe', 'descends !', '@_@'])) })];
       c.vy = -s * rnd(3, 4); c.vx = (sgn(c.x - o.x) || 1) * s * rnd(1, 2); say(c, pick(['boing', 'oups', 'pardon !']));

@@ -42,7 +42,7 @@ H.fall.unshift((c, dt) => {
     if (b.held || b.fall) continue; if (!(Wd.t - (c.relT ?? -9) < 3) && Math.abs(c.d - b.d) > 0.2) continue;
     const L = Univers.at(b, [-0.66, 0.27, 0.05]), R = Univers.at(b, [0.66, 0.27, 0.05]), y = (L[1] + R[1]) / 2;
     if (c.x < Math.min(L[0], R[0]) || c.x > Math.max(L[0], R[0]) || c.y + c.vy * dt < y - 4 || c.y > y + 30) continue;
-    if (!c.boing || Wd.t - c.boing > 2) { c.boing = Wd.t; c.y = y - 1; c.vy = -Math.min(Math.abs(c.vy) * 0.5, sOf(b.d) * 5); word(pick(['boing', 'boiing', 'pouf']), c.x, y - 30, 20); say(c, pick(['wiii', 'hihi', '!'])); b.wob = Wd.t; b.wobA = 0.12; return true; }
+    if (!c.boing || Wd.t - c.boing > 2) { c.boing = Wd.t; c.y = y - 1; c.vy = -Math.min(Math.abs(c.vy) * 0.5, sOf(b.d) * 5) / Math.max(0.7, c.b.s); /* (le poids : la puce rebondit haut, le gros s'enfonce) */ word(pick(['boing', 'boiing', 'pouf']), c.x, y - 30, 20); say(c, pick(['wiii', 'hihi', '!'])); b.wob = Wd.t; b.wobA = 0.12; return true; }
     const pe = b.perches.filter(p => p.lv === 1 && p.id.startsWith('assise')).sort((p, q) => Math.abs(Univers.at(b, p.p)[0] - c.x) - Math.abs(Univers.at(b, q.p)[0] - c.x))[0];
     interrupt(c); c.fall = false; c.vx = c.vy = 0; c.spin = 0; c.boing = 0; c.perch = { it: b, pe, dx: 0 };
     c.q = [pose('atterrit', 0.3), pose(pick(['assis', 'pain']), rnd(2, 5)), descend(c, b), fn(free)];

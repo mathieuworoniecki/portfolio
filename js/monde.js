@@ -111,6 +111,48 @@ if (Co && Co.REACT && Co.REACT.prop) {
   Co.REACT.lance = Co.REACT.prop;
 }
 
+/* ——— la plume au-dessus du bassin : il saute pour l'attraper… PLOUF (sauf ceux qui détestent l'eau) ——— */
+if (K.STEPS.chasse && Ba) {
+  const chasse0 = K.STEPS.chasse;
+  K.STEPS.chasse = (c, T, dt) => {
+    if (!T.aim && Vi && Vi.ptr.plume > Wd.t && !T.plouf && T.t0 !== undefined && Wd.t - T.t0 > 0.8) {
+      const p = Vi.plume, s = sc(c);
+      for (const b of Ba.bassins()) {
+        if (b.held || b.fall) continue; const S = Ba.surface(b);
+        if (Math.abs(p.x - S.x) > S.rx * 0.7 || p.y > S.y || S.y - p.y > s * 3 || Math.abs(c.x - p.x) > S.rx + s * 1.5) continue;
+        T.plouf = 1;
+        if ((Ba.EAU || {})[c.breed] === 0) { c.chaseCool = Wd.t + rnd(5, 9); c.q.unshift(pose('affut', rnd(1, 1.6), { fx: c => say(c, pick(['pas dans l’eau…', 'hmm… non.', 'trop mouillé'])) })); return true; }
+        // l'élan : droit sur la plume (il la frôle, elle s'envole) ; il retombe dans l'eau (js/bassin.js, H.fall)
+        interrupt(c); c.d = b.d; c.fall = true; c.jump = null; c.vy = -sOf(c.d) * rnd(4, 5); const tv = 2 * -c.vy / (K.grav ? K.grav() : sOf(c.d) * 12); c.vx = (K.clamp(p.x, S.x - S.rx * 0.5, S.x + S.rx * 0.5) - c.x) / Math.max(0.3, tv); c.spin = sgn(c.vx) * 0.3;
+        say(c, pick(['JE L’AI !', 'à moi !!', 'hiiiya !'])); if (window.Dex) Dex.vu('plumeplouf');
+        return true;
+      }
+    }
+    return chasse0(c, T, dt);
+  };
+}
+
+/* ——— le fil de la pelote fait trébucher ceux qui galopent (27/09, l'audit) ———
+   Un chat au galop (la horde derrière la souris, la folie du soir) qui passe sur un fil bien déroulé s'y prend les pattes :
+   il roule, s'emmêle, se débat ; la pelote est tirée d'un coup vers lui. */
+H.post.push(() => {
+  if (!Wd.W) return;
+  const P = Wd.props.filter(it => it.kind === 'pelote' && it.trail && it.trail.length > 6 && (it.unrav || 0) > 0.3 && !it.held); if (!P.length) return;
+  for (const c of Wd.cats) {
+    if (c.anim !== 'galop' || c.fall || c.held || c.jump || c.tangle || (c.trebT && Wd.t - c.trebT < 6) || c.rare === 'eclair') continue;
+    const f = floorAt(c.d), r = sc(c) * 0.22;
+    if (Math.abs(c.y - f) > sc(c) * 0.1) continue;
+    const it = P.find(it => Math.abs(it.d - c.d) < 0.35 && it.trail.some(T => Math.abs(T[0] - c.x) < r && Math.abs(T[3] - f) < sc(c) * 0.3 && T[1] > T[3] - 4)); if (!it) continue;
+    c.trebT = c.tangle = Wd.t; const temp = c.temp, dir = sgn(c.vx || -c.face) || 1; interrupt(c); c.task = null;
+    Wd.fx.push({ k: 'txt', text: pick(['emmêlé !', 'PATATRAS', 'woups']), x: c.x, y: c.y - sc(c) * 1.1, t0: Wd.t, life: 1.2, rot: rnd(-0.2, 0.2), size: 20 });
+    K.dust(c.x, f, sOf(c.d) * 0.6, 1);
+    if (!it.fall) K.drop(it, (sgn(c.x - it.x) || 1) * sOf(it.d) * rnd(1.5, 3), sOf(it.d) * 1.5, 0);
+    c.q = [pose('etourdi', 0.7), pose('agrippe', 1.6, { fx: c => say(c, pick(['mrr ?!', 'au secours', 'lâche-moi, fil !'])) }), pose('secoue', 0.8), pose('assis', 0.8, { fx: c => { c.tangle = 0; it.unrav *= 0.6; } })];
+    if (temp) c.q.push(go(dir > 0 ? Wd.W + sc(c) * 1.4 : -sc(c) * 1.4, { g: 'galop', sortie: true }), fn(c => { c.gone = true; }));
+    if (window.Dex) Dex.vu('emmele');
+  }
+});
+
 /* ——— les garde-fous d'une longue visite (27/09, l'audit : des heures sans recharger) ——— */
 H.live.push(c => {
   // une taille ou une place folle (plus jamais : js/scenarios.js) : on remet d'aplomb

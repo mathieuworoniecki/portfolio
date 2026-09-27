@@ -49,12 +49,14 @@ fam('gestes', 'Avec la souris', 'With your hands', [
 ]);
 fam('pepins', 'Les petits pépins', 'Little mishaps', [
   ['plouf', 'PLOUF', 'SPLASH', 'Lâcher un chat au-dessus de l’eau.', 'Drop a cat over the water.'],
+  ['plumeplouf', 'Le plongeon', 'The dive', 'La plume, au-dessus de l’eau… qui va sauter ?', 'The feather, above the water… who will jump?'],
   ['emmele', 'Emmêlé', 'Tangled', 'La pelote a un long fil.', 'The ball of yarn has a long thread.'],
   ['griffes', 'Pendu par les griffes', 'Hanging by the claws', 'Rater une étagère, ou un support qui bouge.', 'Miss a shelf, or ride something that moves.'],
   ['tasse', 'La tasse', 'The mug', 'Un chat, une tasse posée sur quelque chose… vous voyez.', 'A cat, a mug on something… you know.'],
   ['couvercle', 'Le couvercle', 'The lid', 'Ouvrir le coffre quand quelque chose est posé dessus.', 'Open the chest while something sits on it.'],
   ['bascule', 'La bascule', 'The seesaw', 'Lâcher un chat sur le canapé où un autre dort.', 'Drop a cat on the sofa where another one sleeps.'],
   ['ecrase', 'Écrasé', 'Squashed', 'Quelque chose de lourd sur un carton.', 'Something heavy on a box.'],
+  ['crepe', 'La crêpe', 'Pancake', 'Un gros qui tombe sur un petit…', 'A big one landing on a small one…'],
   ['bonk', 'BONK', 'BONK', 'Lancer un chat sur un autre (pardon).', 'Throw a cat at another one (sorry).'],
   ['lettre', 'Une lettre tombe', 'A letter falls', 'Le titre n’est pas si solide.', 'The title isn’t that solid.'],
   ['coincee', 'La trappe coince', 'The hatch jams', 'Tirer le levier encore et encore.', 'Pull the lever again and again.'],

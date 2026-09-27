@@ -66,7 +66,9 @@ function leaf(pl) { if (!Wd.props.includes(pl)) return; const s = pl.s; V.push({
 /* ——— le coussin garde le creux ; le carton se fait griffer ——— */
 H.post.push(dt => Wd.props.forEach(it => {
   if (it.kind === 'coussin') {
-    if (Wd.cats.some(c => c.perch && c.perch.it === it && c.anim === 'dodo')) it.dent = Math.min(1, (it.dent || 0) + dt * 0.3); else if (it.dent) it.dent = Math.max(0, it.dent - dt / 25);
+    // (le creux : plus profond sous un gros)
+    const dd = Wd.cats.find(c => c.perch && c.perch.it === it && c.anim === 'dodo');
+    if (dd) it.dent = Math.min(Math.min(1, dd.b.s * 0.75), (it.dent || 0) + dt * 0.3 * dd.b.s); else if (it.dent) it.dent = Math.max(0, it.dent - dt / 25);
     if (it.dent) it.root.scale.y *= 1 - it.dent * 0.28;
   }
 }));
