@@ -30,7 +30,7 @@ H.post.push(dt => {
       if (o === it || o.held || o.mur || o.run || o.suck || LOURDS(o) || o.a < 0.5) return;
       const f = dansCone(C, o.x, o.y - o.hull.h * o.s * 0.5) * P; if (f <= 0.02) return; const s = sOf(o.d), m = o.r ? 0.6 : Math.min(2.5, 0.5 + o.hull.w * o.hull.h * 6);
       if (!o.fall) { K.drop(o, C.dx * s * 5 * f / m, s * (2 + 3 * f) / m, rnd(-5, 5)); o.dans = null; o.soufT = Wd.t; return; }
-      o.vx += C.dx * s * 14 * f / m * dt; o.vy += (s * 11 * f / m - C.dy * s * 6 * f) * dt; if (o.tiltV != null) o.tiltV += rnd(-8, 8) * f * dt;
+      o.soufT = Wd.t; o.vx += C.dx * s * 14 * f / m * dt; o.vy += (s * 11 * f / m - C.dy * s * 6 * f) * dt; if (o.tiltV != null) o.tiltV += rnd(-8, 8) * f * dt;
     });
     // les croquettes
     Wd.kib.forEach(k => { const f = dansCone(C, k.x, k.y) * P; if (f <= 0.02 || k.who || k.suck) return; k.dans = null; k.rest = false; k.vx = (k.vx || 0) + C.dx * 900 * f * dt; k.vy = (k.vy || 0) - (700 * f - C.dy * 300 * f) * dt; });

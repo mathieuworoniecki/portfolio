@@ -313,7 +313,9 @@ function make(kind, o) {
   else if (kind === 'souffleur') { put(P.souffleur); it.buse = [0.56, 0.08, 0]; it.corps = [-0.02, 0.09, 0]; }
   else if (kind === 'table') { put(P.table); it.tilt = 0; it.box = { w: 1.04, h: 0.56, d: 0.56 }; it.perches = [{ id: 'dessus', p: [-0.2, 0.56, 0], w: 0.25, lv: 1 }, { id: 'dessus2', p: [0.28, 0.56, 0], w: 0.15, lv: 1 }, { id: 'dessous', p: [0, 0.01, 0.02], w: 0.25, lv: 0, sous: true }]; }
   else if (kind === 'lit') { put(P.lit); it.perches = [{ id: 'oreiller', p: [-0.52, 0.44, 0.05], w: 0.12, lv: 1, dodo: true }, { id: 'matelas', p: [0.05, 0.37, 0.1], w: 0.2, lv: 1, dodo: true }, { id: 'pied', p: [0.55, 0.37, 0.1], w: 0.15, lv: 1, dodo: true }, { id: 'tete', p: [-0.82, 0.72, 0], w: 0.03, lv: 2 }]; }
-  else if (kind === 'biblio') { put(P.biblio); it.perches = [{ id: 'rayon1', p: [-0.02, 0.45, 0.03], w: 0.1, lv: 1 }, { id: 'rayon2', p: [-0.05, 0.9, 0.03], w: 0.12, lv: 2 }, { id: 'rayon3', p: [0.1, 1.25, 0.03], w: 0.15, lv: 3 }, { id: 'haut', p: [0, 1.62, 0], w: 0.3, lv: 4 }, { id: 'bas', p: [-0.02, 0.05, 0.03], w: 0.12, lv: 0, sous: true }]; }
+  else if (kind === 'biblio') { put(P.biblio);
+    // (27/09, Mathieu : « un chat a sauté sur une étagère et a disparu » : assis au fond, entre les planches, il était caché par elles ; il se pose maintenant au bord, devant)
+    it.perches = [{ id: 'rayon1', p: [-0.02, 0.44, 0.24], w: 0.1, lv: 1 }, { id: 'rayon2', p: [-0.05, 0.84, 0.24], w: 0.12, lv: 2 }, { id: 'rayon3', p: [0.1, 1.24, 0.24], w: 0.15, lv: 3 }, { id: 'haut', p: [0, 1.62, 0.05], w: 0.3, lv: 4 }]; }
   else if (kind === 'etage') { put(P.etage); it.perches = [{ id: 'echelle', p: [0.62, 0.6, 0.12], w: 0.02, lv: 1 }, { id: 'plateau', p: [-0.2, 1.11, 0.05], w: 0.25, lv: 2, dodo: true }, { id: 'plateau2', p: [0.3, 1.11, 0.05], w: 0.15, lv: 2 }, { id: 'dessous', p: [-0.05, 0.09, 0.02], w: 0.25, lv: 0, sous: true, dodo: true }]; }
   else if (kind === 'canape') { put(P.canape);
     it.perches = [{ id: 'assiseG', p: [-0.33, 0.27, 0.06], w: 0.14, lv: 1 }, { id: 'assiseD', p: [0.33, 0.27, 0.06], w: 0.14, lv: 1 },

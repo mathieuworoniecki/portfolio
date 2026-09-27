@@ -355,31 +355,34 @@ html:not(.locked) #gate:not(.open){display:none}
 .dex-raz{background:none;border:0;color:inherit;opacity:.55;font:400 .75rem/1 var(--mono);text-decoration:underline;cursor:pointer}
 @keyframes dex-fade{0%,100%{opacity:0}12%,80%{opacity:1}}
 /* les hauts faits (js/hautsfaits.js) : la grande animation, la vitrine */
-.hf-show{position:fixed;inset:0;z-index:45;display:grid;place-items:center;padding:16px;background:radial-gradient(circle at 50% 45%,rgba(var(--ink),.08),rgba(var(--ink),.38));cursor:pointer}
+.hf-show{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));right:14px;z-index:35;display:flex;align-items:center;gap:10px;max-width:min(340px,calc(100vw - 28px));
+  padding:8px 16px 8px 8px;color:rgb(var(--ink));background:var(--bp-hi);border:2.5px solid rgb(var(--ink));border-radius:18px 14px 20px 16px;
+  box-shadow:4px 4px 0 rgba(var(--ink),.22),0 0 0 5px rgba(var(--c),.35);cursor:pointer;transform-origin:100% 0}
 .hf-show[hidden]{display:none}
-.hf-rayons{position:absolute;left:50%;top:45%;width:min(130vmin,1100px);aspect-ratio:1;translate:-50% -50%;border-radius:50%;pointer-events:none;opacity:0;
-  background:repeating-conic-gradient(from 0deg,rgba(var(--c),.34) 0 9deg,transparent 9deg 22deg);-webkit-mask:radial-gradient(circle,#000 18%,transparent 66%);mask:radial-gradient(circle,#000 18%,transparent 66%)}
-.hf-carte{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;max-width:min(420px,100%);padding:18px 26px 20px;text-align:center;color:rgb(var(--ink));
-  background:var(--bp-hi);border:2.5px solid rgb(var(--ink));border-radius:22px 18px 24px 20px;box-shadow:6px 6px 0 rgba(var(--ink),.25),0 0 0 6px rgba(var(--c),.35)}
-.hf-carte .hf-badge{margin:4px 0 2px;filter:drop-shadow(3px 4px 0 rgba(var(--ink),.2))}
-.hf-sur{margin:0;font:600 .72rem/1 var(--mono);letter-spacing:.14em;text-transform:uppercase}
-.hf-carte h2{margin:2px 0 0;font:400 clamp(1.8rem,6vw,2.6rem)/1.05 var(--hand);text-wrap:balance}
-.hf-rang{margin:0;padding:2px 10px;border-radius:9px;background:rgba(var(--c),.85);color:#fff;font:600 .7rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}
-.hf-h{margin:4px 0 0;font:400 .9rem/1.35 var(--text);opacity:.75;text-wrap:balance}
-.hf-show.go .hf-rayons{animation:hf-rayons 4.2s linear forwards}
-.hf-show.go .hf-carte{animation:hf-carte 4.2s cubic-bezier(.2,1.5,.4,1) forwards}
-.hf-show.go .hf-badge{animation:hf-badge 1.1s cubic-bezier(.2,1.7,.4,1) .15s both}
-.hf-show.go .hf-carte h2,.hf-show.go .hf-rang,.hf-show.go .hf-h,.hf-show.go .hf-sur{animation:hf-mot .5s ease-out both}
-.hf-show.go .hf-sur{animation-delay:.1s}.hf-show.go .hf-carte h2{animation-delay:.55s}.hf-show.go .hf-rang{animation-delay:.75s}.hf-show.go .hf-h{animation-delay:.9s}
-@keyframes hf-rayons{0%{opacity:0;rotate:0deg;scale:.3}15%{opacity:1;scale:1}85%{opacity:1}100%{opacity:0;rotate:80deg;scale:1.1}}
-@keyframes hf-carte{0%{opacity:0;scale:.2;rotate:-8deg}12%{opacity:1;scale:1.08;rotate:2deg}20%{scale:1;rotate:0deg}88%{opacity:1;scale:1}100%{opacity:0;scale:.9;translate:0 -20px}}
-@keyframes hf-badge{0%{scale:0;rotate:-540deg}70%{scale:1.25;rotate:12deg}100%{scale:1;rotate:0deg}}
-@keyframes hf-mot{from{opacity:0;translate:0 10px}to{opacity:1;translate:0 0}}
+.hf-rayons{position:absolute;left:46px;top:50%;width:170px;aspect-ratio:1;translate:-50% -50%;border-radius:50%;pointer-events:none;z-index:-1;opacity:0;
+  background:repeating-conic-gradient(rgba(var(--c),.5) 0 9deg,transparent 9deg 22deg);-webkit-mask:radial-gradient(circle,#000 25%,transparent 70%);mask:radial-gradient(circle,#000 25%,transparent 70%)}
+.hf-show .hf-badge{flex:none;filter:drop-shadow(2px 3px 0 rgba(var(--ink),.2))}
+.hf-txt{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
+.hf-sur{margin:0;font:600 .62rem/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;opacity:.7}
+.hf-show h2{margin:0;font:400 1.35rem/1.05 var(--hand);text-wrap:balance}
+.hf-rang{margin:0;padding:1px 8px;border-radius:8px;background:rgba(var(--c),.85);color:#fff;font:600 .6rem/1.5 var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.hf-show.go{animation:hf-carte .6s cubic-bezier(.2,1.5,.4,1) both}
+.hf-show.go .hf-rayons{animation:hf-rayons 5s linear forwards}
+.hf-show.go .hf-badge{animation:hf-badge 1s cubic-bezier(.2,1.7,.4,1) .1s both}
+.hf-show.go .hf-txt>*{animation:hf-mot .4s ease-out both}
+.hf-show.go .hf-sur{animation-delay:.25s}.hf-show.go h2{animation-delay:.4s}.hf-show.go .hf-rang{animation-delay:.55s}
+.hf-show.part{animation:hf-part .38s ease-in forwards}
+@keyframes hf-carte{0%{opacity:0;transform:translate(30px,-20px) scale(.6) rotate(6deg)}100%{opacity:1;transform:none}}
+@keyframes hf-part{to{opacity:0;transform:translate(24px,-12px) scale(.85)}}
+@keyframes hf-rayons{0%{opacity:0;rotate:0deg}12%{opacity:1}75%{opacity:.8}100%{opacity:0;rotate:120deg}}
+@keyframes hf-badge{0%{scale:0;rotate:-540deg}70%{scale:1.2;rotate:10deg}100%{scale:1;rotate:0deg}}
+@keyframes hf-mot{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:none}}
+@media (max-width:600px){.hf-show{top:auto;bottom:calc(58px + env(safe-area-inset-bottom,0px));right:10px;max-width:min(270px,calc(100vw - 80px));padding:5px 12px 5px 5px;gap:6px;transform-origin:100% 100%}.hf-show .hf-badge{width:50px;height:auto}.hf-rayons{left:30px;width:120px}.hf-show h2{font-size:1.05rem}.hf-sur{font-size:.55rem}}
 .hf-btn svg{fill:none}
 .hf-grille{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))!important}
 .hf-grille li{align-items:center;text-align:center;padding:10px 8px!important}
 .hf-grille li .hf-badge{margin-bottom:2px}
 .hf-grille li i{font:500 .62rem/1 var(--mono);font-style:normal;opacity:.55}
 .hf-grille li.ok{background:rgba(var(--c),.12)!important;border-color:rgb(var(--ink))!important}
-@media (prefers-reduced-motion:reduce){.hf-show.go .hf-rayons,.hf-show.go .hf-carte,.hf-show.go .hf-badge{animation-duration:.01s;animation-fill-mode:both}.hf-show.go .hf-carte{opacity:1}}
+@media (prefers-reduced-motion:reduce){.hf-show.go,.hf-show.go .hf-rayons,.hf-show.go .hf-badge,.hf-show.part{animation-duration:.01s;animation-fill-mode:both}}
 @media (prefers-reduced-motion:reduce){.dex-toast.go{animation:dex-fade 2.3s linear forwards;transform:none}}

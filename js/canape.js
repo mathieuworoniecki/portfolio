@@ -43,8 +43,11 @@ H.fall.unshift((c, dt) => {
     const L = Univers.at(b, [-0.66, 0.27, 0.05]), R = Univers.at(b, [0.66, 0.27, 0.05]), y = (L[1] + R[1]) / 2;
     if (c.x < Math.min(L[0], R[0]) || c.x > Math.max(L[0], R[0]) || c.y + c.vy * dt < y - 4 || c.y > y + 30) continue;
     if (!c.boing || Wd.t - c.boing > 2) { c.boing = Wd.t; c.y = y - 1; c.vy = -Math.min(Math.abs(c.vy) * 0.5, sOf(b.d) * 5) / Math.max(0.7, c.b.s); /* (le poids : la puce rebondit haut, le gros s'enfonce) */ word(pick(['boing', 'boiing', 'pouf']), c.x, y - 30, 20); say(c, pick(['wiii', 'hihi', '!'])); b.wob = Wd.t; b.wobA = 0.12; return true; }
-    const pe = b.perches.filter(p => p.lv === 1 && p.id.startsWith('assise')).sort((p, q) => Math.abs(Univers.at(b, p.p)[0] - c.x) - Math.abs(Univers.at(b, q.p)[0] - c.x))[0];
-    interrupt(c); c.fall = false; c.vx = c.vy = 0; c.spin = 0; c.boing = 0; c.perch = { it: b, pe, dx: 0 };
+    // (27/09, Mathieu : deux chats sur la même place rebondissaient en boucle) : une place libre, sinon il glisse et retombe à côté
+    const libres = b.perches.filter(p => p.lv === 1 && p.id.startsWith('assise') && (!p.busy || p.busy === c));
+    if (!libres.length) { c.vx = (sgn(c.x - b.x) || 1) * sOf(b.d) * 3; c.vy = -sOf(b.d) * 1.5; c.y = y - 2; say(c, pick(['complet ?!', 'pousse-toi', 'oups'])); return true; }
+    const pe = libres.sort((p, q) => Math.abs(Univers.at(b, p.p)[0] - c.x) - Math.abs(Univers.at(b, q.p)[0] - c.x))[0];
+    interrupt(c); c.fall = false; c.vx = c.vy = 0; c.spin = 0; c.boing = 0; c.perch = { it: b, pe, dx: 0 }; K.claim(c, pe);
     c.q = [pose('atterrit', 0.3), pose(pick(['assis', 'pain']), rnd(2, 5)), descend(c, b), fn(free)];
     return true;
   }

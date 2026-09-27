@@ -142,6 +142,9 @@ const later = (s, f) => { (Wd.later || (Wd.later = [])).push({ t: Wd.t + s, f })
 // le plafond de la scène : le bas du texte et des boutons encore visibles (rien ne doit monter plus haut)
 // la profondeur du sol (27/09, Mathieu : « tout est sur la même ligne ; si on a une zone 3D, autant en profiter ») : une vraie bande de sol, le fond plus petit
 const PROF = () => Wd.mode === 'large' ? 1.35 : 0.95;
+// (27/09, Mathieu : « c'est le bordel ; si l'écran le permet, étaler sur plus de niveaux ») : la bande de sol prend la place libre sous le texte
+// (quand on reste jouer et que le texte s'en va, elle s'agrandit doucement ; jamais moins qu'avant, jamais plus de 2,8 unités)
+const profondeur = () => { const b = Wd.s0 * PROF(); if (Wd.mode !== 'large' || !Wd.floor) return b; return clamp(Wd.floor - (Wd.ceil || 0) - Wd.s0 * 1.55, b, Wd.s0 * 2.8); };
 function ceilY() { let y = 0; document.querySelectorAll('[data-plafond]').forEach(e => { const r = e.getBoundingClientRect(); if (r.height) y = Math.max(y, r.bottom); }); return y || Wd.H * 0.4; }
 // les deux boutons (où l'on grimpe, où l'on se cogne) et leur place à l'écran : lus une fois par image, pour tous les modules
 // (27/09, « optimise tout » : chacun les relisait, plusieurs fois par image)
@@ -189,9 +192,9 @@ function measure(S) {
   const ui = document.querySelector('.film-ui'), top = ui ? ui.getBoundingClientRect().top : S.H - 60;
   Wd.floor = Math.min(S.H - 30, top - 8); Wd.ceil = ceilY();
   const s0 = size0(); if (!Wd.sized) { Wd.s0 = s0; Wd.sized = true; } Wd.s0T = s0;
-  Wd.depth = Wd.s0 * PROF();
+  Wd.depth = profondeur();
   const mode = S.W >= 760 ? 'large' : 'etroit'; MAXC = mode === 'large' ? 20 : 8;
-  if (mode !== Wd.mode) { Wd.mode = mode; Wd.depth = Wd.s0 * PROF(); layout(); }
+  if (mode !== Wd.mode) { Wd.mode = mode; Wd.depth = profondeur(); layout(); }
   Wd.props.forEach(it => it.trail && (it.trail.length = 0));
   return true;
 }
@@ -364,7 +367,7 @@ function freeD() {
 }
 function addCat(o) {
   o = o || {};
-  const id = o.id || (() => { const here = new Set(Wd.cats.map(c => c.breed)), free = Chat.IDS.filter(i => !here.has(i)); return pick(free.length ? free : Chat.IDS); })();
+  const id = o.id || (() => { const here = new Set(Wd.cats.map(c => c.breed)), free = Chat.IDS.filter(i => !here.has(i) && !(Wd.t - ((Wd.partis || {})[i] ?? -99) < 60)); return pick(free.length ? free : Chat.IDS); })();
   const c = Chat.create(id);
   Object.assign(c, { d: o.d ?? freeD(), q: [], task: null, anim: 'assis', at: Math.random() * 10, perch: null, born: Wd.t, stay: rnd(45, 100), vx: 0, vy: 0,
     temp: !!o.temp, zo: (c.id % 6) * 70, ch: CARAC[id] || CARAC.tigre, claims: [], held: false, fall: false, jump: null, hidden: 0, mood: 0 });
@@ -394,6 +397,30 @@ function claim(c, p) { p.busy = c; c.claims.push(p); }
 
 /* les gestes : une file de pas (c.q) ; chacun dure jusqu'à ce qu'il soit fait */
 const go = (x, o) => Object.assign({ k: 'walk', x }, o);
+// les gros meubles qu'on ne traverse pas (on passe devant) ; sauf celui où il va (dessous, contre lui)
+const OBST = { canape: 1, biblio: 1, distrib: 1, coffre: 1, bassin: 1, lit: 1, arbre: 1, etage: 0 };
+function obstacle(c, nx, tx, td) {
+  for (const p of Wd.props) {
+    if (!OBST[p.kind] || p.run || p.held || p.fall || p.a < 0.5 || Math.abs(p.d - c.d) > 0.11) continue;
+    const hw = p.hull.w * p.s * 0.5 * (p.big || 1) * 0.92;
+    if (Math.abs(nx - p.x) > hw) continue;               // pas sur son chemin
+    if (Math.abs(c.x - p.x) < hw * 0.97 && Math.abs(tx - p.x) < hw && Math.abs(td - p.d) < 0.11) continue;   // il y va (dessous, dedans)
+    if (Math.abs(tx - p.x) < hw && Math.abs(td - p.d) < 0.11) continue;
+    return p;
+  }
+  return null;
+}
+// il est devant (ou derrière) un gros meuble et veut passer de l'autre côté : lequel le bloque ?
+function traverse(c, td, tx) {
+  const lo = Math.min(c.d, td), hi = Math.max(c.d, td);
+  for (const p of Wd.props) {
+    if (!OBST[p.kind] || p.run || p.held || p.fall || p.a < 0.5 || p.d < lo - 0.02 || p.d > hi + 0.02) continue;
+    const hw = p.hull.w * p.s * 0.5 * (p.big || 1) * 0.92; if (Math.abs(c.x - p.x) > hw) continue;
+    if (Math.abs(td - p.d) < 0.11 && Math.abs(tx - p.x) < hw * 1.3) continue;   // c'est là qu'il va (contre lui, dessous)
+    return p;
+  }
+  return null;
+}
 const pose = (anim, dur, o) => Object.assign({ k: 'pose', anim, dur }, o);
 const hop = (to, o) => Object.assign({ k: 'jump', to }, o);
 const fn = f => ({ k: 'fn', f });
@@ -401,10 +428,17 @@ const STEPS = {
   walk(c, T, dt) {
     const tx = typeof T.x === 'function' ? T.x() : T.x, g = T.g || c.ch.g, v = SPEED[g] * sc(c) * (T.v || 1), dx = tx - c.x;
     if (!Number.isFinite(tx) || (T.d !== undefined && !Number.isFinite(T.d))) return true;   // une cible perdue (son objet a disparu) : on s'arrête
-    if (T.d !== undefined) c.d += clamp(T.d - c.d, -dt * 0.6, dt * 0.6);
     c.anim = g; c.perch = null;
-    // arrivé : la profondeur finit de s'ajuster (au plus un instant : si un voisin le pousse, il ne piétine pas sur place)
-    if (Math.abs(dx) <= v * dt + 0.5) { c.x = tx; T.at = (T.at || 0) + dt; if (T.d === undefined || Math.abs(T.d - c.d) < 0.01 || T.at > 0.6) { if (T.face) c.face = T.face; return true; } c.anim = 'debout'; return false; }
+    // (27/09, Mathieu : « revoir le déplacement entre les niveaux ; ils passent derrière le canapé, dans les meubles ») :
+    // un gros meuble sur son chemin, à sa profondeur : il change d'abord de rangée (devant, sinon derrière), puis il avance
+    const dv = dt * 0.9 * (g === 'galop' ? 1.6 : 1), td = T.d ?? c.d, ob = obstacle(c, c.x + sgn(dx) * Math.min(Math.abs(dx), v * dt + sc(c) * 0.25), tx, td);
+    if (ob) { const devant = ob.d - 0.14 >= 0, cible = devant ? ob.d - 0.14 : ob.d + 0.14; c.d += clamp(cible - c.d, -dv, dv); if (Math.abs(dx) > 0.5) c.face = sgn(dx); T.det = 1; return false; }
+    // changer de rangée à travers un gros meuble : on longe d'abord (on sort de devant lui), puis on change de rangée
+    if (T.d !== undefined && Math.abs(T.d - c.d) > 0.02) { const tr = traverse(c, T.d, tx);
+      if (tr) { const hw = tr.hull.w * tr.s * 0.5 * (tr.big || 1) + sc(c) * 0.35, ex = tr.x + (sgn(tx - tr.x) || sgn(c.x - tr.x)) * hw, f = sgn(ex - c.x); c.face = f; c.x += f * Math.min(Math.abs(ex - c.x), v * dt); return false; }
+      c.d += clamp(T.d - c.d, -dv, dv); }
+    // arrivé : la profondeur finit de s'ajuster (sauf si un voisin le pousse depuis longtemps : il ne piétine pas sur place)
+    if (Math.abs(dx) <= v * dt + 0.5) { c.x = tx; T.at = (T.at || 0) + dt; if (T.d === undefined || Math.abs(T.d - c.d) < 0.01 || T.at > 2.5) { if (T.face) c.face = T.face; return true; } c.anim = 'pas'; return false; }
     c.face = sgn(dx); c.x += c.face * v * dt; return false;
   },
   pose(c, T) { c.anim = T.anim; if (T.face) c.face = T.face; if (T.fx && !T.fxd) { T.fxd = 1; T.fx(c); } return T.t >= T.dur; },   // l'effet : une seule fois, au début (même quand l'image est lente)
@@ -506,6 +540,13 @@ function sleep(c, bed) {
     hop(() => groundAt(inView(xOf(bed) + sgn(Math.random() - 0.5) * sc(c) * 0.9), Math.max(0, bed.d - 0.15))), fn(free));
 }
 function eat(c, g, drink) {
+  // le grand bassin : on boit perché sur le rebord, penché vers l'eau (27/09, Mathieu : debout au sol, il semblait flotter au-dessus du bassin)
+  if (g.kind === 'bassin' && g.perches) { const L = g.perches.filter(p => !p.bain && !p.busy && p.id.startsWith('bord')); if (L.length) {
+    const pe = L.sort((a, b) => Math.abs(Univers.at(g, a.p)[0] - c.x) - Math.abs(Univers.at(g, b.p)[0] - c.x))[0], side = pe.p[0] < 0 ? -1 : 1; claim(c, pe);
+    c.q.push(fn(c => c.q.unshift(go(inView(Univers.at(g, pe.p)[0] + side * sc(c) * 0.5), { d: Math.max(0, g.d - 0.05), face: -side }))), hop(() => perchAt(g, pe, 0), { h: sc(c) * 0.2, zr: [0, 0.4] }),
+      pose('mange', rnd(3.5, 6), { face: -side, fx: c => say(c, 'lap lap') }), pose('assis', rnd(1, 2), { face: -side }),
+      hop(() => groundAt(inView(Univers.at(g, pe.p)[0] + side * sc(c) * rnd(0.6, 1)), Math.max(0, g.d - rnd(0.1, 0.25)))), fn(free));
+    return; } }
   claim(c, g); const w = g.kind === 'distrib' ? 0.3 : g.kind === 'eau' ? 0.16 : g.kind === 'bassin' ? 0.95 : -0.1;
   c.q.push(fn(c => { const b = beside(c, xOf(g), sc(c) * w); c.q.unshift(go(b.x, { d: Math.max(0, g.d - 0.04), face: b.face })); }),
     pose('mange', rnd(3.5, 6), { fx: c => say(c, drink ? 'lap lap' : 'miam') }), pose('toilette', rnd(2, 3)), fn(free));
@@ -611,7 +652,7 @@ function endFight(F) {
   dust(F.x, floorAt(win.d), sc(win) * 0.6, 1);
 }
 function leave(c) {
-  const side = c.x < Wd.W / 2 ? -1 : 1;
+  const side = c.x < Wd.W / 2 ? -1 : 1; (Wd.partis || (Wd.partis = {}))[c.breed] = Wd.t; Wd.nextIn = Math.max(Wd.nextIn, Wd.t + rnd(10, 22));   // (Mathieu : « ils partent mais reviennent direct » : on attend un peu, et c'est un autre qui vient)
   c.q.push(go(side < 0 ? -sc(c) * 1.3 : Wd.W + sc(c) * 1.3, { g: c.temp ? 'galop' : c.ch.g }), fn(c => { c.gone = true; }));
 }
 function enter() {
@@ -700,7 +741,7 @@ function spread(dt) {
         // bloqué contre l'objet : s'il est bas, il saute par-dessus (comme un vrai chat) ; sinon il file de côté, plus vite
         if (Math.abs(dx) < hw * 0.8 && Math.abs(dd) < 0.12) {
           const top = it.hull.h * s;
-          if (top < sc(c) * 0.9 && Wd.t - (c.hopT ?? -9) > 1.5) { c.hopT = Wd.t; const w = c.task, lx = inView(it.x + ahead * (hw + sc(c) * 0.15)), ld = c.d;
+          if (top < sc(c) * 0.6 && Wd.t - (c.hopT ?? -9) > 4) { c.hopT = Wd.t;   /* (27/09, Mathieu : « ils ne font rien à part sauter » : un saut de temps en temps, sinon il contourne) */ const w = c.task, lx = inView(it.x + ahead * (hw + sc(c) * 0.15)), ld = c.d;
             c.q.unshift(pose('affut', 0.25), hop(() => groundAt(lx, ld), { h: top + sc(c) * 0.3, zr: [0, 0.3] }), w); c.task = null; break; }
           c.d += clamp(lane - c.d, -dt * 1.5, dt * 1.5);
         }
@@ -715,7 +756,7 @@ function spread(dt) {
       if (Math.abs(dd) >= 0.15) continue;   // en marchant, on se croise : l'un passe devant, l'autre derrière
       // celui qui marche change de couloir : devant s'il y a la place, sinon derrière
       const m = walks(a) && (!walks(b) || a.id > b.id) ? a : b, o = m === a ? b : a;
-      let lane = o.d + (m.d >= o.d ? 0.2 : -0.2); if (lane < 0) lane = o.d + 0.2; if (lane > 0.6) lane = o.d - 0.2; lane = clamp(lane, 0, 0.6);
+      let lane = o.d + (m.d >= o.d ? 0.2 : -0.2); if (lane < 0) lane = o.d + 0.2; if (lane > 0.98) lane = o.d - 0.2; lane = clamp(lane, 0, 0.98);
       m.d += clamp(lane - m.d, -dt * 0.9, dt * 0.9); if (m.task.d !== undefined && Math.abs(m.task.d - o.d) < 0.15) m.task.d = lane;
     } else {
       // deux chats à l'arrêt : ils se poussent doucement (un peu de côté, un peu en profondeur)
@@ -723,7 +764,7 @@ function spread(dt) {
       const s = dx ? sgn(dx) : (a.id < b.id ? 1 : -1), push = Math.min(need - Math.abs(dx), sc(a) * 1.4 * dt);
       if (a.pet && b.pet) continue; const ka = a.pet ? 0 : b.pet ? 1 : 0.5;
       a.x = inView(a.x - s * push * ka); b.x = inView(b.x + s * push * (1 - ka));
-      const e = (dd ? sgn(dd) : 1) * dt * 0.05; a.d = clamp(a.d - e, 0, 0.6); b.d = clamp(b.d + e, 0, 0.6);
+      const e = (dd ? sgn(dd) : 1) * dt * 0.05; a.d = clamp(a.d - e, 0, 0.98); b.d = clamp(b.d + e, 0, 0.98);
     }
   }
   G.forEach(c => { if (c.task ? c.task.k !== 'jump' : true) c.y = floorAt(c.d); });   // le sol suit la profondeur, dans la même image
@@ -784,7 +825,10 @@ function thud(it) {
 }
 
 /* ——— la craie : les petits effets ——— */
-function say(c, text, rot) { const h = Chat.where(c, c.head); Wd.fx.push({ k: 'txt', text, x: h[0] + c.face * sc(c) * 0.2, y: h[1] - c.b.head[1] * sc(c) * 1.6, t0: Wd.t, life: 1.6, rot: rot ?? c.face * 0.12, size: clamp(sc(c) * 0.12, 13, 20) }); }
+// (27/09, Mathieu : « trop de texte ») : un chat n'a qu'une bulle à la fois (la nouvelle remplace l'ancienne), et jamais plus de sept bulles à l'écran
+function say(c, text, rot) { const h = Chat.where(c, c.head), vieille = Wd.fx.find(f => f.who === c && Wd.t - f.t0 < f.life);
+  if (vieille) { if (Wd.t - vieille.t0 < 0.5) return; vieille.life = 0; } else if (Wd.fx.reduce((n, f) => n + (f.who && Wd.t - f.t0 < f.life ? 1 : 0), 0) >= 7) return;
+  Wd.fx.push({ who: c, k: 'txt', text, x: h[0] + c.face * sc(c) * 0.2, y: h[1] - c.b.head[1] * sc(c) * 1.6, t0: Wd.t, life: 1.6, rot: rot ?? c.face * 0.12, size: clamp(sc(c) * 0.12, 13, 20) }); }
 function dust(x, y, r, a) { Wd.fx.push({ k: 'dust', x, y, r, a, t0: Wd.t, life: 0.5, seed: Math.floor(Math.random() * 99) }); }
 function drawFx(S) {
   const C = Chalk, t = Wd.t, K = S.K || 1;
@@ -1116,7 +1160,8 @@ function step(S, dt) {
   // les scénarios
   if (dt && Wd.t > Wd.nextScen && !Wd.tower && !Wd.props.some(p => p.run) && !Wd.busyScen) { nextScenario(); Wd.nextScen = Wd.t + rnd(24, 42); }
   if (Wd.t > (Wd.ceilT || 0)) { Wd.ceil = ceilY(); Wd.s0T = size0(); Wd.ceilT = Wd.t + 0.5; }
-  if (Math.abs(Wd.s0T - Wd.s0) > 0.05) { Wd.s0 += (Wd.s0T - Wd.s0) * Math.min(1, dt * 1.5); Wd.depth = Wd.s0 * PROF(); }
+  if (Math.abs(Wd.s0T - Wd.s0) > 0.05) Wd.s0 += (Wd.s0T - Wd.s0) * Math.min(1, dt * 1.5);
+  { const D = profondeur(); if (Math.abs(D - Wd.depth) > 0.5) Wd.depth += (D - Wd.depth) * Math.min(1, dt * 1.2); }
   laters(); H.pre.forEach(f => f(dt)); runMice(dt); towerFrame(dt); kibFrame(dt); vacFrame(dt); extras(); machines(dt);
   Wd.cats.forEach(c => { if (c.pet && Wd.t - c.pet.t > 5) { c.pet = null; c.task = null; } });
   if (dt && Wd.t > Wd.nextKib) { const g = Wd.props.find(p => p.kind === 'distrib'); if (g) fire(g); Wd.nextKib = Wd.t + rnd(16, 32); }

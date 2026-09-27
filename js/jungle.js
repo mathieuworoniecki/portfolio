@@ -24,6 +24,7 @@ function arrache(it, f, p, vx, vy) {
   f.on = false; f.g.visible = false; f.t = Wd.t; it.wob = Wd.t; it.wobA = 0.4; word(pick(['crac !', 'scrountch', 'tchac']), p[0], p[1] - 16, 16);
   return tombe(p[0], p[1], it.d - 0.05, vx, vy);
 }
+const nbF = () => Wd.props.reduce((n, p) => n + (p.kind === 'feuille'), 0);
 function tombe(x, y, d, vx, vy) {
   d = Math.max(0, Math.min(1, d)); const L = K.prop('feuille', x / Wd.W, d); L.lift = Math.max(0, floorAt(d) - y); L.fade = L.fadeT = 1; L.a = 1; L.seed = rnd(0, 9);
   K.drop(L, vx || 0, vy || 0, rnd(-3, 3)); L.tmp = true; return L;
@@ -57,10 +58,18 @@ H.post.push(dt => {
     f.g.rotation.x = 0.3 * (i % 2 ? 1 : -1) + Math.sin(t * 1.3 + i) * 0.05 + Math.sin(t * 14 + i) * 0.25 * w;
     f.g.rotation.z = -f.a * 1.1 + Math.sin(t * 0.9 + i * 2) * 0.04 + Math.sin(t * 11 + i) * 0.15 * w;
     if (window.Souffleur && f.on) Souffleur.souffleurs().forEach(s => { if (!(s.pw > 0.2) || !s.cone) return; const p = centre(it, f), C = s.cone, px = p[0] - C.x, py = p[1] - C.y, u = px * C.dx + py * C.dy;
-      if (u < 0 || u > C.L || Math.abs(-px * C.dy + py * C.dx) > u * C.k + 30) return; f.wob = t; if (Math.random() < dt * 0.9) arrache(it, f, p, C.dx * sOf(it.d) * 4, sOf(it.d) * 2); });
+      if (u < 0 || u > C.L || Math.abs(-px * C.dy + py * C.dx) > u * C.k + 30) return; f.wob = t; if (Math.random() < dt * 2.5 * s.pw && nbF() < 16) { const L = arrache(it, f, p, C.dx * sOf(it.d) * rnd(6, 9), sOf(it.d) * rnd(3, 5)); L.soufT = t; } });
   }));
-  // la feuille qui tombe virevolte
-  Wd.props.forEach(L => { if (L.kind !== 'feuille' || !L.fall || L.held) return; const s = sOf(L.d); L.vy = Math.max(L.vy, -s * 1.3); L.vx += Math.sin(t * 4 + L.seed) * s * 3 * dt; L.tilt = Math.sin(t * 5 + L.seed) * 0.5 * Math.min(1, Math.max(0, L.lift) / (s * 0.4)); });
+  // (27/09, Mathieu : « quand on souffle, les feuilles devraient s'envoler ») : la petite plante en pot perd aussi ses feuilles dans le vent
+  if (window.Souffleur) Souffleur.souffleurs().forEach(s => { if (!(s.pw > 0.2) || !s.cone) return; const C = s.cone;
+    Wd.props.forEach(pl => { if (pl.kind !== 'plante' || pl.held || pl.a < 0.5 || t - (pl.feuT ?? -9) < 0.45 || nbF() >= 16) return;
+      const px = pl.x - C.x, py = pl.y - pl.s * 0.35 - C.y, u = px * C.dx + py * C.dy; if (u < 0 || u > C.L || Math.abs(-px * C.dy + py * C.dx) > u * C.k + 30) return;
+      pl.feuT = t; pl.wob = t; pl.wobA = 0.3; const L = tombe(pl.x + rnd(-8, 8), pl.y - pl.s * 0.35, pl.d - 0.05, C.dx * sOf(pl.d) * rnd(6, 9), sOf(pl.d) * rnd(3, 5)); L.soufT = t;
+      if (Math.random() < 0.3) word(pick(['mes feuilles !', 'frrrt', 'fshhh']), pl.x, pl.y - pl.s * 0.5, 14); }); });
+  // la feuille qui tombe virevolte ; dans le vent, elle s'envole en tourbillonnant
+  Wd.props.forEach(L => { if (L.kind !== 'feuille' || !L.fall || L.held) return; const s = sOf(L.d);
+    if (t - (L.soufT ?? -9) < 0.35) { L.vy += Math.sin(t * 9 + L.seed) * s * 9 * dt; L.vx += Math.cos(t * 7 + L.seed) * s * 5 * dt; L.vy = Math.min(L.vy, s * 7); L.tilt = (L.tilt || 0) + dt * 9 * (L.seed > 4.5 ? 1 : -1); return; }
+    L.vy = Math.max(L.vy, -s * 1.3); L.vx += Math.sin(t * 4 + L.seed) * s * 3 * dt; L.tilt = Math.sin(t * 5 + L.seed) * 0.5 * Math.min(1, Math.max(0, L.lift) / (s * 0.4)); });
   // près d'un chat : il la mange
   Wd.props.forEach(L => {
     if (L.kind !== 'feuille' || L.busy || L.suck || L.fall && !L.held) return;

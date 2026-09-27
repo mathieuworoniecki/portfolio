@@ -7,7 +7,7 @@
    - Débloqué : le badge arrive au centre de l'écran, tourne, rebondit, des rayons derrière lui, des confettis ; son nom, son rang.
    - Le trophée dans la barre de gauche ouvre la vitrine : obtenus en couleur, restants en gris avec leur indice, secrets en « ? ». */
 window.HF = (() => {
-if (!window.Chats || !Chats.K || !window.Dex) return null;
+if (!window.Chats || !Chats.K || !window.Dex || !window.Badges) return null;
 const K = Chats.K, { Wd, H } = K;
 const EN = () => window.I18N && I18N.lang && I18N.lang !== 'fr';
 const T = (fr, en) => EN() ? en : fr;
@@ -70,38 +70,29 @@ const HFs = LISTE.map(([id, rang, g, nfr, nen, hfr, hen, ok]) => ({ id, rang, g,
 const PAR = Object.fromEntries(HFs.map(h => [h.id, h]));
 const nb = () => HFs.filter(h => M.got[h.id]).length;
 
-/* ——— le badge : une médaille au trait, deux rubans, un glyphe ——— */
-function badge(h, got, taille) {
-  const R = RANG[h.rang], col = got ? R.c : '140,140,140', cache = !got && h.rang === 'secret', s = taille || 120;
-  return `<svg class="hf-badge" viewBox="0 0 120 140" width="${s}" height="${s * 140 / 120}" aria-hidden="true">
-    <path d="M42 92 L30 134 L46 124 L56 138 L62 98" fill="rgba(${col},${got ? 0.55 : 0.18})" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
-    <path d="M78 92 L90 134 L74 124 L64 138 L58 98" fill="rgba(${col},${got ? 0.4 : 0.14})" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
-    <circle cx="60" cy="58" r="44" fill="rgba(${col},${got ? 0.9 : 0.16})" stroke="currentColor" stroke-width="3" ${cache ? 'stroke-dasharray="7 6"' : ''}/>
-    <circle cx="60" cy="58" r="34" fill="none" stroke="currentColor" stroke-width="1.6" opacity="${got ? 0.7 : 0.35}" ${got ? '' : 'stroke-dasharray="3 5"'}/>
-    ${got ? '<path d="M34 40 q8 -14 22 -16" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".75"/>' : ''}
-    <text x="60" y="60" text-anchor="middle" dominant-baseline="central" font-size="${cache ? 38 : 34}" style="font-family:var(--hand),serif" fill="currentColor" opacity="${got ? 1 : 0.45}">${cache ? '?' : h.g + '\uFE0E'}</text>
-  </svg>`;
-}
+/* ——— le badge : un dessin par haut fait (js/badges.js) ——— */
+const badge = (h, got, taille) => Badges.badge(h, got, taille, RANG[h.rang].c);
 
-/* ——— le déblocage : la grande animation ——— */
-const scene = document.createElement('div'); scene.className = 'hf-show'; scene.hidden = true; scene.setAttribute('role', 'alert'); document.body.appendChild(scene);
+/* ——— le déblocage : une carte qui surgit dans un coin (Mathieu 27/09 : « ne pas gêner l'utilisation ») ———
+   En haut à droite, rien ne bloque la scène : le badge tombe en tournant, rebondit, des rayons derrière lui, quelques confettis.
+   Un clic dessus ouvre la vitrine ; elle repart seule au bout de 5 s. */
+const scene = document.createElement('div'); scene.className = 'hf-show'; scene.hidden = true; scene.setAttribute('role', 'status'); document.body.appendChild(scene);
 const file = []; let joue = false, finT = 0;
 function gagne(h) {
   if (M.got[h.id]) return; M.got[h.id] = Date.now(); garde(); compte(); file.push(h); suivant();
 }
 function suivant() {
   if (joue || !file.length) return; joue = true; const h = file.shift(), R = RANG[h.rang];
-  scene.innerHTML = `<div class="hf-rayons" style="--c:${R.c}"></div><div class="hf-carte" style="--c:${R.c}">
-    <p class="hf-sur">${T('Haut fait débloqué !', 'Achievement unlocked!')}</p>${badge(h, true, 170)}
-    <h2>${h.nom()}</h2><p class="hf-rang">${T(R.fr, R.en)}</p><p class="hf-h">${h.h()}</p></div>`;
-  scene.hidden = false; scene.classList.remove('go'); void scene.offsetWidth; scene.classList.add('go');
-  // des confettis de partout, et le monde qui tremble un peu
-  const G = window.Scenarios && Scenarios.gerbe; if (G && Wd.W) { G(Wd.W / 2, Wd.H * 0.45, 26, 520); setTimeout(() => G(Wd.W * 0.25, Wd.H * 0.6, 14, 380), 250); setTimeout(() => G(Wd.W * 0.75, Wd.H * 0.6, 14, 380), 400); }
-  Wd.shake = { t0: Wd.t, a: 6 };
-  clearTimeout(finT); finT = setTimeout(ferme, 4200);
+  scene.style.setProperty('--c', R.c);
+  scene.innerHTML = `<div class="hf-rayons"></div>${badge(h, true, 76)}<div class="hf-txt">
+    <p class="hf-sur">${T('Haut fait débloqué !', 'Achievement unlocked!')}</p><h2>${h.nom()}</h2><p class="hf-rang">${T(R.fr, R.en)}</p></div>`;
+  scene.hidden = false; scene.classList.remove('go', 'part'); void scene.offsetWidth; scene.classList.add('go');
+  // quelques confettis qui partent du badge
+  const G = window.Scenarios && Scenarios.gerbe; if (G && Wd.W) setTimeout(() => { const r = scene.getBoundingClientRect(); if (r.width) G(r.left + 44, r.top + 46, 14, 300); }, 450);
+  clearTimeout(finT); finT = setTimeout(ferme, 5000);
 }
-function ferme() { clearTimeout(finT); scene.classList.remove('go'); scene.hidden = true; joue = false; setTimeout(suivant, 350); }
-scene.addEventListener('click', e => { e.stopPropagation(); ferme(); });
+function ferme() { clearTimeout(finT); scene.classList.add('part'); setTimeout(() => { scene.classList.remove('go', 'part'); scene.hidden = true; joue = false; setTimeout(suivant, 300); }, 380); }
+scene.addEventListener('click', e => { e.stopPropagation(); ferme(); ouvre(); });
 ['pointerdown', 'wheel', 'touchstart'].forEach(t => scene.addEventListener(t, e => e.stopPropagation(), { passive: t !== 'pointerdown' }));
 
 /* ——— les compteurs ——— */
@@ -132,7 +123,7 @@ function ouvre() {
     <div class="dex-barre"><span style="width:${(k / tot * 100).toFixed(1)}%"></span></div><button type="button" class="dex-x" aria-label="${T('Fermer', 'Close')}">×</button></header>
     ${Object.keys(RANG).map(r => { const L = HFs.filter(h => h.rang === r); return `<section><h3>${T(RANG[r].fr, RANG[r].en)} <small>${L.filter(h => M.got[h.id]).length}/${L.length}</small></h3>
       <ul class="hf-grille">${L.map(h => { const got = !!M.got[h.id], cache = !got && r === 'secret';
-        return `<li class="${got ? 'ok' : ''}" style="--c:${RANG[r].c}">${badge(h, got, 64)}<b>${cache ? T('Haut fait secret', 'Secret achievement') : h.nom()}</b><span>${h.h()}</span>${got ? `<i>${new Date(M.got[h.id]).toLocaleDateString(EN() ? 'en' : 'fr')}</i>` : ''}</li>`; }).join('')}</ul></section>`; }).join('')}</div>`;
+        return `<li class="${got ? 'ok' : ''}" style="--c:${RANG[r].c}">${badge(h, got, 84)}<b>${cache ? T('Haut fait secret', 'Secret achievement') : h.nom()}</b><span>${h.h()}</span>${got ? `<i>${new Date(M.got[h.id]).toLocaleDateString(EN() ? 'en' : 'fr')}</i>` : ''}</li>`; }).join('')}</ul></section>`; }).join('')}</div>`;
   vitrine.hidden = false; vitrine.querySelector('.dex-x').focus(); vitrine.querySelector('.dex-x').onclick = fermeV;
 }
 function fermeV() { vitrine.hidden = true; if (btn) btn.focus(); }
