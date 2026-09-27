@@ -154,7 +154,7 @@ H.live.push(c => {
    - Un carton qui a pris l'eau (un chat trempé dedans, ou il a flotté dans le bassin) se ramollit : il s'affaisse, puis sèche.
    - Les poilus (pompon, nuage, hirsute) mouillés sont tout plats, tout fins ; secs (souffleur, ami), ils regonflent. */
 const POILUS = { pompon: 1, nuage: 1, hirsute: 1, gros: 0.5, chaton: 0.5 };
-const LIT = { coussin: 1, panier: 1 };
+const LIT = { coussin: 1, panier: 1, lit: 1 };
 H.live.push(c => {
   const it = c.perch && c.perch.it; if (!it) return;
   if (mouille(c) && (LIT[it.kind] || it.kind === 'carton')) { if (!(it.mouille > Wd.t + 20)) { if (!(it.mouille > Wd.t)) word(pick(['sploutch', 'floc…', 'plic']), it.x, it.y - 22, 15); it.mouille = Wd.t + 25; if (window.Dex) Dex.vu(it.kind === 'carton' ? 'cartonmou' : 'litmouille'); } }

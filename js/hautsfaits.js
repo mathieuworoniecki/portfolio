@@ -46,7 +46,8 @@ const LISTE = [
   ['observateur', 'argent', '◉', 'Observateur', 'Watcher', 'Sept manies de chats.', 'Seven cat quirks.', () => nv(MANIES.map(k => 'manie-' + k)) >= 7],
   ['nuit', 'argent', '☾', 'Oiseau de nuit', 'Night owl', 'Reviens tard le soir.', 'Come back late at night.', () => v('nuit')],
   ['masseur', 'argent', '∞', 'Masseur', 'Masseur', 'Une caresse. Et encore une. Cent fois.', 'One pet. And another. A hundred times.', () => N.caresses >= 100],
-  ['fidele', 'argent', '⌂', 'Fidèle', 'Loyal', 'Revenir voir les chats, encore et encore.', 'Come back to see the cats, again and again.', () => N.visites >= 3],
+  ['cheznous', 'argent', '⌂', 'Comme chez soi', 'Home sweet home', 'La table, le lit, la bibliothèque, la mezzanine : partout un chat.', 'Table, bed, bookcase, loft: a cat everywhere.', () => ['table', 'lit', 'biblio', 'etage'].every(v)],
+  ['fidele', 'argent', '↻', 'Fidèle', 'Loyal', 'Revenir voir les chats, encore et encore.', 'Come back to see the cats, again and again.', () => N.visites >= 3],
 
   ['raretes', 'or', '✦', 'Chasseur de raretés', 'Rarity hunter', 'Six visiteurs très rares. Un clic dans le vide, parfois…', 'Six very rare visitors. A click on empty space, sometimes…', () => v('tousrares')],
   ['moitie', 'or', '◐', 'À mi-chemin', 'Halfway', 'La moitié du carnet de découvertes.', 'Half the discovery notebook.', () => pct() >= 0.5],

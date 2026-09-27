@@ -135,11 +135,13 @@ const Wd = { on: false, W: 0, H: 0, floor: 0, depth: 60, s0: 150, t: 0, f: 0, ca
 const H = { think: [], live: [], fall: [], bonk: [], pre: [], post: [], draw: [], grab: [], drag: [], release: [], click: [], fire: [], shoot: [] };
 const run = (L, a, b, c, d) => { for (const f of L) if (f(a, b, c, d)) return true; return false; };
 const TAU2 = Math.PI / 2, sgn = v => v < 0 ? -1 : 1, clamp = (v, a, b) => v < a ? a : v > b ? b : v;
-const zOf = d => (1 - d) * 6000, kOf = d => 1 - 0.16 * d, floorAt = d => Wd.floor - d * Wd.depth, sOf = d => Wd.s0 * kOf(d);
+const zOf = d => (1 - d) * 6000, kOf = d => 1 - (Wd.mode === 'large' ? 0.3 : 0.2) * d, floorAt = d => Wd.floor - d * Wd.depth, sOf = d => Wd.s0 * kOf(d);
 const grav = () => 2600 * Wd.s0 / 160;
 // plus tard, au temps du monde (pas de setTimeout : le monde peut être en pause, accéléré, ou rechargé)
 const later = (s, f) => { (Wd.later || (Wd.later = [])).push({ t: Wd.t + s, f }); };
 // le plafond de la scène : le bas du texte et des boutons encore visibles (rien ne doit monter plus haut)
+// la profondeur du sol (27/09, Mathieu : « tout est sur la même ligne ; si on a une zone 3D, autant en profiter ») : une vraie bande de sol, le fond plus petit
+const PROF = () => Wd.mode === 'large' ? 1.35 : 0.95;
 function ceilY() { let y = 0; document.querySelectorAll('[data-plafond]').forEach(e => { const r = e.getBoundingClientRect(); if (r.height) y = Math.max(y, r.bottom); }); return y || Wd.H * 0.4; }
 // les deux boutons (où l'on grimpe, où l'on se cogne) et leur place à l'écran : lus une fois par image, pour tous les modules
 // (27/09, « optimise tout » : chacun les relisait, plusieurs fois par image)
@@ -187,9 +189,9 @@ function measure(S) {
   const ui = document.querySelector('.film-ui'), top = ui ? ui.getBoundingClientRect().top : S.H - 60;
   Wd.floor = Math.min(S.H - 30, top - 8); Wd.ceil = ceilY();
   const s0 = size0(); if (!Wd.sized) { Wd.s0 = s0; Wd.sized = true; } Wd.s0T = s0;
-  Wd.depth = Wd.s0 * 0.7;
+  Wd.depth = Wd.s0 * PROF();
   const mode = S.W >= 760 ? 'large' : 'etroit'; MAXC = mode === 'large' ? 20 : 8;
-  if (mode !== Wd.mode) { Wd.mode = mode; layout(); }
+  if (mode !== Wd.mode) { Wd.mode = mode; Wd.depth = Wd.s0 * PROF(); layout(); }
   Wd.props.forEach(it => it.trail && (it.trail.length = 0));
   return true;
 }
@@ -207,10 +209,10 @@ function unprop(it) { Univers.destroy(it); const i = Wd.props.indexOf(it); if (i
   // (27/09, l'audit : un chat perché sur un objet retiré restait assis sur le vide)
   Wd.cats.forEach(c => { if (c.perch && c.perch.it === it) { c.perch = null; c.task = null; c.q = []; c.fall = true; c.vy = 0; } }); }
 // l'encombrement de chaque objet (en unités) : pour tomber, rebondir, se poser sur une caisse, se laisser attraper
-const HULL = { jungle: { w: 0.5, h: 0.34 }, feuille: { w: 0.28, h: 0.05 }, bassin: { w: 1.28, h: 0.16 }, souffleur: { w: 0.7, h: 0.3 }, canape: { w: 1.66, h: 0.62 }, carton: { w: 0.56, h: 0.32 }, panier: { w: 0.72, h: 0.15 }, coussin: { w: 0.76, h: 0.15 }, gamelle: { w: 0.34, h: 0.08 }, eau: { w: 0.33, h: 0.17 },
+const HULL = { table: { w: 1.1, h: 0.56 }, lit: { w: 1.72, h: 0.5 }, biblio: { w: 0.9, h: 1.62 }, etage: { w: 1.5, h: 1.35 }, jungle: { w: 0.5, h: 0.34 }, feuille: { w: 0.28, h: 0.05 }, bassin: { w: 1.28, h: 0.16 }, souffleur: { w: 0.7, h: 0.3 }, canape: { w: 1.66, h: 0.62 }, carton: { w: 0.56, h: 0.32 }, panier: { w: 0.72, h: 0.15 }, coussin: { w: 0.76, h: 0.15 }, gamelle: { w: 0.34, h: 0.08 }, eau: { w: 0.33, h: 0.17 },
   distrib: { w: 0.4, h: 0.74 }, trappe: { w: 0.6, h: 0.5 }, arbre: { w: 1.5, h: 1.95 }, pelote: { w: 0.15, h: 0.15 }, poisson: { w: 0.3, h: 0.08 }, lanceur: { w: 0.6, h: 0.7 }, coffre: { w: 0.52, h: 0.3 } };
 // les lourds (ils tanguent, se laissent traîner lentement, tombent lourdement), ce qu'un chat bouscule en passant
-const LOURD = { arbre: 1, distrib: 1, lanceur: 1, coffre: 1, bassin: 1, canape: 1 }, LEGER = { pelote: 1, poisson: 1, tasse: 1, plante: 1, feuille: 1 };
+const LOURD = { arbre: 1, distrib: 1, lanceur: 1, coffre: 1, bassin: 1, canape: 1, table: 1, lit: 1, biblio: 1, etage: 1 }, LEGER = { pelote: 1, poisson: 1, tasse: 1, plante: 1, feuille: 1 };
 const COL = { orange: 0xd0661f, bleu: 0x2f6fb0, vert: 0x3a6e46, rose: 0xc04a6c, gris: 0x6a6c70 };
 function layout() {
   Wd.props.slice().forEach(unprop); Wd.P = {}; Wd.extras = []; Wd.kib = []; const P = Wd.P, wide = Wd.mode === 'large';
@@ -218,29 +220,31 @@ function layout() {
   // l'arbre à chat au bord gauche, tourné vers le centre ; le coin repos, les jouets devant, le carton et les caisses, la cuisine à droite
   P.arbre = prop('arbre', ex(wide ? 0.8 : 0.62) + 0.012, 0.75, { yaw: 0.4 });
   if (wide) {
-    P.coussin = prop('coussin', 0.25, 0.3);
-    // le grand bassin, un peu au centre (Mathieu, 27/09)
-    P.bassin = prop('bassin', 0.36, 0.62);
-    P.panier = prop('panier', 0.66, 0.22);
-    P.pelote = prop('pelote', 0.45, 0.02);
-    P.poisson = prop('poisson', 0.4, 0.12);
-    // (Mathieu, 27/09 : « moins de cartons au départ, le décor est trop grand ») : un carton ouvert ; une caisse seulement sur un grand écran
-    P.carton = prop('carton', 0.64, 0.8);
-    // (un grand écran : le canapé au fond, à la place de la caisse)
-    if (Wd.W >= 1300) { P.canape = prop('canape', 0.75, 0.98); P.tasse = 'coffre'; }
-    else if (Wd.W >= 1200) { P.caisse = prop('caisse', 0.72, 0.6, { size: 1 }); P.tasse = prop('tasse', 0, 0.6); stack(P.tasse, P.caisse, 0.1); }
-    else P.tasse = prop('tasse', 0.71, 0.55);
-    P.plante = prop('plante', Wd.W >= 1300 ? 0.86 : 0.78, 0.92);
-    P.souffleur = prop('souffleur', 0.93, 0.2, { yaw: Math.PI + 0.35 });
+    // (27/09, Mathieu : « structurer un peu plus la scène, de l'espace entre les éléments, plus de profondeur ; il manque lit, étage, bibliothèque, table »)
+    // trois rangées : au fond les grands meubles (bibliothèque, distributeur, mezzanine, canapé), au milieu le bassin, la table, le lit, devant les jouets et les lits
+    const W = Wd.W, grand = W >= 1300, tresGrand = W >= 1500;
+    if (W >= 1100) P.biblio = prop('biblio', 0.2, 1, { yaw: 0.15 });
+    P.coussin = prop('coussin', 0.24, 0.18);
+    P.bassin = prop('bassin', 0.36, 0.55);
+    P.panier = prop('panier', 0.64, 0.08);
+    P.pelote = prop('pelote', 0.46, 0.02);
+    P.poisson = prop('poisson', 0.41, 0.1);
+    P.carton = prop('carton', grand ? 0.72 : 0.64, grand ? 0.32 : 0.8);
+    if (grand) { P.etage = prop('etage', 0.63, 1, { yaw: -0.1 }); P.canape = prop('canape', 0.8, 0.98); }
+    else if (W >= 1200) { P.caisse = prop('caisse', 0.72, 0.6, { size: 1 }); }
+    if (W >= 1000) { P.table = prop('table', 0.52, 0.5, { yaw: -0.12 }); P.tasse = prop('tasse', 0, 0.5); stack(P.tasse, P.table, 0.3); }
+    else { P.tasse = prop('tasse', 0.71, 0.55); }
+    if (grand) P.lit = prop('lit', 0.84, 0.55, { yaw: -0.3 });
+    P.plante = prop('plante', tresGrand ? 0.9 : 0.94, 0.95);
+    P.souffleur = prop('souffleur', 0.1, 0.04, { yaw: 0.35 });
     // la jungle, sur les côtés d'un grand écran (Mathieu, 27/09)
-    if (Wd.W >= 1500) { P.jungle = prop('jungle', 0.05, 1, { yaw: 0.2 }); P.jungle.big = 1.3; P.jungle2 = prop('jungle', 0.955, 1, { yaw: -0.3 }); P.jungle2.big = 0.85; }
+    if (tresGrand) { P.jungle = prop('jungle', 0.05, 1, { yaw: 0.2 }); P.jungle.big = 1.3; P.jungle2 = prop('jungle', 0.955, 1, { yaw: -0.3 }); P.jungle2.big = 0.85; }
     P.trappe = prop('trappe', 1, 0.9);
-    // le distributeur au milieu : les chats y passent souvent
-    P.distrib = prop('distrib', 0.5, 0.9, { yaw: -0.25 });
-    P.gamelle = prop('gamelle', 0.56, 0.5);
+    // le distributeur au fond, au milieu : les chats y passent souvent
+    P.distrib = prop('distrib', 0.47, 0.97, { yaw: -0.25 });
+    P.gamelle = prop('gamelle', 0.54, 0.22);
     // le coffre à jouets : la canne à plume dedans (js/jouets.js)
-    P.coffre = prop('coffre', 0.87, 0.55, { yaw: -0.3 });
-    if (P.tasse === 'coffre') { P.tasse = prop('tasse', 0, 0.55); stack(P.tasse, P.coffre, -0.12); }
+    P.coffre = prop('coffre', 0.93, 0.22, { yaw: -0.3 });
   } else {
     P.coussin = prop('coussin', 0.56, 0.3);
     P.pelote = prop('pelote', 0.68, 0.0);
@@ -1112,7 +1116,7 @@ function step(S, dt) {
   // les scénarios
   if (dt && Wd.t > Wd.nextScen && !Wd.tower && !Wd.props.some(p => p.run) && !Wd.busyScen) { nextScenario(); Wd.nextScen = Wd.t + rnd(24, 42); }
   if (Wd.t > (Wd.ceilT || 0)) { Wd.ceil = ceilY(); Wd.s0T = size0(); Wd.ceilT = Wd.t + 0.5; }
-  if (Math.abs(Wd.s0T - Wd.s0) > 0.05) { Wd.s0 += (Wd.s0T - Wd.s0) * Math.min(1, dt * 1.5); Wd.depth = Wd.s0 * 0.7; }
+  if (Math.abs(Wd.s0T - Wd.s0) > 0.05) { Wd.s0 += (Wd.s0T - Wd.s0) * Math.min(1, dt * 1.5); Wd.depth = Wd.s0 * PROF(); }
   laters(); H.pre.forEach(f => f(dt)); runMice(dt); towerFrame(dt); kibFrame(dt); vacFrame(dt); extras(); machines(dt);
   Wd.cats.forEach(c => { if (c.pet && Wd.t - c.pet.t > 5) { c.pet = null; c.task = null; } });
   if (dt && Wd.t > Wd.nextKib) { const g = Wd.props.find(p => p.kind === 'distrib'); if (g) fire(g); Wd.nextKib = Wd.t + rnd(16, 32); }

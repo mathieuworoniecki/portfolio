@@ -36,6 +36,12 @@ fam('coins', 'Les coins préférés', 'Favourite spots', [
   ['etagere', 'Le parcours', 'The climbing course', 'Des étagères au mur, sur un grand écran.', 'Wall shelves, on a big screen.'],
   ['coussin', 'Le coussin', 'The cushion', 'Pour les dormeurs.', 'For the sleepers.'],
   ['panier', 'Le panier', 'The basket', 'Pour les rêveurs.', 'For the dreamers.'],
+  ['table', 'Sur la table', 'On the table', 'Il n’a pas le droit… il le sait.', 'Not allowed… and he knows it.'],
+  ['soustable', 'Sous la table', 'Under the table', 'La meilleure cachette est juste là.', 'The best hiding spot is right there.'],
+  ['lit', 'Le grand lit', 'The big bed', 'Le lit n’est pas que pour les humains.', 'The bed is not just for humans.'],
+  ['biblio', 'La bibliothèque', 'The bookcase', 'Des rayons, des livres… et des trous.', 'Shelves, books… and gaps.'],
+  ['livre', 'Un livre tombe', 'A book falls', 'Tout en haut de la bibliothèque, une patte curieuse.', 'At the top of the bookcase, a curious paw.'],
+  ['etage', 'La mezzanine', 'The loft', 'Une échelle, et une vue d’en haut.', 'A ladder, and a view from above.'],
 ]);
 fam('gestes', 'Avec la souris', 'With your hands', [
   ['caresse', 'Une caresse', 'A pet', 'Va-et-vient du curseur sur un chat.', 'Move the cursor back and forth over a cat.'],

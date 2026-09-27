@@ -177,6 +177,48 @@ function pieces() {
     B.soft(segs([[0, 0.265, 0.25], [0, 0.265, -0.12]])); B.soft(segs([[0, 0.3, -0.12], [0, 0.6, -0.12]]));
     [[-0.74, 0.2], [0.74, 0.2], [-0.74, -0.2], [0.74, -0.2]].forEach(([x, z]) => B.solid(K.lathe([[0, 0], [0.03, 0], [0.035, 0.05], [0, 0.05]], 10).translate(x, 0, z)));
   });
+  // (27/09, Mathieu : « il manque lit, canapé, étage, bibliothèque, table ») — les meubles, js/meubles.js
+  // la table : un plateau épais, quatre pieds un peu évasés, une traverse
+  P.table = Obj3D.piece('u:table', B => {
+    B.solid(K.ext(K.roundPoly([[-0.52, 0.5], [0.52, 0.5], [0.52, 0.56], [-0.52, 0.56]], 0.02, 3), 0.56));
+    [[-0.44, 0.2], [0.44, 0.2], [-0.44, -0.2], [0.44, -0.2]].forEach(([x, z]) => B.solid(K.tube([[x * 1.06, 0, z * 1.1], [x, 0.5, z]], 0.025, 8, 2)));
+    B.soft(segs([[-0.44, 0.34, 0.2], [0.44, 0.34, 0.2]]));
+  });
+  // le lit : un cadre bas, un matelas rebondi, une tête de lit arrondie, un oreiller, une couette qui retombe
+  P.lit = Obj3D.piece('u:lit', B => {
+    B.solid(K.ext(K.roundPoly([[-0.78, 0.04], [0.78, 0.04], [0.78, 0.22], [-0.78, 0.22]], 0.03, 3), 0.8));
+    B.solid(K.ext(K.roundPoly([[-0.76, 0.22], [0.76, 0.22], [0.76, 0.34], [-0.76, 0.34]], 0.06, 4), 0.76));
+    B.solid(K.ext(K.roundPoly([[-0.86, 0.02], [-0.78, 0.02], [-0.78, 0.66], [-0.82, 0.72], [-0.86, 0.66]], 0.05, 4), 0.82));
+    B.solid(K.tf(K.ext(K.roundPoly([[-0.2, 0], [0.2, 0], [0.22, 0.07], [0, 0.1], [-0.22, 0.07]], 0.04, 4), 0.46), [-0.52, 0.34, 0]));
+    B.solid(K.ext(K.roundPoly([[-0.22, 0.34], [0.78, 0.34], [0.8, 0.14], [0.76, 0.36], [-0.22, 0.37]], 0.03, 3), 0.8));
+    B.soft(segs([[-0.22, 0.37, 0.4], [-0.22, 0.2, 0.41]])); B.soft(segs([[0.2, 0.37, 0.4], [0.24, 0.3, 0.41]])); B.soft(segs([[0.5, 0.37, 0.4], [0.46, 0.31, 0.41]]));
+    [[-0.74, 0.34], [0.74, 0.34], [-0.74, -0.34], [0.74, -0.34]].forEach(([x, z]) => B.solid(K.lathe([[0, 0], [0.03, 0], [0.03, 0.05], [0, 0.05]], 8).translate(x, 0, z)));
+  });
+  // la bibliothèque : deux montants, un fond, cinq planches ; des livres (debout, penchés, couchés), des trous où un chat se glisse
+  P.biblio = Obj3D.piece('u:biblio', B => {
+    const W = 0.84, Hh = 1.6, D = 0.3, t = 0.03;
+    [-1, 1].forEach(sd => B.solid(K.box(t, Hh, D, [sd * W / 2, Hh / 2, 0])));
+    B.soft(segs([[-W / 2, Hh, -D / 2], [W / 2, Hh, -D / 2]])); B.soft(segs([[-W / 2, 0.02, -D / 2], [W / 2, 0.02, -D / 2]]));
+    [0.02, 0.42, 0.82, 1.22, 1.6].forEach(y => B.solid(K.box(W, t, D, [0, y, 0])));
+    // les livres : par rangée, des tranches de hauteurs différentes, un trou au milieu (la place du chat)
+    const RANGS = [[0.035, [[-0.38, 0.3, 0], [-0.33, 0.33, 0], [-0.28, 0.27, 0], [-0.23, 0.3, 0.25], [0.2, 0.32, 0], [0.26, 0.28, 0], [0.31, 0.34, 0], [0.37, 0.3, 0]]],
+      [0.435, [[-0.38, 0.28, 0], [-0.33, 0.3, 0], [0.12, 0.33, 0], [0.17, 0.29, 0], [0.22, 0.31, -0.3]]],
+      [0.835, [[0.25, 0.3, 0], [0.3, 0.33, 0], [0.35, 0.27, 0], [-0.38, 0.29, 0]]],
+      [1.235, [[-0.38, 0.3, 0], [-0.33, 0.26, 0], [-0.28, 0.31, 0]]]];
+    RANGS.forEach(([y0, L]) => L.forEach(([x, h, r]) => B.solid(K.tf(K.box(0.042, h, 0.22, [0, h / 2, 0]), [x, y0, 0.02], [0, 0, r]))));
+    B.solid(K.tf(K.box(0.3, 0.04, 0.2, [0, 0.02, 0]), [-0.12, 0.835, 0.02])); B.solid(K.tf(K.box(0.26, 0.035, 0.19, [0, 0.0175, 0]), [-0.12, 0.875, 0.02]));
+  });
+  // la mezzanine (l'étage) : un plateau haut sur quatre poteaux, un garde-corps au fond, une échelle sur le côté ; dessous, un coin sieste
+  P.etage = Obj3D.piece('u:etage', B => {
+    const W = 1.1, Y = 1.05, D = 0.6;
+    B.solid(K.ext(K.roundPoly([[-W / 2, Y], [W / 2, Y], [W / 2, Y + 0.06], [-W / 2, Y + 0.06]], 0.02, 3), D));
+    [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(([sx, sz]) => B.solid(K.box(0.05, Y, 0.05, [sx * (W / 2 - 0.03), Y / 2, sz * (D / 2 - 0.03)])));
+    for (let i = 0; i <= 6; i++) { const x = -W / 2 + 0.03 + i * (W - 0.06) / 6; B.solid(K.box(0.018, 0.22, 0.018, [x, Y + 0.17, -D / 2 + 0.03])); }
+    B.solid(K.box(W, 0.03, 0.03, [0, Y + 0.28, -D / 2 + 0.03]));
+    [-0.1, 0.1].forEach(z => B.solid(K.tf(K.box(0.03, 1.2, 0.03, [0, 0.6, 0]), [W / 2 + 0.12, 0, z + 0.12], [0, 0, 0.12])));
+    for (let i = 1; i <= 5; i++) { const y = i * 0.2, x = W / 2 + 0.12 - Math.sin(0.12) * y; B.solid(K.box(0.03, 0.025, 0.24, [x, y, 0.12])); }
+    B.solid(K.ext(K.roundPoly([[-0.4, 0.01], [0.3, 0.01], [0.32, 0.08], [-0.42, 0.08]], 0.03, 3), 0.44));
+  });
   // la jungle (Mathieu, 27/09 : « une partie jungle, sur un côté, seulement sur un plus grand écran ») : un grand pot, des tiges, de grandes feuilles
   // (chaque feuille à part : on peut l'arracher, js/jungle.js)
   const FEUILLE = K.roundPoly([[0, 0], [0.09, 0.05], [0.14, 0.16], [0.11, 0.3], [0.04, 0.4], [0, 0.42], [-0.04, 0.4], [-0.11, 0.3], [-0.14, 0.16], [-0.09, 0.05]], 0.03, 3);
@@ -269,6 +311,10 @@ function make(kind, o) {
   }
   else if (kind === 'feuille') { put(P.feuilleSol); }
   else if (kind === 'souffleur') { put(P.souffleur); it.buse = [0.56, 0.08, 0]; it.corps = [-0.02, 0.09, 0]; }
+  else if (kind === 'table') { put(P.table); it.tilt = 0; it.box = { w: 1.04, h: 0.56, d: 0.56 }; it.perches = [{ id: 'dessus', p: [-0.2, 0.56, 0], w: 0.25, lv: 1 }, { id: 'dessus2', p: [0.28, 0.56, 0], w: 0.15, lv: 1 }, { id: 'dessous', p: [0, 0.01, 0.02], w: 0.25, lv: 0, sous: true }]; }
+  else if (kind === 'lit') { put(P.lit); it.perches = [{ id: 'oreiller', p: [-0.52, 0.44, 0.05], w: 0.12, lv: 1, dodo: true }, { id: 'matelas', p: [0.05, 0.37, 0.1], w: 0.2, lv: 1, dodo: true }, { id: 'pied', p: [0.55, 0.37, 0.1], w: 0.15, lv: 1, dodo: true }, { id: 'tete', p: [-0.82, 0.72, 0], w: 0.03, lv: 2 }]; }
+  else if (kind === 'biblio') { put(P.biblio); it.perches = [{ id: 'rayon1', p: [-0.02, 0.45, 0.03], w: 0.1, lv: 1 }, { id: 'rayon2', p: [-0.05, 0.9, 0.03], w: 0.12, lv: 2 }, { id: 'rayon3', p: [0.1, 1.25, 0.03], w: 0.15, lv: 3 }, { id: 'haut', p: [0, 1.62, 0], w: 0.3, lv: 4 }, { id: 'bas', p: [-0.02, 0.05, 0.03], w: 0.12, lv: 0, sous: true }]; }
+  else if (kind === 'etage') { put(P.etage); it.perches = [{ id: 'echelle', p: [0.62, 0.6, 0.12], w: 0.02, lv: 1 }, { id: 'plateau', p: [-0.2, 1.11, 0.05], w: 0.25, lv: 2, dodo: true }, { id: 'plateau2', p: [0.3, 1.11, 0.05], w: 0.15, lv: 2 }, { id: 'dessous', p: [-0.05, 0.09, 0.02], w: 0.25, lv: 0, sous: true, dodo: true }]; }
   else if (kind === 'canape') { put(P.canape);
     it.perches = [{ id: 'assiseG', p: [-0.33, 0.27, 0.06], w: 0.14, lv: 1 }, { id: 'assiseD', p: [0.33, 0.27, 0.06], w: 0.14, lv: 1 },
       { id: 'dossier', p: [0.2, 0.62, -0.19], w: 0.3, lv: 2 }, { id: 'accoudoirG', p: [-0.74, 0.43, 0.02], w: 0.05, lv: 1 }, { id: 'accoudoirD', p: [0.74, 0.43, 0.02], w: 0.05, lv: 1 }]; }
