@@ -1121,7 +1121,7 @@ function click(x, y, S) {
 // Lâché sans avoir bougé, c'est une caresse : il ronronne.
 function grab(x, y) {
   if (!ready) return null; Wd.gx = x; Wd.gy = y;
-  const L = leverAt(x, y); if (L) { L.lever.byHand = true; return L; }
+  const L = leverAt(x, y); if (L) return L;
   const c = catAt(x, y); if (c) return c; const it = propAt(x, y); return it && !it.run ? it : null;
 }
 // le levier de la machine à cartons : son pommeau à l'écran
@@ -1130,7 +1130,7 @@ function leverAt(x, y) { const g = Wd.props.find(p => p.pivot && !p.held && !p.f
 const isProp = k => !!(k && k.hull);
 function drag(c, x, y) {
   if (!c || run(H.drag, c, x, y)) return;
-  if (c.lever) { const g = c.lever; g.hand = Wd.t; if (!g.pulling) { g.pulling = true; c.y0 = y - (g.pull || 0) * g.s * 0.35; } g.pull = clamp((y - c.y0) / (g.s * 0.35), 0, 1); return; }
+  if (c.lever) { const g = c.lever; g.hand = Wd.t; g.byHand = true; if (!g.pulling) { g.pulling = true; c.y0 = y - (g.pull || 0) * g.s * 0.35; } g.pull = clamp((y - c.y0) / (g.s * 0.35), 0, 1); return; }
   if (isProp(c)) { const it = c; if (it.mur) return;   // accrochée au mur : on ne l'emporte pas
     if (!it.held) {
       // on le soulève : ce qui dormait dessus saute (live), ce qui était posé dessus suit ; il ne revient plus seul à sa place tout de suite

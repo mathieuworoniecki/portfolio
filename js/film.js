@@ -185,12 +185,16 @@ addEventListener('pointermove', e => {
     hint.style.transform = `translate(${e.clientX + 24}px, ${e.clientY + 22}px)`;
   }
 }, { passive: true });
-addEventListener('pointerup', () => {
-  if (!drag.on) return; drag.on = false; hint.classList.add('done'); root.classList.remove('grabbing');
+let dragEnd = -1e9;
+// (le navigateur reprend le geste : on lâche là où il est, sans lancer)
+addEventListener('pointercancel', () => { if (drag.on) drag.t = 0; dragUp(); });
+addEventListener('pointerup', dragUp);
+function dragUp() {
+  if (!drag.on) return; drag.on = false; dragEnd = performance.now(); hint.classList.add('done'); root.classList.remove('grabbing');
   if (performance.now() - drag.t > 90) drag.vx = drag.vy = 0;   // arrêté avant de lâcher : pas de lancer
   if (drag.sc) { drag.sc.release && drag.sc.release(drag.key, drag.vx * 60, drag.vy * 60, state(drag.sc)); drag.vx = drag.vy = 0; drag.sc = null; }
   drag.t = performance.now();
-});
+}
 
 /* ——— un clic sur le film (court, sans glisser, pas sur un bouton, pas en attrapant) : la scène le prend, sinon lecture / pause ——— */
 let downAt = null;
@@ -219,6 +223,8 @@ addEventListener('wheel', e => {
   if (e.target.closest && e.target.closest('.tp-panel,.pick ul,select')) return;
   e.preventDefault();
   if (root.classList.contains('locked')) return;
+  // en train de tenir quelque chose (ou juste lâché) : un pavé tactile envoie des crans quand un second doigt bouge, on les ignore
+  if (drag.on || e.buttons || performance.now() - dragEnd < 700) { wheel.acc = 0; return; }
   const now = performance.now(), dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? vh : 1), gap = now - wheel.last; wheel.last = now;
   // le même geste continue (verrou) : on l'ignore ; une pause, et c'est un nouveau geste
   if (wheel.fired && (now - wheel.lock < 650 || gap < 160)) return;
@@ -227,9 +233,13 @@ addEventListener('wheel', e => {
   if (Math.abs(wheel.acc) >= 40) { step(wheel.acc > 0 ? 1 : -1); wheel.acc = 0; wheel.lock = now; wheel.fired = true; }
 }, { passive: false });
 let touch = null;
-addEventListener('touchstart', e => { touch = e.touches.length === 1 && !onUI(e) && !drag.on ? { x: e.touches[0].clientX, y: e.touches[0].clientY, t: performance.now() } : null; }, { passive: true });
+// le doigt part d'un chat, d'un objet (ou juste à côté : on l'a manqué de peu) : c'est un geste pour attraper, pas pour changer de chapitre
+const nearGrab = (x, y) => [[0, 0], [-36, 0], [36, 0], [0, -36], [0, 36], [-26, -26], [26, -26], [-26, 26], [26, 26]].some(([a, b]) => grabAt(x + a, y + b));
+addEventListener('touchstart', e => { touch = e.touches.length === 1 && !onUI(e) && !drag.on && !nearGrab(e.touches[0].clientX, e.touches[0].clientY) ? { x: e.touches[0].clientX, y: e.touches[0].clientY, t: performance.now() } : null; }, { passive: true });
+// (et la page ne bouge jamais sous le doigt : ni défilement, ni rebond, même sur les navigateurs qui ignorent touch-action)
+addEventListener('touchmove', e => { if (drag.on) touch = null; if (e.cancelable && !(e.target.closest && e.target.closest('.tp-panel,.pick ul'))) e.preventDefault(); }, { passive: false });
 addEventListener('touchend', e => {
-  const t = touch; touch = null; if (!t || drag.on || drag.t > t.t) return;
+  const t = touch; touch = null; if (!t || drag.on || drag.t > t.t || e.touches.length) return;
   const c = e.changedTouches[0], dx = c.clientX - t.x, dy = c.clientY - t.y;
   if (Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) * 1.3 && performance.now() - t.t < 900) step(dy < 0 ? 1 : -1);
 }, { passive: true });
