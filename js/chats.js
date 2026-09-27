@@ -311,13 +311,16 @@ function updProp(it, dt) {
   const m = (it.r || it.hull.w / 2) * s * (it.big || 1) / Wd.W;
   if (it.folle && !it.held && !it.fall && !it.on) it.lift = Math.abs(Math.sin(Wd.t * 17)) * s * 0.03;
   // les lourds tanguent (un chat qui saute dessus, un coup de doigt, une salve de croquettes)
-  if ((LOURD[it.kind] || it.mur) && !it.held && !it.fall && !it.on && Math.abs(it.tilt) < 0.2) { const u = Wd.t - (it.wob ?? -9); it.tilt = Math.sin(u * 13) * 0.045 * (it.wobA || 1) * Math.exp(-u * 3) + (it.folle ? Math.sin(Wd.t * 31) * 0.05 : 0); }
+  // (et les légers aussi, un moment, quand quelque chose les a touchés : même empilés, on voit qu'ils ont reçu le coup)
+  if (!it.held && !it.fall && !it.r && !it.tower && Math.abs(it.tilt) < 0.2 && ((LOURD[it.kind] || it.mur) && !it.on || Wd.t - (it.wob ?? -9) < 2)) { const u = Wd.t - (it.wob ?? -9); it.tilt = Math.sin(u * 13) * 0.045 * (it.wobA || 1) * (LOURD[it.kind] || it.mur ? 1 : 2.2) * Math.exp(-u * 3) + (it.folle ? Math.sin(Wd.t * 31) * 0.05 : 0); }
   if (it.parts.levier) it.parts.levier.rotation.z = (it.lev0 ?? 0.3) + (it.pull || 0) * (it.levK ?? 1.3);
   // accrochée au mur : au bord droit, à sa hauteur (sous le texte), rien ne la fait bouger
   if (it.mur && !it.fixe) { it.fx = 1 + it.hull.w * 0.1 * s * (it.big || 1) / Wd.W; const L = clamp(floorAt(it.d) - (Wd.ceil || 0) - 0.6 * s * (it.big || 1) - 12, Wd.s0 * 0.45, Wd.s0 * 1.7); it.lift += (L - it.lift) * Math.min(1, dt * 4); it.vx = it.vy = 0; it.fall = false; }
   if (it.swept && (it.fx < -0.2 || it.fx > 1.2)) { it.fadeT = it.fade = 0; it.gone = true; } else if (it.swept && !it.fall && !it.vx) it.swept = 0;
-  if (!it.run && !it.mur && !it.swept && it.fx < m) { it.fx = m; it.vx = Math.abs(it.vx) * (it.r ? 0.6 : 0); }
-  if (!it.run && !it.mur && !it.swept && it.fx > 1 - m) { it.fx = 1 - m; it.vx = -Math.abs(it.vx) * (it.r ? 0.6 : 0); }
+  // (lancé fort contre le bord : il rebondit un peu, « toc », et tangue)
+  const bord = (sd, v) => { if (Math.abs(v) < s * 1.2 || Wd.t - (it.bordT ?? -9) < 0.4) return; it.bordT = it.wob = Wd.t; it.wobA = 0.6; if (!it.r) it.tiltV = (it.tiltV || 0) - sd * 4; Wd.fx.push({ k: 'txt', text: pick(['toc', 'bonk', 'clac']), x: sd < 0 ? 16 : Wd.W - 16, y: it.y - it.hull.h * it.s * 0.6, t0: Wd.t, life: 1, rot: rnd(-0.2, 0.2), size: 16 }); };
+  if (!it.run && !it.mur && !it.swept && it.fx < m) { bord(-1, it.vx); it.fx = m; it.vx = Math.abs(it.vx) * (it.r ? 0.6 : 0.3); }
+  if (!it.run && !it.mur && !it.swept && it.fx > 1 - m) { bord(1, it.vx); it.fx = 1 - m; it.vx = -Math.abs(it.vx) * (it.r ? 0.6 : 0.3); }
   // la pelote : elle tourne en roulant et laisse son fil derrière elle
   if (it.r) {
     const x = it.fx * Wd.W; if (it.px !== undefined) it.spinA -= (x - it.px) / (it.r * s); it.px = x;
@@ -1219,7 +1222,8 @@ function survol(x, y) {
   // (un curseur qui passe ne l'arrête pas : il faut un petit va-et-vient sur lui)
   if (hov.c0 !== o) { hov.c0 = o; hov.run = 0; }
   hov.run += Math.abs(dx) + Math.abs(dy) * 0.5; if (hov.run < Math.max(40, sc(o) * 0.3)) return;
-  interrupt(o); o.pet = { n: 0, dir: 0, lx: x, t: Wd.t, run: 0, x0: x, y0: y, hov: true }; o.q = []; o.task = { k: 'wait', anim: 'caresse', until: c => !c.pet, max: 120, t: 0 }; say(o, '♥');
+  { const pe = o.perch; interrupt(o); o.perch = pe; }   // (perché, il reste perché pendant la caresse)
+  o.pet = { n: 0, dir: 0, lx: x, t: Wd.t, run: 0, x0: x, y0: y, hov: true }; o.q = []; o.task = { k: 'wait', anim: 'caresse', until: c => !c.pet, max: 120, t: 0 }; say(o, '♥');
   hov.c = o; hov.c0 = null; hov.run = 0;
 }
 addEventListener('pointerdown', e => { Wd.tactile = e.pointerType !== 'mouse'; const c = hov.c; if (c) { hov.c = null; if (c.pet) finCaresse(c); } }, true);

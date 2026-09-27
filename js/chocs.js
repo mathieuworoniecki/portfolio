@@ -34,6 +34,8 @@ function sortir(it) {
 // un gros objet tangue ; un gros objet léger (carton, coussin, panier…) glisse un peu en plus
 function secoue(it, a, dir) {
   it.wob = Wd.t; it.wobA = a; sortir(it);
+  // une caisse de la tour : la pile penche un peu plus (assez de coups, elle s'écroule)
+  if (it.tower && it.tower.phase === 'debout') { it.tower.w += 0.12 + a * 0.35; it.tower.dir = dir || it.tower.dir; word(pick(['ooh…', 'ça penche !', 'crrr']), it.x, it.y - it.hull.h * it.s - 16, 16); }
   if (dir && LEGER(it) && !it.fall && !it.tower) { const s = sOf(it.d); it.on = null; it.fall = true; it.vx = dir * s * rnd(0.5, 0.9); it.vy = s * rnd(0.3, 0.5); it.tiltV = dir * rnd(0.5, 1.2); }
 }
 const chemin = (x, y, vx, vy, dt, f) => { for (let i = 0; i <= 3; i++) { const u = i / 3; if (f(x - vx * dt * u, y - vy * dt * u)) return true; } return false; };
@@ -121,7 +123,9 @@ H.pre.push(dt => {
       if (!chemin(ax, ay, a.vx || 0, -(a.vy || 0), dt || 0.016, (x, y) => touche(b, x, y, 0))) continue;
       a.chocT = b.chocT = Wd.t;
       if (LEGER(b) && !b.fall && !b.tower && (b.hull.w * b.s) < (a.hull.w * a.s) * 1.6 && masse(a) > masse(b) * 0.5) { kick(b, dir); if (b.fall) { b.vx *= 1.6; b.vy *= 1.3; } sortir(b); }
-      else secoue(b, masse(a) > masse(b) * 0.5 ? 0.7 : 0.25, masse(a) > masse(b) * 0.5 ? dir : 0);
+      else { const fort = masse(a) > masse(b) * 0.5; secoue(b, fort ? 0.7 : 0.35, fort ? dir : 0);
+        // (trop petit pour le renverser : il le pousse quand même un peu, et ce qui est posé dessus tombe)
+        if (!fort && LEGER(b) && !b.fall && !b.tower) { if (b.on) kick(b, dir); else b.vx = dir * s * rnd(0.3, 0.5); } }
       a.vx = -(a.vx || 0) * 0.45; a.vy = Math.abs(a.vy || 0) * 0.3 + s * 0.6; a.tiltV = (a.tiltV || 0) + rnd(-8, 8);
       word(pick(['tonk', 'clonk', 'bing']), ax, ay - 10, 18); break;
     }

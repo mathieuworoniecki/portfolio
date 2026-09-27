@@ -23,6 +23,8 @@ addEventListener('pointermove', e => { if (!main.on) return; main.x = e.clientX;
 
 /* ——— qui peut toucher quoi (les autres paires sont déjà traitées ailleurs, ou n'ont pas de sens) ——— */
 const S = s => new Set(s.split(' '));
+// (d'autres modules ajoutent leurs sources et leurs cibles : js/liens.js)
+const EXT = { src: [], cib: [] };
 const ALLOW = {
   ptr: S('cache rare souris lettre lettreSol kib mouche vac lance'),
   plume: S('cache porte rare souris lettre lettreSol kib mouche vac lance'),
@@ -73,6 +75,7 @@ function sources(dt) {
   if (Ls) { const r = Vi.RECT(); Ls.forEach(Lt => { if (Lt.st !== 'fall' || Lt.a < 0.5) return; add('lettre', Lt, Vi.lx(Lt, r), Vi.ly(Lt, r), (Lt.x1 - Lt.x0) * 0.4, Math.abs(Lt.vy) > 200 || Math.abs(Lt.vx) > 200 ? 2 : 1); }); }
   const V = Wd.vac; if (V && V.ph === 'balaye') add('vac', V, V.x, V.y, Wd.s0 * 0.6, 2);
   const m = Wd.mouche; if (m && !m.nose && !m.pos && !m.sur) add('mouche', m, m.x, m.y, 4, 0);
+  EXT.src.forEach(f => f(add));
   return L;
 }
 
@@ -106,6 +109,7 @@ function cibles() {
     if (c.fall) { add('vol', c, rond(c.x, c.y - s * 0.35, s * 0.4), c.d, c.x, c.y - s * 0.35); continue; }
     if (c.perch) { const z = Ch.corps(c); add('perche', c, (x, y, mm) => ((x - z.x) / (z.rx + mm)) ** 2 + ((y - z.y) / (z.ry + mm)) ** 2 < 1, c.d, z.x, z.y - z.ry); }
   }
+  EXT.cib.forEach(f => f(add, boite, rond));
   return T;
 }
 
@@ -256,5 +260,5 @@ H.pre.push(() => {
     const k = pick(C.L); if (k && k.hp) say(k, pick(['hé !', 'chut !', 'on répète !'])); });
 });
 
-return { main, ALLOW, REACT };
+return { main, ALLOW, REACT, EXT, S };
 })();

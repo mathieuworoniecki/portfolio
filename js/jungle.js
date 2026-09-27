@@ -89,5 +89,5 @@ H.think.push((c, add) => {
 });
 if (window.Bassin && Bassin.FLOTTE) Bassin.FLOTTE.feuille = 1;
 
-return { feuilleAt, arrache, tombe };
+return { feuilleAt, arrache, tombe, centre, jungles };
 })();
