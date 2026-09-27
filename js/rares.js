@@ -192,6 +192,7 @@ function zone(c) { const b = Chat.where(c, c.body), s = sc(c); return { x: b[0],
 const inZone = (z, x, y) => ((x - z.x) / z.rx) ** 2 + ((y - z.y) / z.ry) ** 2 < 1;
 // le projectile rebondit : un objet (vy > 0 : vers le haut) ou un chat (vy > 0 : vers le bas)
 function rebond(o, z, k) {
+  if (o.main) return;   // un clic : rien à renvoyer
   const dir = sgn(o.x - z.x) || 1;
   if (o.hull) { const s = sOf(o.d); o.vx = dir * s * rnd(1.5, 2.5) * k; o.vy = s * rnd(2, 3) * k; o.tiltV = rnd(-8, 8); }
   else { const s = sc(o); o.vx = dir * s * rnd(2, 3) * k; o.vy = -s * rnd(3, 4.5) * k; o.spin = rnd(-1, 1); say(o, pick(['boiing', 'waaah', 'mia !'])); }
@@ -219,6 +220,11 @@ H.pre.push(() => {
   for (const c of L) { const z = zone(c);
     for (const o of shots) { if (o.gHit === c || (o.zoomT && o.zoomT === c.task) || Wd.t - (o.rareT ?? -9) < 0.5) continue; const y = o.hull ? o.y - sOf(o.d) * 0.2 : o.y - sc(o) * 0.4;
       if (!inZone(z, o.x, y)) continue; o.rareT = Wd.t; REACT[c.rare](c, o, z); } }
+});
+// un clic sur une rareté : la même réaction que si on lui jetait quelque chose (le géant glousse, le ballon fait POP…)
+H.click.push((x, y) => {
+  const c = Wd.cats.find(c => c.rare && alive(c) && !c.hidden && c.hp && REACT[c.rare] && inZone(zone(c), x, y)); if (!c) return false;
+  REACT[c.rare](c, { main: true, x, y, d: c.d }, zone(c)); return true;
 });
 // ses effets sur la pose : l'interminable ondule, l'acrobate tourne comme une toupie, l'éclair sonné
 H.live.push(c => {
