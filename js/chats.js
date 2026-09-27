@@ -203,7 +203,9 @@ function prop(kind, fx, d, o) {
   it.big = { distrib: 1.5, eau: 1.3, bassin: 1.25, lanceur: 1.15, trappe: 1.1 }[kind] || 1;   // le distributeur et la fontaine, un peu plus grands que nature
   Wd.props.push(it); return it;
 }
-function unprop(it) { Univers.destroy(it); const i = Wd.props.indexOf(it); if (i >= 0) Wd.props.splice(i, 1); Wd.props.forEach(o => { if (o.on === it) o.on = null; if (o.target === it) o.target = null; }); }
+function unprop(it) { Univers.destroy(it); const i = Wd.props.indexOf(it); if (i >= 0) Wd.props.splice(i, 1); Wd.props.forEach(o => { if (o.on === it) o.on = null; if (o.target === it) o.target = null; });
+  // (27/09, l'audit : un chat perché sur un objet retiré restait assis sur le vide)
+  Wd.cats.forEach(c => { if (c.perch && c.perch.it === it) { c.perch = null; c.task = null; c.q = []; c.fall = true; c.vy = 0; } }); }
 // l'encombrement de chaque objet (en unités) : pour tomber, rebondir, se poser sur une caisse, se laisser attraper
 const HULL = { jungle: { w: 0.5, h: 0.34 }, feuille: { w: 0.28, h: 0.05 }, bassin: { w: 1.28, h: 0.16 }, souffleur: { w: 0.7, h: 0.3 }, canape: { w: 1.66, h: 0.62 }, carton: { w: 0.56, h: 0.32 }, panier: { w: 0.72, h: 0.15 }, coussin: { w: 0.76, h: 0.15 }, gamelle: { w: 0.34, h: 0.08 }, eau: { w: 0.33, h: 0.17 },
   distrib: { w: 0.4, h: 0.74 }, trappe: { w: 0.6, h: 0.5 }, arbre: { w: 1.5, h: 1.95 }, pelote: { w: 0.15, h: 0.15 }, poisson: { w: 0.3, h: 0.08 }, lanceur: { w: 0.6, h: 0.7 }, coffre: { w: 0.52, h: 0.3 } };
@@ -225,7 +227,7 @@ function layout() {
     // (Mathieu, 27/09 : « moins de cartons au départ, le décor est trop grand ») : un carton ouvert ; une caisse seulement sur un grand écran
     P.carton = prop('carton', 0.64, 0.8);
     // (un grand écran : le canapé au fond, à la place de la caisse)
-    if (Wd.W >= 1300) { P.canape = prop('canape', 0.75, 0.98); P.tasse = prop('tasse', 0.71, 0.55); }
+    if (Wd.W >= 1300) { P.canape = prop('canape', 0.75, 0.98); P.tasse = 'coffre'; }
     else if (Wd.W >= 1200) { P.caisse = prop('caisse', 0.72, 0.6, { size: 1 }); P.tasse = prop('tasse', 0, 0.6); stack(P.tasse, P.caisse, 0.1); }
     else P.tasse = prop('tasse', 0.71, 0.55);
     P.plante = prop('plante', Wd.W >= 1300 ? 0.86 : 0.78, 0.92);
@@ -238,6 +240,7 @@ function layout() {
     P.gamelle = prop('gamelle', 0.56, 0.5);
     // le coffre à jouets : la canne à plume dedans (js/jouets.js)
     P.coffre = prop('coffre', 0.87, 0.55, { yaw: -0.3 });
+    if (P.tasse === 'coffre') { P.tasse = prop('tasse', 0, 0.55); stack(P.tasse, P.coffre, -0.12); }
   } else {
     P.coussin = prop('coussin', 0.56, 0.3);
     P.pelote = prop('pelote', 0.68, 0.0);
@@ -276,7 +279,7 @@ function apart(dt) {
 }
 // revenir à sa place (invisible, puis il réapparaît doucement)
 function goHome(it) { Object.assign(it, { fx: it.home.fx, d: it.home.d, dT: it.home.d, lift: 0, vx: 0, vy: 0, tiltV: 0, fade: 0 }); it.tilt = 0; if (it.home.on) stack(it, it.home.on, it.home.onDx); if (it.trail) it.trail.length = 0; it.fadeT = 1; it.away = null; }
-function drop(it, vx, vy, tv) { it.on = null; it.dans = null; it.fall = true; it.vx = vx; it.vy = vy; it.tiltV = tv; it.down = Wd.t; }
+function drop(it, vx, vy, tv) { if (it.on) { it.quitte = it.on; it.quitteT = Wd.t; } it.on = null; it.dans = null; it.fall = true; it.vx = vx; it.vy = vy; it.tiltV = tv; it.down = Wd.t; }
 function updProp(it, dt) {
   if (it._f === Wd.f) return; it._f = Wd.f;
   const s = sOf(it.d);
@@ -295,7 +298,7 @@ function updProp(it, dt) {
     if (it.target && it.vy < 0) { const b = it.target, top = b.lift + topOf(b); if (it.lift <= top) { it.lift = top; stack(it, b, (it.fx - b.fx) * Wd.W / s); it.fall = false; it.target = null; it.vy = 0; it.tilt = 0; it.tiltV = 0; dust(it.fx * Wd.W, floorAt(it.d) - top, s * 0.3, 0.5); } }
     // se poser sur une caisse en tombant (une caisse plus large que soi, sous soi)
     if (it.fall && !it.target && it.vy < 0 && !it.tower) for (const b of Wd.props) {
-      if (!b.box || b === it || b.fall || b.held || b.fade < 0.5 || Math.abs(b.d - it.d) > 0.2 || it.hull.w > b.box.w * 1.3) continue;
+      if (!b.box || b === it || b.fall || b.held || b.fade < 0.5 || Math.abs(b.d - it.d) > 0.2 || it.hull.w > b.box.w * 1.3 || (it.quitte === b && Wd.t - it.quitteT < 1.2)) continue;
       let k = b; while (k && k !== it) k = k.on; if (k === it) continue;
       const top = b.lift + topOf(b), dx = (it.fx - b.fx) * Wd.W / s;
       if (Math.abs(dx) < b.box.w / 2 && it.lift - it.vy * dt >= top - 2 && it.lift <= top) { stack(it, b, dx); it.fall = false; it.vy = it.vx = it.tiltV = 0; it.tilt = 0; dust(it.fx * Wd.W, floorAt(b.d) - top, s * 0.2, 0.4); break; }
@@ -568,7 +571,7 @@ function smash(c, item) {
   const b = item.on; claim(c, b); const dir = sgn(item.onDx) || 1;
   c.q.push(fn(c => { const s = sOf(b.d), x = xOf(b) - dir * (b.box.w / 2 * s + front(c) * 0.6); c.q.unshift(go(x, { d: Math.max(0, b.d - 0.06), face: dir })); }),
     hop(() => perchAt(b, b.perches[0], -dir * 0.07), { live: true, zr: [0, 0.4] }), fn(c => { c.face = dir; }),
-    pose('assis', 1.2), pose('tape', 0.4), pose('assis', 0.8, { face: dir }), pose('tape', 0.6, { fx: c => later(0.25, () => { if (item.on === b) { drop(item, dir * sOf(b.d) * 1.1, sOf(b.d) * 0.7, -dir * rnd(5, 8)); } }) }),
+    pose('assis', 1.2), pose('tape', 0.4), pose('assis', 0.8, { face: dir }), pose('tape', 0.6, { fx: c => later(0.25, () => { if (item.on === b) { drop(item, dir * sOf(b.d) * 1.1, sOf(b.d) * 0.7, -dir * rnd(5, 8)); if (window.Dex && item.kind === 'tasse') Dex.vu('tasse'); } }) }),
     pose('assis', 2.5, { fx: c => say(c, '!') }), hop(() => groundAt(inView(xOf(b) - dir * sc(c) * 1.2), Math.max(0, b.d - 0.15))), fn(free));
 }
 function zoomies(c) {
@@ -873,6 +876,7 @@ function climbers(T) {
 }
 function towerFrame(dt) {
   const T = Wd.tower; if (!T) return; T.t += dt;
+  if (!T.boxes || !T.boxes.length) { Wd.tower = null; return; }   // (27/09, l'audit : une tour vidée en route plantait ici)
   if (T.phase === 'debout') {
     // chaque chat perché au-dessus de la deuxième caisse fait pencher la pile
     const up = Wd.cats.filter(k => k.perch && k.perch.it.tower === T && T.boxes.indexOf(k.perch.it) >= 1).length;
@@ -1231,6 +1235,8 @@ function survol(x, y) {
   // (un curseur qui passe ne l'arrête pas : il faut un petit va-et-vient sur lui)
   if (hov.c0 !== o) { hov.c0 = o; hov.run = 0; }
   hov.run += Math.abs(dx) + Math.abs(dy) * 0.5; if (hov.run < Math.max(40, sc(o) * 0.3)) return;
+  // (il boude : pas de caresse ; il tourne le dos, une fois de temps en temps)
+  if (o.grudge > Wd.t) { hov.run = 0; if (Wd.t - (o.dosT ?? -9) > 3 && !o.perch && (o.task ? o.task.k === 'pose' : true)) { o.dosT = Wd.t; o.face = sgn(o.x - x) || o.face; say(o, pick(['hmpf', 'non.', '…', 'pas toi.'])); } return; }
   { const pe = o.perch; interrupt(o); o.perch = pe; }   // (perché, il reste perché pendant la caresse)
   o.pet = { n: 0, dir: 0, lx: x, t: Wd.t, run: 0, x0: x, y0: y, hov: true }; o.q = []; o.task = { k: 'wait', anim: 'caresse', until: c => !c.pet, max: 120, t: 0 }; say(o, '♥');
   hov.c = o; hov.c0 = null; hov.run = 0;

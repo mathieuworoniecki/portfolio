@@ -221,8 +221,8 @@ function create(id, o) {
   put(P.body, puffy).g.scale.setScalar(1 / Z); put(P.head, head, 2).g.scale.setScalar(1 / Z); put(P.face, head, true); put(P.pup, pupils, true);
   // les yeux kawaii : un ovale plein à l'encre, un gros reflet blanc en haut, un petit en bas (des disques, pas des traits : bords nets)
   const discs = [];
-  if (b.eyes === 'point') { const E = M.eye, disc = new T.CircleGeometry(1, 32);
-    const ink = new T.MeshBasicMaterial({ color: mats.line.color, transparent: true }), glint = new T.MeshBasicMaterial({ color: 0xffffff, transparent: true });
+  if (b.eyes === 'point') { const E = M.eye, disc = DISC || (DISC = new T.CircleGeometry(1, 32));
+    const ink = new T.MeshBasicMaterial({ color: mats.line.color, transparent: true }), glint = new T.MeshBasicMaterial({ color: 0xffffff, transparent: true }); ink.userData.own = glint.userData.own = 1;
     [-1, 1].forEach(s => { const cx = s * E.ex;
       [[cx, E.ey, E.e * 0.8, E.e * 0.95, ink, 0], [cx - E.e * 0.22, E.ey + E.e * 0.3, E.e * 0.3, E.e * 0.3, glint, 1], [cx + E.e * 0.27, E.ey - E.e * 0.4, E.e * 0.13, E.e * 0.13, glint, 2]].forEach(([x, y, rx, ry, m, k]) => {
         const o = new T.Mesh(disc, m); o.position.set(x, y, E.z + E.e * (0.3 + k * 0.1)); o.scale.set(rx, ry, 1); o.renderOrder = 1; o.frustumCulled = false; pupils.add(o); }); });
@@ -249,6 +249,7 @@ function create(id, o) {
   rest(cat, cat.cur); cat.tgt.set(cat.cur);
   return cat;
 }
+let DISC = null;   // (le disque des yeux : un seul pour tous)
 function destroy(c) { if (c && c.R) Obj3D.unrig(c.R); if (c) c.R = null; }
 
 /* ——— la pose de base : debout, le visage vers nous ——— */

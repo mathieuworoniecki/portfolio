@@ -36,8 +36,13 @@ H.post.push(dt => {
     Wd.kib.forEach(k => { const f = dansCone(C, k.x, k.y) * P; if (f <= 0.02 || k.who || k.suck) return; k.dans = null; k.rest = false; k.vx = (k.vx || 0) + C.dx * 900 * f * dt; k.vy = (k.vy || 0) - (700 * f - C.dy * 300 * f) * dt; });
     // les chats : ils décollent
     Wd.cats.forEach(c => {
-      if (c.held || c.hidden || c.gone || !c.hp || (c.rare && ['geant', 'interminable', 'totem'].includes(c.rare))) return;
+      if (c.held || c.hidden || c.gone || !c.hp || (c.rare && ['geant', 'interminable', 'totem', 'eclair'].includes(c.rare))) return;
       const f = dansCone(C, c.x, c.y - sc(c) * 0.4) * P; if (f <= 0.05) return; const s = sOf(c.d);
+      // (27/09, l'audit) le ballon dérive dans le vent, sans tomber ; l'acrobate se balance au bout de son fil
+      if (c.rare === 'ballon') { if (c.task && c.task.k === 'flotte') { c.x += C.dx * s * 3 * f * dt; c.task.dir = sgn(C.dx) || c.task.dir; } if (Wd.t - (c.soufT ?? -9) > 2.5) { c.soufT = Wd.t; say(c, pick(['wooosh', 'je voleee', 'hiii !'])); } return; }
+      if (c.rare === 'acrobate') { if (c.fil) { c.fil.x0 = K.clamp((c.fil.x0 ?? c.fil.x) + C.dx * s * 1.5 * f * dt, 30, Wd.W - 30); c.spin = (c.spin || 0) + C.dx * f * dt * 2; } if (Wd.t - (c.soufT ?? -9) > 2.5) { c.soufT = Wd.t; say(c, pick(['wouah', 'tiens bon, fil !', 'hiii'])); } return; }
+      // mouillé : le souffleur le sèche d'un coup, poils ébouriffés
+      if (c.wet && Wd.t - c.wet < 8) { c.wet = -99; if (window.Vie && Vie.puffs) Vie.puffs(c, 10); word('frrrr', c.x, c.y - sc(c) * 1.1, 18); say(c, pick(['sec !', 'merci…', 'mes poils !'])); }
       if (!c.fall) { interrupt(c); c.fall = true; c.jump = null; c.vx = C.dx * s * 6 * f; c.vy = -s * (3.5 + 4 * f); c.soufT = Wd.t; say(c, pick(c.breed === 'grincheux' ? ['KSSS !', 'ARRÊTE !', 'pfff !'] : ['wiiii !', 'MIAAA', 'wouhou !', 'aaah !', 'NYAAA'])); return; }
       c.vx += C.dx * s * 10 * f * dt; c.vy -= (s * 13 * f - C.dy * s * 5 * f) * dt; c.vx = clamp(c.vx, -s * 12, s * 12); c.vy = Math.max(c.vy, -s * 9);
     });

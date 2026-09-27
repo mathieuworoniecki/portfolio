@@ -295,7 +295,7 @@ html:not(.locked) #gate:not(.open){display:none}
   border-right:2px solid rgb(var(--ink));border-bottom:2px solid rgb(var(--ink));transform:rotate(45deg) skew(6deg,6deg)}
 
 /* le menu des événements (js/menu.js) : une barre au bord gauche, sous le logo, tous les boutons visibles */
-.evts{--b:clamp(24px,calc((100dvh - 160px) / 17 - 6px),42px);position:fixed;left:8px;top:84px;bottom:56px;z-index:25;display:flex;align-items:center;
+.evts{--b:clamp(24px,calc((100dvh - 160px) / 18 - 6px),42px);position:fixed;left:8px;top:84px;bottom:56px;z-index:25;display:flex;align-items:center;
   opacity:0;pointer-events:none;transition:opacity .4s}
 .evts.vu{opacity:1;pointer-events:auto}
 .evts button{font:inherit;color:rgb(var(--ink));background:var(--bp-hi);border:2px solid rgb(var(--ink));cursor:pointer;padding:0}
@@ -323,3 +323,35 @@ html:not(.locked) #gate:not(.open){display:none}
 @keyframes evts-annonce{0%{opacity:0;transform:scale(.3) rotate(-12deg)}18%{opacity:1;transform:scale(1.15) rotate(3deg)}30%{transform:scale(1) rotate(-2deg)}75%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.1) translateY(-30px)}}
 @media (prefers-reduced-motion:reduce){.evts-annonce.go{animation:none;opacity:0}}
 @media (prefers-reduced-motion:reduce){.evts *{transition:none!important;animation:none!important}}
+
+/* ——— le carnet de découvertes (js/decouvertes.js) : le bouton en bas de la barre, l'annonce, le carnet ouvert ——— */
+.dex-btn{position:relative;border-style:dashed!important}
+.dex-n{position:absolute;right:-10px;bottom:-6px;padding:0 4px;border-radius:7px;background:rgb(var(--ink));color:var(--bp-hi);font:600 .56rem/1.35 var(--mono);font-style:normal;white-space:nowrap;pointer-events:none}
+.dex-toast{position:fixed;left:calc(var(--b,40px) + 26px);bottom:64px;z-index:30;display:flex;align-items:baseline;gap:.5rem;max-width:min(80vw,380px);padding:.45rem .8rem;
+  background:var(--bp-hi);color:rgb(var(--ink));border:2px solid rgb(var(--ink));border-radius:14px 10px 16px 12px;box-shadow:3px 3px 0 rgba(var(--ink),.18);
+  font:400 1.05rem/1.2 var(--hand);opacity:0;pointer-events:none;transform:translateY(20px)}
+.dex-toast b{font-weight:700}.dex-toast i{font:500 .7rem/1 var(--mono);font-style:normal;opacity:.7;white-space:nowrap}
+.dex-toast.go{animation:dex-toast 2.3s cubic-bezier(.3,1.6,.5,1) forwards}
+@keyframes dex-toast{0%{opacity:0;transform:translateY(20px) rotate(-3deg)}14%{opacity:1;transform:translateY(0) rotate(1deg)}80%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-8px)}}
+.dex{position:fixed;inset:0;z-index:40;display:grid;place-items:center;padding:16px;background:rgba(var(--ink),.25)}
+.dex[hidden]{display:none}
+.dex-page{position:relative;width:min(760px,100%);max-height:min(86dvh,900px);overflow:auto;overscroll-behavior:contain;padding:18px 20px 14px;
+  background:var(--bp-hi);color:rgb(var(--ink));border:2px solid rgb(var(--ink));border-radius:18px 14px 20px 16px;box-shadow:5px 5px 0 rgba(var(--ink),.2)}
+.dex-page header{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:4px 12px;margin-bottom:6px}
+.dex-page h2{margin:0;font:400 clamp(1.5rem,4vw,2.1rem)/1.1 var(--hand)}
+.dex-page header p{margin:0;font:500 .8rem/1 var(--mono);margin-right:40px}
+.dex-barre{grid-column:1/-1;height:8px;border:1.5px solid rgb(var(--ink));border-radius:6px;overflow:hidden}
+.dex-barre span{display:block;height:100%;background:rgb(var(--ink))}
+.dex-x{position:absolute;top:10px;right:12px;width:34px;height:34px;border:2px solid rgb(var(--ink));border-radius:50%;background:none;color:inherit;font:400 1.4rem/1 var(--text);cursor:pointer}
+.dex-page h3{margin:14px 0 6px;font:400 1.25rem/1.1 var(--hand)}
+.dex-page h3 small{font:500 .7rem/1 var(--mono);opacity:.65}
+.dex-page ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.dex-page li{display:flex;flex-direction:column;gap:2px;padding:6px 9px;border:1.5px dashed rgba(var(--ink),.35);border-radius:10px 8px 11px 9px;font:400 .82rem/1.3 var(--text)}
+.dex-page li b{font:400 1.05rem/1.15 var(--hand)}
+.dex-page li span{opacity:.6}
+.dex-page li.ok{border-style:solid;border-color:rgb(var(--ink));background:rgba(var(--ink),.05)}
+.dex-page li.ok span{opacity:.8}
+.dex-page footer{margin-top:14px;text-align:right}
+.dex-raz{background:none;border:0;color:inherit;opacity:.55;font:400 .75rem/1 var(--mono);text-decoration:underline;cursor:pointer}
+@keyframes dex-fade{0%,100%{opacity:0}12%,80%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.dex-toast.go{animation:dex-fade 2.3s linear forwards;transform:none}}

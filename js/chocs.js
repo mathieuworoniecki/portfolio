@@ -117,7 +117,7 @@ H.pre.push(dt => {
     if (hit) continue;
     // sur un autre objet
     for (const b of Wd.props) {
-      if (b === a || b.held || b.suck || b.run || b.a < 0.5 || b.on === a || a.on === b || Math.abs(b.d - a.d) > 0.4 || recent(b, 'chocT', 0.6)) continue;
+      if (b === a || b.held || b.suck || b.run || b.a < 0.5 || b.on === a || a.on === b || (a.quitte === b && Wd.t - a.quitteT < 1) || Math.abs(b.d - a.d) > 0.4 || recent(b, 'chocT', 0.6)) continue;
       // un contenant ouvert : ce qui tombe au-dessus de son ouverture y entre (js/contenants.js), sans le cogner
       const Co = window.Contenants && Contenants.CONT[b.kind]; if (Co && (a.vy || 0) < 0 && Math.abs(ax - b.x) < (Co.w + 0.05) * b.s && Math.abs(b.tilt || 0) < 0.5) continue;
       if (!chemin(ax, ay, a.vx || 0, -(a.vy || 0), dt || 0.016, (x, y) => touche(b, x, y, 0))) continue;

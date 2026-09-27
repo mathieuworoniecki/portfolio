@@ -288,12 +288,13 @@ const inkHex = () => (window.THEME && THEME.inkHex) ?? 0x222428;
 function destroy(it) { if (it && it.R) Obj3D.unrig(it.R); if (it) it.R = null; }
 const qa = new T.Quaternion(), qb = new T.Quaternion(), AX = V(1, 0, 0), AY = V(0, 1, 0);
 // poser l'objet : même vue que les chats (un peu au-dessus), son orientation, sa taille ; son opacité
+const ZAX = new T.Vector3(0, 0, 1);
 function place(it) {
   // it.sq : écrasé (js/rares.js, le géant) : plus large, plus plat, depuis le sol
   const q = it.sq || 0; it.root.position.set(it.x, -it.y, it.z); it.root.scale.set(it.s * (1 + q * 0.45), it.s * (1 - q * 0.7), it.s);
   qa.setFromAxisAngle(AX, Chat.VIEW.tilt); qb.setFromAxisAngle(AY, it.yaw); qa.multiply(qb); it.view.quaternion.copy(qa);
   if (it.parts.ball) it.parts.ball.quaternion.copy(it.spin);
-  if (it.tilt) { qb.setFromAxisAngle(V(0, 0, 1), it.tilt); it.view.quaternion.multiply(qb); }
+  if (it.tilt) { qb.setFromAxisAngle(ZAX, it.tilt); it.view.quaternion.multiply(qb); }
   it.mats.forEach(m => { m.line.opacity = Math.min(1, 0.92 * it.a); m.soft.opacity = 0.42 * it.a; });
   it.root.visible = it.a > 0.01;
 }
@@ -307,6 +308,11 @@ function scurry(it, t, v) {
 }
 // où est, à l'écran, un point de l'objet (en unités, dans son repère)
 const wv = V(0, 0, 0);
-function at(it, pt) { it.root.updateMatrixWorld(true); wv.set(pt[0], pt[1], pt[2] || 0); it.view.localToWorld(wv); return [wv.x, -wv.y, wv.z]; }
+// (27/09, l'audit : chaque appel recalculait tout l'objet, des dizaines de fois par image ; on ne le refait que s'il a bougé)
+function at(it, pt) {
+  const r = it.root, p = r.position, q = it.view.quaternion, m = it._mw || (it._mw = []);
+  if (m[0] !== p.x || m[1] !== p.y || m[2] !== p.z || m[3] !== r.scale.x || m[4] !== r.scale.y || m[5] !== q.x || m[6] !== q.y || m[7] !== q.z || m[8] !== q.w) {
+    r.updateMatrixWorld(true); m[0] = p.x; m[1] = p.y; m[2] = p.z; m[3] = r.scale.x; m[4] = r.scale.y; m[5] = q.x; m[6] = q.y; m[7] = q.z; m[8] = q.w; }
+  wv.set(pt[0], pt[1], pt[2] || 0); it.view.localToWorld(wv); return [wv.x, -wv.y, wv.z]; }
 return { make, destroy, place, scurry, at };
 })();

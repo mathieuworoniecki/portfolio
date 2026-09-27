@@ -26,10 +26,12 @@ function gerbe(b, x, y, n, f) { for (let i = 0; i < n; i++) Wd.fx.push({ k: 'gou
 function colore(b) { b.arcT = Math.max(b.arcT || 0, Wd.t + 40); const S = surface(b); for (let i = 0; i < 4; i++) rond(b, S.x + rnd(-0.5, 0.5) * S.rx, S.y + rnd(-0.4, 0.4) * S.ry, 1.5); }
 
 /* ——— se baigner ——— */
+// (27/09, l'audit : chacun son rapport à l'eau) le grincheux et le bleu détestent le bain ; le chaton et le pompon adorent
+const EAU = { grincheux: 0, bleu: 0, chaton: 1.8, pompon: 1.6, nuage: 1.3, gros: 1.3 };
 H.think.push((c, add) => {
   if (c.temp || c.rare || c.perch) return;
   const b = bassins().find(b => !b.held && !b.fall && b.perches.some(p => p.bain && !p.busy)); if (!b || Math.abs(c.x - b.x) > Wd.W * 0.6) return;
-  add((c.ch.joue || 0.3) * 0.4 + (Wd.t - (c.bainT ?? -99) > 60 ? 0.25 : 0), () => bain(c, b));
+  const g = EAU[c.breed] ?? 1; if (g) add(((c.ch.joue || 0.3) * 0.4 + (Wd.t - (c.bainT ?? -99) > 60 ? 0.25 : 0)) * g, () => bain(c, b));
   // pêcher ce qui flotte
   const it = Wd.props.find(it => it.on === b && it.dans != null && it.flotte);
   if (it) add(1.2, () => peche(c, b, it));
@@ -67,7 +69,7 @@ H.fall.push((c, dt) => {
     if (Math.abs(c.x - S.x) > S.rx * 0.9 || c.y + c.vy * dt < S.y - 4 || c.y > S.y + S.ry) continue;
     const pe = b.perches.filter(p => p.bain).sort((p, q) => Math.abs(Univers.at(b, p.p)[0] - c.x) - Math.abs(Univers.at(b, q.p)[0] - c.x))[0];
     interrupt(c); c.fall = false; c.vx = c.vy = 0; c.spin = 0; c.perch = { it: b, pe, dx: 0 }; c.wet = Wd.t;
-    gerbe(b, c.x, S.y, 16, 1.4); rond(b, c.x, S.y, 2); word(pick(['PLOUF', 'SPLASH']), c.x, S.y - 40, 26); say(c, pick(['MIAAA !', 'NYAAA', '!!!']));
+    gerbe(b, c.x, S.y, 16, 1.4); rond(b, c.x, S.y, 2); word(pick(['PLOUF', 'SPLASH']), c.x, S.y - 40, 26); say(c, EAU[c.breed] === 0 ? pick(['KSSSS !!', 'AU SECOURS', 'NOOON']) : c.b.s >= 1.3 ? pick(['je flotte ♥', 'glouglou', 'plof ♥']) : pick(['MIAAA !', 'NYAAA', '!!!']));
     c.q = [pose('sursaut', 0.6), hop(() => groundAt(inView(xOf(b) + (sgn(c.x - b.x) || 1) * (b.hull.w * 0.5 * b.s + sc(c) * rnd(0.6, 1.1))), Math.max(0, b.d - rnd(0.1, 0.3))), { zr: [0.3, 0.65] }),
       pose('secoue', 1.2, { fx: c => ebroue(c) }), pose('boude', rnd(2, 4), { fx: c => say(c, pick(['pfff.', 'hmpf', 'trempé…'])) }), fn(free)];
     return true;
@@ -133,7 +135,7 @@ H.draw.unshift(() => {
 
 // une grosse éclaboussure (un lourd qui tombe dedans, js/liens.js) : les voisins sont arrosés
 function eclabousse(b, x, f) { const S = surface(b); gerbe(b, x, S.y, Math.round(14 * f), f); rond(b, x, S.y, 2 * f); rond(b, x, S.y, 1.2 * f);
-  Wd.cats.forEach(c => { if (!c.hp || c.held || c.rare || Math.abs(c.x - x) > S.rx * 1.6) return; c.wet = Wd.t; if (Math.random() < 0.6) say(c, pick(['hé !', 'mouillé !', 'pfff'])); }); }
+  Wd.cats.forEach(c => { if (!c.hp || c.held || c.rare || Math.abs(c.x - x) > S.rx * 1.6) return; c.wet = Wd.t; if (Math.random() < 0.6) say(c, EAU[c.breed] === 0 ? pick(['KSSS !', 'BEURK', 'pas l’eau !!']) : pick(['hé !', 'mouillé !', 'pfff'])); }); }
 
-return { surface, colore, bain, bassins, FLOTTE, eclabousse, rond, gerbe };
+return { EAU, surface, colore, bain, bassins, FLOTTE, eclabousse, rond, gerbe };
 })();

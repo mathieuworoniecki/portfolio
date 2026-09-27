@@ -57,6 +57,7 @@ H.post.push(() => {
   });
 });
 function jaillit(x, d, quoi) {
+  if (window.Dex) Dex.vu('surprise-' + (quoi === 'chaton' ? 'chatons' : quoi));   // (le carnet de découvertes : js/decouvertes.js)
   const s = sOf(d), y = floorAt(d) - s * 0.5, fx = x / Wd.W;
   Wd.shake = { t0: Wd.t, a: 6 }; dust(x, floorAt(d), s * 0.9, 1); gerbe(x, y, 40, 520);
   word(pick(['SURPRISE !', 'TA-DAAA !', 'BOUM !']), x, y - s * 1.1, 52, -0.08); later(0.25, () => gerbe(x + rnd(-1, 1) * s, y - s * 0.8, 24, 300));
@@ -178,7 +179,7 @@ function vitre() {
   c.q = [go(inView(x), { d: 0 }), pose('assis', 0.8, { fx: c => say(c, '?') }), { k: 'vitre', dur: rnd(5, 7), air: true }, pose('assis', 1)];
 }
 STEPS.vitre = (c, T, dt) => {
-  if (T.z0 === undefined) { T.z0 = c.zo; c.zo = zOver; }
+  if (T.z0 === undefined) { T.z0 = c.zo0 = c.zo; c.zo = zOver; }
   const u = T.t, zin = sm(u / 0.9), zout = sm((u - T.dur + 0.9) / 0.9), z = 1 + 1.4 * zin * (1 - zout); c.zoom = z;
   c.anim = z > 1.15 ? 'vitre' : 'assis'; c.y = floorAt(c.d) + (z - 1) * sc(c) * 0.25;
   // la buée : les pattes, puis la truffe, contre le verre
@@ -187,7 +188,12 @@ STEPS.vitre = (c, T, dt) => {
   if (u >= T.dur) { c.zoom = 1; c.zo = T.z0; c.y = floorAt(c.d); return true; }
   return false;
 };
-H.live.push(c => { if (c.zoom && c.zoom !== 1) c.s *= c.zoom; });
+// (27/09, l'audit : multiplier c.s à chaque image le faisait grossir sans fin ; interrompu, il restait géant et par-dessus tout)
+H.live.push(c => {
+  const k = c.task && c.task.k;
+  if (c.zoom && c.zoom !== 1) { if (k === 'vitre') c.s = sOf(c.d) * c.zoom; else { c.zoom = 1; c.s = sOf(c.d); } }
+  if (c.zo === zOver && k !== 'vitre' && k !== 'passager') c.zo = c.zo0 ?? 0;
+});
 function drawFog() {
   const ctx = Chalk.ctx; if (!ctx) return;
   V.forEach(f => { if (f.k !== 'buee') return; const u = (Wd.t - f.t0) / f.life, a = (1 - sm((u - 0.5) / 0.5)) * Wd.a; if (u < 0) return;
@@ -204,7 +210,7 @@ H.post.push(() => {
   Vc.rider = c; interrupt(c); c.q = [{ k: 'passager', air: true, V: Vc }];
 });
 STEPS.passager = (c, T, dt) => {
-  const Vc = T.V, s0 = Wd.s0; if (T.z0 === undefined) { T.z0 = c.zo; c.zo = zOver; }
+  const Vc = T.V, s0 = Wd.s0; if (T.z0 === undefined) { T.z0 = c.zo0 = c.zo; c.zo = zOver; }
   if (Wd.vac !== Vc || Vc.ph === 'remonte') { c.zo = T.z0; c.q.unshift(hop(() => groundAt(inView(c.x + sc(c) * 0.5), rnd(0, 0.3)), { h: sc(c) * 0.4 }), pose('assis', 1, { fx: c => say(c, pick(['encore !', 'wouhou'])) })); return true; }
   const tx = Vc.x, ty = Vc.y - s0 * 0.36;
   if (!T.on) { if (!T.j) T.j = { x0: c.x, y0: c.y, t: 0 }; T.j.t += dt; const u = Math.min(1, T.j.t / 0.55); c.anim = 'saut'; c.face = sgn(tx - T.j.x0) || 1;

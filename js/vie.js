@@ -185,7 +185,7 @@ STEPS.glisse = (c, T, dt) => {
 };
 
 /* ——— la rébellion ——— */
-const PATIENCE = { grincheux: 4, chaton: 11, boule: 12, reveur: 12, miche: 9, rose: 8, long: 7, bleu: 6, tigre: 6 };
+const PATIENCE = { grincheux: 4, chaton: 11, boule: 12, reveur: 12, miche: 9, rose: 8, long: 7, bleu: 6, tigre: 6, nuage: 13, pompon: 10, gros: 14, mini: 5, hirsute: 7 };
 H.live.push((c, dt) => {
   if (!c.held) { c.heldT0 = 0; if (c.anger) c.anger = Math.max(0, c.anger - dt * 0.25); return; }
   // secoué : le balancier change de sens souvent et fort (un simple transport ne compte pas)
@@ -279,7 +279,7 @@ function drawTraps() {
 const titleEl = document.querySelector('[data-scene="salut"] h1');
 const TL = { jeu: false };
 const LETTERS = () => window.Titles && titleEl ? Titles.letters(titleEl) : null, RECT = () => Titles.rect(titleEl);
-const LOURDS = { boule: 1, miche: 1, rose: 1, grincheux: 1 };
+const LOURDS = { boule: 1, miche: 1, rose: 1, grincheux: 1, gros: 1, nuage: 1 };
 const lx = (L, r) => r.left + L.cx + L.dx, ly = (L, r) => r.top + L.cy + L.dy;
 function tumble(L, vx, vy, vr) { L.st = 'fall'; L.vx = vx; L.vy = vy; L.vr = vr; L.t = Wd.t; }
 H.pre.push(dt => {
@@ -646,5 +646,5 @@ H.draw.push(S => {
   drawTraps(); drawLumps(); drawTongues(); drawBodies(); drawPlume();
 });
 
-return { ptr, plume, V, tombe, TL, puffs, tumble, LETTERS, RECT, lx, ly };
+return { ptr, plume, V, tombe, TL, puffs, tumble, LETTERS, RECT, lx, ly, rel, setRel };
 })();

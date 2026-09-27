@@ -35,7 +35,8 @@ const libres = () => Wd.cats.filter(c => K.free4(c) && !c.temp && !c.rare);
 function dispo(n) {
   const L = Wd.cats.filter(c => !c.rare && !c.temp && !c.held && !c.fall && !c.hidden && !c.fight && c.hp && c.x > 0 && c.x < Wd.W).slice(0, n);
   L.forEach(c => { if (!K.free4(c)) { const pe = c.perch; K.interrupt(c); if (pe) c.q = [K.hop(() => K.groundAt(K.inView(c.x + K.rnd(-1, 1) * K.sc(c)), Math.max(0, pe.it.d - 0.2)))]; } });
-  for (let i = L.length; i < n; i++) { const k = K.addCat({ x: Wd.W * K.rnd(0.2, 0.8) }); k.y = -K.sc(k) * 1.2; k.fall = true; k.vy = 0; k.vx = 0; k.spin = Math.PI; k.stay = K.rnd(60, 120); }
+  // (27/09, l'audit : pas plus de seize chats ; au-delà, l'événement fait avec ceux qui sont là)
+  for (let i = L.length; i < n && Wd.cats.filter(c => !c.rare).length < 16; i++) { const k = K.addCat({ x: Wd.W * K.rnd(0.2, 0.8) }); k.y = -K.sc(k) * 1.2; k.fall = true; k.vy = 0; k.vx = 0; k.spin = Math.PI; k.stay = K.rnd(60, 120); }
   return L.length >= n;
 }
 const quand = (n, f) => { if (dispo(n)) setTimeout(f, 350); else setTimeout(f, 2200); };

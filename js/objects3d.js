@@ -114,7 +114,7 @@ function instance(name) {
     if (pp.crease) { add(g, new T.LineSegments(pp.crease, mats.line), 1); add(g, new T.LineSegments(pp.crease, mats.hid), 2); }
     if (pp.soft) { add(g, new T.LineSegments(pp.soft, mats.soft), 1); add(g, new T.LineSegments(pp.soft, mats.hid), 2); }
     let sil = null;
-    if (pp.cand.length) { const arr = new Float32Array(pp.cand.length / 2), sg = new T.BufferGeometry(); sg.setAttribute('position', new T.BufferAttribute(arr, 3)); sg.setDrawRange(0, 0); add(g, new T.LineSegments(sg, mats.line), 1); sil = { arr, sg }; }
+    if (pp.cand.length) { const arr = new Float32Array(pp.cand.length / 2), sg = new T.BufferGeometry(); sg.userData.own = 1; sg.setAttribute('position', new T.BufferAttribute(arr, 3)); sg.setDrawRange(0, 0); add(g, new T.LineSegments(sg, mats.line), 1); sil = { arr, sg }; }
     return { g, pp, sil };
   });
   scene.add(root);
@@ -159,7 +159,7 @@ function mats(color, o) {
     const M = { line: fatMat(c, o.fat, 1), soft: fatMat(c, o.fatSoft || o.fat * 0.7, 0.5), hid: null, nohid: true, fat: o.fat };
     // o.uni (1…255) : un seul contour autour de toutes les pièces (le corps, les pattes, la queue fondus ensemble, comme un dessin d'un trait).
     // Les volumes inscrivent ce numéro au pochoir ; le contour, deux fois plus épais, ne se dessine que hors du pochoir : seule sa moitié extérieure reste.
-    const uni = r => { const occ = OCC.clone(); Object.assign(occ, { stencilWrite: true, stencilRef: r, stencilFunc: T.AlwaysStencilFunc, stencilZPass: T.ReplaceStencilOp }); return [fatMat(c, o.fat * 2, 1, r), occ]; };
+    const uni = r => { const occ = OCC.clone(); occ.userData.own = 1; Object.assign(occ, { stencilWrite: true, stencilRef: r, stencilFunc: T.AlwaysStencilFunc, stencilZPass: T.ReplaceStencilOp }); return [fatMat(c, o.fat * 2, 1, r), occ]; };
     if (o.uni) [M.out, M.occ] = uni(o.uni);
     // o.uni2 : un second contour d'un seul trait (la tête, sur le corps : son bord se voit, ses plis dedans non)
     if (o.uni2) { [M.out2, M.occ2] = uni(o.uni2); M.out2.uniforms.width.value = o.fat * 1.6; }   // un peu moins épais : sous le menton, le trait doublait
@@ -197,7 +197,7 @@ function fatMat(color, width, opacity, ref) {
       }` });
   // comme un matériau ordinaire : m.opacity, m.color.setHex(…)
   Object.defineProperty(m, 'opacity', { get: () => u.opacity.value, set: v => { if (u) u.opacity.value = v; } });
-  m.color = u.color.value; m.fat = true;
+  m.color = u.color.value; m.fat = true; m.userData.own = 1;
   // le contour d'un seul trait (js/chat.js) : jamais par-dessus le volume du même chat (le pochoir y porte son numéro)
   if (ref) { m.stencilWrite = true; m.stencilRef = ref; m.stencilFunc = T.NotEqualStencilFunc; m.stencilFail = m.stencilZFail = m.stencilZPass = T.KeepStencilOp; }
   return m;
@@ -206,7 +206,7 @@ function fatMat(color, width, opacity, ref) {
 function fatSegs(arr, M) {
   const g = new T.InstancedBufferGeometry(); g.index = fatQuad.index; g.setAttribute('position', fatQuad.attributes.position);
   const ib = new T.InstancedInterleavedBuffer(arr, 6); g.setAttribute('a', new T.InterleavedBufferAttribute(ib, 3, 0)); g.setAttribute('b', new T.InterleavedBufferAttribute(ib, 3, 3));
-  g.instanceCount = arr.length / 6; const o = new T.Mesh(g, M); o.userData.ib = ib; return o;
+  g.instanceCount = arr.length / 6; g.userData.own = 1; const o = new T.Mesh(g, M); o.userData.ib = ib; return o;
 }
 // own : la pièce garde son propre trait (true) ou a le second contour unique (2 : la tête)
 function mount(pp, M, own) {
@@ -224,11 +224,16 @@ function mount(pp, M, own) {
   if (pp.crease) { add(new T.LineSegments(pp.crease, M.line), 1); if (!M.nohid) add(new T.LineSegments(pp.crease, M.hid), 2); }
   if (pp.soft) { add(new T.LineSegments(pp.soft, M.soft), 1); }
   let sil = null;
-  if (pp.cand.length) { const arr = new Float32Array(pp.cand.length / 2), sg = new T.BufferGeometry(); sg.setAttribute('position', new T.BufferAttribute(arr, 3)); sg.setDrawRange(0, 0); add(new T.LineSegments(sg, M.line), 1); sil = { arr, sg }; }
+  if (pp.cand.length) { const arr = new Float32Array(pp.cand.length / 2), sg = new T.BufferGeometry(); sg.userData.own = 1; sg.setAttribute('position', new T.BufferAttribute(arr, 3)); sg.setDrawRange(0, 0); add(new T.LineSegments(sg, M.line), 1); sil = { arr, sg }; }
   return { g, pp, sil };
 }
 function rig(root, list) { if (!ok) return null; const R = { root, list }; scene.add(root); rigs.add(R); return R; }
-function unrig(R) { if (!R) return; scene.remove(R.root); rigs.delete(R); }
+// (27/09, l'audit : les chats et objets retirés laissaient leurs géométries et matériaux sur la carte graphique ; en quelques heures, des milliers)
+// on libère ce qui n'appartenait qu'à eux (marqué own) ; les pièces modelées, partagées, restent en cache
+function unrig(R) {
+  if (!R) return; scene.remove(R.root); rigs.delete(R);
+  R.root.traverse(o => { if (o.geometry && o.geometry.userData.own) o.geometry.dispose(); [].concat(o.material || []).forEach(m => { if (m.userData && m.userData.own) m.dispose(); }); });
+}
 
 /* ——— la toile ——— */
 function init(canvas) {

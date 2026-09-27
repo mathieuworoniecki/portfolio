@@ -188,6 +188,8 @@ addEventListener('pointermove', e => {
 let dragEnd = -1e9;
 // (le navigateur reprend le geste : on lâche là où il est, sans lancer)
 addEventListener('pointercancel', () => { if (drag.on) drag.t = 0; dragUp(); });
+// (27/09, l'audit : la fenêtre perd la main pendant qu'on tient un chat : on le lâche, sinon il restait suspendu)
+addEventListener('blur', () => { if (drag.on) { drag.t = 0; dragUp(); } });
 addEventListener('pointerup', dragUp);
 function dragUp() {
   if (!drag.on) return; drag.on = false; dragEnd = performance.now(); hint.classList.add('done'); root.classList.remove('grabbing');

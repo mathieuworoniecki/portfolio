@@ -201,23 +201,29 @@ const REACT = {
 REACT.lance = REACT.prop;
 
 /* ——— la boucle : à l'entrée dans une cible, une fois ——— */
+// (27/09, l'audit : sans oubli, ces listes gardaient en mémoire tous les chats et croquettes qui avaient touché un objet)
+const oublie = V => V.forEach((t, k) => { if (Wd.t - t > 2 || k.gone || k.fin) V.delete(k); });
 const vus = new WeakMap();   // cible → Map(source → dernière image où elles se touchaient)
+let erreurVue = 0;
 H.pre.push(dt => {
   if (Wd.a < 0.5 || !dt) return; dt = Math.max(dt, 1 / 120);
   const L = sources(dt), T = cibles(); if (!L.length) return;
   for (const s of L) { const A = ALLOW[s.k]; if (!A) continue; const sp = Math.hypot(s.vx, s.vy), steps = sp * dt > s.m ? 3 : 0;
     for (const t of T) {
-      if (!A.has(t.k) || t.ref === s.ref || t.ref === s.who || (t.d != null && s.d != null && Math.abs(t.d - s.d) > 0.45)) continue;
+      // (27/09, l'audit : ce qui vient de tomber de son support ne rebondit pas dessus : la tasse revenait sur le coffre)
+      if (!A.has(t.k) || t.ref === s.ref || t.ref === s.who || (s.ref && s.ref.quitte === t.ref && Wd.t - s.ref.quitteT < 1) || (t.d != null && s.d != null && Math.abs(t.d - s.d) > 0.45)) continue;
       let hit;
       if (t.hit) { hit = false; for (let i = 0; i <= steps && !hit; i++) { const u = steps ? i / steps : 0; hit = t.hit(s.x - s.vx * dt * u, s.y - s.vy * dt * u, s.m); } }
       if (!hit) continue;
-      let V = vus.get(t.ref); if (!V) vus.set(t.ref, V = new Map()); const last = V.get(s.ref) ?? -9; V.set(s.ref, Wd.t);
+      let V = vus.get(t.ref); if (!V) vus.set(t.ref, V = new Map()); const last = V.get(s.ref) ?? -9; V.set(s.ref, Wd.t); if (V.size > 12) oublie(V);
       if (Wd.t - last < 0.35) continue;
-      const dir = sgn(s.vx) || sgn(t.x - s.x) || 1; REACT[t.k] && REACT[t.k](t, s, dir);
+      // (27/09, l'audit : une réaction plus tôt dans la même image a pu le faire descendre ; une erreur ne coupe plus tout le passage)
+      if (t.k === 'perche' && !t.ref.perch) continue;
+      const dir = sgn(s.vx) || sgn(t.x - s.x) || 1; try { REACT[t.k] && REACT[t.k](t, s, dir); } catch (e) { if (!erreurVue) { erreurVue = 1; console.error(e); } }
     }
     // les croquettes au sol : une par une (sous la source)
     if (A.has('kib') && Wd.kib.length) { const k = Wd.kib.find(k => k.rest && !k.who && !k.suck && k !== s.ref && Math.hypot(k.x - s.x, k.y - s.y) < s.m + 8 && (s.d == null || Math.abs(k.d - s.d) < 0.35));
-      if (k) { let V = vus.get(k); if (!V) vus.set(k, V = new Map()); const last = V.get(s.ref) ?? -9; V.set(s.ref, Wd.t);
+      if (k) { let V = vus.get(k); if (!V) vus.set(k, V = new Map()); const last = V.get(s.ref) ?? -9; V.set(s.ref, Wd.t); if (V.size > 12) oublie(V);
         if (Wd.t - last > 0.35) REACT.kib({ k: 'kib', ref: k, x: k.x, y: k.y }, s, sgn(s.vx) || 1); } }
     // la main qui glisse au ras du sol : un peu de poussière
     if (s.k === 'main' && sp > 150 && s.y > Wd.floor - 14 && !recent(main, 'solT', 0.12)) { main.solT = Wd.t; dust(s.x, Wd.floor, Wd.s0 * 0.1, 0.4); }
