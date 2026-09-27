@@ -83,6 +83,9 @@ fam('eau', 'L’eau et les couleurs', 'Water and colours', [
   ['peche', 'La pêche', 'Gone fishing', 'Une croquette qui flotte… une patte patiente.', 'A floating kibble… a patient paw.'],
   ['lettreplouf', 'Une lettre à l’eau', 'Letter overboard', 'Le titre tombe, le bassin est juste en dessous.', 'The title falls, the pool is right below.'],
   ['pechelettre', 'Repêcher une lettre', 'Fish out a letter', 'Laisser flotter une lettre, et attendre.', 'Let a letter float, and wait.'],
+  ['litmouille', 'Le lit mouillé', 'Soggy bed', 'Un chat trempé cherche où dormir.', 'A soaked cat looks for a bed.'],
+  ['cartonmou', 'Carton mou', 'Soggy box', 'Le carton et l’eau ne sont pas amis.', 'Cardboard and water are not friends.'],
+  ['regonfle', 'Pouf !', 'Poof!', 'Un poilu mouillé est tout plat… et une fois sec ?', 'A wet fluffy cat is all flat… and once dry?'],
   ['raz', 'Raz-de-marée', 'Tidal wave', 'Le géant roule… et le bain est plein.', 'The giant rolls… while the bath is full.'],
 ]);
 fam('evts', 'Les événements', 'Events', [

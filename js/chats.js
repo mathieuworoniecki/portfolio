@@ -453,7 +453,7 @@ function think(c) {
   // le coin préféré : un bonus pour ce qui s'y rapporte
   const fav = k => ch.coin === k ? 2 : 1;
   const all = k => Wd.props.filter(p => p.kind === k && !p.busy && !p.fall && p.fade > 0.9);
-  const beds = all('coussin').concat(all('panier'));
+  const beds = all('coussin').concat(all('panier')).filter(b => !(b.mouille > Wd.t));   // (mouillé, personne n'y dort : js/monde.js)
   if (beds.length) add(ch.dort * (beds.some(b => ch.coin === b.kind) ? 2 : 1), () => sleep(c, beds.find(b => ch.coin === b.kind) || pick(beds)));
   const food = all('gamelle').filter(g => !(g.stock <= 0.03)).concat(all('distrib'));   // (vide, la gamelle n'attire plus : js/faim.js)
   if (food.length) add(ch.mange * fav('gamelle'), () => eat(c, pick(food)));

@@ -149,6 +149,40 @@ H.live.push(c => {
   if (!(c.arcT > Wd.t + 15) && window.Arc) { Arc.colore(c, 30); say(c, pick(['ça pétille ✨', 'hic ✨', 'miam… des couleurs ?'])); if (window.Dex) Dex.vu('bulles'); }
 });
 
+/* ——— ce que le mouillé mouille (27/09, l'audit) ———
+   - Un chat trempé qui se pose sur un coussin ou un panier le mouille : le lit goutte, plus personne n'y dort (« c'est mouillé ! ») un moment.
+   - Un carton qui a pris l'eau (un chat trempé dedans, ou il a flotté dans le bassin) se ramollit : il s'affaisse, puis sèche.
+   - Les poilus (pompon, nuage, hirsute) mouillés sont tout plats, tout fins ; secs (souffleur, ami), ils regonflent. */
+const POILUS = { pompon: 1, nuage: 1, hirsute: 1, gros: 0.5, chaton: 0.5 };
+const LIT = { coussin: 1, panier: 1 };
+H.live.push(c => {
+  const it = c.perch && c.perch.it; if (!it) return;
+  if (mouille(c) && (LIT[it.kind] || it.kind === 'carton')) { if (!(it.mouille > Wd.t + 20)) { if (!(it.mouille > Wd.t)) word(pick(['sploutch', 'floc…', 'plic']), it.x, it.y - 22, 15); it.mouille = Wd.t + 25; if (window.Dex) Dex.vu(it.kind === 'carton' ? 'cartonmou' : 'litmouille'); } }
+  // un chat sec qui s'installe dans un lit mouillé : non merci
+  else if (LIT[it.kind] && it.mouille > Wd.t && !mouille(c) && !c.held && c.task && c.task.k === 'pose' && ['petrit', 'dodo', 'pain', 'couche'].includes(c.anim) && !c.litNon) {
+    c.litNon = Wd.t; say(c, pick(['c’est mouillé !', 'beurk, humide', 'pas là-dedans'])); const pe = c.perch;
+    c.q = [pose('secoue', 0.5), K.hop(() => K.groundAt(inView(it.x + (sgn(c.x - it.x) || 1) * (it.hull.w * it.s * 0.5 + sc(c) * 0.6)), Math.max(0, it.d - 0.15))), pose('toilette', rnd(1, 2)), fn(K.free)];
+    c.task = null; c.perch = pe;
+  }
+  if (!c.perch || c.perch.it !== it) c.litNon = 0;
+});
+H.post.push(dt => {
+  for (const it of Wd.props) {
+    if (it.kind === 'carton' && it.bainB && !it.bainMou) { it.bainMou = 1; it.mouille = Wd.t + 25; }
+    if (it.kind === 'carton' && !it.bainB) it.bainMou = 0;
+    if (!(it.mouille > Wd.t) || it.held) continue;
+    // il goutte (moins en séchant)
+    const k = (it.mouille - Wd.t) / 25; if (Math.random() < dt * 3 * k) Wd.fx.push({ k: 'goutteB', x: it.x + rnd(-0.4, 0.4) * it.hull.w * it.s, y: it.y - 2, vx: 0, vy: 20, y1: it.y + 6, t0: Wd.t, life: 0.6, col: '60,110,180' });
+    // le carton mou s'affaisse (js/contenants.js relâche it.sq ; on le retient)
+    if (it.kind === 'carton' && !it.fall) it.sq = Math.max(it.sq || 0, 0.3 * Math.min(1, k * 3));
+  }
+});
+H.live.push(c => {
+  const p = POILUS[c.breed]; if (!p) return;
+  if (mouille(c)) { const I = K.I; c.tgt[I.puff] = Math.min(c.tgt[I.puff], -0.8 * p); c.poilPlat = 1; }
+  else if (c.poilPlat) { c.poilPlat = 0; if (window.Vie && Vie.puffs) Vie.puffs(c, 6); say(c, pick(['pouf ! ✨', 'frrr', 'tout doux'])); if (window.Dex) Dex.vu('regonfle'); }
+});
+
 /* ——— le fil de la pelote fait trébucher ceux qui galopent (27/09, l'audit) ———
    Un chat au galop (la horde derrière la souris, la folie du soir) qui passe sur un fil bien déroulé s'y prend les pattes :
    il roule, s'emmêle, se débat ; la pelote est tirée d'un coup vers lui. */
