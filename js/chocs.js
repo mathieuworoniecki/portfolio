@@ -10,6 +10,8 @@ if (!window.Chats || !Chats.K) return null;
 const K = Chats.K, { Wd, H, rnd, pick, sgn, sc, sOf, say, dust, interrupt, pose, kick, later, LOURD } = K;
 const word = (text, x, y, size) => Wd.fx.push({ k: 'txt', text, x, y, t0: Wd.t, life: 1.1, rot: rnd(-0.2, 0.2), size: size || 18 });
 const LEGER = k => !LOURD[k.kind] && k.kind !== 'distrib' && !k.mur && !k.pivot;
+// le poids : une petite chose (la pelote, le poisson) ne pousse pas une grande (le carton, le panier) : elle rebondit dessus
+const masse = it => it.hull.w * it.hull.h * (it.big || 1) ** 2 * (LOURD[it.kind] || it.kind === 'distrib' ? 10 : 1);
 // le corps d'un chat au sol : une ellipse autour du corps et de la tête
 function corps(o) {
   const b = Chat.where(o, o.body), h = o.hp || b, s = sc(o), r = o.b.head[0] * s;
@@ -114,10 +116,12 @@ H.pre.push(dt => {
     // sur un autre objet
     for (const b of Wd.props) {
       if (b === a || b.held || b.suck || b.run || b.a < 0.5 || b.on === a || a.on === b || Math.abs(b.d - a.d) > 0.4 || recent(b, 'chocT', 0.6)) continue;
+      // un contenant ouvert : ce qui tombe au-dessus de son ouverture y entre (js/contenants.js), sans le cogner
+      const Co = window.Contenants && Contenants.CONT[b.kind]; if (Co && (a.vy || 0) < 0 && Math.abs(ax - b.x) < (Co.w + 0.05) * b.s && Math.abs(b.tilt || 0) < 0.5) continue;
       if (!chemin(ax, ay, a.vx || 0, -(a.vy || 0), dt || 0.016, (x, y) => touche(b, x, y, 0))) continue;
       a.chocT = b.chocT = Wd.t;
-      if (LEGER(b) && !b.fall && !b.tower && (b.hull.w * b.s) < (a.hull.w * a.s) * 1.6) { kick(b, dir); if (b.fall) { b.vx *= 1.6; b.vy *= 1.3; } sortir(b); }
-      else secoue(b, 0.7, dir);
+      if (LEGER(b) && !b.fall && !b.tower && (b.hull.w * b.s) < (a.hull.w * a.s) * 1.6 && masse(a) > masse(b) * 0.5) { kick(b, dir); if (b.fall) { b.vx *= 1.6; b.vy *= 1.3; } sortir(b); }
+      else secoue(b, masse(a) > masse(b) * 0.5 ? 0.7 : 0.25, masse(a) > masse(b) * 0.5 ? dir : 0);
       a.vx = -(a.vx || 0) * 0.45; a.vy = Math.abs(a.vy || 0) * 0.3 + s * 0.6; a.tiltV = (a.tiltV || 0) + rnd(-8, 8);
       word(pick(['tonk', 'clonk', 'bing']), ax, ay - 10, 18); break;
     }
@@ -312,5 +316,5 @@ H.pre.push(() => {
   it.survolT = Wd.t; it.wob = Wd.t; it.wobA = LOURD[it.kind] ? 0.12 : 0.25;
 });
 
-return { corps, eparpille, debusque, bond, tremble, sortir };
+return { corps, eparpille, debusque, bond, tremble, sortir, secoue, masse };
 })();

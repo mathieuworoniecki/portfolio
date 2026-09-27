@@ -237,7 +237,7 @@ function layout() {
   if (P.trappe) P.trappe.lift = Wd.s0 * 1.2;
   Wd.props.forEach(it => { it.home = { fx: it.fx, d: it.d, on: it.on, onDx: it.onDx }; });
 }
-function stack(it, on, dx) { it.on = on; it.onDx = dx; it.d = it.dT = on.d; }
+function stack(it, on, dx) { it.dans = null; it.on = on; it.onDx = dx; it.d = it.dT = on.d; }
 const topOf = b => b.box ? b.box.h * sOf(b.d) * 0.98 : 0;
 // le point le plus bas d'une caisse penchée (sous son pied), en px (négatif : sous le pivot)
 function low(it) {
@@ -259,7 +259,7 @@ function apart(dt) {
 }
 // revenir à sa place (invisible, puis il réapparaît doucement)
 function goHome(it) { Object.assign(it, { fx: it.home.fx, d: it.home.d, dT: it.home.d, lift: 0, vx: 0, vy: 0, tiltV: 0, fade: 0 }); it.tilt = 0; if (it.home.on) stack(it, it.home.on, it.home.onDx); if (it.trail) it.trail.length = 0; it.fadeT = 1; it.away = null; }
-function drop(it, vx, vy, tv) { it.on = null; it.fall = true; it.vx = vx; it.vy = vy; it.tiltV = tv; it.down = Wd.t; }
+function drop(it, vx, vy, tv) { it.on = null; it.dans = null; it.fall = true; it.vx = vx; it.vy = vy; it.tiltV = tv; it.down = Wd.t; }
 function updProp(it, dt) {
   if (it._f === Wd.f) return; it._f = Wd.f;
   const s = sOf(it.d);
@@ -269,8 +269,9 @@ function updProp(it, dt) {
     it.vx = (it.fx - px) * Wd.W / Math.max(dt, 1 / 120); if (!it.r) { const h = LOURD[it.kind]; it.tilt += (clamp(-it.vx * (h ? 0.0005 : 0.0012), -0.6, 0.6) * (h ? 0.5 : 1) - it.tilt) * Math.min(1, dt * (h ? 3 : 8)); }
   } else if (it.on) {
     const b = it.on; updProp(b, dt); it.d = it.dT = b.d;
-    const p = Univers.at(b, [it.onDx, b.box ? b.box.h : 0, 0]); it.fx = p[0] / Wd.W; it.lift = floorAt(it.d) - p[1];
-    if (b.fall || Math.abs(b.tilt || 0) > 0.25) drop(it, b.vx * 0.8, Math.max(0, b.vy), (b.tiltV || 0) * 0.6 + rnd(-2, 2));
+    // (dans un contenant, js/contenants.js : au fond, it.dans ; il ne sort que si on le renverse)
+    const p = Univers.at(b, [it.onDx, it.dans != null ? it.dans : b.box ? b.box.h : 0, 0]); it.fx = p[0] / Wd.W; it.lift = floorAt(it.d) - p[1];
+    if (b.fall || Math.abs(b.tilt || 0) > (it.dans != null ? 1.1 : 0.25)) drop(it, b.vx * 0.8, Math.max(0, b.vy), (b.tiltV || 0) * 0.6 + rnd(-2, 2));
   } else if (it.fall) {
     it.vy -= grav() * dt; it.lift += it.vy * dt; it.fx += it.vx * dt / Wd.W; if (!it.r) it.tilt += it.tiltV * dt;
     it.d += (it.dT - it.d) * Math.min(1, dt * 3);
@@ -1184,7 +1185,7 @@ function release(c, vx, vy) {
   // un simple clic (sans soulever) : d'abord les modules (le coffre, la trappe coincée, le distributeur vide…), sinon une pichenette
   if (isProp(c)) { const it = c; if (!it.held) { if (!run(H.click, Wd.gx ?? it.x, Wd.gy ?? it.y)) poke(it, Wd.gx ?? it.x); return; }
     // lâché : il vole, tourne sur lui-même, rebondit, se pose (sur une caisse, s'il tombe dessus)
-    it.held = false; drop(it, clamp(vx || 0, -1800, 1800), -clamp(vy || 0, -1800, 1800), clamp((vx || 0) * 0.004, -7, 7) + rnd(-1, 1)); return; }
+    it.held = false; it.lache = Wd.t; drop(it, clamp(vx || 0, -1800, 1800), -clamp(vy || 0, -1800, 1800), clamp((vx || 0) * 0.004, -7, 7) + rnd(-1, 1)); return; }
   if (!c.held) { if (!run(H.click, Wd.gx ?? c.x, Wd.gy ?? c.y) && !c.fall && !c.jump) purr(c); return; }
   c.held = false; c.fall = true; c.vx = clamp(vx || 0, -1500, 1500); c.vy = clamp(vy || 0, -1500, 1500);
   // la pose change (pendu → en chute) : le corps reste où il est

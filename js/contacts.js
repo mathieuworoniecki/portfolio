@@ -190,7 +190,7 @@ const REACT = {
     if (s.k === 'mouche') { if (it.mur || it.launched) pose_mouche(s.ref, () => [it.x, it.y - (it.lift || 0) - it.hull.h * it.s], () => Wd.props.includes(it) && !it.fall && !it.held && !it.suck); return; }
     if (it.mur) { it.wob = Wd.t; it.wobA = 0.4; word(pick(['clonk', 'tonk']), t.x, t.y - 12, 15); rebond(s, dir); return; }
     if (s.f === 0) { it.wob = Wd.t; it.wobA = 0.15; if (s.k === 'kib' && Math.random() < 0.15) word(pick(['tic', 'toc']), s.x, t.y - 10, 12); rebond(s, dir); return; }
-    if (s.f === 2 && LEGER(it) && !it.tower) { kick(it, dir); Ch.sortir(it); word(pick(['clang', 'bing', 'patatras']), t.x, t.y - 12, 17); }
+    if (s.f === 2 && LEGER(it) && !it.tower && !(s.ref && s.ref.hull && Ch.masse(s.ref) < Ch.masse(it) * 0.5)) { kick(it, dir); Ch.sortir(it); word(pick(['clang', 'bing', 'patatras']), t.x, t.y - 12, 17); }
     else { it.wob = Wd.t; it.wobA = s.f === 2 ? 0.8 : 0.45; if (s.f === 2) Ch.sortir(it); if (Math.random() < 0.6) word(pick(['toc', 'bonk', 'poc']), t.x, t.y - 12, 15); }
     rebond(s, dir); dit(s.who, ['oups', 'pardon', 'aïe'], 0.5); },
 };
