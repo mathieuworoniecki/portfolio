@@ -1076,7 +1076,7 @@ function hide() { Wd.cats.forEach(c => { c.root.visible = false; }); Wd.props.fo
 /* ——— les mains : cliquer, attraper ——— */
 function catAt(x, y) {
   let best = null, bz = -Infinity;
-  Wd.cats.forEach(c => { if (c.hidden || c.gone) return; const b = Chat.where(c, c.body), h = Chat.where(c, c.head), k = sc(c);
+  Wd.cats.forEach(c => { if (c.hidden || c.gone || c.rare) return; const b = Chat.where(c, c.body), h = Chat.where(c, c.head), k = sc(c);
     const inB = Math.hypot((x - b[0]) / (c.D.a * k + 8), (y - b[1]) / (c.D.h * k * 1.2 + 8)) < 1, inH = Math.hypot(x - h[0], y - h[1]) < c.b.head[0] * k * 1.25 + 6;
     if ((inB || inH) && c.z > bz) { best = c; bz = c.z; } });
   return best;

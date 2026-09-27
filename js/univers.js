@@ -238,7 +238,8 @@ function destroy(it) { if (it && it.R) Obj3D.unrig(it.R); if (it) it.R = null; }
 const qa = new T.Quaternion(), qb = new T.Quaternion(), AX = V(1, 0, 0), AY = V(0, 1, 0);
 // poser l'objet : même vue que les chats (un peu au-dessus), son orientation, sa taille ; son opacité
 function place(it) {
-  it.root.position.set(it.x, -it.y, it.z); it.root.scale.setScalar(it.s);
+  // it.sq : écrasé (js/rares.js, le géant) : plus large, plus plat, depuis le sol
+  const q = it.sq || 0; it.root.position.set(it.x, -it.y, it.z); it.root.scale.set(it.s * (1 + q * 0.45), it.s * (1 - q * 0.7), it.s);
   qa.setFromAxisAngle(AX, Chat.VIEW.tilt); qb.setFromAxisAngle(AY, it.yaw); qa.multiply(qb); it.view.quaternion.copy(qa);
   if (it.parts.ball) it.parts.ball.quaternion.copy(it.spin);
   if (it.tilt) { qb.setFromAxisAngle(V(0, 0, 1), it.tilt); it.view.quaternion.multiply(qb); }

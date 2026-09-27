@@ -45,8 +45,14 @@ const TYPES = {
   gros:      { nom: 'le gros', s: 1.4, body: [0.33, 0.25, 2.4, 0.28], pear: 0.16, head: [0.19, 0.14, 0.14], at: [0.62, 0.78], cheek: 0.22, ear: [0.05, 0.32, 0.68], legs: [0.06, 0.05, 0.6], tail: [0.3, 0.04, 0.4], fluff: 0, eyes: 'point', eye: 0.042, mouth: 'w', coat: 'uni', col: 0x3e6b3a },
   mini:      { nom: 'la puce', s: 0.6, body: [0.18, 0.13, 2.3, 0.13], pear: 0.05, head: [0.2, 0.17, 0.14], at: [0.62, 1.05], cheek: 0.1, ear: [0.11, 0.3, 0.6], legs: [0.1, 0.034, 0.55], tail: [0.34, 0.028, 0.3], fluff: 0, eyes: 'point', eye: 0.058, mouth: 'blep', coat: 'uni', col: null },
   hirsute:   { nom: 'l\'ébouriffé', s: 1, body: [0.26, 0.18, 2.2, 0.17], pear: 0.04, head: [0.19, 0.15, 0.13], at: [0.74, 0.82], cheek: 0.12, ear: [0.09, 0.3, 0.64], legs: [0.12, 0.04, 0.58], tail: [0.4, 0.05, 1.2], fluff: 0.06, eyes: 'point', eye: 0.045, mouth: 'w', coat: 'uni', col: 0x7a3d8a },
+  // les raretés (js/rares.js) : elles n'arrivent que rarement, puis repartent ; leur taille est réglée à l'arrivée (c.b.s)
+  geant:     { rare: 1, nom: 'le géant', s: 1, body: [0.3, 0.28, 2, 0.28], pear: 0.08, head: [0.22, 0.18, 0.16], at: [0.45, 0.92], cheek: 0.16, ear: [0.07, 0.3, 0.62], legs: [0.06, 0.05, 0.5], tail: [0.34, 0.05, 0.9], fluff: 0, eyes: 'point', eye: 0.052, mouth: 'w', coat: 'uni', col: null },
+  interminable: { rare: 1, nom: 'l\'interminable', s: 1, body: [3.6, 0.1, 2.6, 0.1], pear: 0, head: [0.15, 0.13, 0.11], at: [0.985, 0.7], cheek: 0.06, ear: [0.07, 0.3, 0.66], legs: [0.13, 0.034, 0.97], tail: [0.5, 0.03, 0.3], fluff: 0, eyes: 'point', eye: 0.037, mouth: 'w', coat: 'uni', col: 0xc0561a },
+  ballon:    { rare: 1, nom: 'le ballon', s: 1.1, body: [0.3, 0.3, 2, 0.3], pear: 0, head: [0.2, 0.16, 0.15], at: [0.4, 0.95], cheek: 0.12, ear: [0.07, 0.3, 0.62], legs: [0.05, 0.035, 0.45], tail: [0.2, 0.03, 0.3], fluff: 0, eyes: 'point', eye: 0.05, mouth: 'blep', coat: 'uni', col: 0xc04a6c },
+  eclair:    { rare: 1, nom: 'l\'éclair', s: 0.9, body: [0.3, 0.12, 2.4, 0.12], pear: 0, arch: 0.2, head: [0.16, 0.13, 0.12], at: [0.9, 0.7], cheek: 0.05, ear: [0.11, 0.28, 0.66], legs: [0.16, 0.034, 0.66], tail: [0.55, 0.03, 0.2], fluff: 0, eyes: 'point', eye: 0.04, mouth: 'w', coat: 'uni', col: 0xb8860b },
+  acrobate:  { rare: 1, nom: 'l\'acrobate', s: 0.75, body: [0.19, 0.15, 2.2, 0.14], pear: 0.06, head: [0.21, 0.17, 0.15], at: [0.6, 1.02], cheek: 0.1, ear: [0.1, 0.32, 0.6], legs: [0.1, 0.036, 0.55], tail: [0.34, 0.03, 0.3], fluff: 0, eyes: 'point', eye: 0.056, mouth: 'w', coat: 'uni', col: 0x2f6e8e },
 };
-const IDS = Object.keys(TYPES);
+const IDS = Object.keys(TYPES).filter(k => !TYPES[k].rare);   // les raretés (js/rares.js) n'arrivent pas au hasard des clics
 
 /* ——— une silhouette gonflée ———
    R(θ) : le contour (dans le plan x, y) ; D : la demi-épaisseur (le long de z).
