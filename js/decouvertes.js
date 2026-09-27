@@ -80,6 +80,9 @@ fam('eau', 'L’eau et les couleurs', 'Water and colours', [
   ['fontarc', 'La fontaine qui brille', 'Sparkling fountain', 'Un petit besoin… tout près de la fontaine.', 'A little accident… right by the fountain.'],
   ['bainarc', 'Bain de couleurs', 'Colour bath', 'Plonger dans une eau qui brille.', 'Dive into shiny water.'],
   ['bulles', 'Ça pétille', 'Fizzy', 'Boire à une fontaine arc-en-ciel.', 'Drink from a rainbow fountain.'],
+  ['peche', 'La pêche', 'Gone fishing', 'Une croquette qui flotte… une patte patiente.', 'A floating kibble… a patient paw.'],
+  ['lettreplouf', 'Une lettre à l’eau', 'Letter overboard', 'Le titre tombe, le bassin est juste en dessous.', 'The title falls, the pool is right below.'],
+  ['pechelettre', 'Repêcher une lettre', 'Fish out a letter', 'Laisser flotter une lettre, et attendre.', 'Let a letter float, and wait.'],
   ['raz', 'Raz-de-marée', 'Tidal wave', 'Le géant roule… et le bain est plein.', 'The giant rolls… while the bath is full.'],
 ]);
 fam('evts', 'Les événements', 'Events', [
