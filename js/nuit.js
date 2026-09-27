@@ -14,7 +14,8 @@ const ETOILES = Array.from({ length: 9 }, (_, i) => ({ u: (i * 0.137 + 0.05) % 1
 
 // la lune et les étoiles (au trait, comme le reste)
 H.draw.push(() => {
-  if (!on() || !Wd.W) return; const C = window.Chalk, ctx = C && C.ctx; if (!ctx) return;
+  if (!on() || !Wd.W || (window.Piece && Piece.lune && Piece.lune())) return;   // (la pièce a une fenêtre : la lune est dedans, js/piece.js)
+  const C = window.Chalk, ctx = C && C.ctx; if (!ctx) return;
   const top = Wd.ceil || Wd.H * 0.3, x = Wd.W * 0.78, y = Math.max(46, top * 0.35), r = Math.max(14, Wd.s0 * 0.12);
   ctx.save(); ctx.strokeStyle = `rgba(${(window.THEME && THEME.ink) || C.INK},${0.7 * Wd.a})`; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.arc(x, y, r, -1.2, 1.9 + 0.35); ctx.stroke();
