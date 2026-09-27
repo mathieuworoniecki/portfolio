@@ -81,17 +81,28 @@ top = int(np.where(head.any(1))[0].min()); nape = 485
 # des mèches dessinées : des traits courbes qui partent du sommet du crâne
 hair = Image.new('L', (W0, H0), 255); dh_ = ImageDraw.Draw(hair); rng = np.random.default_rng(7)
 crown = (CX, top + 70)
-for i in range(45):                                   # peu de mèches : la version simple
+for i in range(0):                                    # la version simple : la forme des cheveux seule, sans mèches
     x0, y0 = rng.uniform(CX - 230, CX + 230), rng.uniform(top - 10, nape + 10)
     ang = np.arctan2(y0 - crown[1], x0 - crown[0]) + rng.normal(0, 0.25); ln = rng.uniform(30, 60)
     pts = [(x0 + np.cos(ang + 0.02 * t) * ln * t / 6, y0 + np.sin(ang + 0.02 * t) * ln * t / 6) for t in range(7)]
     dh_.line(pts, fill=22, width=8, joint='curve')
+# la forme des cheveux : leur bord sur la nuque, d'un trait, légèrement arrondi
+xs_n = np.where(head[nape - 20])[0]
+if len(xs_n): dh_.line([(x, nape - 34 + 16 * (1 - ((x - (xs_n.max() + xs_n.min()) / 2) / ((xs_n.max() - xs_n.min()) / 2)) ** 2)) for x in np.linspace(xs_n.min() + 6, xs_n.max() - 6, 40)], fill=22, width=10, joint='curve')
 back = np.asarray(hair, np.float32) / 255
 # la limite des cheveux sur la nuque : un peu irrégulière ; la nuque et le cou en dessous, en clair
 hl = nape + 12 * np.sin(xx[0] / 23) * np.sin(xx[0] / 7)
 back = np.where(yy >= hl[None, :], 1.0, back)
 back = np.where(head, back, 1.0)
-back[edge] = np.minimum(back[edge], 0.09)
+# le contour de la tête, de dos : le même trait lisse, un peu en dedans du bord, que de face
+hin = cv2.erode((cv2.GaussianBlur(head.astype(np.float32), (0, 0), 6) > 0.5).astype(np.uint8), np.ones((13, 13), np.uint8))
+bi = Image.fromarray((back * 255).astype(np.uint8)); db = ImageDraw.Draw(bi)
+for c in cv2.findContours(hin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)[0]:
+    if cv2.contourArea(c) < 5000: continue
+    P = c[:, 0, :].astype(np.float32)
+    for k in (16, 12): P = np.stack([np.convolve(np.r_[P[-k:, i], P[:, i], P[:k, i]], np.ones(2 * k + 1) / (2 * k + 1), 'same')[k:-k] for i in (0, 1)], 1)
+    db.line([tuple(q) for q in P] + [tuple(P[0])], fill=22, width=13, joint='curve')
+back = np.asarray(bi, np.float32) / 255
 plain = Image.new('L', (W0, H0), 255); d2 = ImageDraw.Draw(plain)
 for c in cnts: pts = smooth(c); d2.line(pts + [pts[0]], fill=20, width=10, joint='curve')
 d2.line(arc(cx, cy - 4, rx + 10, ry * 0.5, 0, np.pi), fill=30, width=9)

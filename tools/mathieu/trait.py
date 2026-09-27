@@ -185,7 +185,7 @@ def tete(im, m, L, g, bottom=640, head=None, contour=True):
 
 def simple(im, m, L, g, head):
     """La version simple (27 septembre : « plus simple, un trait qui me dessine, moins de détails ») : un seul trait de feutre, franc, pas de gris,
-    comme les chats. La silhouette, la ligne des cheveux et quelques mèches, les sourcils, les yeux en points avec un reflet,
+    comme les chats. La silhouette, la ligne des cheveux (leur forme seule), les sourcils, les yeux en points avec un reflet,
     le dessous du nez, la moustache en guidon (deux traits qui remontent en boucle), le sourire, le menton."""
     H0, W0 = m.shape; yy, xx = np.mgrid[0:H0, 0:W0]
     L = np.asarray(L, float)
@@ -201,7 +201,7 @@ def simple(im, m, L, g, head):
     fm = np.zeros((H0, W0), np.uint8); cv2.fillPoly(fm, [L[OVAL].astype(np.int32)], 1); face = fm > 0
     gb = cv2.GaussianBlur(g, (0, 0), 2)
 
-    # ——— les cheveux : la ligne des cheveux sur le front (loin du bord de la tête), et trois ou quatre mèches, les plus longues ———
+    # ——— les cheveux : leur forme seule (27 septembre) : la silhouette et la ligne des cheveux sur le front, sans mèches ———
     hair = m & (gb < 0.40) & (yy < L[152, 1] - 0.5 * fw) & ~(face & (yy > L[10, 1] + 0.06 * fw))
     hair = cv2.morphologyEx(hair.astype(np.uint8), cv2.MORPH_OPEN, np.ones((7, 7), np.uint8))
     hair = cv2.morphologyEx(hair, cv2.MORPH_CLOSE, np.ones((15, 15), np.uint8))
@@ -210,16 +210,8 @@ def simple(im, m, L, g, head):
     for c in cs:
       if cv2.contourArea(c) < 3000: continue
       p = smooth(c, 12); far = inside_d[np.clip(p[:, 1].astype(int), 0, H0 - 1), np.clip(p[:, 0].astype(int), 0, W0 - 1)] > 22
-      for run in np.split(np.arange(len(p)), np.where(np.diff(far.astype(int)) != 0)[0] + 1):
-        if far[run[0]] and len(run) > 40: brush(d, p[run][::3], W, INK, (0.2, 0.2), 0.3)
-    inner = cv2.erode(hair, np.ones((21, 21), np.uint8)) > 0
-    dn = cv2.GaussianBlur(g, (0, 0), 2.5) - cv2.GaussianBlur(g, (0, 0), 7)
-    sk = skeletonize(inner & (dn < -0.02)); n, lab, st, _ = cv2.connectedComponentsWithStats(sk.astype(np.uint8), 8)
-    for i in [i for i in np.argsort(-st[:, 4]) if i > 0][:4]:
-      ys, xs = np.where(lab == i); P = np.c_[xs, ys].astype(float)
-      if len(P) < 25: continue
-      c = P.mean(0); _, _, Vt = np.linalg.svd(P - c, full_matrices=False); Q = P[np.argsort((P - c) @ Vt[0])]; Q = Q[::max(1, len(Q) // 6)]
-      if len(Q) >= 3: brush(d, curve(None, 30, s=len(Q) * 30, pts=Q), W * 0.8, INK, (0.3, 0.6))
+      runs = [r for r in np.split(np.arange(len(p)), np.where(np.diff(far.astype(int)) != 0)[0] + 1) if far[r[0]] and len(r) > 40]
+      if runs: r = max(runs, key=len); brush(d, p[r][::3], W, INK, (0.2, 0.2), 0.3)     # la forme seule : une ligne, pas de mèches
 
     # ——— les sourcils : un trait, épais vers le nez, effilé vers la tempe ———
     for up, lo in [([107, 66, 105, 63, 70], [55, 65, 52, 53, 46]), ([336, 296, 334, 293, 300], [285, 295, 282, 283, 276])]:
@@ -259,8 +251,10 @@ def simple(im, m, L, g, head):
     brush(d, curve(jaw, 160)[46:-46], W, INK, (0.2, 0.2), 0.3)
 
     # ——— la silhouette ———
-    cs, _ = cv2.findContours(head.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    # un peu en dedans du bord (sinon la moitié du trait tombe hors de l'image, et il paraît fin et haché)
+    k = int(W * 0.6) * 2 + 1; hin = cv2.erode(cv2.GaussianBlur(head.astype(np.float32), (0, 0), 6).__gt__(0.5).astype(np.uint8), np.ones((k, k), np.uint8))
+    cs, _ = cv2.findContours(hin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     for c in cs:
       if cv2.contourArea(c) < 5000: continue
-      p = smooth(smooth(c, 14)[:, None, :], 10); d.line([tuple(q) for q in p] + [tuple(p[0])], fill=INK, width=int(W * 1.1), joint='curve')
+      p = smooth(smooth(c, 16)[:, None, :], 12); d.line([tuple(q) for q in p] + [tuple(p[0])], fill=INK, width=int(W * 1.1), joint='curve')
     return np.asarray(img, np.float32) / 255, hair > 0
