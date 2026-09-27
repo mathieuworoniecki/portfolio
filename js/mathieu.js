@@ -171,7 +171,11 @@ function build(meta) {
     B.smooth(loft(R, { n: 40, cap: false }));
     // l'encolure côtelée (deux traits, plus bas devant), les coutures des épaules, l'ourlet
     segs(around(R, 0.405, E, 48), L); segs(around(R, 0.385, E, 48).map((p, i, a) => { const t = i / (a.length - 1) * Math.PI * 2; p[1] -= 0.02 * Math.max(0, Math.cos(t)) ** 2; return p; }), L);
-    [1, -1].forEach(sd => segs(along(R, 0.395, 0.3, sd * Math.PI / 2 * 0.72, E, 8), L));
+    [1, -1].forEach(sd => segs(along(R, 0.395, 0.3, sd * (Math.PI / 2 + 0.2), E, 8), L));
+    // les coutures des côtés, de l'aisselle à l'ourlet (on les voit de profil et de trois quarts dos)
+    [1, -1].forEach(sd => segs(along(R, 0.2, -0.35, sd * Math.PI / 2, E, 12), L));
+    // dans le dos : le creux des reins, deux plis doux
+    [1, -1].forEach(sd => segs(along(R, -0.2, -0.3, u => Math.PI - sd * (0.25 + 0.15 * u), E, 4), F));
     segs(around(R, -0.35, E, 48), L);
     // des plis : à la taille, sous les bras
     [1, -1].forEach(sd => { segs(along(R, -0.3, -0.18, u => sd * (1.1 - 0.25 * u), E, 6), F); segs(along(R, 0.24, 0.12, u => sd * (1.35 - 0.3 * u), E, 6), F); segs(along(R, -0.25, -0.15, u => sd * (0.55 + 0.1 * u), E, 5), F); });
@@ -180,28 +184,34 @@ function build(meta) {
     (meta.logo || []).forEach(p => segs(p.map(([x, y]) => { const Y = ly + y * ls, w = on(R, Y, Math.PI / 2, E)[0]; return on(R, Y, Math.asin(Math.max(-1, Math.min(1, (lx + x * ls) / w))), E); }), L));
     B.lines(L).soft(F);
   });
-  pc('manche', B => { const R = H.manche; B.smooth(loft(R, { cap: false })); B.lines(segs(around(R, -0.185, E, 28), [])); B.soft(segs(along(R, -0.06, -0.15, Math.PI * 0.9, E, 5), [])); });
+  pc('manche', B => { const R = H.manche; B.smooth(loft(R, { cap: false })); const L = segs(around(R, -0.185, E, 28), []); segs(along(R, 0.03, -0.185, Math.PI, E, 8), L); B.lines(L); B.soft(segs(along(R, -0.06, -0.15, Math.PI * 0.8, E, 5), [])); });
   pc('jean', B => {
     const R = H.jean, L = [], F = [];
     B.smooth(loft(R, { n: 40 }));
     // la ceinture et le haut des poches sont sous le t-shirt, qui tombe sur les hanches (a = 0) : on ne voit que ce qui dépasse dessous
     // la braguette (sa couture en J), le bas des poches devant, les poches derrière, la couture de l'entrejambe
     segs([...along(R, -0.01, -0.07, 0.075, E, 5), ...along(R, -0.07, -0.1, u => 0.075 * (1 - u), E, 3)], F);
+    // dans le dos : l'empiècement en V au-dessus des poches, la couture du milieu ; sur les côtés, les coutures
+    segs(along(R, -0.025, -0.055, u => Math.PI - 1.35 * (1 - u), E, 6), L); segs(along(R, -0.025, -0.055, u => Math.PI + 1.35 * (1 - u), E, 6), L);
+    segs(along(R, -0.055, -0.165, Math.PI, E, 6), L);
+    [1, -1].forEach(sd => segs(along(R, -0.01, -0.12, sd * Math.PI / 2, E, 5), F));
     [1, -1].forEach(sd => {
       segs(along(R, -0.01, -0.05, u => sd * (0.75 + 0.6 * u), E, 6), F);
-      const bk = (a, t) => on(R, a, t, E); segs([bk(-0.01, Math.PI - sd * 0.25), bk(-0.11, Math.PI - sd * 0.28), bk(-0.13, Math.PI - sd * 0.55), bk(-0.11, Math.PI - sd * 0.82), bk(-0.01, Math.PI - sd * 0.85)], L);
+      const bk = (a, t) => on(R, a, t, E); segs([bk(-0.058, Math.PI - sd * 0.2), bk(-0.13, Math.PI - sd * 0.23), bk(-0.15, Math.PI - sd * 0.5), bk(-0.13, Math.PI - sd * 0.77), bk(-0.052, Math.PI - sd * 0.8)], L);
     });
     B.lines(L).soft(F);
   });
   // les jambes du jean : la couture sur le côté (dehors), deux plis doux au pli du genou, derrière ; en bas, l'ourlet et le tissu qui tombe sur la basket
-  [['jambe', 1], ['jambe-', -1]].forEach(([k, sd]) => pc(k, B => { const R = H.jambe; B.smooth(loft(R)); const F = []; segs(along(R, 0.0, -0.52, sd * Math.PI / 2, E, 10), F); [-0.44, -0.48].forEach(a => segs(around(R, a, E, 8, Math.PI - 0.5, Math.PI + 0.5), F)); B.soft(F); }));
-  pc('bas', B => { const R = H.bas; B.smooth(loft(R, { cap: false })); B.lines(segs(around(R, -0.495, E, 28), [])); const F = []; segs(around(R, -0.42, E, 8, -0.7, 0.2), F); segs(around(R, -0.45, E, 8, 0.4, 1.1), F); B.soft(F); });
+  [['jambe', 1], ['jambe-', -1]].forEach(([k, sd]) => pc(k, B => { const R = H.jambe; B.smooth(loft(R)); const F = []; segs(along(R, 0.0, -0.52, sd * Math.PI / 2, E, 10), F); segs(along(R, -0.05, -0.52, -sd * Math.PI / 2, E, 10), F); [-0.44, -0.48].forEach(a => segs(around(R, a, E, 8, Math.PI - 0.5, Math.PI + 0.5), F)); B.soft(F); }));
+  pc('bas', B => { const R = H.bas; B.smooth(loft(R, { cap: false })); B.lines(segs(around(R, -0.495, E, 28), [])); const F = []; [1, -1].forEach(sd => segs(along(R, 0.02, -0.48, sd * Math.PI / 2, E, 10), F)); segs(around(R, -0.42, E, 8, -0.7, 0.2), F); segs(around(R, -0.45, E, 8, 0.4, 1.1), F); B.soft(F); });
   pc('tige', B => {
     const R = H.tige, L = [], F = []; B.smooth(loft(R, { axis: 'z', n: 28 }));
     // la semelle (la moitié du talon), le col, les lacets
     const so = kit.roundPoly([[-0.05, -0.085], [0.05, -0.085], [0.06, 0.1], [-0.058, 0.1]], 0.03, 5); B.solid(kit.topExt(so, 0.028, -0.117));
     for (let k = 0; k < 4; k++) { const z = 0.03 + k * 0.022, y = on(R, z, 0, E, true)[1]; F.push(-0.026, y, z, 0.026, y + 0.004, z); }
     segs(along(R, 0.0, 0.1, 0.42, E, 6, true), F); segs(along(R, 0.0, 0.1, -0.42, E, 6, true), F);
+    // les flancs : le bord du panneau, le renfort du talon
+    [1, -1].forEach(sd => { segs(along(R, -0.06, 0.1, u => sd * (1.2 - 0.5 * Math.sin(u * Math.PI)), E, 10, true), L); segs(along(R, -0.08, -0.03, sd * 1.05, E, 4, true), F); });
     B.lines(L).soft(F);
   });
   pc('bout', B => {
@@ -304,7 +314,12 @@ function pose(m, o) {
   } else {
     m.turn.rotation.set(p.tilt ?? 0, p.turn ?? 0, p.roll ?? 0, 'YXZ');
     // la tête ne va pas au-delà du trois quarts (le relief vient d'une photo de face)
-    m.head.rotation.set(-(p.nod ?? 0), Math.max(-0.7, Math.min(0.7, p.look ?? 0)), 0, 'YXZ');
+    // la tête vient d'une photo de face : de profil, elle s'aplatit. Elle reste donc de trois quarts au plus, de face ou de dos,
+    // et passe vite de l'un à l'autre quand le corps est de profil (un coup de tête, comme un personnage de dessin animé)
+    const TAU = Math.PI * 2, rel = (((p.turn ?? 0) % TAU) + TAU + Math.PI) % TAU - Math.PI, cl = x => Math.max(-0.72, Math.min(0.72, x));
+    const back = Math.max(0, Math.min(1, (Math.abs(rel) - 1.62) / 0.2)), bw = back * back * (3 - 2 * back), sg = rel < 0 ? -1 : 1;
+    const want = (1 - bw) * cl(rel) + bw * (sg * Math.PI + cl(rel - sg * Math.PI));
+    m.head.rotation.set(-(p.nod ?? 0), want - rel + Math.max(-0.5, Math.min(0.5, p.look ?? 0)), 0, 'YXZ');
     stride(m, p.run ?? 0, Math.max(0, Math.min(1, p.speed ?? 0)), performance.now() / 1000);
     // la couche à montrer : le squelette, le corps nu, ou habillé
     const cc = m.couches[p.couche] ? p.couche : 'habits'; Object.entries(m.couches).forEach(([l, xs]) => { if (l !== cc) xs.forEach(x => { x.g.visible = false; }); }); m.couches[cc].forEach(x => { x.g.visible = true; });
