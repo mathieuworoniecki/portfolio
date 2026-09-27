@@ -63,6 +63,15 @@ fam('pepins', 'Les petits pépins', 'Little mishaps', [
   ['pop', 'POP', 'POP', 'Un ballon et quelque chose de pointu… ou de lancé.', 'A balloon and something thrown at it.'],
   ['patatras', 'PATATRAS', 'CRASH', 'Faire tomber la pile de chatons.', 'Knock over the stack of kittens.'],
 ]);
+// (27/09) une manie par race (js/races.js)
+const MANIES = { boule: ['La boule roule', 'Rolling ball', 'Ronde comme elle est…'], grincheux: ['Le regard noir', 'The glare', 'Il te surveille, de loin.'],
+  long: ['L’étirement sans fin', 'The endless stretch', 'Quand le long s’étire…'], chaton: ['Sa propre queue', 'His own tail', 'Le chaton a trouvé un jouet : lui-même.'],
+  bleu: ['D’un seul bond', 'In one leap', 'Le bleu et l’arbre : il ne rate jamais.'], miche: ['Le pain', 'The loaf', 'La miche fait… la miche.'],
+  rose: ['Le câlin', 'The cuddle', 'La rose aime ses amis.'], tigre: ['Le chasseur', 'The hunter', 'Bouge la souris devant le tigre.'],
+  reveur: ['Le somnambule', 'The sleepwalker', 'Le rêveur ne se réveille pas toujours.'], nuage: ['Dormir debout', 'Asleep standing', 'Le nuage peut dormir n’importe où.'],
+  pompon: ['Boing boing', 'Boing boing', 'Le pompon a des ressorts.'], gros: ['Le ventre offert', 'Belly up', 'Le gros veut quelque chose…'],
+  mini: ['Dans la gamelle', 'In the bowl', 'Le mini tient partout.'], hirsute: ['La coiffure', 'The hairdo', 'L’hirsute se secoue.'] };
+fam('manies', 'Les manies', 'Quirks', Object.keys(MANIES).filter(k => TY[k]).map(k => ['manie-' + k, MANIES[k][0], MANIES[k][1], MANIES[k][2], 'Every breed has its own quirk.']));
 fam('faim', 'La faim', 'Hunger', [
   ['gamellevide', 'Plus rien !', 'All gone!', 'Une gamelle, ça se vide.', 'A bowl runs out.'],
   ['remplie', 'À table', 'Dinner is served', 'Et si le distributeur visait la gamelle ?', 'What if the dispenser aimed at the bowl?'],
