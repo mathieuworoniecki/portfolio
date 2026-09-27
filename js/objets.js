@@ -96,7 +96,7 @@ H.post.push(dt => {
   const near = Wd.cats.find(c => !c.hidden && Math.abs(c.x - g.x) < g.s * 1.2);
   if (g.shake > (g.used || 0)) g.used = g.shake;
   if (ptr.on && Wd.t - ptr.moved < 3) look(g, ptr.x, ptr.y, 0.009); else if (near) look(g, near.x, near.y - sc(near) * 0.4, 0.009); else look(g, g.x, g.y + 50, 0.004);
-  const idle = Wd.t - Math.max(g.used || 0, ptr.moved || 0, g.born || (g.born = Wd.t)) > 35 && !near;
+  const idle = (Wd.t - Math.max(g.used || 0, ptr.moved || 0, g.born || (g.born = Wd.t)) > 35 || (window.Nuit && Nuit.on() && Wd.t - (g.used || -99) > 8)) && !near;   // (la nuit, il dort : js/nuit.js)
   g.parts.yeux.scale.y += ((idle ? 0.15 : 1) - g.parts.yeux.scale.y) * Math.min(1, dt * 4);
   if (idle && Wd.t > (g.zT || 0)) { g.zT = Wd.t + 1.6; Wd.fx.push({ k: 'z', x: g.x + g.s * 0.1, y: g.y - g.s * 0.62, t0: Wd.t, life: 2.4, dx: 1 }); }
   // le bocal : il se vide à chaque salve ; vide, le bouton fait « clic » dans le vide

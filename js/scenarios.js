@@ -101,7 +101,7 @@ H.pre.push(dt => {
   if ((Wd.t > m.end || m.bye) && (m.x < -60 || m.x > Wd.W + 60)) { Wd.mouche = null; return; }
   // elle se pose sur le nez d'un chat assis
   if (!m.bye && Wd.t - m.t0 > 9 && Math.random() < dt * 0.2) { const c = Wd.cats.find(c => c.hp && !c.hidden && !c.rare && !c.perch && !(c.task && c.task.air) && /assis|pain|debout/.test(c.anim) && Math.abs(c.hp[0] - m.x) < 200); if (c) { m.nose = c; m.landT = Wd.t; interrupt(c); c.q = [pose('assis', 3)]; c.task = null; } }
-  if (Wd.t > (m.buzz || 0)) { m.buzz = Wd.t + rnd(1.5, 3); word(pick(['bzzz', 'bzz', 'zzzz']), m.x + 12, m.y - 12, 13); }
+  if (Wd.t > (m.buzz || 0)) { m.buzz = Wd.t + rnd(1.5, 3); word(window.Nuit && Nuit.on() ? pick(['flap flap', 'frrt', '…']) : pick(['bzzz', 'bzz', 'zzzz']), m.x + 12, m.y - 12, 13); }
 });
 // les yeux suivent la mouche ; qui aime jouer la chasse
 H.live.push(c => { const m = M(); if (!m || c.hidden || !c.hp || c.tgt[I.eyes] >= 0.5) return; const dx = m.x - c.hp[0], dy = m.y - c.hp[1];
@@ -114,6 +114,8 @@ H.post.push(() => {
 function drawFly() {
   const m = M(); if (!m) return; const C = Chalk, ctx = C.ctx; if (!ctx) return; const f = Math.sin(Wd.t * 60) * 0.5 + 0.5;
   C.dot(m.x, m.y, 2.6, 0.9 * Wd.a); ctx.save(); ctx.strokeStyle = `rgba(${(window.THEME && THEME.ink) || Chalk.INK},${0.6 * Wd.a})`; ctx.lineWidth = 1;
+  // la nuit, c'est un papillon de nuit : de grandes ailes poudrées, qui battent lentement (js/nuit.js)
+  if (window.Nuit && Nuit.on()) { const g = Math.sin(Wd.t * 14) * 0.5 + 0.5; [-1, 1].forEach(s => { ctx.beginPath(); ctx.ellipse(m.x + s * 7, m.y - 2, 8, 3 + g * 5, s * 0.5, 0, TAU); ctx.stroke(); ctx.beginPath(); ctx.ellipse(m.x + s * 5, m.y + 4, 4.5, 2 + g * 2, -s * 0.4, 0, TAU); ctx.stroke(); }); ctx.restore(); return; }
   [-1, 1].forEach(s => { ctx.beginPath(); ctx.ellipse(m.x + s * 3, m.y - 3, 3.2, 1.6 + f * 1.4, s * 0.6, 0, TAU); ctx.stroke(); }); ctx.restore();
 }
 
