@@ -1151,9 +1151,10 @@ function drag(c, x, y) {
     }
     it.hx = x; it.hy = y; return; }
   // le geste décide : vers le haut, on le soulève (par la peau du cou) ; de côté ou vers le bas, on le caresse
+  // (à la souris, on caresse en survolant, sans cliquer : js/chats.js, survol ; appuyer, c'est attraper. Au doigt, le geste de côté caresse encore)
   if (!c.held && !c.pet) { const dx = x - (Wd.gx ?? x), dy = y - (Wd.gy ?? y);
-    if (Math.hypot(dx, dy) < 12) return;   // le geste n'a pas encore de direction : on attend
-    if (Math.abs(dx) > Math.abs(dy) * 2.2 && dy > -8 && !c.fall && !c.jump) { interrupt(c); c.pet = { n: 0, dir: 0, lx: x, t: Wd.t, run: 0, x0: Wd.gx ?? x, y0: Wd.gy ?? y }; c.q = []; c.task = { k: 'wait', anim: 'caresse', until: c => !c.pet, max: 120, t: 0 }; say(c, '♥'); } }
+    if (Wd.tactile && Math.hypot(dx, dy) < 12) return;   // le geste n'a pas encore de direction : on attend
+    if (Wd.tactile && Math.abs(dx) > Math.abs(dy) * 2.2 && dy > -8 && !c.fall && !c.jump) { interrupt(c); c.pet = { n: 0, dir: 0, lx: x, t: Wd.t, run: 0, x0: Wd.gx ?? x, y0: Wd.gy ?? y }; c.q = []; c.task = { k: 'wait', anim: 'caresse', until: c => !c.pet, max: 120, t: 0 }; say(c, '♥'); } }
   // la main sort du dos (trop loin sur le côté, ou vers le haut) : on arrête de caresser, on l'attrape
   // (sur le dos, le corps descend : la main qui caressait reste plus haut sans qu'on l'ait levée)
   if (c.pet) { const b = Chat.where(c, c.body), k = sc(c), P = c.pet, mx = c.D.a * k * 1.3 + 20;
@@ -1177,6 +1178,30 @@ function pet(c, x, y) {
     if (P.n >= lim && Math.random() < 0.8) { c.pet = null; c.task = null; c.q = [pose('tape', 0.5, { face: sgn(x - c.x) || c.face, fx: c => say(c, 'pfff !') }), go(inView(c.x - sgn(x - c.x) * sc(c) * 1.5), { g: 'trot' }), pose('toilette', 2.5)]; } } }
   P.t = Wd.t; c.face = c.face;
 }
+/* la caresse au survol (Mathieu, 27/09 : « la caresse ne devrait pas être au clic, mais simplement avec le curseur ; pareil pour la gratouille ») :
+   le curseur qui va et vient sur un chat le caresse ; longtemps, il roule sur le ventre (la gratouille, js/vie.js) ; le curseur s'en va, la caresse finit */
+const hov = { c: null, run: 0, lx: 0, ly: 0, c0: null };
+function finCaresse(c) { const n = c.pet ? c.pet.n : 0; c.pet = null; c.task = null; c.q = n > 5 ? [pose('petrit', rnd(2, 3.5), { fx: c => say(c, '♥') }), pose('pain', rnd(4, 8))] : n ? [pose('assis', rnd(1, 2))] : []; }
+function survol(x, y) {
+  if (!ready || Wd.a < 0.5) return;
+  const dx = x - hov.lx, dy = y - hov.ly; hov.lx = x; hov.ly = y;
+  const c = hov.c;
+  if (c) {
+    if (!Wd.cats.includes(c) || !c.pet || c.held || c.gone) { hov.c = null; return; }
+    const b = Chat.where(c, c.body), k = sc(c), loin = Math.hypot((x - b[0]) / (c.D.a * k * 1.5 + 24), (y - b[1]) / (c.D.h * k * (c.pet.belly ? 3.6 : 2.4) + 30)) > 1;
+    if (loin && catAt(x, y) !== c) { hov.c = null; finCaresse(c); return; }
+    pet(c, x, y); return;
+  }
+  const o = catAt(x, y);
+  if (!o || o.held || o.fall || o.jump || o.pet || o.escT && Wd.t - o.escT < 3 || o.perch && o.perch.moving) { hov.run = 0; hov.c0 = null; return; }
+  // (un curseur qui passe ne l'arrête pas : il faut un petit va-et-vient sur lui)
+  if (hov.c0 !== o) { hov.c0 = o; hov.run = 0; }
+  hov.run += Math.abs(dx) + Math.abs(dy) * 0.5; if (hov.run < Math.max(40, sc(o) * 0.3)) return;
+  interrupt(o); o.pet = { n: 0, dir: 0, lx: x, t: Wd.t, run: 0, x0: x, y0: y, hov: true }; o.q = []; o.task = { k: 'wait', anim: 'caresse', until: c => !c.pet, max: 120, t: 0 }; say(o, '♥');
+  hov.c = o; hov.c0 = null; hov.run = 0;
+}
+addEventListener('pointerdown', e => { Wd.tactile = e.pointerType !== 'mouse'; const c = hov.c; if (c) { hov.c = null; if (c.pet) finCaresse(c); } }, true);
+addEventListener('pointermove', e => { if (e.pointerType !== 'mouse' || e.buttons) return; if (e.target.closest && e.target.closest('a,button,select,input,label,.top,.film-ui,.tuto')) return; survol(e.clientX, e.clientY); }, { passive: true });
 function purr(c) { c.purr = Wd.t + 2.6; say(c, '♥'); later(0.5, () => say(c, 'rrrr', 0)); }
 function release(c, vx, vy) {
   if (!c || run(H.release, c, vx, vy)) return;
