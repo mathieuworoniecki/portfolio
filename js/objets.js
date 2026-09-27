@@ -161,7 +161,10 @@ H.think.push((c, add) => {
 });
 const knobXY = g => { const a = (g.lev0 ?? 0.3) + (g.pull || 0) * (g.levK ?? 1.3); return Univers.at(g, [g.pivot[0] - Math.sin(a) * 0.3, g.pivot[1] + Math.cos(a) * 0.3, g.pivot[2]]); };
 STEPS.pendu = (c, T, dt) => {
-  const g = T.g, s = sc(c); if (!Wd.props.includes(g) || g.held) { g.pulling = false; free(c); c.fall = true; c.vy = 0; c.task = null; return true; }
+  const g = T.g, s = sc(c);
+  // on attrape le levier pendant qu'il y est pendu : il lâche prise
+  if (T.on && Wd.t - (g.hand ?? -9) < 0.3) { free(c); c.fall = true; c.vy = -s * 1.5; c.vx = -s; c.task = null; say(c, pick(['hé !', 'c\'est à moi !', 'mia !'])); return true; }
+  if (!Wd.props.includes(g) || g.held) { g.pulling = false; free(c); c.fall = true; c.vy = 0; c.task = null; return true; }
   if (!T.on) {
     // le saut jusqu'au pommeau
     if (!T.j) { T.j = { x0: c.x, y0: c.y, t: 0 }; say(c, '!'); }

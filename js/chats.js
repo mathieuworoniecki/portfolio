@@ -1005,7 +1005,7 @@ function vacFrame(dt) {
       it.suck = { t0: Wd.t, fx: it.fx, lift: it.lift }; it.on = null; it.fall = false; });
     Wd.kib.forEach(k => { if (!k.suck && Math.abs(k.x - V.x) < R) { k.suck = Wd.t; k.sx = k.x; k.sy = k.y; if (k.who) k.who = null; } });
     // les chats : ils filent de l'autre côté ; un curieux s'approche trop… aspiré, puis recraché
-    Wd.cats.forEach(c => { if (c.held || c.fall || c.hidden || c.perch || Math.abs(c.x - V.x) > R * 1.8 || Wd.t - (c.fled || -9) < 4) return;
+    Wd.cats.forEach(c => { if (c.rare || c.held || c.fall || c.hidden || c.perch || Math.abs(c.x - V.x) > R * 1.8 || Wd.t - (c.fled || -9) < 4) return;
       c.fled = Wd.t;
       if (!V.curious && Math.random() < 0.35 && Math.abs(c.x - V.x) < R) { V.curious = true; interrupt(c); say(c, 'miaaa !!'); c.fall = true; c.vx = (V.x - c.x) * 2; c.vy = -Math.sqrt(2 * grav() * Math.max(10, c.y - V.y)); c.spin = Math.PI * 2 * sgn(Math.random() - 0.5);
         later(0.9, () => Wd.fx.push({ k: 'txt', text: 'ptoui !', x: V.x, y: V.y + 10, t0: Wd.t, life: 1.2, rot: 0.1, size: 18 })); return; }
@@ -1127,7 +1127,7 @@ function leverAt(x, y) { const g = Wd.props.find(p => p.pivot && !p.held && !p.f
 const isProp = k => !!(k && k.hull);
 function drag(c, x, y) {
   if (!c || run(H.drag, c, x, y)) return;
-  if (c.lever) { const g = c.lever; if (!g.pulling) { g.pulling = true; c.y0 = y - (g.pull || 0) * g.s * 0.35; } g.pull = clamp((y - c.y0) / (g.s * 0.35), 0, 1); return; }
+  if (c.lever) { const g = c.lever; g.hand = Wd.t; if (!g.pulling) { g.pulling = true; c.y0 = y - (g.pull || 0) * g.s * 0.35; } g.pull = clamp((y - c.y0) / (g.s * 0.35), 0, 1); return; }
   if (isProp(c)) { const it = c; if (it.mur) return;   // accrochée au mur : on ne l'emporte pas
     if (!it.held) {
       // on le soulève : ce qui dormait dessus saute (live), ce qui était posé dessus suit ; il ne revient plus seul à sa place tout de suite
