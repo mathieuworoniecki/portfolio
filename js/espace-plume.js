@@ -238,8 +238,8 @@ const largeur = (txt, font) => { tx.font = font; return tx.measureText(txt).widt
 function lignes(txt, font, wmax) { txt = txt.replace(/ ([:;!?»])/g, '\u00a0$1').replace(/« /g, '«\u00a0'); const R = []; let l = ''; txt.split(' ').forEach(m => { const e = l ? l + ' ' + m : m; if (l && largeur(e, font) > wmax) { R.push(l); l = m; } else l = e; }); if (l) R.push(l); return R; }
 
 // la Terre, en bas (la même que js/espace-planetes.js) : les chats s'y assoient pour regarder
-const hautTerre = () => { const H = O.H, h = clamp(H * 0.13, 60, 130); return O.BAS() - h + 18; };
-function terre() { const W = O.W, H = O.H, bas = O.BAS(), h = clamp(H * 0.13, 60, 130), R = Math.max(W * 1.15, (W * W / 4) / (2 * h) + h / 2); return { cx: W / 2, cy: bas - h + R + 18, R }; }
+const hautTerre = () => { const H = O.H, h = clamp(H * 0.085, 44, 84); return O.BAS() - h + 18; };
+function terre() { const W = O.W, H = O.H, bas = O.BAS(), h = clamp(H * 0.085, 44, 84), R = Math.max(W * 1.15, (W * W / 4) / (2 * h) + h / 2); return { cx: W / 2, cy: bas - h + R + 18, R }; }
 const surface = x => { const T = terre(); return T.cy - Math.sqrt(Math.max(0, T.R * T.R - (x - T.cx) * (x - T.cx))); };
 
 /* ——— la mise en page : en haut, la barre des deux chapitres ; au milieu, l'écran du ciel (où se forment les dessins) ;
@@ -268,30 +268,35 @@ function compose() {
   const barre = { y: yB, seg, bas: yB + (L ? 22 : 18) };
   const r = L ? clamp(Math.min(W, H) * 0.07, 38, 64) : clamp(Math.min(W, H) * 0.07, 30, 44), planete = L ? [W - W * 0.035 - r, barre.bas + r + 18] : [W - r - 10, barre.bas + r + 26];
   // les sous-titres : ancrés en bas, au-dessus des spectateurs
-  const place = L ? 14 : 50, wmax = Math.min(W - 32, L ? 900 : 9999), yCap = hautTerre() - place - 4;
+  const place = L ? 42 : 56, wmax = Math.min(W - 32, L ? 900 : 9999), yCap = hautTerre() - place - 4;
   const caps = SC.map((S, i) => { const num = SC.slice(0, i + 1).filter(q => q.ch === S.ch).length - 1; return sousTitre(S, L, wmax, num, nc[S.ch], CH[S.ch]); });
   const hMax = Math.max(...caps.map(c => c.h));
   // l'écran du ciel : tout ce qui reste entre la barre et les sous-titres
   const t0 = barre.bas + (L ? 18 : 10), b0 = yCap - hMax - (L ? 22 : 14), cx = W / 2, cy = (t0 + b0) / 2;
-  const s = Math.max(40, Math.min((b0 - t0) / 2 * 0.86, L ? W * 0.26 : W / 2 * 0.74));
-  return { W, H, L, barre, caps, yCap, cx, cy, s, planete, SC };
+  const s = Math.max(40, Math.min((b0 - t0) / 2 * 0.94, L ? W * 0.26 : W / 2 * 0.8));
+  // (pour les scènes dessinées, js/espace-scenes.js : la largeur qu'elles peuvent prendre, les bords, l'épaisseur du trait, celle des chats)
+  const G = { cx, cy: cy + (b0 - t0) * 0.04, s: s * 1.12, sw: Math.min(W * 0.44, Math.max(s * 1.2, (b0 - t0) * 1.6)), lw: L ? 2.6 : 2.1, gauche: 16, droite: W - 16, haut: t0, bas: b0 + (L ? 10 : 6) };
+  return { W, H, L, barre, caps, yCap, cx, cy, s, G, planete, SC };
 }
 
 /* ——— la séance : une scène à la fois ——— */
 const DUREE = reduit ? { A: 0.01, B: 0.01, C: 0.01 } : { A: 1.7, B: 1.7, C: 0.9 };
-const tenue = cap => (reduit ? 4 : 0) + clamp(4.2 + cap.L.reduce((n, l) => n + l.txt.length, 0) / 26, 6, 10.5);
+const tenue = cap => (reduit ? 4 : 0) + clamp(5 + cap.L.reduce((n, l) => n + l.txt.length, 0) / 26, 8.5, 12);
+const ES = () => window.EspaceScenes && EspaceScenes.S;
+// les points où se posent les étoiles d'une scène dessinée, à l'écran
+const clesDe = C => C.cs.cles().map(([x, y]) => [M.lay.G.cx + x * M.lay.G.s, M.lay.G.cy + y * M.lay.G.s, 1, 0]);
 let pret = false, onFini = null, fin1 = false;
 function scene(i) {
-  const lay = M.lay, S = lay.SC[i], f = DESSINS[S.d](), W = lay.W, hb = hautTerre();
+  const lay = M.lay, S = lay.SC[i], cs = ES() && ES()[S.d], f = cs ? { p: cs.cles().map(() => [0, 0, 0, 1.3]), e: [], flux: [], rot: () => [0, 0, 0] } : DESSINS[S.d](), W = lay.W, hb = hautTerre();
   // (d'où vient chaque étoile : un endroit du ciel, au hasard ; les plus proches arrivent les premières)
   const et = f.p.map((p, j) => ({ ox: rnd(0.02, 0.98) * W, oy: rnd(O.HAUT() + 4, hb - 30), dl: 0.55 * bruit(j * 1.7 + i * 13), ph: rnd(0, TAU) }));
-  return { i, S, f, et, t0: Wd.t, cap: lay.caps[i], tenue: tenue(lay.caps[i]), Q: null, reagi: false };
+  return { i, S, f, cs, et, t0: Wd.t, cap: lay.caps[i], tenue: tenue(lay.caps[i]), Q: null, reagi: false };
 }
 // passer à une scène : les étoiles de l'ancienne repartent dans le ciel ; ses sous-titres s'effacent au stylo
 function aller(j) {
   if (!M) return; const n = M.lay.SC.length; j = ((j % n) + n) % n; const C = M.sc;
   if (C && C.Q) C.f.p.forEach((p, k) => { if (p[3] <= 0) return; const q = C.pos ? C.pos[k] : C.Q[k]; M.part.push({ x: q[0], y: q[1], ox: rnd(0.02, 0.98) * M.lay.W, oy: rnd(O.HAUT() + 4, hautTerre() - 30), t0: Wd.t, R: 1.3 + 1.3 * p[3], ph: C.et[k].ph }); });
-  if (C) M.vieux = { cap: C.cap, t0: Wd.t, tl: Wd.t - C.t0 };
+  if (C) M.vieux = { cap: C.cap, t0: Wd.t, tl: Wd.t - C.t0, sc: C };
   M.sc = scene(j); M.ry = M.rx = 0;
 }
 const tps = () => M && M.sc ? Wd.t - M.sc.t0 : 0;
@@ -303,6 +308,8 @@ X.entre.push(() => { M = null; pret = false; fin1 = false;
   // (les polices doivent être chargées, sinon les largeurs mesurées seraient celles d'une autre)
   if (document.fonts && document.fonts.load) Promise.all([document.fonts.load(police(24)), document.fonts.load(police(24, 'fort')), document.fonts.load(police(24, true))]).then(go, go); else go(); });
 X.retour.push(() => { M = null; pret = false; });
+// (20:39, Mathieu : « réduis la taille des chats, on ne voit pas bien le texte ») : pendant la présentation, les chats rapetissent un peu
+X.echelle = c => M && M.sc ? (c.rare === 'geant' ? 0.4 : 0.66) : 1;
 
 X.pas.push((dt, cats) => {
   if (!M) return;
@@ -358,7 +365,12 @@ X.fond.push((ctx, now) => {
   M.part.forEach((p, j) => { const u = c01((Wd.t - p.t0) / 1.2), e = sm(u), x = p.x + (p.ox - p.x) * e, y = p.y + (p.oy - p.y) * e; etoile(ctx, x, y, p.R * (1 - u) + 0.8 * u, 0.9, false, now, p.ph); });
   const C = M.sc;
   if (C) {
-    const tl = tps(), { A, B } = DUREE, Cd = DUREE.C, Q = C.Q = projette(C, tl), f = C.f, u = sm(c01((tl - A - B) / Cd)), ne = f.e.length;
+    const tl = tps(), { A, B } = DUREE, Cd = DUREE.C, Q = C.Q = C.cs ? clesDe(C) : projette(C, tl), f = C.f, u = sm(c01((tl - A - B) / Cd)), ne = f.e.length;
+    // une scène dessinée (js/espace-scenes.js) : elle se dévoile en cercle depuis le centre, dès que les étoiles se sont posées
+    // (celle d'avant se referme de même, pendant que ses étoiles repartent)
+    const joue = (D, a, r) => { if (r <= 0.01) return; const G = L.G; ctx.save(); ctx.beginPath(); ctx.rect(0, G.haut - 12, L.W, G.bas - G.haut + 24); ctx.clip(); ctx.beginPath(); ctx.arc(G.cx, G.cy, r * Math.hypot(L.W, L.H) * 0.6, 0, TAU); ctx.clip(); EspaceScenes.pose(ctx, G, O); D.cs.dessin(reduit ? 3 : a, now); ctx.restore(); ctx.globalAlpha = 1; };
+    const V0 = M.vieux; if (V0 && V0.sc && V0.sc.cs && Wd.t - V0.t0 < 0.6) joue(V0.sc, V0.tl - A + (Wd.t - V0.t0), 1 - sm((Wd.t - V0.t0) / 0.6));
+    if (C.cs) joue(C, tl - A + 0.2, sm((tl - A + 0.25) / 0.9));
     // les traits : la constellation se relie, trait après trait ; puis le trait s'affirme (le dessin)
     ctx.lineWidth = 1;
     f.e.forEach(([a, b, st], j) => { const g = c01((tl - A - (j / ne) * B * 0.85) / 0.35); if (g <= 0) return; const P = Q[a], R = Q[b], k = prof((P[3] + R[3]) / 2);
