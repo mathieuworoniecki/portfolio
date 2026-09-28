@@ -157,7 +157,7 @@ function puce(nom, cfg) {
    un document entre, il est lu (Document AI), ses champs sortent en blocs (extraction), le modèle retrouve ses sources (LLM / RAG),
    des agents enchaînent les tâches (agentic AI), le suivi et les rapports partent seuls (workflow automation). */
 function chaine() {
-  const o = objet('chaine', { s: 0.82, pl: { x: 0.25, y: 0.04, s: 1.2 }, plT: { y: 0.24, s: 1.5 } });
+  const o = objet('chaine', { s: 0.82, pl: { x: 0.26, y: 0.04, s: 1.38 }, plT: { y: 0.24, s: 1.6 } });
   const X = [-1.76, -0.88, 0, 0.88, 1.76], pan = piece(o, [0, -1.8, 0], [0, 0, 0]), P = new T.Group(); pan.g.add(P);
   const ST = X.map(() => { const m = matieres(); MATS.push(m); return { m, g: new T.Group(), f: 0.3, hot: 0 }; });
   ST.forEach((s, i) => { s.g.position.x = X[i]; P.add(s.g); });
@@ -221,9 +221,89 @@ function chaine() {
   o.rot = t => [0.62 + Math.sin(t * 0.2) * 0.03, -0.42 + Math.sin(t * 0.13) * 0.1];
 }
 
+/* ——— 02 La méthode : une salle de contrôle qui se construit une étape après l'autre ———
+   0 les terminaux en éventail, chacun avec son agent · 1 l'agent principal délègue à des sous-agents · 2 les skills viennent s'emboîter
+   3 le banc d'essai : les outils font la course, un seul reste · 4 une flotte d'agents construit le produit · 5 le portique de contrôle, un humain valide */
+function atelier() {
+  const o = objet('atelier', { s: 0.86, pl: { x: 0.29, y: 0.02, s: 1.02 }, plT: { y: 0.25, s: 1.12 } });
+  const L = [0, 1, 2, 3, 4, 5].map(() => { const m = matieres(); MATS.push(m); return m; }), f = [0, 0, 0, 0, 0, 0];
+  const pc = piece(o, [0, 0, 0], [0, 0, 0], { fond: true }), R = new T.Group(); pc.g.add(R);
+  /* le sol : des cercles gradués */
+  const sol = new T.Group(); sol.position.y = -0.42; R.add(sol); [0.6, 1.2, 1.7].forEach(r => sol.add(trait(cercleH(r, 96), o.m.s, true)));
+  { const g = []; for (let i = 0; i < 36; i++) { const a = i / 36 * TAU, r0 = i % 3 ? 1.62 : 1.5; g.push([Math.cos(a) * r0, 0, Math.sin(a) * r0], [Math.cos(a) * 1.7, 0, Math.sin(a) * 1.7]); } sol.add(traits(g, o.m.s)); }
+  /* le poste, au centre */
+  const poste = new T.Group(); poste.position.y = -0.42; R.add(poste); solide(poste, new T.BoxGeometry(0.42, 0.05, 0.26).translate(0, 0.2, 0.05), L[0].l);
+  { const e = new T.Group(); e.position.set(0, 0.34, -0.06); poste.add(e); solide(e, new T.BoxGeometry(0.34, 0.22, 0.02), L[0].l); e.rotation.x = -0.12; }
+  /* 0 · six terminaux en éventail derrière le poste, leurs lignes défilent */
+  const NT = 6, TR = [], P0 = V(0, 0.78, 0);
+  for (let i = 0; i < NT; i++) {
+    const a = Math.PI * (1.12 + i * 0.152), g = new T.Group(); g.position.set(Math.cos(a) * 1.25, 0.06, Math.sin(a) * 1.25); g.lookAt(0, 0.06, 0); R.add(g);
+    solide(g, new T.BoxGeometry(0.52, 0.34, 0.02), L[0].l); g.add(trait([[-0.24, 0.13, 0.012], [0.24, 0.13, 0.012]], L[0].s));
+    [-0.22, -0.19, -0.16].forEach(x => g.add(trait(cercle(0.008, 8).map(p => [p[0] + x, p[1] + 0.15, 0.012]), L[0].s, true)));
+    const lg = segments(6, L[0].l); g.add(lg.l);
+    const ag = new T.Group(); ag.position.set(g.position.x * 0.9, 0.46, g.position.z * 0.9); R.add(ag); solide(ag, new T.OctahedronGeometry(0.05), L[0].a, 1);
+    TR.push({ g, lg, ag, sous: [], ph: rnd() * 10 });
+  }
+  /* 1 · l'agent principal, ses liens vers les agents, les sous-agents qui naissent */
+  const chef = new T.Group(); chef.position.copy(P0); R.add(chef); solide(chef, new T.OctahedronGeometry(0.1), L[1].a, 1); chef.add(trait(cercleH(0.16, 40), L[1].s, true));
+  const liens = segments(NT, L[1].d); R.add(liens.l); const sousL = segments(NT * 3, L[1].l); R.add(sousL.l); const sousP = points(NT * 3, L[1].pa); R.add(sousP.p);
+  const impul = points(NT, L[1].pa); R.add(impul.p);
+  TR.forEach((tr, i) => { for (let k = 0; k < 3; k++) { const d = V(tr.ag.position.x, 0, tr.ag.position.z).normalize(), up = 0.18 + k * 0.1, lat = (k - 1) * 0.22; tr.sous.push(V(tr.ag.position.x + d.x * 0.25 - d.z * lat, 0.46 + up, tr.ag.position.z + d.z * 0.25 + d.x * lat)); } });
+  /* 2 · les skills : des modules qui arrivent de loin et s'emboîtent autour de l'agent principal */
+  const NS = 6, SK = [];
+  for (let i = 0; i < NS; i++) { const g = new T.Group(); R.add(g); solide(g, new T.BoxGeometry(0.075, 0.075, 0.075), L[2].l); g.add(trait([[-0.02, 0.038, 0], [0.02, 0.038, 0]], L[2].a));
+    const a = i / NS * TAU; SK.push({ g, dep: V((rnd() - 0.5) * 3.4, 1.4 + rnd() * 0.8, (rnd() - 0.5) * 2.4), a }); }
+  const bague = trait(cercleH(0.24, 48), L[2].s, true); bague.position.copy(P0); R.add(bague);
+  /* 3 · le banc d'essai : cinq outils font la course, un seul reste en tête */
+  const banc = new T.Group(); banc.position.set(0.95, -0.42, 0.72); R.add(banc); solide(banc, new T.BoxGeometry(0.72, 0.03, 0.2).translate(0, 0.015, 0), L[3].l);
+  const BB = [0, 1, 2, 3, 4].map(i => { const g = new T.Group(); g.position.set(-0.28 + i * 0.14, 0.03, 0); banc.add(g); solide(g, new T.BoxGeometry(0.08, 1, 0.08).translate(0, 0.5, 0), i === 2 ? L[3].a : L[3].l); g.scale.y = 0.05; return g; });
+  const podium = trait([[-0.36, 0.78, 0], [0.36, 0.78, 0]], L[3].d); banc.add(podium);
+  /* 4 · le produit qui monte au centre, nourri par une flotte d'agents (des points qui descendent des sous-agents) */
+  const prod = new T.Group(); prod.position.set(0, -0.42, 0.62); R.add(prod); const ET = [];
+  for (let k = 0; k < 5; k++) { const e = new T.Group(); e.position.y = k * 0.075; prod.add(e); solide(e, new T.BoxGeometry(0.34, 0.07, 0.26).translate(0, 0.035, 0), k === 4 ? L[4].a : L[4].l); ET.push(e); }
+  const NE = 90, ess = points(NE, L[4].pa); R.add(ess.p); const EP = Array.from({ length: NE }, (_, i) => ({ s: i % (NT * 3), o: rnd(), v: 0.35 + rnd() * 0.3 }));
+  /* 5 · le portique : tout ce qui entre dans le produit passe par un anneau de contrôle ; un humain valide */
+  const port = new T.Group(); port.position.set(0, 0.12, 0.62); R.add(port); const anneau = trait(cercle(0.3, 64), L[5].a, true); port.add(anneau); port.add(trait(cercle(0.34, 64), L[5].s, true));
+  const coche = trait([[-0.07, 0, 0.01], [-0.02, -0.05, 0.01], [0.08, 0.06, 0.01]], L[5].a); port.add(coche);
+  const hum = new T.Group(); hum.position.set(0.5, -0.42, 0.9); R.add(hum); solide(hum, new T.CylinderGeometry(0.045, 0.065, 0.26, 12).translate(0, 0.13, 0), L[5].l, 30);
+  { const tt = new T.Group(); tt.position.y = 0.32; hum.add(tt); boule(o, tt, 0.05, L[5].l); }
+  /* la caméra : chaque étape a son point de vue et son cadrage */
+  const VUE = [[0.32, -0.15, 1.0, [0, 0, -0.9]], [0.5, 0.35, 1.05, [0, 0.55, -0.4]], [0.3, 0.7, 1.35, [0, 0.78, 0]], [0.38, -0.75, 1.2, [0.95, -0.1, 0.72]], [0.55, 0.15, 1.0, [0, 0.1, 0.3]], [0.4, -0.35, 1.2, [0, -0.1, 0.62]], [0.5, -0.4, 0.92, [0, 0.1, 0]]];
+  const cam = { rx: 0.4, ry: 0, z: 1, F: V(0, 0, 0) };
+  o.tick = (t, v) => {
+    const pas = v.pas === undefined ? 6 : v.pas, S = Math.min(6, Math.floor(pas)), k = i => c01(pas - i), dt = 0.06;
+    for (let i = 0; i < 6; i++) { f[i] = lerp(f[i], pas < i ? 0 : S === i ? 1 : 0.5, 0.1); chaud(L[i], S === i ? 0.25 : 0); opac(L[i], o.op * f[i]); }
+    const V1 = VUE[S], V2 = VUE[Math.min(6, S + 1)], u = sm(fen(pas - S, 0.75, 1));
+    cam.rx = lerp(cam.rx, lerp(V1[0], V2[0], u), dt); cam.ry = lerp(cam.ry, lerp(V1[1], V2[1], u), dt); cam.z = lerp(cam.z, lerp(V1[2], V2[2], u), dt);
+    cam.F.lerp(V(...V1[3]).lerp(V(...V2[3]), u), dt); R.scale.setScalar(cam.z); R.position.copy(cam.F).multiplyScalar(-cam.z * 0.55);
+    /* 0 */ const k0 = pas >= 6 ? 1 : Math.max(k(0), pas > 0 ? 1 : 0);
+    TR.forEach((tr, i) => { const on = c01(k(0) * 8 - i * 1.1) || (pas >= 1 ? 1 : 0); tr.g.scale.setScalar(Math.max(0.001, sm(on))); tr.ag.scale.setScalar(Math.max(0.001, sm(on)));
+      tr.ag.rotation.y = t * 1.5 + i; for (let j = 0; j < 6; j++) { const w = 0.08 + 0.34 * Math.abs(Math.sin(tr.ph + j * 1.7 + Math.floor(t * 2.2 + i) * 0.9)), y = 0.07 - j * 0.045; tr.lg.pos.set([-0.22, y, 0.012, -0.22 + w, y, 0.012], j * 6); } tr.lg.a.needsUpdate = true; });
+    /* 1 */ const k1 = k(1);
+    TR.forEach((tr, i) => { const e = sm(k1 * 1.6 - i * 0.1), a = tr.ag.position; liens.pos.set([P0.x, P0.y, P0.z, lerp(P0.x, a.x, e), lerp(P0.y, a.y, e), lerp(P0.z, a.z, e)], i * 6);
+      const q = (t * 0.7 + i / NT) % 1; impul.pos.set(e > 0.99 ? [lerp(P0.x, a.x, q), lerp(P0.y, a.y, q), lerp(P0.z, a.z, q)] : [0, -99, 0], i * 3);
+      tr.sous.forEach((sp, j) => { const g2 = sm(k1 * 2.2 - 0.9 - j * 0.15), n = i * 3 + j; sousL.pos.set([a.x, a.y, a.z, lerp(a.x, sp.x, g2), lerp(a.y, sp.y, g2), lerp(a.z, sp.z, g2)], n * 6); sousP.pos.set(g2 > 0.05 ? [lerp(a.x, sp.x, g2), lerp(a.y, sp.y, g2) + Math.sin(t * 2 + n) * 0.01, lerp(a.z, sp.z, g2)] : [0, -99, 0], n * 3); }); });
+    liens.a.needsUpdate = true; liens.l.computeLineDistances(); sousL.a.needsUpdate = true; sousP.a.needsUpdate = true; impul.a.needsUpdate = true; chef.rotation.y = t * 0.8;
+    /* 2 */ const k2 = k(2);
+    SK.forEach((sk, i) => { const e = sm(k2 * 1.8 - i * 0.14), a = sk.a + t * 0.5, fin = V(P0.x + Math.cos(a) * 0.24, P0.y, P0.z + Math.sin(a) * 0.24);
+      sk.g.position.lerpVectors(sk.dep, fin, e); sk.g.position.y += Math.sin(e * Math.PI) * 0.3; sk.g.rotation.set((1 - e) * t * 2, a, 0); sk.g.visible = k2 > 0; });
+    /* 3 */ const k3 = k(3), FIN = [0.28, 0.2, 0.74, 0.3, 0.16];
+    BB.forEach((g, i) => { const course = 0.12 + 0.55 * Math.abs(Math.sin(t * (1.6 + i * 0.37) + i * 1.3)), h = pas < 3 ? 0.03 : lerp(course, FIN[i], sm((k3 - 0.55) / 0.45)); g.scale.y = lerp(g.scale.y, Math.max(0.03, h), 0.15); });
+    podium.visible = k3 > 0.7;
+    /* 4 */ const k4 = k(4), nE = Math.floor(NE * sm(k4 * 1.5));
+    ET.forEach((e, i) => { const q = sm(k4 * 5.5 - i); e.visible = q > 0.02; e.scale.set(1, Math.max(0.02, q), 1); });
+    EP.forEach((p, i) => { if (i >= nE) { ess.pos.set([0, -99, 0], i * 3); return; } const tr = TR[Math.floor(p.s / 3)], a = tr.sous[p.s % 3], b = prod.position, u2 = (t * p.v * 0.5 + p.o) % 1, m = 1 - u2;
+      ess.pos.set([a.x * m * m + (a.x + b.x) * 0.5 * 2 * m * u2 + b.x * u2 * u2, a.y * m * m + 1.3 * 2 * m * u2 + (b.y + 0.4) * u2 * u2, a.z * m * m + (a.z + b.z) * 0.5 * 2 * m * u2 + b.z * u2 * u2], i * 3); });
+    ess.a.needsUpdate = true;
+    /* 5 */ const k5 = k(5); port.visible = k5 > 0.01; port.scale.setScalar(Math.max(0.01, sm(k5 * 2))); port.lookAt(R.worldToLocal(V(0, 0, 5000))); anneau.scale.setScalar(1 + Math.sin(t * 4) * 0.04 * k5);
+    coche.visible = k5 > 0.5 && (t % 1.6) > 0.5; hum.visible = k5 > 0.2; hum.rotation.y = Math.sin(t * 0.8) * 0.4;
+  };
+  o.rot = t => [cam.rx, cam.ry + Math.sin(t * 0.15) * 0.06];
+}
+
 /* ——— 02 Impact : un nuage de points qui prend la forme de chaque chiffre ——— */
 function impact() {
-  const o = objet('impact', { s: 0.92 });
+  const o = objet('impact', { s: 1.12 });
   const N = 2600, nu = nuage(N), pc = piece(o, [0, 0, 0], [0, 0, 0], { fond: true }); pc.g.add(nu.p);
   const fant = new T.Group(); pc.g.add(fant);
   const F = [];   // les formes : (u) → remplit dst {p, a, h}
@@ -272,7 +352,7 @@ function impact() {
 
 /* ——— 03 Parcours : une piste de circuit, un composant par poste ; le défilement fait avancer le signal jusqu'à MARKO ——— */
 function circuit(postes) {
-  const o = objet('circuit', { s: 0.9, pl: { x: 0.265, y: -0.02, s: 0.95 }, plT: { y: 0.24, s: 1.35 } });
+  const o = objet('circuit', { s: 0.9, pl: { x: 0.27, y: -0.02, s: 1.1 }, plT: { y: 0.24, s: 1.35 } });
   const ES = 1.5, n = postes.length, pan = piece(o, [0, 0, 0], [0, 0, 0], { fond: true }), P = new T.Group(); pan.g.add(P);
   const X = postes.map((_, i) => i * ES);
   /* la piste : une ligne qui serpente d'un composant à l'autre, avec des vias */
@@ -499,6 +579,49 @@ function caviarde() {   // SafeShare : la page, les données sensibles repérée
   o.rot = t => [0.18 + Math.sin(t * 0.3) * 0.05, -0.4 + Math.sin(t * 0.22) * 0.2];
 }
 
+function radar() {   // ScanRift : le balayage passe sur la cible, les résultats s'allument, chacun est noté ; un humain valide
+  const o = objet('radar', { s: 0.95 });
+  const sol = piece(o, [0, -1.8, 0]); [0.45, 0.8, 1.15].forEach(r => sol.g.add(trait(cercleH(r, 96), o.m.s, true)));
+  { const s2 = []; for (let i = 0; i < 12; i++) { const a = i / 12 * TAU; s2.push([Math.cos(a) * 0.2, 0, Math.sin(a) * 0.2], [Math.cos(a) * 1.15, 0, Math.sin(a) * 1.15]); } sol.g.add(traits(s2, o.m.s)); }
+  const cible = piece(o, [0, 1.6, 1.2]), c = new T.Group(); cible.g.add(c); solide(c, new T.BoxGeometry(0.3, 0.42, 0.3).translate(0, 0.21, 0), o.m.l);
+  { const f = []; for (let y = 0.1; y < 0.4; y += 0.1) f.push([-0.151, y, 0.151], [0.151, y, 0.151], [0.151, y, 0.151], [0.151, y, -0.151]); c.add(traits(f, o.m.s)); }
+  const bal = piece(o, [0, 0.4, -1.5], [0, 0, 0]), faisceau = new T.Group(); bal.g.add(faisceau);
+  faisceau.add(trait([[0, 0.005, 0], [1.15, 0.005, 0]], o.m.a));
+  { const e = []; for (let k = 1; k <= 8; k++) { const a = -k * 0.045; e.push([Math.cos(a) * 1.15, 0.005, Math.sin(a) * 1.15]); } faisceau.add(trait([[0, 0.005, 0], ...e, [0, 0.005, 0]], o.m.d)); }
+  /* les résultats : des points sur le disque ; le faisceau les allume, ils montent se ranger en barres de gravité */
+  const N = 14, P = [], res = points(N, o.m.pa); bal.g.add(res.p);
+  for (let i = 0; i < N; i++) { const a = rnd() * TAU, r = 0.35 + rnd() * 0.75; P.push({ a, r, g: i % 5 }); }
+  const barres = piece(o, [2, 0.5, 0]), B = [];
+  for (let k = 0; k < 5; k++) { const g = new T.Group(); g.position.set(1.2, 0, -0.4 + k * 0.2); g.scale.y = 0.03; barres.g.add(g); solide(g, new T.BoxGeometry(0.09, 1, 0.09).translate(0, 0.5, 0), k < 2 ? o.m.a : o.m.l); B.push(g); }
+  const coche = piece(o, [0, 2.2, 0]), ck = new T.Group(); ck.position.set(0, 0.95, 0); coche.g.add(ck);
+  ck.add(trait(cercle(0.16, 40), o.m.l, true)); ck.add(trait([[-0.07, 0, 0], [-0.02, -0.05, 0], [0.08, 0.06, 0]], o.m.a));
+  o.tick = (t, v) => {
+    const ang = -t * 1.1, k = sm(v.loc * 1.6); faisceau.rotation.y = ang;
+    const h = [0, 0, 0, 0, 0];
+    P.forEach((p, i) => { const d = ((p.a - ang) % TAU + TAU) % TAU, vu = d < 2.2 && i < N * (0.3 + 0.7 * k); res.pos.set(vu ? [Math.cos(p.a) * p.r, 0.02, -Math.sin(p.a) * p.r] : [0, -9, 0], i * 3); if (i < N * (0.3 + 0.7 * k)) h[p.g]++; });
+    res.a.needsUpdate = true;
+    const hm = Math.max(1, ...h); B.forEach((g, i) => { g.scale.y = lerp(g.scale.y, 0.03 + 0.34 * h[i] / hm * k, 0.08); });
+    ck.visible = k > 0.8 && Math.sin(t * 1.5) > -0.2;
+  };
+  o.rot = t => [0.5, -0.5 + Math.sin(t * 0.2) * 0.15];
+}
+
+/* ——— la profondeur : une poussière de points à plusieurs distances ; au défilement, les proches filent, les lointains traînent ——— */
+let pous = null;
+function poussiere() {
+  const N = 420, g = new T.BufferGeometry(), P = new Float32Array(N * 3), A = new Float32Array(N), Hh = new Float32Array(N), D = [];
+  for (let i = 0; i < N; i++) { const z = Math.pow(rnd(), 1.8); D.push({ x: rnd(), y: rnd(), z }); A[i] = 0.12 + 0.5 * z; Hh[i] = rnd() < 0.06 ? 1 : 0; }
+  g.setAttribute('position', new T.BufferAttribute(P, 3)); g.setAttribute('a', new T.BufferAttribute(A, 1)); g.setAttribute('h', new T.BufferAttribute(Hh, 1));
+  const m = nuageMat(), p = new T.Points(g, m); p.frustumCulled = false; p.renderOrder = -1; scene.add(p);
+  pous = { p, m, P, D, g, N };
+}
+function bougePoussiere(t, vue) {
+  if (!pous) return; const { P, D, N } = pous, sc = vue.sc || 0;
+  for (let i = 0; i < N; i++) { const d = D[i], v = 0.08 + 0.9 * d.z, y = ((d.y * H * 1.2 - sc * v * 0.5 + t * 4 * v) % (H * 1.2) + H * 1.2) % (H * 1.2);
+    P[i * 3] = (d.x - 0.5) * W * 1.1 + (vue.mx || 0) * 60 * v; P[i * 3 + 1] = H * 0.6 - y - (vue.my || 0) * 40 * v; P[i * 3 + 2] = -900; }
+  pous.g.attributes.position.needsUpdate = true; pous.m.uniforms.sz.value = 2.2 * PR; pous.m.uniforms.op.value = 0.55;
+}
+
 /* ——— la mise en place ——— */
 function init(toile, d) {
   if (ok) return true;
@@ -512,7 +635,7 @@ function init(toile, d) {
     ex: (t, v) => 0.6 + 0.4 * sm((v.pas || 0) * 0.8), hl: (t, v) => v.pas === undefined || v.pas >= 6 ? -1 : [4, 5, 2, 0, 3, 1][Math.floor(v.pas)], impulsions: (t, v) => Math.floor(v.pas || 0) === 5 ? 24 : 0,
     etiq: d.competences.map(c => [c.couche, c.court]) });
   puce('contact', { s: 0.85, rot: t => [0.5, t * 0.15], ex: (t, v) => 0.5 * (1 - sm(v.loc * 1.5)), impulsions: () => 24 });
-  chaine(); impact(); circuit(d.parcours.slice().reverse()); immeuble(); fleur(); globe(); chat(); archive(); bougies(); reseau(); caviarde();
+  poussiere(); chaine(); atelier(); impact(); circuit(d.parcours.slice().reverse()); immeuble(); fleur(); globe(); chat(); archive(); bougies(); reseau(); caviarde(); radar();
   ok = true; resize(); return true;
 }
 function resize() {
@@ -529,6 +652,7 @@ function place(o, vue) {
 }
 function rendu(poids, t, vue) {
   if (!ok) return;
+  bougePoussiere(t, vue);
   for (const k in OBJ) {
     const o = OBJ[k], p = poids[k] || { w: 0, loc: 0 };
     o.w = p.w; const e = 1 - p.w; o.e = e;

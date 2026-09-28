@@ -13,7 +13,7 @@ const c01 = v => v < 0 ? 0 : v > 1 ? 1 : v, sm = v => { v = c01(v); return v * v
 const reduit = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const n2 = i => String(i).padStart(2, '0');
-let el = null, defile, grille, gx, toile3d, etiqs = [], secs = [], pins = [], navLiens = [], cart = {}, fonds = [];
+let el = null, droites = [], defile, grille, gx, toile3d, etiqs = [], secs = [], pins = [], navLiens = [], cart = {}, fonds = [];
 let ouvert = false, boucle = 0, t0 = 0, tIntro = 0, souris = { x: -1, y: -1, mx: 0, my: 0 }, prise = null, rot = { x: 0, y: 0, vx: 0, vy: 0 }, active = -1;
 const FOND0 = ['#2468B6', '#1C58A2', '#133F7C'];
 
@@ -67,6 +67,7 @@ function page() {
           <ul class="sx-faits" data-rev>${A.faits.map(f => `<li>${f}</li>`).join('')}</ul>
           <div class="sx-actions" data-rev>
             <a class="sx-btn plein" href="#sx-ia">Voir le travail sur l’IA</a>
+            <a class="sx-btn" href="#sx-methode">Ma méthode</a>
             <a class="sx-btn" href="#sx-projets">Les projets</a>
           </div>
         </div>
@@ -92,16 +93,26 @@ function page() {
           ${tags(ia.outils, 'ia')}
         </div>
       </section>`;
-  const impact = epingle('sx-impact', 'impact', '02', 'Impact', im.chiffres.length, `
-          ${tete('02', im.titre)}
+  const M = D.methode;
+  const methode = epingle('sx-methode', 'atelier', '02', 'Méthode', M.etapes.length, `
+          ${tete('02', M.titre)}
+          <p class="sx-chapo court" data-rev>${esc(M.chapo)}</p>
+          <div class="sx-etapes">${M.etapes.map((c, i) => `
+            <article class="sx-etape" data-k="${i}">
+              <p class="sx-sur"><b>${n2(i + 1)}</b> / ${n2(M.etapes.length)} · ${esc(c.court)}</p>
+              <h3 class="sx-h3">${esc(c.t)}</h3><p>${esc(c.d)}</p>${tags(c.tags)}
+            </article>`).join('')}</div>
+          ${points(M.etapes.length)}`);
+  const impact = epingle('sx-impact', 'impact', '03', 'Impact', im.chiffres.length, `
+          ${tete('03', im.titre)}
           <div class="sx-etapes grand">${im.chiffres.map((c, i) => `
             <article class="sx-etape sx-chiffre" data-k="${i}">
               <p class="sx-gros"><span class="sx-n" data-n="${c.n}" data-dec="${c.dec || 0}" data-pre="${esc(c.pre || '')}" data-suf="${esc(c.suf || '')}">${esc((c.pre || '') + fmt(c.n, c.dec || 0) + (c.suf || ''))}</span></p>
               <h3>${esc(c.u)}</h3><p>${esc(c.d)}</p><p class="sx-source">${esc(c.src)}</p>
             </article>`).join('')}</div>
           ${points(im.chiffres.length)}`);
-  const parcours = epingle('sx-parcours', 'circuit', '03', 'Parcours', chrono.length, `
-          ${tete('03', 'Parcours')}
+  const parcours = epingle('sx-parcours', 'circuit', '04', 'Parcours', chrono.length, `
+          ${tete('04', 'Parcours')}
           <p class="sx-chapo court" data-rev>${esc(D.parcoursChapo)}</p>
           <div class="sx-etapes">${chrono.map((p, i) => `
             <article class="sx-etape sx-poste${p.ia ? ' ia' : ''}" data-k="${i}">
@@ -121,8 +132,8 @@ function page() {
           </div>
         </div>
       </section>`;
-  const comp = epingle('sx-competences', 'couches', '04', 'Compétences', D.competences.length, `
-          ${tete('04', 'Compétences')}
+  const comp = epingle('sx-competences', 'couches', '05', 'Compétences', D.competences.length, `
+          ${tete('05', 'Compétences')}
           <p class="sx-chapo court" data-rev>${esc(D.competencesChapo)}</p>
           <div class="sx-etapes">${D.competences.map((c, i) => `
             <article class="sx-etape sx-couche${c.id === 'ia' ? ' ia' : ''}" data-k="${i}">
@@ -131,12 +142,28 @@ function page() {
               ${c.groupes.map(g => `<p class="sx-groupe"><span>${esc(g[0])}</span>${g[1].map(esc).join(' · ')}</p>`).join('')}
             </article>`).join('')}</div>
           ${points(D.competences.length)}`);
-  const projets = D.projets.map((p, i) => `
-      <section class="sx-sec sx-projet" data-obj="${p.o}" data-fond="${p.fond.join(',')}" ${i === 0 ? 'data-nom="Projets" data-num="05" id="sx-projets"' : ''}>
+  /* 05 — les projets : une tête avec la légende des catégories (cliquable : elle filtre), puis un projet par écran,
+     la carte à gauche puis à droite, son objet 3D en face */
+  const CAT = Object.fromEntries(D.categories.map(c => [c.id, c]));
+  const tous = D.projets.concat(D.autres), nb = id => tous.filter(p => p.cats.includes(id)).length;
+  const cats = l => `<ul class="sx-cats">${l.map(id => `<li data-c="${id}">${ico(CAT[id].i)}${esc(CAT[id].t)}</li>`).join('')}</ul>`;
+  const projTete = `
+      <section class="sx-sec sx-projets-tete" id="sx-projets" data-obj="${D.projets[0].o}" data-fond="${D.projets[0].fond.join(',')}" data-nom="Projets" data-num="06">
         <div class="sx-col">
-          ${i === 0 ? tete('05', 'Projets') : ''}
-          <article class="sx-carte sx-proj" data-rev>
+          ${tete('06', 'Projets')}
+          <p class="sx-chapo" data-rev>${esc(D.projetsChapo)}</p>
+          <div class="sx-legende" data-rev role="group" aria-label="Filtrer les projets par catégorie">
+            ${D.categories.map(c => `<button type="button" data-c="${c.id}" aria-pressed="false">${ico(c.i)}<span>${esc(c.t)}</span><i>${nb(c.id)}</i></button>`).join('')}
+            <button type="button" class="tout" data-c="" aria-pressed="true"><span>Tout voir</span><i>${tous.length}</i></button>
+          </div>
+        </div>
+      </section>`;
+  const projets = projTete + D.projets.map((p, i) => `
+      <section class="sx-sec sx-projet${i % 2 ? ' droite' : ''}" data-obj="${p.o}" data-fond="${p.fond.join(',')}">
+        <div class="sx-col">
+          <article class="sx-carte sx-proj" data-rev data-cats="${p.cats.join(' ')}">
             <p class="sx-sur">${n2(i + 1)} / ${n2(D.projets.length)} · ${esc(p.role)}${p.prive ? ' · <span class="sx-prive">' + ico('cadenas') + 'dépôt privé</span>' : ''}</p>
+            ${cats(p.cats)}
             <h3 class="sx-h3">${esc(p.t)}</h3>
             <p class="sx-sous">${esc(p.sous)}</p>
             <p>${esc(p.d)}</p>
@@ -151,7 +178,8 @@ function page() {
         <div class="sx-col large">
           <h3 class="sx-h3 petit" data-rev>${esc(D.autresTitre)}</h3>
           <div class="sx-grille-proj">${D.autres.map((p, i) => `
-            <article class="sx-carte sx-mini" data-rev style="--d:${i % 3}">
+            <article class="sx-carte sx-mini" data-rev data-cats="${p.cats.join(' ')}" style="--d:${i % 3}">
+              ${cats(p.cats)}
               <p class="sx-mini-t">${ico(p.i)}<b>${esc(p.t)}</b>${p.prive ? `<span class="sx-prive" title="dépôt privé">${ico('cadenas')}</span>` : ''}</p>
               <p>${esc(p.d)}</p>${tags(p.tags)}
               ${p.lien ? `<a class="sx-lien" href="${p.lien.href}" target="_blank" rel="noopener">${esc(p.lien.t)} <span aria-hidden="true">↗</span></a>` : ''}
@@ -160,9 +188,9 @@ function page() {
       </section>`;
   const C = D.contact;
   const contact = `
-      <section class="sx-sec sx-fin" id="sx-contact" data-obj="contact" data-nom="Contact" data-num="06">
+      <section class="sx-sec sx-fin" id="sx-contact" data-obj="contact" data-nom="Contact" data-num="07">
         <div class="sx-col">
-          ${tete('06', C.titre)}
+          ${tete('07', C.titre)}
           <p class="sx-chapo" data-rev>${esc(C.chapo)}</p>
           <ul class="sx-contacts" data-rev>${C.liens.map(c => `<li><span>${esc(c.k)}</span><a href="${c.href}"${c.href.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>${esc(c.v)}</a></li>`).join('')}</ul>
           <div class="sx-actions" data-rev><button type="button" class="sx-btn" data-retour>Retourner jouer avec les chats</button></div>
@@ -174,7 +202,7 @@ function page() {
   <div class="sx-etiqs" aria-hidden="true">${Serieux3D.etiquettes().map(e => `<span class="sx-etiq ${e.cls}" data-nom="${e.nom}" data-i="${e.i}"><i></i>${esc(e.t)}</span>`).join('')}</div>
   <div class="sx-defile" tabindex="-1">
     <main class="sx-page">
-      ${accueil}${iaPin}${iaSuite}${impact}${parcours}${formation}${comp}${projets}${autres}${contact}
+      ${accueil}${iaPin}${iaSuite}${methode}${impact}${parcours}${formation}${comp}${projets}${autres}${contact}
       <footer class="sx-pied"><span>${esc(D.nom)}</span><span>Plan n° CV-2026 · échelle 1:1</span></footer>
     </main>
   </div>
@@ -189,7 +217,7 @@ function page() {
   <div class="sx-barre" aria-hidden="true"><i></i></div>
   <div class="sx-cartouche" aria-hidden="true">
     <div><span>Projet</span><b>CV — ${esc(D.nom)}</b></div>
-    <div><span>Planche</span><b class="c-planche">00 / 06 · Accueil</b></div>
+    <div><span>Planche</span><b class="c-planche">00 / 07 · Accueil</b></div>
     <div class="c2"><span>Échelle</span><b>1:1</b></div><div class="c2"><span>Rév.</span><b>09.2026</b></div>
     <div class="c-xy"><span>Curseur</span><b class="c-pos">X 0000 · Y 0000</b></div>
   </div>`;
@@ -204,6 +232,15 @@ function batir() {
   Serieux3D.init(tmp, D);
   el.innerHTML = page(); document.body.appendChild(el);
   el.querySelector('canvas.sx-3d').replaceWith(tmp); toile3d = tmp;
+  D.projets.forEach((p, i) => { const o = Serieux3D.OBJ && Serieux3D.OBJ[p.o]; if (o && i % 2) o.pl = Object.assign({}, o.pl, { x: -0.235 }); });
+  droites = [...el.querySelectorAll('.sx-projet.droite')];
+  const leg = [...el.querySelectorAll('.sx-legende button')];
+  leg.forEach(b => b.addEventListener('click', () => {
+    const c = el.dataset.cat === b.dataset.c ? '' : b.dataset.c;   // recliquer une étiquette la retire
+    if (c) el.dataset.cat = c; else delete el.dataset.cat;
+    el.querySelectorAll('[data-cats]').forEach(n => n.classList.toggle('hors', !!c && !n.dataset.cats.split(' ').includes(c)));
+    leg.forEach(x => x.setAttribute('aria-pressed', String(x.dataset.c === c)));
+  }));
   defile = el.querySelector('.sx-defile'); grille = el.querySelector('.sx-grille'); gx = grille.getContext('2d');
   etiqs = [...el.querySelectorAll('.sx-etiq')].map(e => ({ e, nom: e.dataset.nom, i: +e.dataset.i }));
   secs = [...el.querySelectorAll('.sx-sec')];
@@ -316,7 +353,7 @@ function image(now) {
   const mx = souris.x >= 0 ? (souris.x / innerWidth - 0.5) : 0, my = souris.x >= 0 ? (souris.y / innerHeight - 0.5) : 0;
   souris.mx += (mx - souris.mx) * 0.06; souris.my += (my - souris.my) * 0.06;
   if (!prise) { rot.y += rot.vy; rot.x += rot.vx; rot.vy *= 0.93; rot.vx *= 0.93; rot.y *= 0.985; rot.x *= 0.985; }
-  Serieux3D.rendu(poids, t, { large, mx: souris.mx, my: souris.my, prx: rot.x, pry: rot.y });
+  Serieux3D.rendu(poids, t, { large, mx: souris.mx, my: souris.my, prx: rot.x, pry: rot.y, sc: st });
   fond(intro, st); teinte(vh);
   /* les étiquettes accrochées aux objets */
   etiqs.forEach(E => {
@@ -328,7 +365,8 @@ function image(now) {
   });
   /* la section active : le plan, le cartouche, la barre */
   let act = 0; navLiens.forEach((n, i) => { if (n.s.getBoundingClientRect().top < vh * 0.5) act = i; });
-  if (act !== active) { active = act; navLiens.forEach((n, i) => n.b.classList.toggle('on', i === act)); const s = navLiens[act].s; cart.planche.textContent = `${s.dataset.num} / 06 · ${s.dataset.nom}`; }
+  if (act !== active) { active = act; navLiens.forEach((n, i) => n.b.classList.toggle('on', i === act)); const s = navLiens[act].s; cart.planche.textContent = `${s.dataset.num} / 07 · ${s.dataset.nom}`; }
+  el.classList.toggle('sans-cartouche', droites.some(s => { const r = s.getBoundingClientRect(); return r.top < vh * 0.7 && r.bottom > vh * 0.3; }));
   cart.barre.style.transform = `scaleX(${c01(st / Math.max(1, defile.scrollHeight - vh))})`;
   if (souris.x >= 0) cart.pos.textContent = `X ${String(Math.round(souris.x)).padStart(4, '0')} · Y ${String(Math.round(souris.y + st)).padStart(4, '0')}`;
 }

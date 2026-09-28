@@ -200,6 +200,28 @@ html.serieux, html.serieux body { overflow: hidden; }
 #serieux .sx-lien { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; font: 500 13px/1 var(--sx-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--sx-accent); text-decoration: none; border-bottom: 1px solid rgba(255,217,138,.5); padding-bottom: 4px; }
 #serieux .sx-lien .sx-ico { width: 15px; height: 15px; }
 #serieux .sx-lien:hover { border-bottom-color: var(--sx-accent); }
+/* la tête des projets et la légende des catégories (un clic filtre, un second clic rend tout) */
+#serieux .sx-projets-tete { min-height: 72vh; }
+#serieux .sx-legende { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+#serieux .sx-legende button { display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px; background: rgba(var(--sx-bas-rgb),.45); border: 1px solid var(--sx-trait); color: var(--sx-encre); font: 500 12px/1 var(--sx-mono); letter-spacing: .05em; text-transform: uppercase; cursor: pointer; transition: border-color .2s, color .2s, background .2s; }
+#serieux .sx-legende button .sx-ico { width: 16px; height: 16px; color: var(--sx-accent); }
+#serieux .sx-legende button i { font-style: normal; color: var(--sx-pale); }
+#serieux .sx-legende button:hover { border-color: var(--sx-trait-fort); }
+#serieux .sx-legende button[aria-pressed="true"] { border-color: var(--sx-accent); color: var(--sx-accent); background: var(--sx-accent-pale); }
+#serieux .sx-legende button[aria-pressed="true"] i { color: var(--sx-accent); }
+/* les étiquettes sur chaque carte */
+#serieux .sx-cats { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 14px; padding: 0; }
+#serieux .sx-cats li { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px 4px 6px; border: 1px dashed var(--sx-trait-fort); font: 500 10.5px/1 var(--sx-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--sx-doux); }
+#serieux .sx-cats .sx-ico { width: 13px; height: 13px; color: var(--sx-accent); }
+#serieux[data-cat="ia"] .sx-cats li[data-c="ia"], #serieux[data-cat="donnees"] .sx-cats li[data-c="donnees"], #serieux[data-cat="secu"] .sx-cats li[data-c="secu"],
+#serieux[data-cat="produit"] .sx-cats li[data-c="produit"], #serieux[data-cat="recherche"] .sx-cats li[data-c="recherche"], #serieux[data-cat="outils"] .sx-cats li[data-c="outils"],
+#serieux[data-cat="creatif"] .sx-cats li[data-c="creatif"] { border-style: solid; border-color: var(--sx-accent); color: var(--sx-accent); }
+#serieux .sx-carte.hors { opacity: .28 !important; filter: grayscale(.6); }
+#serieux .sx-carte.hors:hover { opacity: .7 !important; }
+/* un projet sur deux : la carte à droite, l'objet 3D à gauche */
+#serieux .sx-projet.droite { align-items: flex-end; padding-left: 0; padding-right: clamp(40px, 6vw, 110px); }
+#serieux .sx-cartouche { transition: opacity .35s; }
+#serieux.sans-cartouche .sx-cartouche { opacity: 0; }
 /* les autres projets */
 #serieux .sx-autres { min-height: 0; padding-top: 12vh; }
 #serieux .sx-col.large { width: min(1060px, calc(100vw - var(--sx-marge) - 310px)); }
@@ -256,6 +278,9 @@ html.serieux, html.serieux body { overflow: hidden; }
   #serieux .sx-col.large { width: 100%; }
   #serieux .sx-icos { grid-template-columns: 1fr; }
   #serieux .sx-proj { padding: 22px 18px 20px; }
+  #serieux .sx-projet.droite { align-items: stretch; padding: 34vh 16px 6vh; }
+  #serieux .sx-projets-tete { min-height: 0; padding-top: 30vh; }
+  #serieux .sx-legende button { padding: 8px 10px; font-size: 11px; }
   #serieux .sx-contacts li { flex-direction: column; gap: 6px; }
   #serieux .sx-gros { font-size: 38px !important; }
   #serieux .sx-formation li { grid-template-columns: 1fr; }
