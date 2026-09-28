@@ -5,125 +5,181 @@
      Serieux.ferme()           le referme (en cercle vers le bouton « Mode chat ») et rend la main au mode chat
      Serieux.ouvert            vrai quand le calque est affiché
    Événements sur window : 'serieux:ouvert' et 'serieux:ferme' ; html.serieux tant qu'il est ouvert.
-   L'adresse ?serieux ouvre directement le mode sérieux. */
+   L'adresse ?serieux ouvre directement le mode sérieux.
+   Les écrans épinglés (.sx-pin) restent à l'écran pendant qu'on défile : chaque étape du texte a son geste dans la 3D (v.pas). */
 window.Serieux = (() => {
 const D = window.SERIEUX_DONNEES, root = document.documentElement;
 const c01 = v => v < 0 ? 0 : v > 1 ? 1 : v, sm = v => { v = c01(v); return v * v * (3 - 2 * v); };
 const reduit = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-let el = null, defile, grille, gx, toile3d, etiqs = [], secs = [], postes = [], navLiens = [], cart = {};
-let ouvert = false, boucle = 0, t0 = 0, tIntro = 0, souris = { x: -1, y: -1, mx: 0, my: 0 }, prise = null, rot = { x: 0, y: 0, vx: 0, vy: 0 }, active = -1, selPile = -1;
+const n2 = i => String(i).padStart(2, '0');
+let el = null, defile, grille, gx, toile3d, etiqs = [], secs = [], pins = [], navLiens = [], cart = {}, fonds = [];
+let ouvert = false, boucle = 0, t0 = 0, tIntro = 0, souris = { x: -1, y: -1, mx: 0, my: 0 }, prise = null, rot = { x: 0, y: 0, vx: 0, vy: 0 }, active = -1;
+const FOND0 = ['#2468B6', '#1C58A2', '#133F7C'];
+
+/* ——— les icônes : des pictogrammes au trait, comme le plan ——— */
+const ICO = {
+  immeuble: 'M4 21V8l6-3v16M10 21V3l8 3v15M3 21h18M13 8h2M13 11h2M13 14h2M6 11h2M6 14h2',
+  doc: 'M6 3h8l4 4v14H6zM14 3v4h4M9 11h6M9 14h6M9 17h4',
+  agent: 'M12 3v3M7 8h10v9H7zM10 12h.01M14 12h.01M10 15h4M4 11v3M20 11v3M9 20v1M15 20v1',
+  rapport: 'M4 20V4M4 20h16M8 16v-4M12 16V8M16 16v-6',
+  pile: 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5M3 17.5l9 5 9-5',
+  bouclier: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM8.5 12l2.5 2.5 4.5-5',
+  globe: 'M12 3a9 9 0 100 18 9 9 0 000-18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18',
+  loupe: 'M10.5 4a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM15.5 15.5L21 21',
+  graphe: 'M4 6a2 2 0 104 0 2 2 0 10-4 0M16 6a2 2 0 104 0 2 2 0 10-4 0M10 12a2 2 0 104 0 2 2 0 10-4 0M4 18a2 2 0 104 0 2 2 0 10-4 0M16 18a2 2 0 104 0 2 2 0 10-4 0M7.5 7.5l3 3M16.5 7.5l-3 3M7.5 16.5l3-3M16.5 16.5l-3-3',
+  bourse: 'M5 4v16M5 8h-1v6h2V8zM12 6v14M11 9h2v5h-2zM19 4v14M18 6h2v8h-2zM3 20h18',
+  terminal: 'M4 5h16v14H4zM7 10l3 2-3 2M12 15h4',
+  cerveau: 'M9 4a3 3 0 00-3 3 3 3 0 00-2 5 3 3 0 002 5 3 3 0 006 1V5a2 2 0 00-3-1zM15 4a3 3 0 013 3 3 3 0 012 5 3 3 0 01-2 5 3 3 0 01-6 1',
+  langues: 'M4 5h8M8 3v2M6 5c0 4 3 7 6 8M10 5c0 3-2 6-5 8M13 21l4-10 4 10M14.5 17h5',
+  eclair: 'M13 3L5 13h6l-1 8 8-10h-6z',
+  test: 'M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3M8 14h8',
+  serveur: 'M4 4h16v6H4zM4 14h16v6H4zM8 7h.01M8 17h.01',
+  code: 'M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16',
+  particules: 'M12 12h.01M7 7h.01M17 7h.01M7 17h.01M17 17h.01M12 4h.01M12 20h.01M4 12h.01M20 12h.01',
+  chat: 'M4 20V9L3 3l5 3h8l5-3-1 6v11zM9 13v1M15 13v1M11 17h2',
+  cadenas: 'M6 11h12v10H6zM8 11V7a4 4 0 018 0v4M12 15v2',
+  lien: 'M10 14a4 4 0 006 0l3-3a4 4 0 00-6-6l-1 1M14 10a4 4 0 00-6 0l-3 3a4 4 0 006 6l1-1',
+  balance: 'M12 3v18M5 21h14M4 8h16M7 8l-3 7h6zM17 8l-3 7h6z',
+  des: 'M5 5h14v14H5zM9 9h.01M15 15h.01M12 12h.01'
+};
+const ico = k => `<svg class="sx-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICO[k] || ICO.code}"/></svg>`;
 
 /* ——— la page ——— */
 const mots = s => esc(s).split(' ').map((m, i) => `<span class="m"><span style="--i:${i}">${m}</span></span>`).join(' ');
 const tete = (num, titre) => `<header class="sx-tete" data-rev><span class="sx-num">${num}</span><h2 class="sx-h2">${mots(titre)}</h2></header>`;
+const tags = (l, cls) => `<ul class="sx-tags${cls ? ' ' + cls : ''}">${l.map((t, i) => `<li style="--i:${i}">${esc(t)}</li>`).join('')}</ul>`;
+const points = n => `<ol class="sx-points" aria-hidden="true">${Array.from({ length: n }, () => '<li></li>').join('')}</ol>`;
+function epingle(id, obj, num, nom, n, dedans) {
+  return `<section class="sx-sec sx-pin" id="${id}" data-obj="${obj}" data-pas="${n}" data-nom="${esc(nom)}" data-num="${num}" style="--pas:${n}">
+    <div class="sx-scene"><div class="sx-col">${dedans}</div></div></section>`;
+}
 function page() {
-  const ia = D.ia;
-  const projets = D.projets.map((p, i) => `
-    <section class="sx-sec sx-projet" data-obj="${p.o}" ${i === 0 ? 'data-nom="Projets" data-num="05" id="sx-projets"' : ''}>
-      <div class="sx-col">
-        ${i === 0 ? tete('05', 'Projets') : ''}
-        <article class="sx-carte sx-proj" data-rev>
-          <p class="sx-sur">${String(i + 1).padStart(2, '0')} / ${String(D.projets.length).padStart(2, '0')} · ${esc(p.role)}</p>
-          <h3 class="sx-h3">${esc(p.t)}</h3>
-          <p class="sx-sous">${esc(p.sous)}</p>
-          <p>${esc(p.d)}</p>
-          <ul class="sx-tags">${p.tags.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
-          ${p.lien ? `<a class="sx-lien" href="${p.lien.href}" target="_blank" rel="noopener">${esc(p.lien.t)} <span aria-hidden="true">↗</span></a>` : ''}
-        </article>
-      </div>
-    </section>`).join('');
-  return `
-  <canvas class="sx-grille" aria-hidden="true"></canvas>
-  <canvas class="sx-3d" aria-hidden="true"></canvas>
-  <div class="sx-etiqs" aria-hidden="true">${D.competences.map((c, i) => `<span class="sx-etiq${c.id === 'ia' ? ' ia' : ''}"><i></i>${String(i + 1).padStart(2, '0')} ${esc(c.court)}</span>`).join('')}</div>
-  <div class="sx-defile" tabindex="-1">
-    <main class="sx-page">
-      <section class="sx-sec sx-accueil" data-obj="cerveau" data-nom="Accueil" data-num="00">
+  const A = D.accueil, ia = D.ia, im = D.impact, chrono = D.parcours.slice().reverse();
+  const accueil = `
+      <section class="sx-sec sx-accueil" data-obj="accueil" data-nom="Accueil" data-num="00">
         <div class="sx-col">
-          <p class="sx-sur" data-rev>CV · ${esc(D.lieu)}</p>
+          <p class="sx-sur" data-rev>${esc(A.sur)}</p>
           <h1 class="sx-h1" data-rev>${mots('Mathieu')}<br>${mots('Woroniecki')}</h1>
-          <p class="sx-role" data-rev>${esc(D.titre)}</p>
-          <p class="sx-chapo" data-rev>${esc(D.resume)}</p>
-          <p class="sx-maintenant" data-rev><i class="sx-point"></i>${esc(D.maintenant)}</p>
-          <ul class="sx-faits" data-rev><li><b>10+</b> ans d’expérience</li>${D.langues.slice(0, 2).map(l => `<li>${esc(l)}</li>`).join('')}</ul>
+          <p class="sx-role" data-rev>${esc(A.titre)}</p>
+          <p class="sx-chapo" data-rev>${esc(A.these)}</p>
+          <p class="sx-maintenant" data-rev><i class="sx-point"></i>${esc(A.maintenant)}</p>
+          <ul class="sx-faits" data-rev>${A.faits.map(f => `<li>${f}</li>`).join('')}</ul>
           <div class="sx-actions" data-rev>
             <a class="sx-btn plein" href="#sx-ia">Voir le travail sur l’IA</a>
-            <a class="sx-btn" href="#sx-parcours">Le parcours</a>
+            <a class="sx-btn" href="#sx-projets">Les projets</a>
           </div>
         </div>
         <p class="sx-defiler" aria-hidden="true"><span>Défiler</span><i></i></p>
-      </section>
-
-      <section class="sx-sec" id="sx-ia" data-obj="reseau" data-nom="L’IA" data-num="01">
-        <div class="sx-col">
+      </section>`;
+  const iaPin = epingle('sx-ia', 'chaine', '01', 'L’IA', ia.chaine.length, `
           ${tete('01', ia.titre)}
-          <p class="sx-chapo" data-rev>${esc(ia.chapo)}</p>
-          <ol class="sx-chaine" data-rev>${ia.chaine.map((c, i) => `<li style="--i:${i}"><b>${esc(c.t)}</b><span>${esc(c.d)}</span></li>`).join('')}</ol>
+          <p class="sx-chapo court" data-rev>${esc(ia.chapo)}</p>
+          <div class="sx-etapes">${ia.chaine.map((c, i) => `
+            <article class="sx-etape" data-k="${i}">
+              <p class="sx-sur"><b>${n2(i + 1)}</b> / ${n2(ia.chaine.length)} · ${esc(c.court)}</p>
+              <h3 class="sx-h3">${esc(c.t)}</h3><p>${esc(c.d)}</p>${tags(c.tags)}
+            </article>`).join('')}</div>
+          ${points(ia.chaine.length)}`);
+  const iaSuite = `
+      <section class="sx-sec sx-suite" data-obj="chaine">
+        <div class="sx-col">
+          <p class="sx-chapo" data-rev>${esc(ia.suite)}</p>
           <div class="sx-preuves">${ia.preuves.map((p, i) => `
             <article class="sx-carte sx-preuve" data-rev style="--d:${i}">
               <p class="sx-gros">${esc(p.chiffre)}</p><h3>${esc(p.t)}</h3><p>${esc(p.d)}</p>
             </article>`).join('')}</div>
-          <ul class="sx-tags ia" data-rev>${ia.outils.map((t, i) => `<li style="--i:${i}">${esc(t)}</li>`).join('')}</ul>
+          ${tags(ia.outils, 'ia')}
         </div>
-      </section>
-
-      <section class="sx-sec" id="sx-chiffres" data-obj="barres" data-nom="En chiffres" data-num="02">
-        <div class="sx-col">
-          ${tete('02', 'En chiffres')}
-          <div class="sx-chiffres">${D.chiffres.map((c, i) => `
-            <div class="sx-chiffre" data-rev style="--d:${i % 2}">
+      </section>`;
+  const impact = epingle('sx-impact', 'impact', '02', 'Impact', im.chiffres.length, `
+          ${tete('02', im.titre)}
+          <div class="sx-etapes grand">${im.chiffres.map((c, i) => `
+            <article class="sx-etape sx-chiffre" data-k="${i}">
               <p class="sx-gros"><span class="sx-n" data-n="${c.n}" data-dec="${c.dec || 0}" data-pre="${esc(c.pre || '')}" data-suf="${esc(c.suf || '')}">${esc((c.pre || '') + fmt(c.n, c.dec || 0) + (c.suf || ''))}</span></p>
-              <h3>${esc(c.u)}</h3><p>${esc(c.d)}</p>
-            </div>`).join('')}</div>
-        </div>
-      </section>
-
-      <section class="sx-sec" id="sx-competences" data-obj="pile" data-nom="Compétences" data-num="03">
-        <div class="sx-col">
-          ${tete('03', 'Compétences')}
-          <p class="sx-chapo" data-rev>Six couches, de l’infrastructure à l’interface, avec l’IA tout en haut de la pile. Survolez une couche pour la sortir.</p>
-          <div class="sx-couches">${D.competences.map((c, i) => `
-            <article class="sx-carte sx-couche${c.id === 'ia' ? ' ia' : ''}" data-rev data-i="${i}" tabindex="0" style="--d:${i % 2}">
-              <p class="sx-sur">${String(i + 1).padStart(2, '0')}</p><h3>${esc(c.t)}</h3>
-              <ul class="sx-tags">${c.l.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+              <h3>${esc(c.u)}</h3><p>${esc(c.d)}</p><p class="sx-source">${esc(c.src)}</p>
             </article>`).join('')}</div>
-        </div>
-      </section>
-
-      <section class="sx-sec" id="sx-parcours" data-obj="helice" data-nom="Parcours" data-num="04">
-        <div class="sx-col">
-          ${tete('04', 'Parcours')}
-          <ol class="sx-frise">${D.parcours.map((p, i) => `
-            <li class="sx-poste${p.ia ? ' ia' : ''}" data-rev data-i="${i}">
+          ${points(im.chiffres.length)}`);
+  const parcours = epingle('sx-parcours', 'circuit', '03', 'Parcours', chrono.length, `
+          ${tete('03', 'Parcours')}
+          <p class="sx-chapo court" data-rev>${esc(D.parcoursChapo)}</p>
+          <div class="sx-etapes">${chrono.map((p, i) => `
+            <article class="sx-etape sx-poste${p.ia ? ' ia' : ''}" data-k="${i}">
               <p class="sx-dates">${esc(p.dates)}</p>
               <h3><b>${esc(p.lieu)}</b> ${esc(p.poste)}</h3>
               <p>${esc(p.d)}</p>
               ${p.l.length ? `<ul>${p.l.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
-            </li>`).join('')}</ol>
+            </article>`).join('')}</div>
+          ${points(chrono.length)}`);
+  const formation = `
+      <section class="sx-sec sx-suite" data-obj="circuit">
+        <div class="sx-col">
           <div class="sx-formation" data-rev>
             <h3 class="sx-h3 petit">Formation</h3>
             <ul>${D.formation.map(f => `<li><span class="sx-dates">${esc(f.dates)}</span><b>${esc(f.t)}</b><span>${esc(f.o)}</span></li>`).join('')}</ul>
-            <p class="sx-langues">${D.langues.map(esc).join(' · ')}</p>
+            <p class="sx-langues">${ico('langues')}${D.langues.map(esc).join(' · ')}</p>
           </div>
         </div>
-      </section>
-
-      ${projets}
-
-      <section class="sx-sec sx-fin" id="sx-contact" data-obj="cerveau" data-nom="Contact" data-num="06">
+      </section>`;
+  const comp = epingle('sx-competences', 'couches', '04', 'Compétences', D.competences.length, `
+          ${tete('04', 'Compétences')}
+          <p class="sx-chapo court" data-rev>${esc(D.competencesChapo)}</p>
+          <div class="sx-etapes">${D.competences.map((c, i) => `
+            <article class="sx-etape sx-couche${c.id === 'ia' ? ' ia' : ''}" data-k="${i}">
+              <p class="sx-sur"><b>${n2(i + 1)}</b> / ${n2(D.competences.length)} · couche ${esc(c.nomCouche)}</p>
+              <h3 class="sx-h3">${esc(c.t)}</h3><p>${esc(c.d)}</p>
+              ${c.groupes.map(g => `<p class="sx-groupe"><span>${esc(g[0])}</span>${g[1].map(esc).join(' · ')}</p>`).join('')}
+            </article>`).join('')}</div>
+          ${points(D.competences.length)}`);
+  const projets = D.projets.map((p, i) => `
+      <section class="sx-sec sx-projet" data-obj="${p.o}" data-fond="${p.fond.join(',')}" ${i === 0 ? 'data-nom="Projets" data-num="05" id="sx-projets"' : ''}>
         <div class="sx-col">
-          ${tete('06', 'Construisons la suite')}
-          <p class="sx-chapo" data-rev>Un produit IA à concevoir, une équipe à structurer, une architecture à moderniser : écrivez-moi.</p>
-          <ul class="sx-contacts" data-rev>${D.contacts.map(c => `<li><span>${esc(c.k)}</span><a href="${c.href}"${c.href.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>${esc(c.v)}</a></li>`).join('')}</ul>
+          ${i === 0 ? tete('05', 'Projets') : ''}
+          <article class="sx-carte sx-proj" data-rev>
+            <p class="sx-sur">${n2(i + 1)} / ${n2(D.projets.length)} · ${esc(p.role)}${p.prive ? ' · <span class="sx-prive">' + ico('cadenas') + 'dépôt privé</span>' : ''}</p>
+            <h3 class="sx-h3">${esc(p.t)}</h3>
+            <p class="sx-sous">${esc(p.sous)}</p>
+            <p>${esc(p.d)}</p>
+            <ul class="sx-icos">${p.faits.map(f => `<li>${ico(f[0])}<span>${esc(f[1])}</span></li>`).join('')}</ul>
+            ${tags(p.tags)}
+            ${p.lien ? `<a class="sx-lien" href="${p.lien.href}" target="_blank" rel="noopener">${ico('lien')}${esc(p.lien.t)} <span aria-hidden="true">↗</span></a>` : ''}
+          </article>
+        </div>
+      </section>`).join('');
+  const autres = `
+      <section class="sx-sec sx-autres" data-obj="chat">
+        <div class="sx-col large">
+          <h3 class="sx-h3 petit" data-rev>${esc(D.autresTitre)}</h3>
+          <div class="sx-grille-proj">${D.autres.map((p, i) => `
+            <article class="sx-carte sx-mini" data-rev style="--d:${i % 3}">
+              <p class="sx-mini-t">${ico(p.i)}<b>${esc(p.t)}</b>${p.prive ? `<span class="sx-prive" title="dépôt privé">${ico('cadenas')}</span>` : ''}</p>
+              <p>${esc(p.d)}</p>${tags(p.tags)}
+              ${p.lien ? `<a class="sx-lien" href="${p.lien.href}" target="_blank" rel="noopener">${esc(p.lien.t)} <span aria-hidden="true">↗</span></a>` : ''}
+            </article>`).join('')}</div>
+        </div>
+      </section>`;
+  const C = D.contact;
+  const contact = `
+      <section class="sx-sec sx-fin" id="sx-contact" data-obj="contact" data-nom="Contact" data-num="06">
+        <div class="sx-col">
+          ${tete('06', C.titre)}
+          <p class="sx-chapo" data-rev>${esc(C.chapo)}</p>
+          <ul class="sx-contacts" data-rev>${C.liens.map(c => `<li><span>${esc(c.k)}</span><a href="${c.href}"${c.href.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>${esc(c.v)}</a></li>`).join('')}</ul>
           <div class="sx-actions" data-rev><button type="button" class="sx-btn" data-retour>Retourner jouer avec les chats</button></div>
         </div>
-      </section>
+      </section>`;
+  return `
+  <canvas class="sx-grille" aria-hidden="true"></canvas>
+  <canvas class="sx-3d" aria-hidden="true"></canvas>
+  <div class="sx-etiqs" aria-hidden="true">${Serieux3D.etiquettes().map(e => `<span class="sx-etiq ${e.cls}" data-nom="${e.nom}" data-i="${e.i}"><i></i>${esc(e.t)}</span>`).join('')}</div>
+  <div class="sx-defile" tabindex="-1">
+    <main class="sx-page">
+      ${accueil}${iaPin}${iaSuite}${impact}${parcours}${formation}${comp}${projets}${autres}${contact}
       <footer class="sx-pied"><span>${esc(D.nom)}</span><span>Plan n° CV-2026 · échelle 1:1</span></footer>
     </main>
   </div>
   <header class="sx-haut">
-    <a class="sx-marque" href="#sx-haut-de-page" aria-label="Haut de la page"><b>MW</b><span>${esc(D.nom)}</span></a>
+    <a class="sx-marque" href="#" aria-label="Haut de la page"><b>MW</b><span>${esc(D.nom)}</span></a>
     <nav class="sx-plan" aria-label="Sections"></nav>
     <button type="button" class="sx-retour" data-retour aria-label="Revenir au mode chat">
       <svg viewBox="0 0 24 20" aria-hidden="true"><path d="M3 18V6.5L2 1.5l5.2 3.2h9.6L22 1.5l-1 5V18z"/><path class="yeux" d="M8.2 10.2v1.4M15.8 10.2v1.4"/></svg>
@@ -143,9 +199,16 @@ function fmt(n, dec) { return Number(n).toLocaleString('fr-FR', { minimumFractio
 function batir() {
   el = document.createElement('div'); el.id = 'serieux'; el.hidden = true;
   el.setAttribute('role', 'document'); el.setAttribute('aria-label', 'Mode sérieux : le CV de ' + D.nom); el.lang = 'fr';
+  /* la 3D d'abord : ses étiquettes font partie de la page */
+  const tmp = document.createElement('canvas'); tmp.className = 'sx-3d';
+  Serieux3D.init(tmp, D);
   el.innerHTML = page(); document.body.appendChild(el);
-  defile = el.querySelector('.sx-defile'); grille = el.querySelector('.sx-grille'); gx = grille.getContext('2d'); toile3d = el.querySelector('.sx-3d');
-  etiqs = [...el.querySelectorAll('.sx-etiq')]; secs = [...el.querySelectorAll('.sx-sec')]; postes = [...el.querySelectorAll('.sx-poste')];
+  el.querySelector('canvas.sx-3d').replaceWith(tmp); toile3d = tmp;
+  defile = el.querySelector('.sx-defile'); grille = el.querySelector('.sx-grille'); gx = grille.getContext('2d');
+  etiqs = [...el.querySelectorAll('.sx-etiq')].map(e => ({ e, nom: e.dataset.nom, i: +e.dataset.i }));
+  secs = [...el.querySelectorAll('.sx-sec')];
+  pins = [...el.querySelectorAll('.sx-pin')].map(s => ({ s, n: +s.dataset.pas, obj: s.dataset.obj, et: [...s.querySelectorAll('.sx-etape')], pt: [...s.querySelectorAll('.sx-points li')], k: -1 }));
+  fonds = secs.filter(s => s.dataset.fond).map(s => ({ s, c: s.dataset.fond.split(',') }));
   cart.planche = el.querySelector('.c-planche'); cart.pos = el.querySelector('.c-pos'); cart.barre = el.querySelector('.sx-barre i');
   /* le plan des sections */
   const nav = el.querySelector('.sx-plan');
@@ -154,39 +217,37 @@ function batir() {
   el.querySelectorAll('a[href^="#sx-"]').forEach(a => a.addEventListener('click', e => { const s = el.querySelector(a.getAttribute('href')); if (s) { e.preventDefault(); va(s); } }));
   el.querySelector('.sx-marque').addEventListener('click', e => { e.preventDefault(); defile.scrollTo({ top: 0, behavior: reduit ? 'auto' : 'smooth' }); });
   el.querySelectorAll('[data-retour]').forEach(b => b.addEventListener('click', () => ferme()));
-  /* les compétences : survoler une carte sort sa couche de la pile */
-  el.querySelectorAll('.sx-couche').forEach(c => {
-    const on = () => { selPile = +c.dataset.i; }, off = () => { if (selPile === +c.dataset.i) selPile = -1; };
-    c.addEventListener('pointerenter', on); c.addEventListener('pointerleave', off); c.addEventListener('focus', on); c.addEventListener('blur', off);
-  });
   /* les apparitions */
-  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('vu'); io.unobserve(e.target); if (e.target.classList.contains('sx-chiffre')) compte(e.target); } }), { root: defile, threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('vu'); io.unobserve(e.target); } }), { root: defile, threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
   el.querySelectorAll('[data-rev]').forEach(n => io.observe(n));
   /* le mode chat n'entend rien de ce qui se passe ici (ses écouteurs sont sur window) */
   ['pointerdown', 'pointerup', 'pointermove', 'click', 'wheel', 'keydown', 'keyup', 'touchstart', 'touchmove', 'touchend', 'contextmenu'].forEach(k => el.addEventListener(k, e => e.stopPropagation(), { passive: true }));
   /* tourner l'objet à la souris */
+  const texte = t => t.closest('a,button,.sx-carte,.sx-etape,h1,h2,h3,p,li');
   defile.addEventListener('pointerdown', e => {
-    if (e.pointerType !== 'mouse' || e.button !== 0 || e.target.closest('a,button,.sx-carte,.sx-poste,h1,h2,h3,p,li')) return;
+    if (e.pointerType !== 'mouse' || e.button !== 0 || texte(e.target)) return;
     if (!Serieux3D.pres(e.clientX, e.clientY)) return;
     prise = { x: e.clientX, y: e.clientY }; el.classList.add('prise'); try { defile.setPointerCapture(e.pointerId); } catch (er) {} e.preventDefault();
   });
   defile.addEventListener('pointermove', e => {
     souris.x = e.clientX; souris.y = e.clientY;
     if (prise) { const dx = e.clientX - prise.x, dy = e.clientY - prise.y; prise.x = e.clientX; prise.y = e.clientY; rot.vy = dx * 0.012; rot.vx = dy * 0.012; rot.y += rot.vy; rot.x += rot.vx; return; }
-    el.classList.toggle('peut-prendre', e.pointerType === 'mouse' && !e.target.closest('a,button,.sx-carte,.sx-poste,h1,h2,h3,p,li') && Serieux3D.pres(e.clientX, e.clientY));
+    el.classList.toggle('peut-prendre', e.pointerType === 'mouse' && !texte(e.target) && Serieux3D.pres(e.clientX, e.clientY));
   });
   const lache = () => { if (!prise) return; prise = null; el.classList.remove('prise'); };
   defile.addEventListener('pointerup', lache); defile.addEventListener('pointercancel', lache);
   defile.addEventListener('pointerleave', () => { souris.x = -1; });
   addEventListener('resize', () => { if (ouvert) taille(); });
-  Serieux3D.init(toile3d, D);
 }
-function va(s) { defile.scrollTo({ top: s.offsetTop - (innerWidth < 900 ? 56 : 0), behavior: reduit ? 'auto' : 'smooth' }); }
+function va(s) {
+  const pin = s.classList.contains('sx-pin');
+  defile.scrollTo({ top: s.offsetTop - (!pin && innerWidth < 900 ? 56 : 0), behavior: reduit ? 'auto' : 'smooth' });
+}
 
 /* les compteurs */
-function compte(bloc) {
-  const n = bloc.querySelector('.sx-n'); if (!n) return;
-  const cible = +n.dataset.n, dec = +n.dataset.dec, pre = n.dataset.pre, suf = n.dataset.suf, deb = performance.now(), duree = reduit ? 0 : 1500;
+function compte(n) {
+  if (!n || n.dataset.fait) return; n.dataset.fait = 1;
+  const cible = +n.dataset.n, dec = +n.dataset.dec, pre = n.dataset.pre, suf = n.dataset.suf, deb = performance.now(), duree = reduit ? 0 : 1300;
   const pas = () => { const k = duree ? c01((performance.now() - deb) / duree) : 1, v = cible * (1 - Math.pow(1 - k, 3)); n.textContent = pre + fmt(k < 1 ? v : cible, dec) + suf; if (k < 1) requestAnimationFrame(pas); };
   pas();
 }
@@ -200,13 +261,13 @@ function taille() {
 function fond(intro, dy) {
   const g = gx, P = 24, G = P * 5; g.setTransform(gdpr, 0, 0, gdpr, 0, 0); g.clearRect(0, 0, GW, GH);
   const off = -((dy * 0.3) % G + G) % G;
-  const trace = (pas, a, larg) => {
-    g.beginPath(); g.strokeStyle = `rgba(238,245,255,${a})`; g.lineWidth = larg;
+  const trace = (pas, a) => {
+    g.beginPath(); g.strokeStyle = `rgba(238,245,255,${a})`; g.lineWidth = 1;
     for (let x = (GW / 2) % pas; x < GW; x += pas) { const k = sm(intro * 1.6 - Math.abs(x - GW / 2) / GW); if (k <= 0) continue; const h = GH * k; g.moveTo(Math.round(x) + 0.5, GH / 2 - h / 2); g.lineTo(Math.round(x) + 0.5, GH / 2 + h / 2); }
     for (let y = off % pas; y < GH; y += pas) { const k = sm(intro * 1.6 - Math.abs(y - GH / 2) / GH); if (k <= 0) continue; const w = GW * k; g.moveTo(GW / 2 - w / 2, Math.round(y) + 0.5); g.lineTo(GW / 2 + w / 2, Math.round(y) + 0.5); }
     g.stroke();
   };
-  trace(P, 0.07, 1); trace(G, 0.16, 1);
+  trace(P, 0.06); trace(G, 0.14);
   if (souris.x >= 0 && intro >= 1) {   // la loupe : le quadrillage s'éclaire autour du curseur, et la croix du dessinateur
     const r = 150, grd = g.createRadialGradient(souris.x, souris.y, 0, souris.x, souris.y, r);
     grd.addColorStop(0, 'rgba(238,245,255,0.07)'); grd.addColorStop(1, 'rgba(238,245,255,0)'); g.fillStyle = grd; g.fillRect(souris.x - r, souris.y - r, r * 2, r * 2);
@@ -214,38 +275,56 @@ function fond(intro, dy) {
     g.moveTo(0, Math.round(souris.y) + 0.5); g.lineTo(GW, Math.round(souris.y) + 0.5); g.moveTo(Math.round(souris.x) + 0.5, 0); g.lineTo(Math.round(souris.x) + 0.5, GH); g.stroke(); g.setLineDash([]);
   }
 }
+/* la couleur du papier : chaque projet a la sienne, on y glisse en défilant */
+const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+function teinte(vh) {
+  const acc = FOND0.map(hex); let wt = 0;
+  const cols = FOND0.map(hex);
+  fonds.forEach(f => {
+    const r = f.s.getBoundingClientRect(), w = Math.min(sm((vh * 0.85 - r.top) / (vh * 0.5)), sm((r.bottom - vh * 0.15) / (vh * 0.5)));
+    if (w <= 0) return; const c = f.c.map(hex); for (let k = 0; k < 3; k++) for (let j = 0; j < 3; j++) cols[k][j] += (c[k][j] - cols[k][j]) * w; wt = Math.max(wt, w);
+  });
+  const s = cols.map(c => `rgb(${c.map(Math.round).join(',')})`);
+  if (s[1] !== teinte.der) { teinte.der = s[1]; el.style.setProperty('--sx-hi', s[0]); el.style.setProperty('--sx-fond', s[1]); el.style.setProperty('--sx-bas', s[2]); el.style.setProperty('--sx-bas-rgb', cols[2].map(Math.round).join(',')); }
+}
 
-/* ——— chaque image : le défilement donne la présence de chaque objet ——— */
+/* ——— chaque image : le défilement donne la présence de chaque objet et l'étape lue ——— */
 function image(now) {
   if (!ouvert) return;
   boucle = requestAnimationFrame(image);
   const t = (now - t0) / 1000, intro = reduit ? 1 : c01((now - tIntro) / 1400), vh = defile.clientHeight, st = defile.scrollTop, large = innerWidth >= 900;
   /* chaque suite de sections qui partagent un objet forme un bloc ; l'objet se rassemble en entrant, s'éclate en sortant */
   const poids = {}; let blocs = [], cur = null;
-  secs.forEach(s => { const r = s.getBoundingClientRect(); if (cur && cur.o === s.dataset.obj) cur.b = r.bottom; else { cur = { o: s.dataset.obj, t: r.top, b: r.bottom, s }; blocs.push(cur); } });
+  secs.forEach(s => { const r = s.getBoundingClientRect(); if (cur && cur.o === s.dataset.obj) cur.b = r.bottom; else { cur = { o: s.dataset.obj, t: r.top, b: r.bottom }; blocs.push(cur); } });
   blocs.forEach((b, i) => {
     const ent = i === 0 ? 1 : sm((vh * 0.78 - b.t) / (vh * 0.45)), sor = i === blocs.length - 1 ? 1 : sm((b.b - vh * 0.22) / (vh * 0.45));
     let w = Math.min(ent, sor); if (i === 0) w *= sm(intro * 1.4 - 0.35);
     const loc = c01((vh * 0.55 - b.t) / Math.max(1, b.b - b.t));
     const p = poids[b.o]; if (!p || w > p.w) poids[b.o] = { w, loc };
   });
-  /* le poste du parcours le plus près du milieu de l'écran */
-  let best = 0, bd = 1e9; postes.forEach((p, i) => { const r = p.getBoundingClientRect(), d = Math.abs(r.top + Math.min(r.height, vh * 0.4) / 2 - vh * 0.45); if (d < bd) { bd = d; best = i; } p.classList.toggle('ici', false); });
-  if (postes[best]) postes[best].classList.add('ici');
-  if (poids.helice) poids.helice.sel = best;
-  if (poids.pile) poids.pile.sel = selPile;
+  /* les écrans épinglés : l'étape lue, et son avancement */
+  pins.forEach(P => {
+    const r = P.s.getBoundingClientRect(), pr = c01(-r.top / Math.max(1, r.height - vh)), pas = Math.min(P.n, pr * P.n * 1.0001), k = Math.min(P.n - 1, Math.floor(pas));
+    if (poids[P.obj]) poids[P.obj].pas = pas;
+    if (k !== P.k) {
+      P.k = k; P.et.forEach((e, i) => { e.classList.toggle('on', i === k); e.classList.toggle('passe', i < k); });
+      P.pt.forEach((e, i) => { e.classList.toggle('on', i === k); e.classList.toggle('passe', i < k); });
+      const n = P.et[k] && P.et[k].querySelector('.sx-n'); if (n) compte(n);
+    }
+  });
   /* la souris : un peu de parallaxe ; la prise : on tourne, puis l'objet revient doucement à sa chorégraphie */
   const mx = souris.x >= 0 ? (souris.x / innerWidth - 0.5) : 0, my = souris.x >= 0 ? (souris.y / innerHeight - 0.5) : 0;
   souris.mx += (mx - souris.mx) * 0.06; souris.my += (my - souris.my) * 0.06;
   if (!prise) { rot.y += rot.vy; rot.x += rot.vx; rot.vy *= 0.93; rot.vx *= 0.93; rot.y *= 0.985; rot.x *= 0.985; }
-  Serieux3D.rendu(poids, t, { large, accueil: st < vh * 0.5, mx: souris.mx, my: souris.my, prx: rot.x, pry: rot.y });
-  fond(intro, st);
-  /* les étiquettes de la pile de compétences (écran large) */
-  const pw = poids.pile ? poids.pile.w : 0;
-  etiqs.forEach((e, i) => {
-    const a = large && pw > 0.5 ? Serieux3D.ancre('pile', i) : null;
-    if (!a) { e.style.opacity = 0; return; }
-    e.style.opacity = sm((pw - 0.5) * 2.2); e.style.transform = `translate(${Math.round(a.x + 18)}px,${Math.round(a.y - 9)}px)`; e.classList.toggle('on', selPile === i);
+  Serieux3D.rendu(poids, t, { large, mx: souris.mx, my: souris.my, prx: rot.x, pry: rot.y });
+  fond(intro, st); teinte(vh);
+  /* les étiquettes accrochées aux objets */
+  etiqs.forEach(E => {
+    const a = Serieux3D.ancre(E.nom, E.i);
+    if (!a || a.op < 0.02) { if (E.vis !== 0) { E.e.style.opacity = 0; E.vis = 0; } return; }
+    E.vis = 1; E.e.style.opacity = Math.min(1, a.op).toFixed(3);
+    E.e.style.transform = a.bas ? `translate(${Math.round(a.x)}px,${Math.round(a.y + 6)}px) translateX(-50%)` : `translate(${Math.round(a.x + 16)}px,${Math.round(a.y - 9)}px)`;
+    E.e.classList.toggle('on', a.on); E.e.classList.toggle('bas', a.bas);
   });
   /* la section active : le plan, le cartouche, la barre */
   let act = 0; navLiens.forEach((n, i) => { if (n.s.getBoundingClientRect().top < vh * 0.5) act = i; });
@@ -265,7 +344,7 @@ function ouvre(o) {
   el.classList.remove('ferme', 'la'); el.classList.toggle('instant', !!o.instant || reduit);
   ouvert = true; el.hidden = false; root.classList.add('serieux');
   autres().forEach(n => { if (!n.hasAttribute('inert')) { n.setAttribute('inert', ''); n.dataset.sxInert = '1'; } });
-  taille(); defile.scrollTop = 0; active = -1; t0 = tIntro = performance.now();
+  taille(); defile.scrollTop = 0; active = -1; pins.forEach(P => { P.k = -1; }); t0 = tIntro = performance.now();
   getComputedStyle(el).clipPath; el.classList.add('la');
   try { const u = new URL(location.href); if (!u.searchParams.has('serieux')) { u.searchParams.set('serieux', ''); history.replaceState(history.state, '', u.pathname + u.search.replace('serieux=', 'serieux') + u.hash); } } catch (e) {}
   cancelAnimationFrame(boucle); boucle = requestAnimationFrame(image);
