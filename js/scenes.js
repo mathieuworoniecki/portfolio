@@ -37,6 +37,47 @@ function glowButton(el, prog, seed, clock) {
     if (sz < 0.5) continue; const x = cx + Math.cos(ang) * (r.width / 2 + 16), y = cy + Math.sin(ang) * (r.height / 2 + 12);
     C.line(x - sz, y, x + sz, y, 1, { w: 1.3, a: 0.8, seed: k, tip: false, amp: 0 }); C.line(x, y - sz, x, y + sz, 1, { w: 1.3, a: 0.8, seed: k + 9, tip: false, amp: 0 }); }
 }
+// « Mode sérieux » (20:04, Mathieu : « il doit se morpher au survol ») : au survol, le bouton du mode chat devient celui du mode sérieux.
+// Le cadre à la craie se redresse en un rectangle net (des repères de coupe aux coins), le halo et les étoiles s'éteignent,
+// le fond se remplit du bleu du mode sérieux depuis le centre, et les lettres défilent jusqu'à se reposer dans l'autre police.
+const GLYPHES = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%&/+';
+function brouille(el, sens) {
+  if (!el) return; const lab = typeof L === 'function' ? L('salut.stay') : el.textContent, t0 = performance.now(), jeton = (el.jeton || 0) + 1; el.jeton = jeton;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.classList.toggle('serieux-on', sens > 0); return; }
+  const pas = () => { if (el.jeton !== jeton) return; const t = (performance.now() - t0) / 1000;
+    if (t > 0.16) el.classList.toggle('serieux-on', sens > 0);
+    let fini = true; el.textContent = [...lab].map((ch, i) => { if (ch === ' ' || t > 0.12 + i * 0.03) return ch; fini = false; return GLYPHES[Math.floor(Math.random() * GLYPHES.length)]; }).join('');
+    if (!fini) requestAnimationFrame(pas); else el.textContent = lab; };
+  requestAnimationFrame(pas);
+}
+function morphButton(el, prog, seed, clock) {
+  if (!el || prog <= 0.001) return;
+  const r = el.getBoundingClientRect(); if (!r.width) return; const ctx = C.ctx; if (!ctx) return;
+  const on = el.matches(':hover') || el.matches(':focus-visible');
+  if (on !== !!el.onP) { el.onP = on; brouille(el, on ? 1 : -1); }
+  el.hov = (el.hov || 0) + ((on ? 1 : 0) - (el.hov || 0)) * 0.13; const m = sm(el.hov), a = c01(prog * 1.4);
+  el.style.setProperty('--m', m.toFixed(3));
+  // le halo et les étoiles du mode chat : ils s'éteignent à mesure que le bouton devient sérieux
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2, pulse = 0.75 + 0.25 * Math.sin(clock * 2.4), h = a * (1 - m);
+  if (h > 0.01) { ctx.save(); ctx.translate(cx, cy); ctx.scale(1, r.height / r.width * 1.6);
+    const R = r.width * 0.85, g = ctx.createRadialGradient(0, 0, R * 0.15, 0, 0, R);
+    g.addColorStop(0, `rgba(255,255,255,${0.75 * h * pulse})`); g.addColorStop(0.45, `rgba(255,252,238,${0.35 * h * pulse})`); g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g; ctx.fillRect(-R, -R, R * 2, R * 2); ctx.restore(); }
+  // le cadre : du trait à main levée (coins ronds, bords qui ondulent) au rectangle net ; même contour, qui se redresse
+  const o = 6 + m * 3, x0 = r.left - o, y0 = r.top - o * 0.7, x1 = r.right + o, y1 = r.bottom + o * 0.7, rc = 7 * (1 - m), P = [], n = 18;
+  const cote = (ax, ay, bx, by, k) => { for (let i = 0; i < n; i++) { const u = i / n, w = Math.sin(u * Math.PI * 2 + k * 1.7 + seed) * 1.4 * (1 - m); P.push([ax + (bx - ax) * u + (ay === by ? 0 : w), ay + (by - ay) * u + (ay === by ? w : 0)]); } };
+  cote(x0 + rc, y0, x1 - rc, y0, 0); cote(x1, y0 + rc, x1, y1 - rc, 1); cote(x1 - rc, y1, x0 + rc, y1, 2); cote(x0, y1 - rc, x0, y0 + rc, 3); P.push(P[0]);
+  if (m < 0.99) C.stroke(P, prog, { w: 1.6, seed, amp: 0.35 * (1 - m), tip: prog < 1, a: 1 - m });
+  if (m > 0.01) { ctx.save(); ctx.strokeStyle = `rgba(28,88,162,${m})`; ctx.lineWidth = 1.5; ctx.beginPath(); P.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke();
+    // (les repères de coupe, comme sur une maquette imprimée)
+    const L = 11 * m, d = 5; ctx.lineWidth = 1.2; ctx.beginPath();
+    [[x0, y0, -1, -1], [x1, y0, 1, -1], [x1, y1, 1, 1], [x0, y1, -1, 1]].forEach(([x, y, sx, sy]) => { ctx.moveTo(x + sx * d, y); ctx.lineTo(x + sx * (d + L), y); ctx.moveTo(x, y + sy * d); ctx.lineTo(x, y + sy * (d + L)); });
+    ctx.stroke(); ctx.restore(); }
+  el.classList.toggle('drawn', prog > 0.6);
+  for (let k = 0; k < 6 && h > 0.01; k++) { const ph = (clock * 0.55 + k / 6) % 1, ang = k * 2.4 + Math.floor(clock * 0.55 + k / 6) * 1.7, sz = (4 + (k % 3) * 2) * Math.sin(ph * Math.PI) * h;
+    if (sz < 0.5) continue; const x = cx + Math.cos(ang) * (r.width / 2 + 16), y = cy + Math.sin(ang) * (r.height / 2 + 12);
+    C.line(x - sz, y, x + sz, y, 1, { w: 1.3, a: 0.8, seed: k, tip: false, amp: 0 }); C.line(x, y - sz, x, y + sz, 1, { w: 1.3, a: 0.8, seed: k + 9, tip: false, amp: 0 }); }
+}
 // le bouton « Mode sérieux » (28/09, Mathieu : il remplace « Restez jouer ici ») : les chats s'enfuient, les objets tombent dans des trous,
 // puis le CV au défilement s'ouvre (js/fuite.js, puis js/serieux.js) ; sans ces deux-là, rien ne se passe
 if (stayBtn) stayBtn.addEventListener('click', () => { if (window.Fuite) Fuite.go(stayBtn); else if (window.Serieux) Serieux.ouvre(); });
@@ -57,7 +98,7 @@ const salut = Object.assign({
     if (TN && TN.actif) { if (CH) CH.draw(S, ctx); return; }
     const pb = S.reduced ? 1 : sm((vu(S) - 2.3) / 0.9);
     Outils.button(enterBtn, pb, 1100, S.clock);
-    if (reste === null) glowButton(stayBtn, S.reduced ? 1 : sm((vu(S) - 2.0) / 1.1), 1200, S.clock);
+    if (reste === null) morphButton(stayBtn, S.reduced ? 1 : sm((vu(S) - 2.0) / 1.1), 1200, S.clock);
     else if (S.clock - reste < 0.5) glowButton(stayBtn, 1 - sm((S.clock - reste) / 0.45), 1200, S.clock);
     // l'invitation, écrite à la main sous les boutons, tant que rien n'a jailli
     const hb = reste === null && (CH ? !CH.clicks : !Pops.list.length) && enterBtn;
