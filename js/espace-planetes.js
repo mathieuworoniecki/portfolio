@@ -88,9 +88,8 @@ X.mode.aspire = (c, dt) => {
 };
 function aspire(dt) {
   const A = P.aspire, tous = Wd.cats.every(c => !c.sp || c.sp.dedans);
-  if ((tous || Wd.t - A.t0 > 4.5) && !A.zoomT) A.zoomT = Wd.t;
-  if (A.zoomT) { A.zoom = sm((Wd.t - A.zoomT) / 1.3);
-    if (A.zoom >= 1 && !A.fait) { A.fait = true; if (window.Film) Film.toChapter(0); } }
+  // tous dedans : la planète grandit et son disque s'ouvre sur la pièce (js/trounoir.js, la sortie : elle recrache tout de l'autre côté)
+  if ((tous || Wd.t - A.t0 > 4.5) && !A.fait) { A.fait = true; const Cp = P.chat; O.sortie({ x: Cp.x, y: Cp.y, dessine: (ctx, z, now) => { A.zoom = Math.max(0.001, z); } }); }
 }
 
 /* ——— attraper : la planète des chats (un clic la lance), la Terre (elle frémit) ——— */
@@ -136,15 +135,16 @@ function planete(ctx, now) {
   const ring = trace(2.1, 0.8);
   if (ring > 0 && z < 0.5) { ctx.lineWidth = 2; ctx.globalAlpha = ring; ctx.beginPath(); ctx.ellipse(x, y, r * 1.75, r * 0.38, -0.25, Math.PI, TAU); ctx.stroke(); ctx.globalAlpha = 1; }
   // le disque (noir : il cache l'anneau et les étoiles derrière), son contour qui se trace, les oreilles
-  ctx.fillStyle = z > 0 ? `rgb(${lerpC([7, 8, 12], papier(), sm((z - 0.35) / 0.5))})` : '#07080C';
-  ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+  if (z > 0) { ctx.save(); ctx.globalCompositeOperation = 'destination-out'; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); ctx.restore();
+    const col = `rgb(${lerpC(BL.split(',').map(Number), O.rgb((window.THEME && THEME.ink) || '34,36,40'), sm(z / 0.45))})`; ctx.strokeStyle = col; ctx.fillStyle = col; }
+  else { ctx.fillStyle = '#07080C'; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
   ctx.lineWidth = 3; arc(ctx, x, y, r, -Math.PI / 2, t);
   const ear = trace(1.7, 0.4);
   if (ear > 0) [-1, 1].forEach(s => { const a = -Math.PI / 2 + s * 0.62, b = -Math.PI / 2 + s * 0.2, tip = -Math.PI / 2 + s * 0.45;
     ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r); ctx.lineTo(x + Math.cos(tip) * r * (1 + 0.42 * ear), y + Math.sin(tip) * r * (1 + 0.42 * ear)); ctx.lineTo(x + Math.cos(b) * r, y + Math.sin(b) * r); ctx.stroke(); });
   // le visage : des yeux comme ceux des chats d'ici (blancs, un reflet noir), qui suivent le curseur ; le nez, la bouche en w, les moustaches
   const vis = trace(2.0, 0.6);
-  if (vis > 0 && z < 0.6) { ctx.globalAlpha = vis * (1 - z * 1.6);
+  if (vis > 0 && z < 0.6) { ctx.globalAlpha = vis;
     const Q = Wd.ptr, lx = Q && Q.on ? clamp((Q.x - x) / O.W * 4, -1, 1) : Math.sin(now * 0.5) * 0.4, ly = Q && Q.on ? clamp((Q.y - y) / O.H * 4, -1, 1) : 0;
     const cl = (now % 4.2) < 0.13 || (P.survol > 0.5 && P.pousse > 0.9);
     [-1, 1].forEach(s => { const ex = x + s * r * 0.34 + lx * r * 0.06, ey = y - r * 0.05 + ly * r * 0.05;
@@ -193,7 +193,7 @@ function couronne(ctx, x, y, r, now) {
   for (let i = 0; i < n; i++) { const a = -now * 0.35 + i * step, lift = Math.sin(now * 3 + i * 0.5) * 2 * P.survol; ctx.save(); ctx.translate(x + Math.cos(a) * (R + lift), y + Math.sin(a) * (R + lift)); ctx.rotate(a + Math.PI / 2); ctx.fillText(txt[i], 0, 0); ctx.restore(); }
   ctx.restore();
 }
-X.fond.unshift((ctx, now) => { if (!P) return; terre(ctx, now); if (trace(0.8, 0.1) > 0) planete(ctx, now); });
+X.fond.unshift((ctx, now) => { if (!P) return; terre(ctx, now); if (trace(0.8, 0.1) > 0 && !(P.aspire && P.aspire.zoom > 0)) planete(ctx, now); });
 // (le zoom final passe devant tout : la planète grossit jusqu'à remplir l'écran)
 X.devant.push((ctx, now) => { if (P && P.aspire && P.aspire.zoom > 0) planete(ctx, now); });
 

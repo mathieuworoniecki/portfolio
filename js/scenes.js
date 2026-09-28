@@ -48,6 +48,8 @@ if (stayBtn) stayBtn.addEventListener('click', () => {
     enterBtn.style.transition = 'transform .8s cubic-bezier(.3,1.4,.5,1),letter-spacing .3s'; enterBtn.style.transform = '';
   }, 750);
 });
+// (depuis la sortie de l'espace : le titre et les boutons s'écrivent une fois la pièce revenue, js/trounoir.js)
+const vu = S => TN ? Math.min(S.since, TN.depuis) : S.since;
 const salut = Object.assign({
   id: 'salut', t0: 0, t1: 1, hold: true, fade: 0.2,
   enter() { if (enterBtn) enterBtn.classList.remove('drawn'); if (TN) TN.retour(); },
@@ -55,19 +57,19 @@ const salut = Object.assign({
     // aspiré par le trou noir (ou déjà dans l'espace) : plus de titre ni de boutons ; les chats continuent (js/trounoir.js)
     if (TN && TN.actif) { this.titles.forEach(el => Titles.progress(el, 0)); if (CH) CH.frame(S); return; }
     // le titre s'écrit à l'arrivée (horloge réelle : la lecture est arrêtée sur une station)
-    this.titles.forEach(el => Titles.progress(el, reste !== null ? chute ? 1 : 1 - sm((S.clock - reste) / 0.7) : S.reduced ? 1 : sm((S.since - 0.3) / 2.4)));
+    this.titles.forEach(el => Titles.progress(el, reste !== null ? chute ? 1 : 1 - sm((S.clock - reste) / 0.7) : S.reduced ? 1 : sm((vu(S) - 0.3) / 2.4)));
     if (CH) CH.frame(S); else { Pops.step(S); Pops.put(S, S.a); }
   },
   exit() { if (CH) CH.hide(); },
   draw(S, ctx) {
     if (TN && TN.actif) { if (CH) CH.draw(S, ctx); return; }
-    const pb = S.reduced ? 1 : sm((S.since - 2.3) / 0.9);
+    const pb = S.reduced ? 1 : sm((vu(S) - 2.3) / 0.9);
     Outils.button(enterBtn, pb, 1100, S.clock);
-    if (reste === null) glowButton(stayBtn, S.reduced ? 1 : sm((S.since - 2.0) / 1.1), 1200, S.clock);
+    if (reste === null) glowButton(stayBtn, S.reduced ? 1 : sm((vu(S) - 2.0) / 1.1), 1200, S.clock);
     else if (S.clock - reste < 0.5) glowButton(stayBtn, 1 - sm((S.clock - reste) / 0.45), 1200, S.clock);
     // l'invitation, écrite à la main sous les boutons, tant que rien n'a jailli
     const hb = reste === null && (CH ? !CH.clicks : !Pops.list.length) && enterBtn;
-    if (hb) { const r = hb.getBoundingClientRect(), r2 = stayBtn ? stayBtn.getBoundingClientRect() : r, bot = Math.max(r.bottom, r2.bottom), cx = (Math.min(r.left, r2.left) + Math.max(r.right, r2.right)) / 2; C.text(L('salut.hint'), cx, bot + 24 * S.K, S.reduced ? 1 : c01((S.since - 3.4) / 1.2), { size: 19, align: 'center', a: 0.55 }); }
+    if (hb) { const r = hb.getBoundingClientRect(), r2 = stayBtn ? stayBtn.getBoundingClientRect() : r, bot = Math.max(r.bottom, r2.bottom), cx = (Math.min(r.left, r2.left) + Math.max(r.right, r2.right)) / 2; C.text(L('salut.hint'), cx, bot + 24 * S.K, S.reduced ? 1 : c01((vu(S) - 3.4) / 1.2), { size: 19, align: 'center', a: 0.55 }); }
     if (CH) CH.draw(S, ctx); else Pops.draw(S, ctx);
   },
   click(x, y, S) { return CH ? CH.click(x, y, S) : Pops.spawn(x, y, S); }

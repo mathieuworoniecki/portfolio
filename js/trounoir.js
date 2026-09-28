@@ -54,12 +54,13 @@ function fondNoir(a) {
 }
 
 /* ——— la photo de la page (le fond, la grille, la pièce, la craie, les boutons), pour la découper en anneaux ——— */
-function photo() {
-  const k = Math.min(devicePixelRatio || 1, 1.5), c = document.createElement('canvas'); c.width = Math.round(W * k); c.height = Math.round(H * k);
-  const x = c.getContext('2d'); x.scale(k, k);
+// (le papier déborde de l'écran jusqu'au rayon du trou : en tournant, la page ne montre jamais ses coins, elle s'enroule d'un seul tenant)
+function photo(cx, cy, R) {
+  const k = Math.min(devicePixelRatio || 1, 1.5, 4096 / (2 * R)), c = document.createElement('canvas'); c.width = c.height = Math.round(2 * R * k);
+  const x = c.getContext('2d'); x.scale(k, k); x.translate(R - cx, R - cy);
   const cs = getComputedStyle(root), v = n => cs.getPropertyValue(n).trim() || '#DADBD8';
   const g = x.createRadialGradient(W * 0.5, H * 0.4, 0, W * 0.5, H * 0.4, Math.hypot(W, H) * 0.6);
-  g.addColorStop(0, v('--bp-hi')); g.addColorStop(0.45, v('--bp')); g.addColorStop(1, v('--bp-deep')); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  g.addColorStop(0, v('--bp-hi')); g.addColorStop(0.45, v('--bp')); g.addColorStop(1, v('--bp-deep')); x.fillStyle = g; x.fillRect(cx - R, cy - R, 2 * R, 2 * R);
   ['#grid', '#piece', '#titles'].forEach(q => { const e = document.querySelector(q); if (e && e.width) try { x.drawImage(e, 0, 0, W, H); } catch (er) {} });
   // les boutons : leur texte est en HTML (leur cadre est déjà dans la craie)
   ['#enter', '#stay'].forEach(q => { const e = document.querySelector(q); if (!e || e.disabled || !e.classList.contains('drawn')) return; const r = e.getBoundingClientRect(); if (!r.width) return;
@@ -76,10 +77,10 @@ function aspire(fin) {
   if (T || Wd.espace) return;
   taille(); if (!Wd.W || reduit) { entre(); fin && fin(); return; }
   const [cx, cy] = centre(), R = Math.max(Math.hypot(cx, cy), Math.hypot(W - cx, H - cy));
-  T = { t0: performance.now() / 1000, s: window.Film ? Film.t : 0, cx, cy, R, snap: photo(), items: [], couches: couches(), fin, noir: false };
+  T = { t0: performance.now() / 1000, s: window.Film ? Film.t : 0, cx, cy, R, snap: photo(cx, cy, R), items: [], couches: couches(), fin, noir: false, ink: rgb((window.THEME && THEME.ink) || '34,36,40') };
   // qui part quand : les plus proches du trou d'abord (et un peu de hasard)
   const add = (o, x, y, chat) => { const dx = x - cx, dy = y - cy, r = Math.hypot(dx, dy);
-    T.items.push({ o, chat, r0: r, a0: Math.atan2(dy, dx), s0: o.s, tilt0: o.tilt || 0, dl: 0.06 + 0.5 * clamp(r / R, 0, 1) + rnd(0, 0.1), rot: rnd(4, 9) * (Math.random() < 0.8 ? 1 : -1) }); };
+    T.items.push({ o, chat, r0: r, a0: Math.atan2(dy, dx), s0: o.s, tilt0: o.tilt || 0, dl: 0.05 + 0.42 * clamp(r / R, 0, 1) + rnd(0, 0.08), rot: rnd(4, 9) * (Math.random() < 0.8 ? 1 : -1) }); };
   Wd.props.forEach(it => { if (it.a > 0.01 && it.root.visible) add(it, it.x, it.y - (it.hull ? it.hull.h * it.s * 0.4 : 0), false); });
   Wd.cats.forEach(c => { if (c.gone) return; prepare(c); add(c, c.x, c.y - c.D.stand * sc(c), true); });
   // quelques-uns le disent
@@ -108,7 +109,7 @@ function aspiration(dt) {
     const o = m.o, rot = m.tilt0 + e * e * m.rot, vis = e < 0.985 ? 1 : 0;
     if (m.chat) {
       const c = o; c.at += dt; c.anim = e > 0.02 ? 'chute' : pre > 0.5 ? 'sursaut' in ANIMS ? 'sursaut' : 'feule' : c.anim || 'assis';
-      c.s = Math.max(0.001, m.s0 * f); c.spin = rot; c.x = x; c.y = y + c.D.stand * sc(c); c.z = 20000 + m.r0;
+      teinte(c, sm((e - 0.25) / 0.6)); c.s = Math.max(0.001, m.s0 * f); c.spin = rot; c.x = x; c.y = y + c.D.stand * sc(c); c.z = 20000 + m.r0;
       (ANIMS[c.anim] || ANIMS.assis)(c, c.tgt, c.at); Chat.step(c, dt, { a: Wd.a * vis });
     } else {
       o.x = x; o.y = y + (o.hull ? o.hull.h * m.s0 * f * 0.4 : 0); o.s = Math.max(0.001, m.s0 * f); o.tilt = rot; o.a = vis * (o.fade ?? 1); Univers.place(o);
@@ -119,28 +120,30 @@ function aspiration(dt) {
 function dessineTrou(u) {
   const { cx, cy, R, snap } = T;
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.clearRect(0, 0, W, H);
-  fondNoir(1); cielEtoile(sm((u - 0.15) / 0.4), u * DUREE);
-  // la page, en anneaux : le centre part d'abord ; chaque anneau tourne et rétrécit vers le trou
-  const N = W < 760 ? 12 : 20;
+  fondNoir(1); cielEtoile(1, u * DUREE);   // (l'espace est déjà là, derrière la page : on le découvre à mesure qu'elle est avalée)
+  // la page, en anneaux fins : le centre part d'abord ; chaque anneau tourne et rétrécit vers le trou, sans s'effacer (il passe sous le disque noir)
+  const N = W < 760 ? 48 : 64;
+  // (chaque anneau est découpé à l'écran entre les rayons où le déroulement envoie ses deux bords : les anneaux se touchent toujours, sans jour entre eux)
+  const eDe = m => easeIn((u - 0.05 - m * 0.5) / 0.4), g = r => { const e = eDe(r / R); return r * Math.pow(1 - e, 1.3); };
   for (let i = N - 1; i >= 0; i--) {
-    const ra = R * i / N, rb = R * (i + 1) / N, m = (i + 0.5) / N, e = easeIn((u - 0.05 - m * 0.5) / 0.4);
-    if (e >= 0.995) continue;
-    const f = Math.pow(1 - e, 1.3), th = e * 2.2 + e * e * 5 + (1 - m) * e * 2;
-    ctx.save(); ctx.translate(cx, cy); ctx.rotate(th); ctx.scale(f, f * (1 - 0.18 * e));
-    ctx.beginPath(); ctx.arc(0, 0, rb + 1.5, 0, TAU); if (ra > 0) ctx.arc(0, 0, ra - 1.5, 0, TAU, true); ctx.clip();
-    ctx.globalAlpha = 1 - sm((e - 0.75) / 0.25);
-    ctx.drawImage(snap, -cx, -cy, W, H); ctx.restore();
+    const ra = R * i / N, rb = R * (i + 1) / N, m = (i + 0.5) / N, e = eDe(m);
+    if (e >= 0.999) continue;
+    const f = Math.pow(1 - e, 1.3), th = e * 2.2 + e * e * 5 + (1 - m) * e * 2, ga = g(ra), gb = g(rb), ky = 1 - 0.18 * e;
+    if (gb < 0.3) continue;
+    ctx.save(); ctx.translate(cx, cy);
+    ctx.beginPath(); ctx.arc(0, 0, gb + 0.8, 0, TAU); if (ga > 0.8) ctx.arc(0, 0, ga - 0.8, 0, TAU, true); ctx.clip();
+    ctx.rotate(th); ctx.scale(f, f * ky); ctx.drawImage(snap, -R, -R, 2 * R, 2 * R); ctx.restore();
   }
   // le trou : il s'ouvre, respire, avale ; à la fin il se referme en un point
-  const R0 = Math.min(W, H) * 0.075, ouvre = sm(u / 0.12), ferme = 1 - sm((u - 0.86) / 0.12), rh = R0 * ouvre * ferme * (1 + 0.06 * Math.sin(u * 30));
+  const R0 = Math.min(W, H) * 0.075, ouvre = sm(u / 0.12), ferme = 1 - sm((u - 0.9) / 0.1), rh = R0 * ouvre * ferme * (1 + 0.5 * sm((u - 0.1) / 0.6)) * (1 + 0.06 * Math.sin(u * 30));
   if (rh > 0.5) {
     // le halo et les bras de la spirale (des traits de stylo qui tournent) : sombres sur le papier, clairs sur l'espace
-    const clair = sm((u - 0.35) / 0.3), col = clair > 0.5 ? '244,244,238' : (window.THEME && THEME.ink) || '34,36,40', rot = u * DUREE * 5;
+    const clair = sm((u - 0.3) / 0.4), col = melange(T.ink, [244, 244, 238], clair), rot = u * DUREE * 5;
     ctx.save(); ctx.translate(cx, cy); ctx.lineCap = 'round';
     for (let b = 0; b < 5; b++) {
       ctx.beginPath(); const a0 = rot + b * TAU / 5;
       for (let k = 0; k <= 40; k++) { const t = k / 40, rr = rh * (1 + t * 3.2 * ouvre * ferme), aa = a0 - t * 3.4; const px = Math.cos(aa) * rr, py = Math.sin(aa) * rr * 0.82; k ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
-      ctx.strokeStyle = `rgba(${col},${0.55 * (1 - Math.abs(clair - 0.5))+0.25})`; ctx.lineWidth = 2.2; ctx.stroke();
+      ctx.strokeStyle = `rgba(${col},0.7)`; ctx.lineWidth = 2.2; ctx.stroke();
     }
     ctx.scale(1, 0.82);
     ctx.beginPath(); ctx.arc(0, 0, rh * 1.18, 0, TAU); ctx.strokeStyle = `rgba(${col},0.8)`; ctx.lineWidth = 2.6; ctx.stroke();
@@ -148,7 +151,8 @@ function dessineTrou(u) {
     ctx.restore();
   }
   // le point de lumière, juste avant de recracher
-  if (u > 0.94) { const k = sm((u - 0.94) / 0.06); ctx.save(); ctx.globalAlpha = k; ctx.fillStyle = '#F4F4EE'; ctx.beginPath(); ctx.arc(cx, cy, 2 + k * 4, 0, TAU); ctx.fill(); ctx.restore(); }
+  // (il naît au cœur du trou qui se referme : le disque noir rétrécit autour de lui, il ne s'allume pas d'un coup)
+  if (u > 0.9) { const k = sm((u - 0.9) / 0.1); ctx.save(); ctx.fillStyle = '#F4F4EE'; ctx.beginPath(); ctx.arc(cx, cy, Math.min(rh * 0.8, 1 + k * 5) + k * 2, 0, TAU); ctx.fill(); ctx.restore(); }
 }
 // le menu, le cadre : ils tournent vers le trou, eux aussi (en CSS : ils sont en HTML)
 function tourneCouches(u) {
@@ -156,7 +160,6 @@ function tourneCouches(u) {
     const e = easeIn((u - dl - 0.1) / 0.45); if (!e) return;
     el.style.transformOrigin = `${T.cx - r.left}px ${T.cy - r.top}px`;
     el.style.transform = `rotate(${(e * 2.2 + e * e * 5) * 57.3}deg) scale(${Math.max(0.001, Math.pow(1 - e, 1.3))})`;
-    el.style.opacity = String(1 - sm((e - 0.7) / 0.3));
   });
 }
 function boucle() {
@@ -180,21 +183,26 @@ function fin() {
 
 /* ——— l'espace ——— */
 let theme0 = null;
+// le changement de thème, en douceur (le cadre, la barre du bas, les boutons : leurs couleurs glissent)
+let glisseT = 0;
+function glisse() { root.classList.add('glisse'); clearTimeout(glisseT); glisseT = setTimeout(() => root.classList.remove('glisse'), 1300); }
 // le thème noir ; les chats (leur trait n'écoute pas le thème) passent au blanc, leurs yeux s'inversent (blancs, reflets noirs)
 function noir() {
-  if (window.THEME && THEME.color !== 'espace') { theme0 = { style: THEME.style, color: THEME.color }; THEME.set({ style: THEME.style, color: 'espace' }, true); }
+  if (window.THEME && THEME.color !== 'espace') { theme0 = { style: THEME.style, color: THEME.color }; glisse(); THEME.set({ style: THEME.style, color: 'espace' }, true); }
   Wd.cats.forEach(blanc);
 }
-function blanc(c) {
-  if (c.blanc) return; c.blanc = true;
-  c.mats.forEach(m => ['line', 'soft', 'out', 'out2'].forEach(k => { const x = m[k]; if (!x || !x.color) return; x.userData.c0 = x.color.getHex(); x.color.setHex(BLANC); }));
-  if (c.discs[0]) { c.discs.forEach(d => { d.userData.c0 = d.color.getHex(); }); c.discs[0].color.setHex(BLANC); if (c.discs[1]) c.discs[1].color.setHex(NOIR); }
+// (27/09) la teinte va de l'encre (0) au blanc (1) : pendant l'aspiration et la sortie, le trait se transforme peu à peu
+const CB = new THREE.Color(BLANC), CN = new THREE.Color(NOIR);
+function teinte(c, k) {
+  k = c01(k); if (c.teinte === k || (!c.teinte && !k)) return;
+  const mats = []; c.mats.forEach(m => ['line', 'soft', 'out', 'out2'].forEach(n => { const x = m[n]; if (x && x.color) mats.push(x); }));
+  if (!c.teinte) { mats.forEach(x => { x.userData.c0 = x.color.getHex(); }); c.discs.forEach(d => { d.userData.c0 = d.color.getHex(); }); }
+  mats.forEach(x => x.color.setHex(x.userData.c0).lerp(CB, k));
+  c.discs.forEach((d, i) => { if (d.userData.c0 == null) return; d.color.setHex(d.userData.c0); if (i === 0) d.color.lerp(CB, k); else if (i === 1) d.color.lerp(CN, k); });
+  c.teinte = k; c.blanc = k > 0.5;
 }
-function encre(c) {
-  if (!c.blanc) return; c.blanc = false;
-  c.mats.forEach(m => ['line', 'soft', 'out', 'out2'].forEach(k => { const x = m[k]; if (x && x.color && x.userData.c0 != null) x.color.setHex(x.userData.c0); }));
-  c.discs.forEach(d => { if (d.userData.c0 != null) d.color.setHex(d.userData.c0); });
-}
+const blanc = c => teinte(c, 1), encre = c => teinte(c, 0);
+const rgb = s => String(s).split(',').map(Number), melange = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',');
 const E = { crache: -1, ondes: [], doigt: null, boucle: 0 };
 /* les modules de l'espace (js/espace-*.js : le dessin, le texte qui défile, les planètes) se branchent ici :
      pas(dt, chats)       après les chats, à chaque image (forces, chocs avec leurs objets)
@@ -445,8 +453,9 @@ function boucleEspace(id) {
   // le trou blanc : un anneau qui s'ouvre et des rayons, le temps de recracher tout le monde
   const u = now - E.flash, [cx, cy] = centre(), n = Wd.cats.filter(c => !c.gone).length, dur = 1 + n * 0.16;
   if (u < dur + 0.8) {
-    const k = sm(u / 0.3) * (1 - sm((u - dur) / 0.8)), r = Math.min(W, H) * (0.03 + 0.03 * Math.sin(u * 6) * k) * k + 3;
-    ctx.save(); ctx.translate(cx, cy); ctx.globalAlpha = k; ctx.strokeStyle = '#F4F4EE'; ctx.lineCap = 'round';
+    // (il part du point de lumière où le trou noir s'est refermé, grandit, puis se resserre en un point : il ne s'allume ni ne s'éteint)
+    const k = sm(u / 0.3) * (1 - sm((u - dur) / 0.8)), r = Math.min(W, H) * (0.03 + 0.03 * Math.sin(u * 6) * k) * k + 6 * (1 - sm((u - dur) / 0.8));
+    ctx.save(); ctx.translate(cx, cy); ctx.strokeStyle = '#F4F4EE'; ctx.lineCap = 'round';
     for (let i = 0; i < 12; i++) { const a = i * TAU / 12 + u * 0.8, L = r * (2 + (i % 3) * 0.7); ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(Math.cos(a) * r * 1.3, Math.sin(a) * r * 1.3); ctx.lineTo(Math.cos(a) * L, Math.sin(a) * L); ctx.stroke(); }
     const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 1.2); g.addColorStop(0, 'rgba(255,255,250,1)'); g.addColorStop(0.6, 'rgba(255,255,250,0.5)'); g.addColorStop(1, 'rgba(255,255,250,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r * 1.2, 0, TAU); ctx.fill(); ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(0, 0, r * 1.6, 0, TAU); ctx.stroke();
@@ -460,22 +469,89 @@ function boucleEspace(id) {
   requestAnimationFrame(() => boucleEspace(id));
 }
 
-// retour à l'écran 1 (la barre du bas, le nom en haut à gauche) : la pièce revient, les chats retombent du ciel
+// retour à l'écran 1 (la barre du bas, la planète des chats) : un passage s'ouvre sur la pièce (la planète qui grandit, ou un cercle au centre),
+// il grandit jusqu'à remplir l'écran, et recrache tout : les objets retournent à leur place en se déroulant, les chats retombent dans la pièce,
+// leur trait redevient encre peu à peu (28/09, Mathieu : « tout doit être une continuité, pas un fade vers un autre truc »)
+let RV = null, finSortie = -1e9;
+const DS = 2.3;   // la sortie (s)
+function sortie(o) { if (RV || !Wd.espace) return; E.sortie = o || null; if (window.Film) Film.toChapter(0); else retour(); }
 function retour(force) {
   const t = !!T; if (T) fin();
+  if (RV) return;
   if (!Wd.espace && !theme0 && !t && !force) return;
+  const doux = Wd.espace && !t && !force && !reduit && Wd.W;
+  const o = E.sortie || null; E.sortie = null;
   Wd.espace = false; root.classList.remove('espace', 'trou');
-  if (theme0 && window.THEME) THEME.set(theme0, true); theme0 = null;
-  E.doigt = null; X.retour.forEach(f => f());
+  if (theme0 && window.THEME) { if (doux) glisse(); THEME.set(theme0, true); } theme0 = null;
+  E.doigt = null;
+  if (!doux) { X.retour.forEach(f => f()); tombe(); return; }
+  // la sortie : chaque chose part du centre du passage, et se déroule jusqu'à sa place
+  const cx = o ? o.x : W / 2, cy = o ? o.y : H * 0.47, R = Math.max(Math.hypot(cx, cy), Math.hypot(W - cx, H - cy)), items = [];
+  const add = (it, x, y, s, chat) => { const dx = x - cx, dy = y - cy, r = Math.hypot(dx, dy); items.push({ o: it, chat, x, y, s, r0: r, a0: Math.atan2(dy, dx), dl: 0.12 + 0.4 * clamp(r / R, 0, 1) + rnd(0, 0.08), rot: rnd(4, 8) * (Math.random() < 0.8 ? 1 : -1), tilt: it.tilt || 0 }); };
+  Wd.props.forEach(it => { if (it.gone || it.fadeT === 0) return; const s = K.sOf(it.d) * (it.big || 1); if (it.tilt0 != null) it.tilt = it.tilt0; it.root.visible = true; add(it, it.fx * Wd.W, K.floorAt(it.d) - it.lift, s, false); });
+  Wd.cats.forEach(c => { if (c.gone) return; prepare(c); c.held = false; c.d = rnd(0.05, 0.6); c.sK = null; const s = K.sOf(c.d); add(c, rnd(0.12, 0.88) * Wd.W, K.floorAt(c.d) - s * rnd(0.3, 0.9), s, true); });
+  RV = { t0: performance.now() / 1000, cx, cy, R: Math.hypot(W, H), items, o, couches: couches(), fond: o && o.dessine };
+  root.classList.add('sortie');
+  const id = ++E.boucle; requestAnimationFrame(() => boucleSortie(id));
+}
+// les chats retombent du ciel (sans passage : mouvement réduit, ou la barre du bas pendant l'aspiration)
+function tombe() {
   Wd.props.forEach(it => { if (it.tilt0 != null) it.tilt = it.tilt0; it.fade = 0; it.fadeT = 1; });
   Wd.cats.forEach((c, i) => { if (c.gone) return; encre(c); prepare(c); c.held = false;
     c.d = rnd(0.05, 0.6); c.sK = null; c.s = K.sOf(c.d); c.x = rnd(0.12, 0.88) * Wd.W; c.y = -sc(c) * rnd(1.2, 3) - i * 30; c.fall = true; c.vx = rnd(-60, 60); c.vy = 0; c.spin = rnd(-3, 3); c.z = K.zOf(c.d);
     if (Math.random() < 0.5) K.later(0.4 + i * 0.2, () => say(c, pick(['on est rentrés !', 'mia !', 'ouf', 'encore !']))); });
   Wd.nextIn = Wd.t + rnd(8, 14); Wd.nextScen = Wd.t + rnd(20, 30); Wd.nextKib = Wd.t + rnd(10, 20);
 }
+// une image de la sortie (le temps du monde) : le contraire de l'aspiration, en partant du passage
+function sortant(dt) {
+  if (!RV) return; minuteur();
+  const u = (performance.now() / 1000 - RV.t0) / DS;
+  RV.items.forEach(m => {
+    const e = 1 - ease((u - m.dl) / 0.42), f = Math.pow(1 - e, 1.15), r = m.r0 * f, a = m.a0 - (e * 2.2 + e * e * 5);
+    const x = RV.cx + Math.cos(a) * r, y = RV.cy + Math.sin(a) * r * (1 - 0.18 * e);
+    const o = m.o, rot = e * e * m.rot, pas = u < m.dl;
+    if (m.chat) {
+      const c = o; c.at += dt; c.anim = e > 0.05 ? 'chute' : 'sursaut' in ANIMS ? 'sursaut' : 'assis'; teinte(c, sm((e - 0.1) / 0.6));
+      c.s = Math.max(0.001, m.s * f); c.spin = rot; c.x = x; c.y = y; c.z = K.zOf(c.d);
+      (ANIMS[c.anim] || ANIMS.assis)(c, c.tgt, c.at); Chat.step(c, dt, { a: Wd.a * (pas ? 0 : 1) });
+    } else {
+      o.x = x; o.y = y; o.s = Math.max(0.001, m.s * f); o.tilt = m.tilt + rot; o.a = pas ? 0 : Wd.a; o.fade = o.fadeT = 1; Univers.place(o);
+    }
+  });
+  if (u >= 1.08) finit();
+}
+function finit() {
+  if (!RV) return;
+  RV.items.forEach(m => { const o = m.o; if (m.chat) { encre(o); o.s = m.s; o.x = m.x; o.y = m.y; o.fall = true; o.vx = rnd(-30, 30); o.vy = 0; o.spin = 0; }
+    else { o.tilt = m.tilt; o.a = Wd.a; } });
+  RV.couches.forEach(({ el }) => { el.style.transform = el.style.transformOrigin = ''; });
+  const L = RV.items.filter(m => m.chat).map(m => m.o); L.slice(0, 3).forEach((c, i) => K.later(0.2 + i * 0.3, () => say(c, pick(['on est rentrés !', 'mia !', 'ouf', 'encore !', 'tadaa']))));
+  Wd.nextIn = Wd.t + rnd(8, 14); Wd.nextScen = Wd.t + rnd(20, 30); Wd.nextKib = Wd.t + rnd(10, 20);
+  RV = null; finSortie = performance.now() / 1000; root.classList.remove('sortie'); E.boucle++;
+  X.retour.forEach(f => f());
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+}
+// le calque de la sortie : l'espace tout autour, percé d'un passage qui grandit (derrière, la vraie pièce) ; son bord est un trait qui passe du blanc à l'encre
+function boucleSortie(id) {
+  if (id !== E.boucle || !RV) return;
+  taille(); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.clearRect(0, 0, W, H);
+  const now = performance.now() / 1000, u = (now - RV.t0) / DS, z = ease(u / 0.62);
+  fondNoir(1); cielEtoile(1, now); X.fond.forEach(f => f(ctx, now));
+  // le menu, le cadre : ils sortent du passage en se déroulant
+  RV.couches.forEach(({ el, r }) => { const e = 1 - easeIn(c01((u - 0.3) / 0.5)); el.style.transformOrigin = `${RV.cx - r.left}px ${RV.cy - r.top}px`;
+    el.style.transform = e > 0.001 ? `rotate(${-(e * 2.2 + e * e * 5) * 57.3}deg) scale(${Math.max(0.001, Math.pow(1 - e, 1.3))})` : ''; });
+  if (RV.fond) RV.fond(ctx, z, now);   // la planète des chats : elle grandit, son disque devient le passage (js/espace-planetes.js)
+  else {
+    const rr = 4 + z * RV.R, ink = melange([244, 244, 238], rgb((window.THEME && THEME.ink) || '34,36,40'), sm(z / 0.5));
+    ctx.save(); ctx.globalCompositeOperation = 'destination-out'; ctx.beginPath(); ctx.arc(RV.cx, RV.cy, rr, 0, TAU); ctx.fill(); ctx.restore();
+    ctx.save(); ctx.strokeStyle = `rgb(${ink})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(RV.cx, RV.cy, rr, 0, TAU); ctx.stroke(); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(RV.cx, RV.cy, rr * 0.94 + 2, 0, TAU); ctx.stroke(); ctx.restore();
+  }
+  X.devant.forEach(f => f(ctx, now));
+  requestAnimationFrame(() => boucleSortie(id));
+}
 
-Wd.ail = { on: () => !!(Wd.trou || Wd.espace), step: dt => (Wd.trou ? aspiration(dt) : espace(dt)), draw() {}, click, grab, drag, release };
+Wd.ail = { on: () => !!(Wd.trou || Wd.espace || RV), step: dt => (Wd.trou ? aspiration(dt) : RV ? sortant(dt) : espace(dt)), draw() {}, click: (x, y) => RV ? true : click(x, y), grab: (x, y) => RV ? null : grab(x, y), drag, release };
 // pour les modules de l'espace
-const outils = { X, E, K, centre, centreDe, rayon, apres, onde, lache, say, BLANC, HAUT, BAS, DERIVE, get W() { return W; }, get H() { return H; }, get ctx() { return ctx; } };
-return { aspire, entre, retour, outils, get espace() { return !!Wd.espace; }, get actif() { return !!(Wd.trou || Wd.espace); }, get trou() { return !!T; } };
+const outils = { X, E, K, sortie, melange, rgb, centre, centreDe, rayon, apres, onde, lache, say, BLANC, HAUT, BAS, DERIVE, get W() { return W; }, get H() { return H; }, get ctx() { return ctx; } };
+return { aspire, entre, retour, outils, get espace() { return !!Wd.espace; }, get actif() { return !!(Wd.trou || Wd.espace || RV); }, get trou() { return !!T; }, get depuis() { return performance.now() / 1000 - finSortie; } };
 })();

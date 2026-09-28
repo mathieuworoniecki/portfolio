@@ -388,8 +388,11 @@ html:not(.locked) #gate:not(.open){display:none}
 @media (prefers-reduced-motion:reduce){.dex-toast.go{animation:dex-fade 2.3s linear forwards;transform:none}}
 
 /* ——— le trou noir, puis l'espace (l'écran 2, js/trounoir.js) ——— */
+/* (le thème qui change pendant le trou noir : les couleurs glissent, js/trounoir.js glisse()) */
+.glisse,.glisse *{transition:color 1s,background-color 1s,border-color 1s,fill 1s,stroke 1s,box-shadow 1s!important}
 #trou{position:fixed;inset:0;z-index:1;width:100%;height:100%;pointer-events:none;display:none}
-.trou #trou,.espace #trou{display:block}
+.trou #trou,.espace #trou,.sortie #trou{display:block}
+.sortie .evts,.sortie .sheet{pointer-events:none!important}
 /* pendant l'aspiration, la page est une photo découpée en anneaux (sur #trou) : les vrais calques se cachent */
 .trou #stage,.trou #titles,.trou .scenes,.trou .tuto,.trou #caps{opacity:0!important}
 .trou .evts,.trou .sheet,.trou .dex-toast,.trou .evts-annonce{pointer-events:none!important}
