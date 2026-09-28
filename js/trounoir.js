@@ -204,12 +204,12 @@ function teinte(c, k) {
 const blanc = c => teinte(c, 1), encre = c => teinte(c, 0);
 const rgb = s => String(s).split(',').map(Number), melange = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',');
 const E = { crache: -1, ondes: [], doigt: null, boucle: 0 };
-/* les modules de l'espace (js/espace-*.js : le dessin, le texte qui défile, les planètes) se branchent ici :
+/* les modules de l'espace (js/espace-*.js : le dessin, la présentation au stylo, les planètes) se branchent ici :
      pas(dt, chats)       après les chats, à chaque image (forces, chocs avec leurs objets)
      pose(c)              après la pose d'un chat (où il regarde…)
      fond(ctx, now)       sur le calque, derrière les chats          devant(ctx, now)   sur le calque, après les ondes
      grab(x, y)           une clé { mod: { drag(k, x, y), release(k, vx, vy) } } ou rien
-     mode[nom](c, dt)     un chat dans un état à eux (accroché à un trait, dans un abri, sur le texte, aspiré…)
+     mode[nom](c, dt)     un chat dans un état à eux (accroché à un trait, dans un abri, pendu à un mot, aspiré…)
      envie(c)             un chat à la dérive se demande quoi faire : vrai si le module l'occupe
      trace                le doigt dans le vide : { debut(x, y), suite(x, y), fin() → vrai si c'était un dessin }
      entre(), retour()    on arrive dans l'espace, on en repart */

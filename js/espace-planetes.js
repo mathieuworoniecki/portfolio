@@ -1,4 +1,4 @@
-/* Dans l'espace (l'écran 2) : à la fin du texte qui défile, deux planètes se dessinent, au stylo.
+/* Dans l'espace (l'écran 2) : une fois la présentation écrite (js/espace-plume.js), deux planètes se dessinent, au stylo.
    - La Terre, en bas : une tranche, toute la largeur de l'écran, comme une atmosphère toute proche ; ses continents tournent doucement.
      C'est l'écran suivant (plus tard) ; pour l'instant, elle est solide : chats, dessins et lettres rebondissent dessus.
    - La planète des chats, plus loin : une tête de chat ronde (oreilles, moustaches, yeux qui suivent le curseur), un anneau de laine.
@@ -16,12 +16,14 @@ let P = null;   // { t0 (le début du dessin), terre: {cx, cy, R, top}, chat: {x
 function place() {
   const W = O.W, H = O.H, bas = O.BAS(), h = clamp(H * 0.13, 60, 130), R = Math.max(W * 1.15, (W * W / 4) / (2 * h) + h / 2);   // (sur un téléphone : une tranche, pas une boule)
   const r = clamp(Math.min(W, H) * 0.09, 38, 90), large = W >= 760;
-  return { terre: { cx: W / 2, cy: bas - h + R + 18, R, top: bas - h + 18 }, chat: { x: large ? W * 0.76 : W * 0.66, y: large ? H * 0.3 : H * 0.28, r } };
+  // (la planète des chats : sous la présentation écrite, au-dessus de la Terre)
+  const top = bas - h + 18, haut = window.EspacePlume ? EspacePlume.bas : 0, y = haut ? clamp((haut + top) / 2, haut + r * 1.5, top - r * 1.4) : large ? H * 0.3 : H * 0.28;
+  return { terre: { cx: W / 2, cy: bas - h + R + 18, R, top }, chat: { x: large ? W * 0.74 : W * 0.66, y, r } };
 }
 function naissance() { if (P) return; P = Object.assign(place(), { t0: Wd.t, survol: 0, pousse: 0, aspire: null, seed: Math.random() * 99 }); }
 X.entre.push(() => { P = null; if (reduit) naissance(); });
 X.retour.push(() => { P = null; });
-if (window.EspaceTexte) EspaceTexte.onFini = () => { naissance(); };
+if (window.EspacePlume) EspacePlume.onFini = () => { naissance(); };
 const trace = (dl, d) => P ? c01((Wd.t - P.t0 - dl) / d) : 0;
 
 /* ——— la physique : la Terre est solide, la planète des chats attire ——— */

@@ -5,7 +5,7 @@
      une forme avec une entrée (qui tourne presque en rond) : un abri ; les chats y entrent par l'ouverture s'ils arrivent à s'y tenir
                      (secoué, qui file ou qui tourne vite : ils ratent, ou ils sont éjectés), et s'y roulent en boule
    Tout rebondit sur les bords ; on peut attraper un dessin et le lancer ; quatorze au plus, le plus vieux s'efface en poussière d'étoiles.
-   Le texte qui défile (js/espace-texte.js) et les planètes (js/espace-planetes.js) les poussent aussi : la liste est outils.corps. */
+   Les planètes (js/espace-planetes.js) les poussent aussi : la liste est outils.corps. */
 window.EspaceDessin = (() => {
 if (!window.TrouNoir || !TrouNoir.outils) return null;
 const O = TrouNoir.outils, { X, K, centreDe, rayon, say } = O, { Wd, rnd, pick, clamp, sgn, sm } = K;
