@@ -210,7 +210,7 @@ addEventListener('pointerup', e => {
 
 /* ——— le clavier, la molette, le geste : la page ne défile jamais ; un cran = un chapitre ——— */
 // l'écran des chats : on n'en sort que par la barre des chapitres ou le bouton « Entrer » (ni molette, ni geste, ni flèches, ni clic)
-const chez = () => SC.some(sc => sc.id === 'salut' && sc.a > 0.5);
+const chez = () => SC.some(sc => (sc.id === 'salut' || sc.id === 'espace') && sc.a > 0.5);   // (et dans l'espace, l'écran 2 : pareil)
 function step(dir) { if (chez()) return; step0(dir); }
 function step0(dir) { const s = story(T), ci = chapterAt(s); if (dir > 0 && wait && ci === CH.length - 1) return; toChapter(ci + dir); }
 addEventListener('keydown', e => {

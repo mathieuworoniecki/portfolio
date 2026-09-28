@@ -386,3 +386,12 @@ html:not(.locked) #gate:not(.open){display:none}
 .hf-grille li.ok{background:rgba(var(--c),.12)!important;border-color:rgb(var(--ink))!important}
 @media (prefers-reduced-motion:reduce){.hf-show.go,.hf-show.go .hf-rayons,.hf-show.go .hf-badge,.hf-show.part{animation-duration:.01s;animation-fill-mode:both}}
 @media (prefers-reduced-motion:reduce){.dex-toast.go{animation:dex-fade 2.3s linear forwards;transform:none}}
+
+/* ——— le trou noir, puis l'espace (l'écran 2, js/trounoir.js) ——— */
+#trou{position:fixed;inset:0;z-index:1;width:100%;height:100%;pointer-events:none;display:none}
+.trou #trou,.espace #trou{display:block}
+/* pendant l'aspiration, la page est une photo découpée en anneaux (sur #trou) : les vrais calques se cachent */
+.trou #stage,.trou #titles,.trou .scenes,.trou .tuto,.trou #caps{opacity:0!important}
+.trou .evts,.trou .sheet,.trou .dex-toast,.trou .evts-annonce{pointer-events:none!important}
+/* dans l'espace : ni la pièce, ni le menu des évènements, ni le cadre de la feuille, ni les bulles d'aide */
+.espace #piece,.espace .evts,.espace .evts-annonce,.espace .tuto,.espace .dex-toast,.espace .sheet,.espace #caps{opacity:0!important;pointer-events:none!important;visibility:hidden}

@@ -17,7 +17,7 @@ fr: {
   'film.chapters': 'Chapitres', 'film.chapter': 'Chapitre {0} : {1}', 'film.play': 'Lecture', 'film.pause': 'Pause', 'film.replay': 'Rejouer',
   'film.sound': 'Son', 'film.hint': 'Molette ou flèches : chapitre suivant',
   // les chapitres (exemple)
-  'ch.1': 'Salut', 'ch.2': 'Essai', 'ch.3': 'Terrain de jeu',
+  'ch.1': 'Salut', 'ch.2': 'Espace', 'ch.3': 'Terrain de jeu',
   // la scène d'exemple (js/scenes.js) — à remplacer par le vrai contenu
   'salut.title': 'Salut, moi c’est Mathieu.',
   'menu.titre': 'Événements', 'menu.geant': 'Le chat géant', 'menu.interminable': 'Le chat interminable', 'menu.ballon': 'Le chat ballon', 'menu.eclair': 'Le chat éclair',
@@ -39,7 +39,7 @@ en: {
   'lang': 'Language', 'home': 'Mathieu, back to the start', 'grab': 'Drag to turn',
   'film.chapters': 'Chapters', 'film.chapter': 'Chapter {0}: {1}', 'film.play': 'Play', 'film.pause': 'Pause', 'film.replay': 'Replay',
   'film.sound': 'Sound', 'film.hint': 'Wheel or arrows: next chapter',
-  'ch.1': 'Hi', 'ch.2': 'Test', 'ch.3': 'Playground',
+  'ch.1': 'Hi', 'ch.2': 'Space', 'ch.3': 'Playground',
   'salut.title': 'Hi, I’m Mathieu.',
   'menu.titre': 'Events', 'menu.geant': 'The giant cat', 'menu.interminable': 'The endless cat', 'menu.ballon': 'The balloon cat', 'menu.eclair': 'The lightning cat',
   'menu.totem': 'The cat totem', 'menu.acrobate': 'The acrobat', 'menu.horde': 'The horde', 'menu.tour': 'The box tower', 'menu.aspirateur': 'The vacuum',

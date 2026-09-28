@@ -852,7 +852,7 @@ function heart(x, y, r, a) {
   Chalk.stroke(P, 1, { w: 1.8, a: 0.8 * a, seed: 3, tip: false });
 }
 // le nuage de bagarre : une boule de traits qui tourne, des pattes et des queues qui en sortent, des étoiles, « !#@ »
-let paper = null;
+let paper = null; addEventListener('themechange', () => { paper = null; });   // (l'espace : le papier devient noir)
 function fightCloud(f, u, fade, K) {
   const C = Chalk, ctx = C.ctx, t = Wd.t, r = f.r * (0.95 + Math.sin(t * 17) * 0.05) * (0.6 + 0.4 * sm(u * 8)), jit = () => (Math.random() - 0.5) * 4;
   // le contour bosselé du nuage, rempli de papier (on ne voit plus les chats dedans)
@@ -1148,6 +1148,7 @@ function nextScenario() {
 let ready = false;
 function frame(S) {
   if (!Obj3D.ok) return;
+  if (S.frame !== undefined) { if (S.frame === Wd.fid) return; Wd.fid = S.frame; }   // (deux scènes à la fois, pendant un fondu : une seule image de vie)
   const dt = Math.min(0.05, S.dt || 0); Wd.a = S.a;
   measure(S);
   for (let i = 0; i < (Wd.fast || 1); i++) step(S, dt);   // Wd.fast : pour les essais, le monde en accéléré
@@ -1155,6 +1156,8 @@ function frame(S) {
 function step(S, dt) {
   Wd.f++; Wd.t += dt;
   if (!ready) { ready = true; for (let i = 0; i < 2; i++) { const c = addCat({ x: rnd(0.3, 0.85) * Wd.W }); c.q.push(pose(pick(['assis', 'toilette', 'pain']), rnd(2, 5))); } }
+  // ailleurs (js/trounoir.js : le trou noir qui aspire tout, puis l'espace) : le monde de la pièce s'arrête, les chats sont à lui
+  if (ail()) { Wd.ail.step(dt); return; }
   // la population : trois chats (au moins) ; quand l'un part, un autre arrive
   if (dt && residents().length < (Wd.mode === 'large' ? 3 : 2) && Wd.t > Wd.nextIn) { enter(); Wd.nextIn = Wd.t + rnd(3, 9); }
   // les scénarios
@@ -1171,7 +1174,8 @@ function step(S, dt) {
   H.post.forEach(f => f(dt));
   tidy();
 }
-function draw(S) { drawWater(S); drawKib(S); drawVac(S); H.draw.forEach(f => f(S)); drawFx(S); }
+const ail = () => Wd.ail && Wd.ail.on();
+function draw(S) { if (ail()) { Wd.ail.draw(S); drawFx(S); return; } drawWater(S); drawKib(S); drawVac(S); H.draw.forEach(f => f(S)); drawFx(S); }
 function hideAll() { Wd.cats.forEach(c => { c.root.visible = false; }); Wd.props.forEach(it => { it.root.visible = false; }); }
 
 /* ——— les mains : cliquer, attraper ——— */
@@ -1203,6 +1207,7 @@ function poke(it, x) {
 }
 function click(x, y, S) {
   if (!ready) return false;
+  if (ail()) return Wd.ail.click(x, y);
   if (run(H.click, x, y)) return true;
   const c = catAt(x, y);
   if (c) { purr(c); return true; }
@@ -1218,6 +1223,7 @@ function click(x, y, S) {
 // Lâché sans avoir bougé, c'est une caresse : il ronronne.
 function grab(x, y) {
   if (!ready) return null; Wd.gx = x; Wd.gy = y;
+  if (ail()) return Wd.ail.grab(x, y);
   const L = leverAt(x, y); if (L) return L;
   for (const f of H.grab) { const k = f(x, y); if (k) return k; }   // (les visiteurs de js/rares.js)
   const c = catAt(x, y); if (c) return c; const it = propAt(x, y); return it && !it.run ? it : null;
@@ -1227,6 +1233,7 @@ function knob(g) { const a = (g.lev0 ?? 0.3) + (g.pull || 0) * (g.levK ?? 1.3); 
 function leverAt(x, y) { const g = Wd.props.find(p => p.pivot && !p.held && !p.fall && p.a > 0.5); if (!g) return null; const k = knob(g); return Math.hypot(x - k[0], y - k[1]) < Math.max(g.s * 0.09, 18) ? (g.handle || (g.handle = { lever: g })) : null; }
 const isProp = k => !!(k && k.hull);
 function drag(c, x, y) {
+  if (c && ail()) return Wd.ail.drag(c, x, y);
   if (!c || run(H.drag, c, x, y)) return;
   if (c.lever) { const g = c.lever; g.hand = Wd.t; g.byHand = true; if (!g.pulling) { g.pulling = true; c.y0 = y - (g.pull || 0) * g.s * 0.35; } g.pull = clamp((y - c.y0) / (g.s * 0.35), 0, 1); return; }
   if (isProp(c)) { const it = c; if (it.mur) return;   // accrochée au mur : on ne l'emporte pas
@@ -1272,7 +1279,7 @@ function pet(c, x, y) {
 const hov = { c: null, run: 0, lx: 0, ly: 0, c0: null };
 function finCaresse(c) { const n = c.pet ? c.pet.n : 0; c.pet = null; c.task = null; c.q = n > 5 ? [pose('petrit', rnd(2, 3.5), { fx: c => say(c, '♥') }), pose('pain', rnd(4, 8))] : n ? [pose('assis', rnd(1, 2))] : []; }
 function survol(x, y) {
-  if (!ready || Wd.a < 0.5) return;
+  if (!ready || Wd.a < 0.5 || ail()) return;
   const dx = x - hov.lx, dy = y - hov.ly; hov.lx = x; hov.ly = y;
   const c = hov.c;
   if (c) {
@@ -1296,6 +1303,7 @@ addEventListener('pointerdown', e => { Wd.tactile = e.pointerType !== 'mouse'; c
 addEventListener('pointermove', e => { if (e.pointerType !== 'mouse' || e.buttons) return; if (e.target.closest && e.target.closest('a,button,select,input,label,.top,.film-ui,.tuto')) return; survol(e.clientX, e.clientY); }, { passive: true });
 function purr(c) { c.purr = Wd.t + 2.6; say(c, '♥'); later(0.5, () => say(c, 'rrrr', 0)); }
 function release(c, vx, vy) {
+  if (c && ail()) return Wd.ail.release(c, vx, vy);
   if (!c || run(H.release, c, vx, vy)) return;
   if (c.lever) { const g = c.lever; g.byHand = false; if (!g.pulling) { g.flick = Wd.t; shoot(g); } g.pulling = false; return; }
   if (c.pet) { const n = c.pet.n; c.pet = null; c.task = null; c.q = n > 5 ? [pose('petrit', rnd(2, 3.5), { fx: c => say(c, '♥') }), pose('pain', rnd(4, 8))] : [pose('assis', rnd(1, 2))]; if (!n) purr(c); return; }
@@ -1312,7 +1320,7 @@ function release(c, vx, vy) {
 
 // pour js/vie.js : le monde et ses outils
 const K = { Wd, H, boutons, rectOf, ANIMS, STEPS, CARAC, SPEED, LOURD, I, sit, lie, blink, rnd, pick, clamp, sgn, sm, c01, lerp, later, sc, front, back, sOf, floorAt, zOf, xOf, grav, inView, groundAt, perchAt, beside,
-  PORTE, SCEN, addCat, unCat, free, free4, zoomies, eat, play, climb, push, smash, interrupt, claim, go, pose, hop, fn, say, dust, startle, thud, drop, prop, unprop, kick, residents, leave, enter, catAt, propAt, freeD, stack, topOf, open, unbox, hide, sleep, idle, stroll, press, fire, folle, aspire,
+  PORTE, SCEN, drawFx, addCat, unCat, free, free4, zoomies, eat, play, climb, push, smash, interrupt, claim, go, pose, hop, fn, say, dust, startle, thud, drop, prop, unprop, kick, residents, leave, enter, catAt, propAt, freeD, stack, topOf, open, unbox, hide, sleep, idle, stroll, press, fire, folle, aspire,
   get MAXC() { return MAXC; } };
 return { K, ANIMS, CARAC, frame, draw, hide: hideAll, click, grab, drag, release, get clicks() { return Wd.clicks; }, get world() { return Wd; }, horde, tower, aspire, folle: () => folle(Wd.P.distrib), ouvre: () => { const b = Wd.props.find(p => p.launched && p.kind === 'caisse' && !p.busy && !p.fall), c = Wd.cats.find(free4); if (b && c) { interrupt(c); open(c, b); } }, fight: () => { const L = Wd.cats.filter(free4).slice(0, 2); if (L.length > 1) fight(L); }, quarrel: () => { const L = Wd.cats.filter(free4); if (L.length > 1) quarrel(L[0], L[1]); } };
 })();

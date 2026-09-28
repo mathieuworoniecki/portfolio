@@ -29,7 +29,9 @@ const STYLES = {
   esquisse: { wobble: 0.75, grain: 0.7, hand: HAND, handScale: 1, handWeight: 600, grid: 'lines', colors: {
     creme: C('#F3EEE2', '#E4DCC8', '#FAF7EF', '52,52,58', '196,64,36', '40,100,170', false, 0.45),
     kraft: C('#C8A77A', '#A98A5E', '#D6B98E', '38,30,22', '150,30,20', '30,70,120', false, 0.4),
-    gris:  C('#DADBD8', '#C4C6C2', '#E8E9E6', '34,36,40', '72,108,158', '30,100,180', false, 0.45) } }
+    gris:  C('#DADBD8', '#C4C6C2', '#E8E9E6', '34,36,40', '72,108,158', '30,100,180', false, 0.45),
+    // l'espace (l'écran 2, js/trounoir.js) : tout est noir, le trait devient blanc ; jamais retenu (THEME.set(…, true))
+    espace: C('#07080C', '#000000', '#10131A', '244,244,238', '255,214,120', '150,200,255', true, 0) } }
 };
 // les polices de la page, par style (css/site.css les lit dans --display, --text ; l'écriture à la main dans --hand)
 const FONTS = {
@@ -71,20 +73,21 @@ function css() {
   return `--bp:${K.bp};--bp-deep:${K.deep};--bp-hi:${K.hi};--ink:${K.ink};--accent:${K.accent};--vig:${K.dark ? 'rgba(0,0,0,.45)' : 'rgba(90,80,60,.14)'};` +
     `--glow-f:${glow};--glow-t:${neon ? `drop-shadow(0 0 4px rgba(${K.ink},.6))` : 'none'};--display:${F[0]};--text:${F[1]};--title:${F[2] || F[0]};--hand:${STYLES[th.style].hand};color-scheme:${K.dark ? 'dark' : 'light'}`;
 }
-function paint() {
+function paint(temp) {
   const d = document.documentElement, v = css();
   v.split(/;(?![^(]*\))/).forEach(p => { const i = p.indexOf(':'); if (i > 0) { const k = p.slice(0, i), val = p.slice(i + 1); k === 'color-scheme' ? d.style.colorScheme = val : d.style.setProperty(k, val); } });
   d.dataset.style = th.style; d.dataset.color = th.color;
   const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = STYLES[th.style].colors[th.color].deep;
-  try { localStorage.setItem('pf-theme-css', v); } catch (e) {}
+  if (!temp) try { localStorage.setItem('pf-theme-css', v); } catch (e) {}
 }
-function set(o) {
+// temp : pour un moment seulement (l'espace) ; rien n'est retenu pour la prochaine visite
+function set(o, temp) {
   const style = STYLES[o.style] ? o.style : th.style, cs = STYLES[style].colors;
   const color = cs[o.color] ? o.color : cs[th.color] ? th.color : Object.keys(cs)[0];
   if (style === th.style && color === th.color) return;
   const styleChanged = style !== th.style;
-  fill(style, color); paint();
-  try { localStorage.setItem('pf-style', style); localStorage.setItem('pf-color', color); } catch (e) {}
+  fill(style, color); paint(temp);
+  if (!temp) try { localStorage.setItem('pf-style', style); localStorage.setItem('pf-color', color); } catch (e) {}
   const go = () => dispatchEvent(new CustomEvent('themechange', { detail: { styleChanged } }));
   go();
   // la police du style : une fois chargée, les titres sont recalculés

@@ -8,7 +8,7 @@ if (!window.Chats || !Chats.K) return null;
 const K = Chats.K, { Wd, H, rnd, pick, sgn, sc, sOf, say, pose, go, fn, inView, interrupt, free4 } = K;
 const word = (text, x, y, size) => Wd.fx.push({ k: 'txt', text, x, y, t0: Wd.t, life: 1.1, rot: rnd(-0.2, 0.2), size: size || 16 });
 const dex = id => { if (window.Dex) Dex.vu(id); };
-const actif = () => Wd.W && Wd.a > 0.5 && !document.documentElement.classList.contains('locked');
+const actif = () => Wd.W && Wd.a > 0.5 && !(Wd.ail && Wd.ail.on()) && !document.documentElement.classList.contains('locked');
 
 // renvoie vrai quand la molette a servi ici (film.js ne change alors rien d'autre)
 function molette(x, y, dy) {
