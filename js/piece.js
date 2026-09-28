@@ -38,6 +38,8 @@ function dessine() {
   const W = Wd.W, Hh = Wd.H, s0 = Wd.s0, dpr = Math.min(window.devicePixelRatio || 1, 2);
   if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(Hh * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(Hh * dpr); }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, Hh);
+  // l'arrivée : la pièce se trace de gauche à droite, une plume au bout du trait
+  const tr = trace(); ctx.save(); if (tr < 1) { ctx.beginPath(); ctx.rect(0, 0, W * tr, Hh); ctx.clip(); }
   ctx.strokeStyle = `rgb(${ink()})`; ctx.fillStyle = `rgb(${ink()})`; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   const yB = K.floorAt(1) - s0 * 0.05, top = (Wd.ceil || 0) + 14, large = Wd.mode === 'large';
   // le bas du mur : la plinthe
@@ -97,12 +99,35 @@ function dessine() {
     ctx.globalAlpha = 0.22; ctx.lineWidth = 1.1; ctx.beginPath(); ctx.ellipse(t.x, cy, rx * 0.8, ry * 0.8, 0, 0, Math.PI * 2); ctx.stroke();
     for (let i = 0; i < 26; i++) { const a = i / 26 * Math.PI * 2, px = t.x + Math.cos(a) * rx, py = cy + Math.sin(a) * ry; ligne(px, py, px + Math.cos(a) * 5, py + Math.sin(a) * 3, 0.3, 1, 200 + i, 1); }
   }
-  ctx.globalAlpha = 1;
+  ctx.restore(); ctx.globalAlpha = 1;
+  if (tr < 1) plume(W * tr, K.floorAt(1) - s0 * 0.05);
+}
+// la plume : un bec d'encre, penché, qui avance au bout du trait
+function plume(x, y) {
+  const k = Math.max(18, Wd.s0 * 0.16); ctx.save(); ctx.translate(x, y); ctx.rotate(-0.7); ctx.globalAlpha = 0.85; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-k * 0.18, -k * 0.5); ctx.lineTo(-k * 0.18, -k * 2.2); ctx.lineTo(k * 0.18, -k * 2.2); ctx.lineTo(k * 0.18, -k * 0.5); ctx.closePath(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, -k * 0.05); ctx.lineTo(0, -k * 0.45); ctx.stroke(); ctx.beginPath(); ctx.arc(0, -k * 0.5, k * 0.05, 0, Math.PI * 2); ctx.fill();
+  ctx.restore(); ctx.globalAlpha = 1;
 }
 function nuage(x, y, s) { ctx.globalAlpha = 0.45; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.moveTo(x - s * 2, y); ctx.arc(x - s * 1.1, y, s * 0.9, Math.PI, Math.PI * 1.9); ctx.arc(x, y - s * 0.3, s * 1.1, Math.PI * 1.1, Math.PI * 1.95); ctx.arc(x + s * 1.2, y, s * 0.8, Math.PI * 1.2, 0); ctx.lineTo(x - s * 2, y); ctx.stroke(); }
 
+/* ——— l'arrivée à la plume (27/09, la revue ; Mathieu a choisi « la pièce et l'arrivée ») ———
+   À l'ouverture de la page : la pièce se trace en une seconde, puis les meubles apparaissent un à un, du fond vers l'avant,
+   chacun avec un petit gribouillis d'encre à sa base. (Pas pour qui préfère moins d'animations.) */
+const calme = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+let t0 = null; const DUREE = 1.1;
+const trace = () => calme || t0 == null ? 1 : Math.min(1, Math.max(0, (Wd.t - t0) / DUREE));
+function arrivee() {
+  t0 = Wd.t; if (calme) return;
+  const L = Wd.props.filter(p => !p.run && !p.mur).sort((a, b) => (b.d - a.d) || (a.x - b.x)), n = L.length;
+  L.forEach((it, i) => { it.fade = it.fadeT = 0; K.later(0.45 + i * Math.min(0.09, 1.5 / Math.max(1, n)), () => {
+    if (!Wd.props.includes(it)) return; it.fadeT = 1; it.fade = Math.max(it.fade, 0.15);
+    for (let j = 0; j < 3; j++) Wd.fx.push({ k: 'dust', x: it.x + K.rnd(-0.3, 0.3) * it.hull.w * it.s, y: it.y, r: it.s * 0.18, a: 0.6, t0: Wd.t + j * 0.05, life: 0.5, seed: Math.floor(Math.random() * 99) }); }); });
+}
 H.pre.push(() => {
   if (!Wd.W || !Wd.floor) return;
+  if (t0 == null && Wd.props.length) arrivee();
+  if (trace() < 1 || (t0 != null && Wd.t - t0 < DUREE + 0.1)) { cle = ''; }
   cv.style.opacity = Wd.a;
   const t = Wd.P && Wd.P.table, m = new Date();
   const k = [Wd.W, Wd.H, Math.round(Wd.floor), Math.round(Wd.depth / 4), Math.round((Wd.ceil || 0) / 8), Math.round(Wd.s0), ciel(), t && Wd.props.includes(t) && !t.held && !t.fall ? Math.round(t.x / 6) + ':' + t.d.toFixed(2) : '-',
