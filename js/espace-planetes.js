@@ -14,7 +14,7 @@ const en = () => window.I18N && I18N.lang && I18N.lang !== 'fr';
 
 let P = null;   // { t0 (le début du dessin), terre: {cx, cy, R, top}, chat: {x, y, r}, survol, pousse (0 → 1), aspire }
 function place() {
-  const W = O.W, H = O.H, bas = O.BAS(), h = clamp(H * 0.13, 60, 130), R = Math.max(W * 1.15, (W * W / 4) / (2 * h) + h / 2);   // (sur un téléphone : une tranche, pas une boule)
+  const W = O.W, H = O.H, bas = O.BAS(), h = clamp(H * 0.085, 44, 84), R = Math.max(W * 1.15, (W * W / 4) / (2 * h) + h / 2);   // (sur un téléphone : une tranche, pas une boule)
   const r = clamp(Math.min(W, H) * 0.09, 38, 90), large = W >= 760;
   // (la planète des chats : à la place que lui laissent les constellations des compétences, js/espace-plume.js)
   const top = bas - h + 18, pl = window.EspacePlume && EspacePlume.planete;

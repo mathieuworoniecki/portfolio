@@ -238,8 +238,8 @@ const largeur = (txt, font) => { tx.font = font; return tx.measureText(txt).widt
 function lignes(txt, font, wmax) { txt = txt.replace(/ ([:;!?»])/g, '\u00a0$1').replace(/« /g, '«\u00a0'); const R = []; let l = ''; txt.split(' ').forEach(m => { const e = l ? l + ' ' + m : m; if (l && largeur(e, font) > wmax) { R.push(l); l = m; } else l = e; }); if (l) R.push(l); return R; }
 
 // la Terre, en bas (la même que js/espace-planetes.js) : les chats s'y assoient pour regarder
-const hautTerre = () => { const H = O.H, h = clamp(H * 0.13, 60, 130); return O.BAS() - h + 18; };
-function terre() { const W = O.W, H = O.H, bas = O.BAS(), h = clamp(H * 0.13, 60, 130), R = Math.max(W * 1.15, (W * W / 4) / (2 * h) + h / 2); return { cx: W / 2, cy: bas - h + R + 18, R }; }
+const hautTerre = () => { const H = O.H, h = clamp(H * 0.085, 44, 84); return O.BAS() - h + 18; };
+function terre() { const W = O.W, H = O.H, bas = O.BAS(), h = clamp(H * 0.085, 44, 84), R = Math.max(W * 1.15, (W * W / 4) / (2 * h) + h / 2); return { cx: W / 2, cy: bas - h + R + 18, R }; }
 const surface = x => { const T = terre(); return T.cy - Math.sqrt(Math.max(0, T.R * T.R - (x - T.cx) * (x - T.cx))); };
 
 /* ——— la mise en page : en haut, la barre des deux chapitres ; au milieu, l'écran du ciel (où se forment les dessins) ;
@@ -268,14 +268,14 @@ function compose() {
   const barre = { y: yB, seg, bas: yB + (L ? 22 : 18) };
   const r = L ? clamp(Math.min(W, H) * 0.07, 38, 64) : clamp(Math.min(W, H) * 0.07, 30, 44), planete = L ? [W - W * 0.035 - r, barre.bas + r + 18] : [W - r - 10, barre.bas + r + 26];
   // les sous-titres : ancrés en bas, au-dessus des spectateurs
-  const place = L ? 14 : 50, wmax = Math.min(W - 32, L ? 900 : 9999), yCap = hautTerre() - place - 4;
+  const place = L ? 42 : 56, wmax = Math.min(W - 32, L ? 900 : 9999), yCap = hautTerre() - place - 4;
   const caps = SC.map((S, i) => { const num = SC.slice(0, i + 1).filter(q => q.ch === S.ch).length - 1; return sousTitre(S, L, wmax, num, nc[S.ch], CH[S.ch]); });
   const hMax = Math.max(...caps.map(c => c.h));
   // l'écran du ciel : tout ce qui reste entre la barre et les sous-titres
   const t0 = barre.bas + (L ? 18 : 10), b0 = yCap - hMax - (L ? 22 : 14), cx = W / 2, cy = (t0 + b0) / 2;
   const s = Math.max(40, Math.min((b0 - t0) / 2 * 0.94, L ? W * 0.26 : W / 2 * 0.8));
   // (pour les scènes dessinées, js/espace-scenes.js : la largeur qu'elles peuvent prendre, les bords, l'épaisseur du trait, celle des chats)
-  const G = { cx, cy: cy + (b0 - t0) * 0.04, s: s * 1.12, sw: Math.min(W * 0.46, Math.max(s * 1.2, (b0 - t0) * 1.1)), lw: L ? 2.6 : 2.1, gauche: 16, droite: W - 16, haut: t0, bas: b0 + (L ? 10 : 6) };
+  const G = { cx, cy: cy + (b0 - t0) * 0.04, s: s * 1.12, sw: Math.min(W * 0.44, Math.max(s * 1.2, (b0 - t0) * 1.6)), lw: L ? 2.6 : 2.1, gauche: 16, droite: W - 16, haut: t0, bas: b0 + (L ? 10 : 6) };
   return { W, H, L, barre, caps, yCap, cx, cy, s, G, planete, SC };
 }
 
