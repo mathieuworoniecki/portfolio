@@ -4,6 +4,9 @@
 example/
 # documents de travail : gardés en local, jamais dans le dépôt
 *.pdf
+# (sauf le CV généré par tools/cv.cjs, sans numéro de téléphone)
+!/cv-mathieu-woroniecki.pdf
+!/cv-mathieu-woroniecki-en.pdf
 *.pptx
 *.docx
 *.xlsx

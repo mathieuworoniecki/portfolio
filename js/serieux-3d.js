@@ -579,6 +579,68 @@ function caviarde() {   // SafeShare : la page, les données sensibles repérée
   o.rot = t => [0.18 + Math.sin(t * 0.3) * 0.05, -0.4 + Math.sin(t * 0.22) * 0.2];
 }
 
+/* La preuve : MARKO en chiffres, tirés de l'historique Git (d.marko : un nombre de commits par jour, puis par heure).
+   0 · une ville de colonnes, un jour chacune, qui monte dans l'ordre du temps · 1 · juillet s'allume, le 23 juillet (451 commits) dépasse tout
+   2 · une horloge de 24 h : des commits à toutes les heures · 3 · deux tours, le produit et ses tests · 4 · un anneau de 100 crans : 95 % moi et mes agents */
+function preuve(M) {
+  const o = objet('preuve', { s: 0.9, pl: { x: 0.245, y: 0.04, s: 0.92 }, plT: { y: 0.25, s: 1.0 } }); let t0 = null;
+  const L = [0, 1, 2, 3, 4].map(() => { const m = matieres(); MATS.push(m); return m; }), f = [0, 0, 0, 0, 0];
+  const pc = piece(o, [0, 0, 0], [0, 0, 0], { fond: true }), R = new T.Group(); pc.g.add(R);
+  /* 0 · 1 — la ville des jours */
+  const J = M.jours, NJ = J.length, d0 = M.d0 || 1, NC = Math.ceil((NJ + d0) / 7), maxJ = Math.max(...J), pic = J.indexOf(maxJ), ville = new T.Group(); R.add(ville);
+  const ex = 0.075, x0 = -(NC - 1) * ex / 2, COL = [];
+  ville.add(traits([[x0 - 0.06, -0.5, -0.3], [-x0 + 0.06, -0.5, -0.3], [x0 - 0.06, -0.5, 0.3], [-x0 + 0.06, -0.5, 0.3]], L[0].s));
+  (M.mois || []).forEach(mo => { const c = Math.floor((mo.j + d0) / 7), x = x0 + c * ex - ex / 2; ville.add(trait([[x, -0.5, 0.3], [x, -0.5, 0.4]], L[0].s)); });
+  for (let i = 0; i < NJ; i++) {
+    if (!J[i]) { COL.push(null); continue; }
+    const c = Math.floor((i + d0) / 7), r = (i + d0) % 7, g = new T.Group(); g.position.set(x0 + c * ex, -0.5, -0.24 + r * 0.08); ville.add(g);
+    const juil = M.juillet && i >= M.juillet[0] && i <= M.juillet[1];
+    solide(g, new T.BoxGeometry(0.055, 1, 0.055).translate(0, 0.5, 0), i === pic ? L[1].a : juil ? L[1].l : L[0].l);
+    g.scale.y = 0.001; COL.push({ g, h: 1.25 * Math.sqrt(J[i] / maxJ), i, juil });
+  }
+  const phare = new T.Group(); ville.add(phare); { const c = COL[pic]; if (c) { phare.position.set(c.g.position.x, -0.5 + c.h + 0.1, c.g.position.z); phare.add(trait(cercle(0.06, 32), L[1].a, true)); phare.add(trait([[0, -0.08, 0], [0, 0.25, 0]], L[1].d)); } }
+  /* 2 — l'horloge de 24 heures */
+  const hor = new T.Group(); hor.position.y = -0.5; R.add(hor); const HH = M.heures, maxH = Math.max(...HH), BH = [];
+  hor.add(trait(cercleH(0.95, 96), L[2].s, true)); hor.add(trait(cercleH(0.55, 72), L[2].s, true));
+  for (let h = 0; h < 24; h++) { const a = h / 24 * TAU - Math.PI / 2, g = new T.Group(); g.position.set(Math.cos(a) * 0.75, 0, Math.sin(a) * 0.75); g.rotation.y = -a; hor.add(g);
+    solide(g, new T.BoxGeometry(0.1, 1, 0.06).translate(0, 0.5, 0), h < 6 ? L[2].a : L[2].l); g.scale.y = 0.001; BH.push({ g, h: 0.9 * HH[h] / maxH });
+    hor.add(trait([[Math.cos(a) * 0.95, 0, Math.sin(a) * 0.95], [Math.cos(a) * 1.02, 0, Math.sin(a) * 1.02]], L[2].s)); }
+  const aiguille = trait([[0, 0.01, 0], [0.5, 0.01, 0]], L[2].a); hor.add(aiguille);
+  /* 3 — deux tours : le produit (1,2 M de lignes), ses tests (0,9 M) ; une dalle = 100 000 lignes */
+  const tours = new T.Group(); tours.position.y = -0.5; R.add(tours); const DAL = [];
+  [[-0.38, 12, L[3].l], [0.38, 9, L[3].a]].forEach(([x, n, m], j) => { for (let k = 0; k < n; k++) { const g = new T.Group(); g.position.set(x, k * 0.085, 0); tours.add(g); solide(g, new T.BoxGeometry(0.46, 0.07, 0.46).translate(0, 0.035, 0), m); DAL.push({ g, k, j }); } });
+  tours.add(trait([[-0.75, 0, 0.4], [0.75, 0, 0.4]], L[3].s));
+  /* 4 — l'anneau : 100 crans, 95 pour moi et mes agents */
+  const ann = new T.Group(); ann.position.y = -0.1; R.add(ann); const CR = [];
+  for (let k = 0; k < 100; k++) { const a = k / 100 * TAU - Math.PI / 2, g = new T.Group(); g.position.set(Math.cos(a) * 0.85, 0, Math.sin(a) * 0.85); g.rotation.y = -a; ann.add(g);
+    solide(g, new T.BoxGeometry(0.03, 0.14, 0.02).translate(0, 0.07, 0), k < 95 ? L[4].a : L[4].l); g.scale.y = 0.001; CR.push(g); }
+  ann.add(trait(cercleH(0.72, 96), L[4].s, true)); { const c = new T.Group(); c.position.y = 0.05; ann.add(c); boule(o, c, 0.12, L[4].l); }
+  /* la caméra de chaque étape : [rx, ry, zoom] */
+  const VUE = [[0.42, -0.5, 0.95], [0.32, -0.3, 1.0], [0.95, 0.2, 1.05], [0.3, -0.6, 1.05], [1.05, 0, 1.05], [0.5, -0.4, 0.95]];
+  const cam = { rx: 0.4, ry: -0.5, z: 1 };
+  o.rot = t => [cam.rx, cam.ry + Math.sin(t * 0.15) * 0.05];
+  o.tick = (t, v) => {
+    const pas = v.pas === undefined ? 5 : v.pas, S = Math.min(5, Math.floor(pas)), k = i => c01(pas - i);
+    const ec = t0 === null ? 0.05 : Math.min(0.2, Math.max(0, t - t0)); t0 = t; const dt = 1 - Math.exp(-ec * 4), df = 1 - Math.exp(-ec * 6);   /* au temps, pas à l'image : pareil sur une machine lente */
+    const vis = [S <= 1 ? 1 : 0, S === 1 ? 1 : 0, S === 2 ? 1 : 0, S === 3 ? 1 : 0, S >= 4 ? 1 : 0];
+    for (let i = 0; i < 5; i++) { f[i] = lerp(f[i], vis[i], df); chaud(L[i], S === i && i !== 1 ? 0.2 : 0); opac(L[i], o.op * f[i]); }
+    ville.visible = f[0] > 0.01 || f[1] > 0.01; hor.visible = f[2] > 0.01; tours.visible = f[3] > 0.01; ann.visible = f[4] > 0.01;
+    const V1 = VUE[S], V2 = VUE[Math.min(5, S + 1)], u = sm(fen(pas - S, 0.8, 1));
+    cam.rx = lerp(cam.rx, lerp(V1[0], V2[0], u), dt); cam.ry = lerp(cam.ry, lerp(V1[1], V2[1], u), dt); cam.z = lerp(cam.z, lerp(V1[2], V2[2], u), dt); R.scale.setScalar(cam.z);
+    /* 0 : les jours montent dans l'ordre ; 1 : juillet ressort */
+    const front = pas >= 1 ? NJ : NJ * sm(k(0) * 1.3), k1 = S >= 1 ? 1 : 0;
+    COL.forEach(c => { if (!c) return; const on = c01((front - c.i) / 12), h = S >= 2 ? 0.001 : c.h * sm(on) * (S === 1 && !c.juil ? 0.55 : 1); c.g.scale.y = Math.max(0.001, lerp(c.g.scale.y, h, df)); });
+    phare.visible = k1 > 0 && S <= 1 && (t % 1.2) > 0.3; phare.rotation.y = t;
+    /* 2 : l'horloge */
+    const k2 = S >= 2 ? sm(k(2) * 1.5) : 0; BH.forEach((b, i) => { const e = sm(k2 * 2 - i / 24); b.g.scale.y = Math.max(0.001, b.h * e); }); aiguille.rotation.y = -t * 0.9;
+    /* 3 : les tours, dalle par dalle */
+    const k3 = S >= 3 ? k(3) : 0; DAL.forEach(d => { const e = sm(k3 * 14 - d.k * 0.9 - d.j * 0.5); d.g.visible = e > 0.02; d.g.scale.set(1, Math.max(0.02, e), 1); });
+    /* 4 : l'anneau, cran par cran */
+    const k4 = S >= 4 ? k(4) : 0; CR.forEach((g, i) => { const e = sm(k4 * 3 - i / 100 * 1.6); g.scale.y = Math.max(0.001, e * (i < 95 ? 1 + 0.15 * Math.sin(t * 3 + i * 0.3) : 0.6)); });
+    ann.rotation.y = t * 0.12;
+  };
+}
+
 function radar() {   // ScanRift : le balayage passe sur la cible, les résultats s'allument, chacun est noté ; un humain valide
   const o = objet('radar', { s: 0.95 });
   const sol = piece(o, [0, -1.8, 0]); [0.45, 0.8, 1.15].forEach(r => sol.g.add(trait(cercleH(r, 96), o.m.s, true)));
@@ -630,12 +692,13 @@ function init(toile, d) {
   /* la puce, quatre fois : l'accueil (en éclaté léger, annotée), les compétences (une couche par étape), le contact (refermée, les signaux partent) */
   puce('accueil', { s: 0.95, pl: { x: 0.235, y: 0.05, s: 0.74 }, rot: t => [0.62, -0.62 + Math.sin(t * 0.18) * 0.35],
     ex: (t, v) => 0.85 + Math.sin(t * 0.7) * 0.06 - 0.4 * sm(v.loc * 2), etiqToutes: true, impulsions: () => 8,
-    etiq: [['front', 'Front · Vue, Nuxt, React'], ['ia', 'Cœur · IA générative, RAG, agents'], ['devops', 'Socle · Docker, CI/CD, cloud']] });
+    etiq: d === window.SERIEUX_DONNEES_EN ? [['front', 'Front · Vue, Nuxt, React'], ['ia', 'Core · generative AI, RAG, agents'], ['devops', 'Base · Docker, CI/CD, cloud']]
+      : [['front', 'Front · Vue, Nuxt, React'], ['ia', 'Cœur · IA générative, RAG, agents'], ['devops', 'Socle · Docker, CI/CD, cloud']] });
   puce('couches', { s: 0.9, pl: { x: 0.25, y: 0.02, s: 0.82 }, rot: t => [0.55, -0.7 + Math.sin(t * 0.16) * 0.12],
     ex: (t, v) => 0.6 + 0.4 * sm((v.pas || 0) * 0.8), hl: (t, v) => v.pas === undefined || v.pas >= 6 ? -1 : [4, 5, 2, 0, 3, 1][Math.floor(v.pas)], impulsions: (t, v) => Math.floor(v.pas || 0) === 5 ? 24 : 0,
     etiq: d.competences.map(c => [c.couche, c.court]) });
   puce('contact', { s: 0.85, rot: t => [0.5, t * 0.15], ex: (t, v) => 0.5 * (1 - sm(v.loc * 1.5)), impulsions: () => 24 });
-  poussiere(); chaine(); atelier(); impact(); circuit(d.parcours.slice().reverse()); immeuble(); fleur(); globe(); chat(); archive(); bougies(); reseau(); caviarde(); radar();
+  poussiere(); chaine(); atelier(); if (d.marko) preuve(d.marko); impact(); circuit(d.parcours.slice().reverse()); immeuble(); fleur(); globe(); chat(); archive(); bougies(); reseau(); caviarde(); radar();
   ok = true; resize(); return true;
 }
 function resize() {

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mathieu Woroniecki · Senior Technical Lead &amp; AI Architect</title>
+<meta name="description" content="CV of Mathieu Woroniecki, Senior Technical Lead &amp; AI Architect, CTO of MARKO: generative AI, RAG, agents, architecture, technical leadership.">
+<link rel="canonical" href="https://mathieu.blue/cv-en">
+<link rel="alternate" hreflang="fr" href="https://mathieu.blue/cv"><link rel="alternate" hreflang="en" href="https://mathieu.blue/cv-en">
+<meta property="og:type" content="profile"><meta property="og:title" content="Mathieu Woroniecki · Senior Technical Lead &amp; AI Architect"><meta property="og:description" content="CV of Mathieu Woroniecki, Senior Technical Lead &amp; AI Architect, CTO of MARKO: generative AI, RAG, agents, architecture, technical leadership.">
+<meta property="og:url" content="https://mathieu.blue/cv-en"><meta property="profile:first_name" content="Mathieu"><meta property="profile:last_name" content="Woroniecki">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Person","name":"Mathieu Woroniecki","jobTitle":"Senior Technical Lead & AI Architect","url":"https://mathieu.blue/","email":"numerus0@proton.me","sameAs":["https://www.linkedin.com/in/mathieuworoniecki/","https://github.com/mathieuworoniecki"],"address":{"@type":"PostalAddress","addressLocality":"Paris","addressCountry":"FR"},"worksFor":{"@type":"Organization","name":"MARKO","url":"https://marko.fr"},"knowsAbout":["Gemini","Mistral","Claude","OpenAI / Codex","DeepSeek","Local models (Ollama)","Hybrid vector + lexical RAG","Reranking","Embeddings","pgvector","Qdrant","ChromaDB","Meilisearch","RAG evaluation","Agentic AI","MCP / WebMCP","Multi-agent orchestration","Sub-agents","Skills & plugins","Prompt engineering","Document AI","OCR (Mistral, Tesseract)","Data extraction","Entities (spaCy, LangExtract)","scikit-learn","LightGBM","Optuna","MLflow","SHAP / LIME","Genetic algorithms","Monte Carlo","React","Next.js","Vue","Nuxt","TypeScript","JavaScript ES6+","TailwindCSS","Radix / shadcn","TanStack Query"],"knowsLanguage":["fr","en"]}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Le CV à lire et à imprimer : papier clair, l'encre du plan (bleu) pour les titres, l'accent doré en filet. Pensé pour deux pages A4. */
+:root{--encre:#132a52;--texte:#1d2330;--doux:#56607a;--trait:#d5dbe8;--accent:#c9922e;--fond:#f6f7fb;--papier:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--encre:#cfe0ff;--texte:#e4e8f2;--doux:#a3adc4;--trait:#34405a;--accent:#ffd98a;--fond:#0f1a30;--papier:#16223d}}
+*{box-sizing:border-box}
+html{background:var(--fond)}
+body{margin:0;background:var(--fond);color:var(--texte);font:400 15px/1.5 Barlow,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.feuille{max-width:880px;margin:24px auto;padding:44px 52px;background:var(--papier);box-shadow:0 1px 0 var(--trait),0 12px 40px rgba(19,42,82,.08)}
+header{display:grid;grid-template-columns:1fr auto;gap:8px 24px;align-items:end;padding-bottom:18px;border-bottom:2px solid var(--encre)}
+h1{margin:0;font:700 44px/.95 "Barlow Condensed",sans-serif;letter-spacing:.01em;text-transform:uppercase;color:var(--encre)}
+.role{margin:6px 0 0;font:600 17px/1.2 "Barlow Condensed",sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.coord{margin:0;padding:0;list-style:none;text-align:right;font:500 12px/1.7 "IBM Plex Mono",monospace;color:var(--doux)}
+.coord a{color:var(--encre);text-decoration:none}
+.outils{display:flex;flex-wrap:wrap;gap:8px 18px;margin:14px 0 0;font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.04em;text-transform:uppercase}
+.outils a{color:var(--encre)}
+h2{margin:26px 0 10px;font:700 15px/1 "Barlow Condensed",sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--encre);display:flex;align-items:center;gap:12px}
+h2::after{content:"";flex:1;height:1px;background:var(--trait)}
+h3{margin:0;font:600 15px/1.3 Barlow,sans-serif;color:var(--encre)}
+p{margin:0 0 6px}
+.chapo{font-size:15.5px}
+.faits{display:flex;flex-wrap:wrap;gap:4px 20px;margin:8px 0 0;padding:0;list-style:none;font:500 12.5px/1.5 "IBM Plex Mono",monospace;color:var(--doux)}
+.faits b{color:var(--encre);font-weight:500}
+.grille{display:grid;grid-template-columns:1fr 1fr;gap:6px 28px}
+.etape b,.chiffre b{color:var(--encre)}
+.chiffres{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.chiffre{border-left:2px solid var(--accent);padding:2px 0 2px 10px}
+.chiffre strong{display:block;font:700 26px/1 "Barlow Condensed",sans-serif;color:var(--encre)}
+.chiffre span{font-size:13px;color:var(--doux)}
+.poste{display:grid;grid-template-columns:128px 1fr;gap:4px 16px;padding:8px 0;border-top:1px solid var(--trait);break-inside:avoid}
+.poste:first-of-type{border-top:0}
+.dates{font:500 11.5px/1.5 "IBM Plex Mono",monospace;color:var(--doux);padding-top:2px}
+.poste ul{margin:4px 0 0;padding-left:16px;color:var(--doux);font-size:14px}
+.poste p{font-size:14px}
+.groupe{margin:0 0 3px;font-size:14px}
+.groupe span{font:500 11px/1 "IBM Plex Mono",monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--doux);margin-right:6px}
+.projet{break-inside:avoid;margin-bottom:6px;font-size:14px}
+.projet b{color:var(--encre)}
+.projet a{color:var(--encre)}
+.petit{font-size:13.5px;color:var(--doux)}
+@media (max-width:640px){.feuille{margin:0;padding:24px 16px}header{grid-template-columns:1fr}.coord{text-align:left}h1{font-size:36px}.grille,.chiffres{grid-template-columns:1fr}.poste{grid-template-columns:1fr}}
+@page{size:A4;margin:10mm 13mm}
+@media print{html,body{background:#fff}body{font-size:10.5px;line-height:1.38}.feuille{max-width:none;margin:0;padding:0;box-shadow:none}.outils,.etape .d,.projet .d,.petit.source{display:none}
+  .grille{gap:2px 22px}.poste{grid-template-columns:96px 1fr}.poste ul{margin-top:2px}p{margin-bottom:3px}h3{font-size:12px}.dates{font-size:9.5px}
+  h1{font-size:30px}.role{font-size:14px}h2{margin:9px 0 4px;font-size:12px}.poste{padding:3px 0}.poste p,.poste ul,.groupe,.projet,.etape,.chapo{font-size:10.5px}.chiffre strong{font-size:17px}.chiffre span{font-size:9.5px}
+  .faits{font-size:9.5px}.coord{font-size:9.5px;line-height:1.5}.petit{font-size:10px}header{padding-bottom:10px}.comps{columns:2;column-gap:22px}.groupe-bloc{break-inside:avoid}.groupe{font-size:9.8px}a{text-decoration:none}}
+</style>
+</head>
+<body>
+<main class="feuille">
+<header>
+  <div><h1>Mathieu Woroniecki</h1><p class="role">Senior Technical Lead &amp; AI Architect</p></div>
+  <ul class="coord"><li>Paris, France</li><li><a href="mailto:numerus0@proton.me">numerus0@proton.me</a></li><li><a href="https://www.linkedin.com/in/mathieuworoniecki/">linkedin.com/in/mathieuworoniecki</a></li><li><a href="https://github.com/mathieuworoniecki">github.com/mathieuworoniecki</a></li><li><a href="https://mathieu.blue/">mathieu.blue</a></li></ul>
+</header>
+<p class="outils"><a href="https://mathieu.blue/?serieux">Interactive 3D version ↗</a><a href="cv-mathieu-woroniecki-en.pdf" download>Download as PDF</a><a href="cv.html" hreflang="fr">Version française</a></p>
+
+<h2>Profile</h2>
+<p class="chapo">More than ten years building for the web, from front-end integration to CTO. Today I design products where AI reads, reasons and acts, and I work alongside agents I orchestrate to ship at the pace of a full team.</p>
+<p>Currently CTO of MARKO, an AI-native B2B SaaS for real estate.</p>
+<ul class="faits"><li><b>1 developer</b> + his agents = a team of 10</li><li><b>10+ years</b> of experience</li><li><b>150,000+</b> users on a platform I led</li><li><b>85+</b> projects delivered as a freelancer</li></ul>
+
+<h2>Method · One developer, the strength of a team</h2>
+<p>Where it used to take a team of ten developers and several years, I ship alone, surrounded by agents I orchestrate. AI doesn’t replace the craft: it multiplies the reach of whoever knows how to direct it. Here is how I work.</p>
+<div class="grille"><p class="etape"><b>Multiple terminals, multiple agents.</b> <span class="d">I no longer code one thing at a time. Each workstream runs in its own terminal and isolated Git worktree, with its own agent: while one writes, another tests and a third reviews.</span></p><p class="etape"><b>Agents that delegate to sub-agents.</b> <span class="d">A lead agent breaks the goal down and launches specialized sub-agents: exploration, code, tests, review. They report back; I put it together and make the call.</span></p><p class="etape"><b>Custom skills and plugins.</b> <span class="d">As soon as a task recurs, it becomes a tool: skills, commands, dedicated agents, MCP servers. On MARKO, a full security audit runs with a single command.</span></p><p class="etape"><b>Test everything, measure everything.</b> <span class="d">Harnesses, orchestrators, plugins, extensions: I test what comes out, compare on real projects and keep only what saves time. Some experiments became published tools.</span></p><p class="etape"><b>A fleet of agents on a single product.</b> <span class="d">On MARKO, large workstreams go through Claude Code’s multi-agent workflows (ultracode), which spread the work across many agents; a second, faster tool handles quick decisions. The tooling changes every month; the method stays.</span></p><p class="etape"><b>Speed without losing control.</b> <span class="d">Tests at every step, automated review in CI, security scanners, and a human decision before every merge. The agents propose; I approve and sign off.</span></p></div>
+
+<h2>The proof: MARKO</h2>
+<div class="chiffres"><p class="chiffre"><strong>12,046</strong><span>commits in eight months</span></p><p class="chiffre"><strong>2.1M</strong><span>lines of code</span></p><p class="chiffre"><strong>95%</strong><span>of commits: me and my agents</span></p></div>
+<p class="petit source">Not an estimate: MARKO’s Git history, as of September 28, 2026. The code isn’t shown, only what it took to build it.</p>
+
+<h2>Experience</h2>
+<div class="poste"><p class="dates">02/2026 — present</p><div><h3>MARKO · CTO</h3><p>Founded MARKO, an AI-native B2B SaaS for real estate investment professionals: consolidating portfolio data, automating monitoring, producing investor reporting.</p><ul><li>Architecture and development of the entire AI system</li><li>Generative AI, LLM / RAG, Agentic AI, Document AI</li><li>One PostgreSQL database per client, observability and security in CI</li></ul></div></div>
+<div class="poste"><p class="dates">02/2024 — 02/2026</p><div><h3>LWA · Lead Developer, Vue.js / Nuxt.js Architecture</h3><p>Technical strategy for luxury brands (Hermès, Chanel, Ardian); team of 3 developers.</p><ul><li>Adopted generative AI (LLM, RAG): +35% productivity</li><li>MCP for the Figma-to-code workflow</li><li>15+ projects moved to Docker: +40% deployment frequency</li><li>GitLab CI/CD and agile: +25% velocity</li></ul></div></div>
+<div class="poste"><p class="dates">03/2022 — 03/2024</p><div><h3>ENGIE · Tech Lead, Web Platforms</h3><p>Technical lead for the Digiplace strategic intranet and the public website: 150,000+ employees, CAC 40 environment.</p><ul><li>99.99% uptime</li><li>React / headless WordPress: −40% load time</li><li>OWASP: 100% of critical vulnerabilities fixed</li><li>RGAA level AA accessibility compliance</li></ul></div></div>
+<div class="poste"><p class="dates">08/2020 — 07/2021</p><div><h3>Sodexo · International Tech Lead, Acquisition Platforms</h3><p>Global acquisition platforms (WordPress / PHP on Azure): 25 countries, 5M+ visitors a month, Fortune 500 environment.</p><ul><li>Legacy code overhaul: −30% technical debt</li><li>Core Web Vitals: +45% on average</li><li>Azure CI/CD: 99.9% uptime</li><li>Incidents across 25 countries: resolution time cut by 4 h</li></ul></div></div>
+<div class="poste"><p class="dates">11/2018 — 05/2020</p><div><h3>AXA · Front-End Developer, UI/UX &amp; Conversion</h3><p>At the crossroads of design, engineering and results: React, Webpack, Symfony.</p><ul><li>+25% conversion on landing pages</li><li>−800 ms average load time</li><li>Internal tools used by 10 departments</li></ul></div></div>
+<div class="poste"><p class="dates">03/2018 — 03/2022</p><div><h3>Malt · Senior Consultant, Fractional CTO</h3><p>Freelance, alongside other roles: architecture, full-stack development and strategic consulting.</p><ul><li>85+ projects delivered, 4.88/5 across 85 reviews</li><li>40+ API integrations (Salesforce, Zoho, ActiveCampaign)</li><li>Fractional CTO for 15+ startups and SMBs</li></ul></div></div>
+<div class="poste"><p class="dates">01/2016 — 02/2018</p><div><h3>1min30 · Lead Developer &amp; Technical Manager</h3><p>Inbound marketing agency: WordPress developer, then head of the technical division.</p><ul><li>Team of 5 engineers, 50+ web projects a year</li><li>Industrialized production: −30% development time</li><li>Technical pre-sales: $250K in new contracts</li></ul></div></div>
+<div class="poste"><p class="dates">09/2014 — 12/2015</p><div><h3>Indexel · Web Developer, Front-End Integrator</h3><p>Built 100+ brochure and e-commerce websites (HTML5, CSS3, JavaScript), WordPress and Drupal.</p></div></div>
+<div class="poste"><p class="dates">10/2012 — 08/2014</p><div><h3>Schneider Electric · IT &amp; Technical Support</h3><p>An equipment failure analysis system across multiple sites: from the equipment to the database, from diagnosis to resolution.</p></div></div>
+
+<h2>Skills</h2>
+<div class="comps"><div class="groupe-bloc"><h3>AI &amp; Data</h3><p class="groupe"><span>LLM integrations</span>Gemini · Mistral · Claude · OpenAI / Codex · DeepSeek · Local models (Ollama)</p><p class="groupe"><span>RAG &amp; search</span>Hybrid vector + lexical RAG · Reranking · Embeddings · pgvector · Qdrant · ChromaDB · Meilisearch · RAG evaluation</p><p class="groupe"><span>Agents</span>Agentic AI · MCP / WebMCP · Multi-agent orchestration · Sub-agents · Skills &amp; plugins · Prompt engineering</p><p class="groupe"><span>Documents</span>Document AI · OCR (Mistral, Tesseract) · Data extraction · Entities (spaCy, LangExtract)</p><p class="groupe"><span>Machine learning</span>scikit-learn · LightGBM · Optuna · MLflow · SHAP / LIME · Genetic algorithms · Monte Carlo</p></div>
+<div class="groupe-bloc"><h3>Front-End &amp; Interfaces</h3><p class="groupe"><span>Frameworks</span>React · Next.js · Vue · Nuxt · TypeScript · JavaScript ES6+</p><p class="groupe"><span>UI</span>TailwindCSS · Radix / shadcn · TanStack Query · Zustand · Redux · Pinia · Vuetify</p><p class="groupe"><span>Animation &amp; 3D</span>three.js · Canvas · Web Audio · GSAP · D3 · Phaser</p><p class="groupe"><span>Tooling</span>Vite · Webpack · Sass · i18n (50+ languages, RTL) · Web performance · Chrome extensions</p></div>
+<div class="groupe-bloc"><h3>Back-End &amp; Data</h3><p class="groupe"><span>Languages</span>Python · TypeScript / Node.js · PHP · Go · Bun</p><p class="groupe"><span>Frameworks</span>FastAPI · Async SQLAlchemy · Pydantic · Express · Prisma · Symfony · Headless WordPress</p><p class="groupe"><span>Jobs &amp; real time</span>Celery · Dramatiq · Redis · Socket.IO · Colyseus</p><p class="groupe"><span>Data</span>PostgreSQL · MySQL · Supabase · InfluxDB · MinIO / S3 · SQLite</p></div>
+<div class="groupe-bloc"><h3>DevOps &amp; Cloud</h3><p class="groupe"><span>Containers</span>Docker · Docker Compose · Podman · Traefik · Nginx · Caddy</p><p class="groupe"><span>CI/CD</span>GitHub Actions · GitLab CI · Dagger · Canary deployments · Renovate</p><p class="groupe"><span>Cloud</span>Azure · AWS · Vercel · GitHub Pages</p><p class="groupe"><span>Observability</span>Prometheus · Grafana · Loki · OpenTelemetry · Sentry</p></div>
+<div class="groupe-bloc"><h3>Security &amp; Quality</h3><p class="groupe"><span>Security</span>OWASP · CodeQL · Semgrep · Trivy · Gitleaks · CycloneDX SBOM · EdDSA JWT · Rate limiting</p><p class="groupe"><span>Personal data</span>Privacy by design · Redaction · Per-client isolation · IP address hashing</p><p class="groupe"><span>Testing</span>pytest · Vitest · Jest · Playwright · Cypress</p><p class="groupe"><span>Accessibility</span>RGAA AA · WCAG</p></div>
+<div class="groupe-bloc"><h3>Leadership &amp; Method</h3><p class="groupe"><span>Team</span>Tech lead · Management (up to 5 engineers) · Mentoring · Fractional CTO</p><p class="groupe"><span>Augmented development</span>Multi-terminal, multi-agent · One Git worktree per agent · In-house skills and plugins · Continuous harness benchmarking</p><p class="groupe"><span>Method</span>Agile · Gitflow · Architecture decision records (ADR) · Industrialization · Refactoring</p><p class="groupe"><span>Strategy</span>Technical roadmap · Pre-sales · Consulting</p></div></div>
+
+<h2>Selected projects</h2>
+<p class="projet"><b>MARKO</b> · The operating system for real estate debt.<span class="d"> An AI-native B2B SaaS for asset managers, funds, family offices and crowdfunding platforms: financing documents become data, covenants are monitored, and reporting goes out on its own.</span> <a href="https://marko.fr">marko.fr</a></p>
+<p class="projet"><b>Archon</b> · Investigating across thousands of documents.<span class="d"> A local investigation platform: it ingests PDFs, images, emails, archives and disk images, reads and indexes them, then lets you search, date, connect and query everything in natural language.</span></p>
+<p class="projet"><b>NumerusX</b> · AI agents versus the market.<span class="d"> An experimental algorithmic trading platform on Solana: AI agents analyze, decide and manage risk together; strategies evolve through genetic algorithms, and every decision is explainable. A research sandbox, not investment advice.</span></p>
+<p class="projet"><b>ScanRift</b> · Security scanners, an LLM, and always a human.<span class="d"> A security assessment dashboard for authorized targets: it brings together well-established open-source scanners, rates each finding, then an LLM helps analyze them and weed out false positives. Nothing runs on its own: every action is launched and approved by hand.</span></p>
+<p class="projet"><b>NumOSINT</b> · Open-source intelligence tools, in one place.<span class="d"> A web platform that orchestrates several open-source OSINT tools, each in its own container, and cross-references their results into investigations and case files. Built for investigation and defense.</span></p>
+<p class="projet"><b>SafeShare</b> · Redact a document without ever sending it.<span class="d"> Drop in a PDF or an image: the tool detects sensitive data, applies masks and exports a flattened copy. Everything happens in the browser. An AI agent can co-edit the masks via WebMCP without ever seeing the sensitive values.</span> <a href="https://mathieuworoniecki.github.io/safeshare-webmcp/?demo=1&lang=en">mathieuworoniecki.github.io/safeshare-webmcp/?demo=1&amp;lang=en</a></p>
+<p class="projet"><b>HUman</b> · “What if we were the largest LLM ever observed?”.<span class="d"> A reflection on AI told in India ink and particles: from a word inside a model to the flower, the atom, the universe and the brain. It runs entirely in the browser.</span> <a href="https://areweai.dev">areweai.dev</a></p>
+<p class="petit"><b>Other projects :</b> codex-crew · marko-support · NumerusAI · endless · CursorAuto · Algoritmi · Webiteasy · teuteuteu.com · 3D product page</p>
+
+<h2>Education · Languages</h2>
+<div class="grille"><div><p><span class="dates">2014 — 2016</span> <b>Master’s degree (RNCP Level 2) — Multimedia Project Management</b>, Institut F2I</p><p><span class="dates">2012 — 2014</span> <b>BTS SIO (Associate degree in IT), Software Development track (SLAM)</b>, ITIC Paris</p><p><span class="dates">2009 — 2012</span> <b>Vocational Baccalaureate SEN, Computer Science</b>, Christophe Colomb</p></div><p>French (native) · English (fluent, technical) · Spanish (basic)</p></div>
+</main>
+</body>
+</html>

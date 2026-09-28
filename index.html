@@ -11,6 +11,11 @@ try{var c=null;if(c)c.split(/;(?![^(]*\))/).forEach(function(p){var i=p.indexOf(
 <link rel="apple-touch-icon" href="/acces/apple-touch-icon.png">
 <meta name="description" data-i18n-attr="content:meta.desc" content="Le portfolio de Mathieu, développeur web.">
 <meta name="theme-color" content="#C4C6C2">
+<!-- l'aperçu au partage (LinkedIn, messageries) ; le CV lisible par les moteurs est sur /cv et /cv-en (tools/cv.cjs) -->
+<meta property="og:type" content="website"><meta property="og:url" content="https://mathieu.blue/">
+<meta property="og:title" content="Mathieu Woroniecki · Responsable technique senior & architecte IA">
+<meta property="og:description" content="Mon univers (des chats, l'espace) et mon CV animé en 3D : IA générative, agents, architecture, direction technique.">
+<link rel="alternate" hreflang="fr" href="https://mathieu.blue/cv"><link rel="alternate" hreflang="en" href="https://mathieu.blue/cv-en">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,700&family=Barlow:wght@400;500&family=IBM+Plex+Mono:wght@400;500&family=Caveat:wght@500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Architects+Daughter&display=swap">
@@ -128,6 +133,7 @@ try{var c=null;if(c)c.split(/;(?![^(]*\))/).forEach(function(p){var i=p.indexOf(
 <script src="js/outils.js"></script>
 <!-- le mode sérieux : à part du mode chat (js/serieux*.js) ; point d'entrée Serieux.ouvre() / Serieux.ferme() -->
 <script src="js/serieux-donnees.js"></script>
+<script src="js/serieux-donnees-en.js"></script>
 <script src="js/serieux-3d.js"></script>
 <script src="js/serieux.js"></script>
 <script src="js/film.js"></script>

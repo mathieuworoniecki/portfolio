@@ -51,6 +51,21 @@ window.SERIEUX_DONNEES = {
     ]
   },
 
+  /* 02 bis — la preuve : l'historique Git de MARKO (dépôt privé : des chiffres, jamais de code), relevé le 28 septembre 2026.
+     jours = commits par jour depuis le premier commit (27 janvier 2026, un mardi : d0 = 1, lundi = 0) ; heures = commits par heure de la journée */
+  preuve: {
+    titre: 'MARKO, la preuve en chiffres',
+    chapo: 'Pas une estimation : l’historique Git de MARKO, relevé le 28 septembre 2026. On ne montre pas le code, seulement ce qu’il a fallu pour le construire.',
+    etapes: [
+      { n: 12046, u: 'commits en huit mois', d: 'Du premier commit, le 27 janvier 2026, à aujourd’hui. Chaque colonne est un jour ; sa hauteur, le nombre de commits ce jour-là.', src: 'Git · MARKO · 202 jours actifs sur 245' },
+      { n: 451, u: 'commits en une seule journée', d: 'Le 23 juillet 2026 : extraction IA, CI, base de données, interface, confidentialité avancent en même temps, chaque chantier dans son worktree avec son agent. Juillet à lui seul : 5 519 commits.', src: 'Git · MARKO · 23 juillet 2026' },
+      { n: 24, suf: ' h / 24', u: 'le chantier ne s’arrête jamais', d: 'Des commits à toutes les heures du jour et de la nuit : les agents enchaînent les tâches, la validation reste humaine. En doré, les heures entre minuit et six heures.', src: 'Git · MARKO · commits par heure' },
+      { n: 2.1, dec: 1, suf: ' M', u: 'lignes de code', d: 'Environ 1,2 million de lignes de produit (API Python, interface React) et 0,9 million de lignes de tests. Plus de 2 500 fichiers de tests, 117 écrans, 110 modules d’API, 447 migrations de base.', src: 'Dépôt MARKO · septembre 2026' },
+      { n: 95, suf: ' %', u: 'des commits : moi et mes agents', d: 'Sur 12 046 commits, 95 % viennent de moi et de mes agents ; les 5 % restants, d’un second développeur. Le volume d’une équipe de dix, porté par une personne.', src: 'Git · MARKO · auteurs' }
+    ]
+  },
+  marko: {"d0": 1, "jours": [10, 3, 2, 2, 9, 9, 16, 8, 0, 1, 0, 0, 15, 19, 8, 2, 8, 10, 57, 18, 30, 28, 46, 2, 32, 1, 0, 0, 0, 0, 0, 0, 0, 0, 11, 46, 73, 13, 28, 44, 0, 18, 36, 4, 38, 0, 52, 156, 140, 75, 41, 24, 22, 52, 78, 90, 12, 22, 2, 0, 0, 0, 0, 0, 3, 0, 9, 2, 0, 0, 59, 32, 28, 45, 40, 80, 16, 26, 32, 57, 64, 0, 0, 58, 35, 17, 226, 129, 12, 12, 53, 129, 95, 118, 47, 0, 0, 18, 35, 37, 2, 3, 16, 0, 7, 5, 17, 46, 24, 16, 54, 94, 17, 24, 22, 8, 7, 9, 28, 18, 23, 59, 35, 0, 0, 10, 16, 0, 3, 0, 12, 3, 1, 17, 3, 19, 4, 0, 0, 18, 25, 19, 7, 12, 4, 16, 84, 35, 59, 25, 67, 19, 0, 40, 40, 55, 187, 211, 30, 0, 156, 100, 43, 195, 290, 315, 302, 345, 220, 359, 367, 299, 122, 157, 278, 318, 362, 451, 49, 74, 26, 10, 80, 59, 19, 40, 125, 45, 194, 141, 81, 118, 245, 68, 2, 35, 13, 9, 19, 36, 23, 3, 83, 16, 16, 34, 0, 35, 0, 0, 5, 40, 0, 0, 0, 0, 5, 13, 14, 11, 38, 25, 2, 2, 12, 36, 123, 72, 0, 0, 62, 42, 60, 44, 10, 8, 11, 50, 11, 142, 178, 62, 61, 16, 12], "heures": [437, 326, 289, 212, 168, 158, 240, 330, 621, 650, 628, 741, 711, 715, 655, 743, 629, 484, 361, 461, 609, 664, 645, 569], "juillet": [155, 185], "mois": [{"j": 5, "t": "févr."}, {"j": 33, "t": "mars"}, {"j": 64, "t": "avr."}, {"j": 94, "t": "mai"}, {"j": 125, "t": "juin"}, {"j": 155, "t": "juil."}, {"j": 186, "t": "août"}, {"j": 217, "t": "sept."}]},
+
   /* 02 — les chiffres, dans l'ordre des formes du nuage 3D :
      cernes d'arbre (ans), sphère (personnes), anneau (disponibilité), barre qui se tasse, colonne qui monte, 25 foyers, 85 cubes */
   impact: {

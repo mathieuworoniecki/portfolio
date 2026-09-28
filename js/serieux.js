@@ -8,7 +8,22 @@
    L'adresse ?serieux ouvre directement le mode sérieux.
    Les écrans épinglés (.sx-pin) restent à l'écran pendant qu'on défile : chaque étape du texte a son geste dans la 3D (v.pas). */
 window.Serieux = (() => {
-const D = window.SERIEUX_DONNEES, root = document.documentElement;
+/* la langue : celle du site (js/i18n.js) ; en dehors du français, le CV est en anglais (js/serieux-donnees-en.js) */
+const LG = (window.I18N && I18N.lang) || 'fr', EN = LG !== 'fr' && !!window.SERIEUX_DONNEES_EN;
+const D = EN ? window.SERIEUX_DONNEES_EN : window.SERIEUX_DONNEES, root = document.documentElement;
+const U = EN ? {
+  voirIA: 'See the AI work', methode: 'My method', lesProjets: 'The projects', defiler: 'Scroll', accueil: 'Home', ia: 'AI', meth: 'Method', preuve: 'Proof', impact: 'Impact',
+  parcours: 'Career', formation: 'Education', comp: 'Skills', projets: 'Projects', contact: 'Contact', couche: 'layer', filtre: 'Filter projects by category', tout: 'Show all',
+  prive: 'private repo', retourChats: 'Go back to play with the cats', pied: 'Drawing no. CV-2026 · scale 1:1', haut: 'Top of the page', plan: 'Sections', retourAria: 'Back to cat mode',
+  modeChat: 'Cat mode', projet: 'Project', planche: 'Sheet', echelle: 'Scale', rev: 'Rev.', curseur: 'Cursor', aria: 'Serious mode: the CV of ', loc: 'en-US',
+  rapide: 'Quick read', pdf: 'Download the CV (PDF)', fermer: 'Close', autreLangue: 'FR', autreLangueAria: 'Voir le CV en français'
+} : {
+  voirIA: 'Voir le travail sur l’IA', methode: 'Ma méthode', lesProjets: 'Les projets', defiler: 'Défiler', accueil: 'Accueil', ia: 'L’IA', meth: 'Méthode', preuve: 'Preuve', impact: 'Impact',
+  parcours: 'Parcours', formation: 'Formation', comp: 'Compétences', projets: 'Projets', contact: 'Contact', couche: 'couche', filtre: 'Filtrer les projets par catégorie', tout: 'Tout voir',
+  prive: 'dépôt privé', retourChats: 'Retourner jouer avec les chats', pied: 'Plan n° CV-2026 · échelle 1:1', haut: 'Haut de la page', plan: 'Sections', retourAria: 'Revenir au mode chat',
+  modeChat: 'Mode chat', projet: 'Projet', planche: 'Planche', echelle: 'Échelle', rev: 'Rév.', curseur: 'Curseur', aria: 'Mode sérieux : le CV de ', loc: 'fr-FR',
+  rapide: 'Version rapide', pdf: 'Télécharger le CV (PDF)', fermer: 'Fermer', autreLangue: 'EN', autreLangueAria: 'See the CV in English'
+};
 const c01 = v => v < 0 ? 0 : v > 1 ? 1 : v, sm = v => { v = c01(v); return v * v * (3 - 2 * v); };
 const reduit = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -57,7 +72,7 @@ function epingle(id, obj, num, nom, n, dedans) {
 function page() {
   const A = D.accueil, ia = D.ia, im = D.impact, chrono = D.parcours.slice().reverse();
   const accueil = `
-      <section class="sx-sec sx-accueil" data-obj="accueil" data-nom="Accueil" data-num="00">
+      <section class="sx-sec sx-accueil" data-obj="accueil" data-nom="${U.accueil}" data-num="00">
         <div class="sx-col">
           <p class="sx-sur" data-rev>${esc(A.sur)}</p>
           <h1 class="sx-h1" data-rev>${mots('Mathieu')}<br>${mots('Woroniecki')}</h1>
@@ -66,14 +81,14 @@ function page() {
           <p class="sx-maintenant" data-rev><i class="sx-point"></i>${esc(A.maintenant)}</p>
           <ul class="sx-faits" data-rev>${A.faits.map(f => `<li>${f}</li>`).join('')}</ul>
           <div class="sx-actions" data-rev>
-            <a class="sx-btn plein" href="#sx-ia">Voir le travail sur l’IA</a>
-            <a class="sx-btn" href="#sx-methode">Ma méthode</a>
-            <a class="sx-btn" href="#sx-projets">Les projets</a>
+            <a class="sx-btn plein" href="#sx-ia">${U.voirIA}</a>
+            <a class="sx-btn" href="#sx-methode">${U.methode}</a>
+            <a class="sx-btn" href="#sx-projets">${U.lesProjets}</a>
           </div>
         </div>
-        <p class="sx-defiler" aria-hidden="true"><span>Défiler</span><i></i></p>
+        <p class="sx-defiler" aria-hidden="true"><span>${U.defiler}</span><i></i></p>
       </section>`;
-  const iaPin = epingle('sx-ia', 'chaine', '01', 'L’IA', ia.chaine.length, `
+  const iaPin = epingle('sx-ia', 'chaine', '01', U.ia, ia.chaine.length, `
           ${tete('01', ia.titre)}
           <p class="sx-chapo court" data-rev>${esc(ia.chapo)}</p>
           <div class="sx-etapes">${ia.chaine.map((c, i) => `
@@ -94,7 +109,7 @@ function page() {
         </div>
       </section>`;
   const M = D.methode;
-  const methode = epingle('sx-methode', 'atelier', '02', 'Méthode', M.etapes.length, `
+  const methode = epingle('sx-methode', 'atelier', '02', U.meth, M.etapes.length, `
           ${tete('02', M.titre)}
           <p class="sx-chapo court" data-rev>${esc(M.chapo)}</p>
           <div class="sx-etapes">${M.etapes.map((c, i) => `
@@ -103,16 +118,25 @@ function page() {
               <h3 class="sx-h3">${esc(c.t)}</h3><p>${esc(c.d)}</p>${tags(c.tags)}
             </article>`).join('')}</div>
           ${points(M.etapes.length)}`);
-  const impact = epingle('sx-impact', 'impact', '03', 'Impact', im.chiffres.length, `
-          ${tete('03', im.titre)}
+  const P = D.preuve, preuve = P ? epingle('sx-preuve', 'preuve', '03', U.preuve, P.etapes.length, `
+          ${tete('03', P.titre)}
+          <p class="sx-chapo court" data-rev>${esc(P.chapo)}</p>
+          <div class="sx-etapes grand">${P.etapes.map((c, i) => `
+            <article class="sx-etape sx-chiffre" data-k="${i}">
+              <p class="sx-gros"><span class="sx-n" data-n="${c.n}" data-dec="${c.dec || 0}" data-pre="${esc(c.pre || '')}" data-suf="${esc(c.suf || '')}">${esc((c.pre || '') + fmt(c.n, c.dec || 0) + (c.suf || ''))}</span></p>
+              <h3>${esc(c.u)}</h3><p>${esc(c.d)}</p><p class="sx-source">${esc(c.src)}</p>
+            </article>`).join('')}</div>
+          ${points(P.etapes.length)}`) : '';
+  const impact = epingle('sx-impact', 'impact', '04', U.impact, im.chiffres.length, `
+          ${tete('04', im.titre)}
           <div class="sx-etapes grand">${im.chiffres.map((c, i) => `
             <article class="sx-etape sx-chiffre" data-k="${i}">
               <p class="sx-gros"><span class="sx-n" data-n="${c.n}" data-dec="${c.dec || 0}" data-pre="${esc(c.pre || '')}" data-suf="${esc(c.suf || '')}">${esc((c.pre || '') + fmt(c.n, c.dec || 0) + (c.suf || ''))}</span></p>
               <h3>${esc(c.u)}</h3><p>${esc(c.d)}</p><p class="sx-source">${esc(c.src)}</p>
             </article>`).join('')}</div>
           ${points(im.chiffres.length)}`);
-  const parcours = epingle('sx-parcours', 'circuit', '04', 'Parcours', chrono.length, `
-          ${tete('04', 'Parcours')}
+  const parcours = epingle('sx-parcours', 'circuit', '05', U.parcours, chrono.length, `
+          ${tete('05', U.parcours)}
           <p class="sx-chapo court" data-rev>${esc(D.parcoursChapo)}</p>
           <div class="sx-etapes">${chrono.map((p, i) => `
             <article class="sx-etape sx-poste${p.ia ? ' ia' : ''}" data-k="${i}">
@@ -126,18 +150,18 @@ function page() {
       <section class="sx-sec sx-suite" data-obj="circuit">
         <div class="sx-col">
           <div class="sx-formation" data-rev>
-            <h3 class="sx-h3 petit">Formation</h3>
+            <h3 class="sx-h3 petit">${U.formation}</h3>
             <ul>${D.formation.map(f => `<li><span class="sx-dates">${esc(f.dates)}</span><b>${esc(f.t)}</b><span>${esc(f.o)}</span></li>`).join('')}</ul>
             <p class="sx-langues">${ico('langues')}${D.langues.map(esc).join(' · ')}</p>
           </div>
         </div>
       </section>`;
-  const comp = epingle('sx-competences', 'couches', '05', 'Compétences', D.competences.length, `
-          ${tete('05', 'Compétences')}
+  const comp = epingle('sx-competences', 'couches', '06', U.comp, D.competences.length, `
+          ${tete('06', U.comp)}
           <p class="sx-chapo court" data-rev>${esc(D.competencesChapo)}</p>
           <div class="sx-etapes">${D.competences.map((c, i) => `
             <article class="sx-etape sx-couche${c.id === 'ia' ? ' ia' : ''}" data-k="${i}">
-              <p class="sx-sur"><b>${n2(i + 1)}</b> / ${n2(D.competences.length)} · couche ${esc(c.nomCouche)}</p>
+              <p class="sx-sur"><b>${n2(i + 1)}</b> / ${n2(D.competences.length)} · ${U.couche} ${esc(c.nomCouche)}</p>
               <h3 class="sx-h3">${esc(c.t)}</h3><p>${esc(c.d)}</p>
               ${c.groupes.map(g => `<p class="sx-groupe"><span>${esc(g[0])}</span>${g[1].map(esc).join(' · ')}</p>`).join('')}
             </article>`).join('')}</div>
@@ -148,13 +172,13 @@ function page() {
   const tous = D.projets.concat(D.autres), nb = id => tous.filter(p => p.cats.includes(id)).length;
   const cats = l => `<ul class="sx-cats">${l.map(id => `<li data-c="${id}">${ico(CAT[id].i)}${esc(CAT[id].t)}</li>`).join('')}</ul>`;
   const projTete = `
-      <section class="sx-sec sx-projets-tete" id="sx-projets" data-obj="${D.projets[0].o}" data-fond="${D.projets[0].fond.join(',')}" data-nom="Projets" data-num="06">
+      <section class="sx-sec sx-projets-tete" id="sx-projets" data-obj="${D.projets[0].o}" data-fond="${D.projets[0].fond.join(',')}" data-nom="${U.projets}" data-num="07">
         <div class="sx-col">
-          ${tete('06', 'Projets')}
+          ${tete('07', U.projets)}
           <p class="sx-chapo" data-rev>${esc(D.projetsChapo)}</p>
-          <div class="sx-legende" data-rev role="group" aria-label="Filtrer les projets par catégorie">
+          <div class="sx-legende" data-rev role="group" aria-label="${U.filtre}">
             ${D.categories.map(c => `<button type="button" data-c="${c.id}" aria-pressed="false">${ico(c.i)}<span>${esc(c.t)}</span><i>${nb(c.id)}</i></button>`).join('')}
-            <button type="button" class="tout" data-c="" aria-pressed="true"><span>Tout voir</span><i>${tous.length}</i></button>
+            <button type="button" class="tout" data-c="" aria-pressed="true"><span>${U.tout}</span><i>${tous.length}</i></button>
           </div>
         </div>
       </section>`;
@@ -162,7 +186,7 @@ function page() {
       <section class="sx-sec sx-projet${i % 2 ? ' droite' : ''}" data-obj="${p.o}" data-fond="${p.fond.join(',')}">
         <div class="sx-col">
           <article class="sx-carte sx-proj" data-rev data-cats="${p.cats.join(' ')}">
-            <p class="sx-sur">${n2(i + 1)} / ${n2(D.projets.length)} · ${esc(p.role)}${p.prive ? ' · <span class="sx-prive">' + ico('cadenas') + 'dépôt privé</span>' : ''}</p>
+            <p class="sx-sur">${n2(i + 1)} / ${n2(D.projets.length)} · ${esc(p.role)}${p.prive ? ' · <span class="sx-prive">' + ico('cadenas') + U.prive + '</span>' : ''}</p>
             ${cats(p.cats)}
             <h3 class="sx-h3">${esc(p.t)}</h3>
             <p class="sx-sous">${esc(p.sous)}</p>
@@ -180,7 +204,7 @@ function page() {
           <div class="sx-grille-proj">${D.autres.map((p, i) => `
             <article class="sx-carte sx-mini" data-rev data-cats="${p.cats.join(' ')}" style="--d:${i % 3}">
               ${cats(p.cats)}
-              <p class="sx-mini-t">${ico(p.i)}<b>${esc(p.t)}</b>${p.prive ? `<span class="sx-prive" title="dépôt privé">${ico('cadenas')}</span>` : ''}</p>
+              <p class="sx-mini-t">${ico(p.i)}<b>${esc(p.t)}</b>${p.prive ? `<span class="sx-prive" title="${U.prive}">${ico('cadenas')}</span>` : ''}</p>
               <p>${esc(p.d)}</p>${tags(p.tags)}
               ${p.lien ? `<a class="sx-lien" href="${p.lien.href}" target="_blank" rel="noopener">${esc(p.lien.t)} <span aria-hidden="true">↗</span></a>` : ''}
             </article>`).join('')}</div>
@@ -188,45 +212,74 @@ function page() {
       </section>`;
   const C = D.contact;
   const contact = `
-      <section class="sx-sec sx-fin" id="sx-contact" data-obj="contact" data-nom="Contact" data-num="07">
+      <section class="sx-sec sx-fin" id="sx-contact" data-obj="contact" data-nom="${U.contact}" data-num="08">
         <div class="sx-col">
-          ${tete('07', C.titre)}
+          ${tete('08', C.titre)}
           <p class="sx-chapo" data-rev>${esc(C.chapo)}</p>
           <ul class="sx-contacts" data-rev>${C.liens.map(c => `<li><span>${esc(c.k)}</span><a href="${c.href}"${c.href.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>${esc(c.v)}</a></li>`).join('')}</ul>
-          <div class="sx-actions" data-rev><button type="button" class="sx-btn" data-retour>Retourner jouer avec les chats</button></div>
+          <div class="sx-actions" data-rev><button type="button" class="sx-btn" data-retour>${U.retourChats}</button></div>
         </div>
       </section>`;
+  /* la version rapide : tout le CV en un écran, pour qui n'a que trente secondes ; et le PDF (tools/cv.cjs) */
+  const Pv = D.preuve, pdf = EN ? 'cv-mathieu-woroniecki-en.pdf' : 'cv-mathieu-woroniecki.pdf', cvPage = EN ? 'cv-en.html' : 'cv.html';
+  const rapide = `
+  <div class="sx-rapide" role="dialog" aria-modal="true" aria-labelledby="sx-rapide-t" hidden>
+    <div class="sx-rapide-page">
+      <button type="button" class="sx-rapide-x" aria-label="${U.fermer}">×</button>
+      <p class="sx-sur">${esc(U.rapide)}</p>
+      <h2 class="sx-rapide-nom" id="sx-rapide-t">${esc(D.nom)}</h2>
+      <p class="sx-role">${esc(A.titre)}</p>
+      <p>${esc(A.these)}</p>
+      <ul class="sx-faits">${A.faits.map(f => `<li>${f}</li>`).join('')}</ul>
+      <div class="sx-actions">
+        <a class="sx-btn plein" href="${pdf}" download>${esc(U.pdf)}</a>
+        ${C.liens.map(c => `<a class="sx-btn" href="${c.href}"${c.href.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>${esc(c.k)}</a>`).join('')}
+        <a class="sx-btn" href="${cvPage}">${esc(EN ? 'Plain CV page' : 'Page CV simple')}</a>
+      </div>
+      <div class="sx-rapide-grille">
+        <section><h3>${esc(U.preuve)} · MARKO</h3><ul class="sx-rapide-chiffres">${[Pv.etapes[0], Pv.etapes[3], Pv.etapes[4]].map(e => `<li><b>${esc((e.pre || '') + fmt(e.n, e.dec || 0) + (e.suf || ''))}</b> ${esc(e.u)}</li>`).join('')}</ul></section>
+        <section><h3>${esc(U.parcours)}</h3><ul>${D.parcours.slice(0, 4).map(p => `<li><span class="sx-dates">${esc(p.dates)}</span> <b>${esc(p.lieu)}</b> · ${esc(p.poste)}</li>`).join('')}</ul></section>
+        <section><h3>${esc(U.comp)}</h3><ul>${D.competences.map(c => `<li><b>${esc(c.t)}</b> · ${esc(c.groupes[0][1].slice(0, 5).join(', '))}</li>`).join('')}</ul></section>
+        <section><h3>${esc(U.projets)}</h3><ul>${D.projets.map(p => `<li><b>${esc(p.t)}</b> · ${esc(p.sous)}</li>`).join('')}</ul></section>
+      </div>
+    </div>
+  </div>`;
   return `
   <canvas class="sx-grille" aria-hidden="true"></canvas>
   <canvas class="sx-3d" aria-hidden="true"></canvas>
   <div class="sx-etiqs" aria-hidden="true">${Serieux3D.etiquettes().map(e => `<span class="sx-etiq ${e.cls}" data-nom="${e.nom}" data-i="${e.i}"><i></i>${esc(e.t)}</span>`).join('')}</div>
   <div class="sx-defile" tabindex="-1">
     <main class="sx-page">
-      ${accueil}${iaPin}${iaSuite}${methode}${impact}${parcours}${formation}${comp}${projets}${autres}${contact}
-      <footer class="sx-pied"><span>${esc(D.nom)}</span><span>Plan n° CV-2026 · échelle 1:1</span></footer>
+      ${accueil}${iaPin}${iaSuite}${methode}${preuve}${impact}${parcours}${formation}${comp}${projets}${autres}${contact}
+      <footer class="sx-pied"><span>${esc(D.nom)}</span><span>${U.pied}</span></footer>
     </main>
   </div>
   <header class="sx-haut">
-    <a class="sx-marque" href="#" aria-label="Haut de la page"><b>MW</b><span>${esc(D.nom)}</span></a>
-    <nav class="sx-plan" aria-label="Sections"></nav>
-    <button type="button" class="sx-retour" data-retour aria-label="Revenir au mode chat">
+    <a class="sx-marque" href="#" aria-label="${U.haut}"><b>MW</b><span>${esc(D.nom)}</span></a>
+    <nav class="sx-plan" aria-label="${U.plan}"></nav>
+    <div class="sx-outils">
+      <button type="button" class="sx-outil" data-rapide>${esc(U.rapide)}</button>
+      <a class="sx-outil" href="${pdf}" download aria-label="${esc(U.pdf)}">PDF</a>
+      <button type="button" class="sx-outil" data-langue aria-label="${esc(U.autreLangueAria)}">${U.autreLangue}</button>
+    </div>
+    <button type="button" class="sx-retour" data-retour aria-label="${U.retourAria}">
       <svg viewBox="0 0 24 20" aria-hidden="true"><path d="M3 18V6.5L2 1.5l5.2 3.2h9.6L22 1.5l-1 5V18z"/><path class="yeux" d="M8.2 10.2v1.4M15.8 10.2v1.4"/></svg>
-      <span>Mode chat</span>
+      <span>${U.modeChat}</span>
     </button>
   </header>
-  <div class="sx-barre" aria-hidden="true"><i></i></div>
+  <div class="sx-barre" aria-hidden="true"><i></i></div>${rapide}
   <div class="sx-cartouche" aria-hidden="true">
-    <div><span>Projet</span><b>CV — ${esc(D.nom)}</b></div>
-    <div><span>Planche</span><b class="c-planche">00 / 07 · Accueil</b></div>
-    <div class="c2"><span>Échelle</span><b>1:1</b></div><div class="c2"><span>Rév.</span><b>09.2026</b></div>
-    <div class="c-xy"><span>Curseur</span><b class="c-pos">X 0000 · Y 0000</b></div>
+    <div><span>${U.projet}</span><b>CV — ${esc(D.nom)}</b></div>
+    <div><span>${U.planche}</span><b class="c-planche">00 / 08 · ${U.accueil}</b></div>
+    <div class="c2"><span>${U.echelle}</span><b>1:1</b></div><div class="c2"><span>${U.rev}</span><b>09.2026</b></div>
+    <div class="c-xy"><span>${U.curseur}</span><b class="c-pos">X 0000 · Y 0000</b></div>
   </div>`;
 }
-function fmt(n, dec) { return Number(n).toLocaleString('fr-FR', { minimumFractionDigits: dec, maximumFractionDigits: dec }).replace(/ /g, ' '); }
+function fmt(n, dec) { return Number(n).toLocaleString(U.loc, { minimumFractionDigits: dec, maximumFractionDigits: dec }).replace(/ /g, ' '); }
 
 function batir() {
   el = document.createElement('div'); el.id = 'serieux'; el.hidden = true;
-  el.setAttribute('role', 'document'); el.setAttribute('aria-label', 'Mode sérieux : le CV de ' + D.nom); el.lang = 'fr';
+  el.setAttribute('role', 'document'); el.setAttribute('aria-label', U.aria + D.nom); el.lang = EN ? 'en' : 'fr';
   /* la 3D d'abord : ses étiquettes font partie de la page */
   const tmp = document.createElement('canvas'); tmp.className = 'sx-3d';
   Serieux3D.init(tmp, D);
@@ -252,6 +305,15 @@ function batir() {
   secs.forEach(s => { if (!s.dataset.nom) return; const b = document.createElement('a'); b.href = '#'; b.innerHTML = `<i>${s.dataset.num}</i><span>${esc(s.dataset.nom)}</span>`;
     b.addEventListener('click', e => { e.preventDefault(); va(s); }); nav.appendChild(b); navLiens.push({ b, s }); });
   el.querySelectorAll('a[href^="#sx-"]').forEach(a => a.addEventListener('click', e => { const s = el.querySelector(a.getAttribute('href')); if (s) { e.preventDefault(); va(s); } }));
+  /* la version rapide : s'ouvre et se ferme (Échap, la croix, un clic à côté) ; la langue : on recharge dans l'autre, en restant ici */
+  const rap = el.querySelector('.sx-rapide'), rapBtn = el.querySelector('[data-rapide]');
+  const rapide = on => { rap.hidden = !on; if (on) rap.querySelector('.sx-rapide-x').focus(); else rapBtn.focus(); };
+  rapBtn.addEventListener('click', () => rapide(true));
+  rap.addEventListener('click', e => { if (e.target === rap || e.target.closest('.sx-rapide-x')) rapide(false); });
+  el.addEventListener('keydown', e => { if (e.key === 'Escape' && !rap.hidden) { e.stopPropagation(); rapide(false); } });
+  el.querySelector('[data-langue]').addEventListener('click', () => {
+    try { localStorage.setItem('pf-lang', EN ? 'fr' : 'en'); } catch (e) {}
+    const u = new URL(location.href); u.searchParams.set('serieux', ''); location.href = u.pathname + u.search.replace('serieux=', 'serieux') + u.hash; });
   el.querySelector('.sx-marque').addEventListener('click', e => { e.preventDefault(); defile.scrollTo({ top: 0, behavior: reduit ? 'auto' : 'smooth' }); });
   el.querySelectorAll('[data-retour]').forEach(b => b.addEventListener('click', () => ferme()));
   /* les apparitions */
@@ -365,7 +427,7 @@ function image(now) {
   });
   /* la section active : le plan, le cartouche, la barre */
   let act = 0; navLiens.forEach((n, i) => { if (n.s.getBoundingClientRect().top < vh * 0.5) act = i; });
-  if (act !== active) { active = act; navLiens.forEach((n, i) => n.b.classList.toggle('on', i === act)); const s = navLiens[act].s; cart.planche.textContent = `${s.dataset.num} / 07 · ${s.dataset.nom}`; }
+  if (act !== active) { active = act; navLiens.forEach((n, i) => n.b.classList.toggle('on', i === act)); const s = navLiens[act].s; cart.planche.textContent = `${s.dataset.num} / 08 · ${s.dataset.nom}`; }
   el.classList.toggle('sans-cartouche', droites.some(s => { const r = s.getBoundingClientRect(); return r.top < vh * 0.7 && r.bottom > vh * 0.3; }));
   cart.barre.style.transform = `scaleX(${c01(st / Math.max(1, defile.scrollHeight - vh))})`;
   if (souris.x >= 0) cart.pos.textContent = `X ${String(Math.round(souris.x)).padStart(4, '0')} · Y ${String(Math.round(souris.y + st)).padStart(4, '0')}`;
