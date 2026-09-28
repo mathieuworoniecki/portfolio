@@ -24,32 +24,32 @@ const bruit = n => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return 
 /* ——— les scènes : [dessin, icône, IA ?, titre, preuve, outils] (FR, puis EN) ———
    (les outils : ceux du mode sérieux, js/serieux-donnees.js, tirés du CV et de la lecture de ses dépôts) */
 const SCENES = () => en() ? [
-  ['equipe', 'ia', 1, '1 dev = 1 team', 'Alone, platforms that would have taken a 10-dev team years', ''],
-  ['agents', 'ia', 1, 'Agents & sub-agents', 'Several agents and sub-agents launched in parallel', 'Multi-agent orchestration · Sub-agents · Agentic AI'],
-  ['terminaux', 'ia', 1, 'Multi-terminal', 'Advanced workflows across many terminals at once', ''],
-  ['skills', 'ia', 1, 'Skills & plugins', 'He builds his own skills and plugins to reach his goals', 'Skills · Plugins · Prompt engineering'],
-  ['bench', 'ia', 1, 'Constant benchmark', 'Every harness, plugin and tool on the market, tested and compared', 'Claude · Gemini · Mistral · OpenAI / Codex · DeepSeek · Ollama'],
+  ['equipe', 'ia', 1, '1 dev + his agents = a team of 10', 'Alone with his agents, platforms that would have taken a ten-developer team years', ''],
+  ['agents', 'ia', 1, 'Agents & sub-agents', 'Agents that delegate to sub-agents', 'Multi-agent orchestration · Sub-agents · Agentic AI'],
+  ['terminaux', 'ia', 1, 'Multi-terminal', 'Several terminals and agents in parallel, one Git worktree per agent', 'Claude Code multi-agent workflows (ultracode) on MARKO'],
+  ['skills', 'ia', 1, 'Skills & plugins', 'Custom skills and plugins: commands, MCP servers', 'Skills · Plugins · MCP servers · Prompt engineering'],
+  ['bench', 'ia', 1, 'Constant benchmark', 'A permanent test bench for harnesses, plugins and orchestrators', 'Guardrails: tests, CI review, scanners, a human decision before every merge'],
   ['marko', 'ia', 1, 'MARKO · Agentic AI', 'CTO of MARKO, an AI-native B2B SaaS for real estate', 'Agentic AI · Document AI · OCR · Data extraction'],
   ['rag', 'ia', 1, 'Hybrid RAG', 'Archon: Gemini RAG + Qdrant/Meilisearch, reranking, entity graph', 'Embeddings · pgvector · Qdrant · Meilisearch · RAG evaluation'],
   ['mcp', 'ia', 1, 'MCP · WebMCP', 'MCP for the Figma-to-code flow; WebMCP in SafeShare', ''],
   ['ml', 'ia', 1, 'Machine learning', 'NumerusX: AI trading agents (research), SHAP/LIME', 'scikit-learn · LightGBM · Optuna · MLflow'],
   ['front', 'front', 0, 'Front', 'Vue/Nuxt architecture for Hermès, Chanel, Ardian', 'React · Next.js · Vue · Nuxt · TypeScript · three.js · GSAP · D3'],
   ['back', 'back', 0, 'Back-end', 'The MARKO API: FastAPI and PostgreSQL', 'Python · FastAPI · Node.js · Go · PHP · Symfony · PostgreSQL · Redis · Celery'],
-  ['pilotage', 'pilotage', 0, 'Leadership', 'Tech lead of Digiplace: 150,000+ users (ENGIE)', 'Tech lead · CTO · Management · Mentoring · Agile · ADR · Pre-sales'],
+  ['pilotage', 'pilotage', 0, 'Leadership', 'Tech lead of Digiplace: 150,000+ users (ENGIE)', 'Tech lead · CTO · Augmented development · Management · Mentoring · Agile · ADR'],
   ['devops', 'devops', 0, 'DevOps', '15+ projects moved to Docker (LWA)', 'Docker · Traefik · GitHub Actions · Azure · AWS · Vercel · Grafana · Sentry']
 ] : [
-  ['equipe', 'ia', 1, '1 dev = 1 équipe', 'Seul, des plateformes qui auraient pris des années à une équipe de 10 devs', ''],
-  ['agents', 'ia', 1, 'Agents & sous-agents', 'Plusieurs agents et sous-agents lancés en parallèle', 'Orchestration multi-agents · Sous-agents · Agentic AI'],
-  ['terminaux', 'ia', 1, 'Multi-terminaux', 'Des workflows avancés sur plusieurs terminaux à la fois', ''],
-  ['skills', 'ia', 1, 'Skills & plugins', 'Ses propres skills et plugins, créés pour atteindre ses objectifs', 'Skills · Plugins · Prompt engineering'],
-  ['bench', 'ia', 1, 'Benchmark permanent', 'Harness, plugins, outils : tout ce qui sort, testé et comparé', 'Claude · Gemini · Mistral · OpenAI / Codex · DeepSeek · Ollama'],
+  ['equipe', 'ia', 1, '1 dev + ses agents = une équipe de 10', 'Seul avec ses agents, des plateformes qui auraient demandé des années à une équipe de dix développeurs', ''],
+  ['agents', 'ia', 1, 'Agents & sous-agents', 'Des agents qui délèguent à des sous-agents', 'Orchestration multi-agents · Sous-agents · Agentic AI'],
+  ['terminaux', 'ia', 1, 'Multi-terminaux', 'Plusieurs terminaux et plusieurs agents en parallèle, un worktree Git par agent', 'Sur MARKO : les workflows multi-agents de Claude Code (ultracode)'],
+  ['skills', 'ia', 1, 'Skills & plugins', 'Des skills et plugins sur mesure : commandes, serveurs MCP', 'Skills · Plugins · Serveurs MCP · Prompt engineering'],
+  ['bench', 'ia', 1, 'Benchmark permanent', 'Un banc d’essai permanent : harness, plugins, orchestrateurs', 'Garde-fous : tests, revue en CI, scanners, décision humaine avant chaque fusion'],
   ['marko', 'ia', 1, 'MARKO · Agentic AI', 'CTO de MARKO, un SaaS B2B AI-native pour l’immobilier', 'Agentic AI · Document AI · OCR · Extraction de données'],
   ['rag', 'ia', 1, 'RAG hybride', 'Archon : RAG Gemini + Qdrant/Meilisearch, reranking, graphe d’entités', 'Embeddings · pgvector · Qdrant · Meilisearch · Évaluation RAG'],
   ['mcp', 'ia', 1, 'MCP · WebMCP', 'MCP pour le flux Figma → code ; WebMCP dans SafeShare', ''],
   ['ml', 'ia', 1, 'Machine learning', 'NumerusX : agents IA de trading (recherche), SHAP/LIME', 'scikit-learn · LightGBM · Optuna · MLflow'],
   ['front', 'front', 0, 'Front', 'Architecture Vue/Nuxt pour Hermès, Chanel, Ardian', 'React · Next.js · Vue · Nuxt · TypeScript · three.js · GSAP · D3'],
   ['back', 'back', 0, 'Back-end', 'L’API de MARKO : FastAPI et PostgreSQL', 'Python · FastAPI · Node.js · Go · PHP · Symfony · PostgreSQL · Redis · Celery'],
-  ['pilotage', 'pilotage', 0, 'Pilotage', 'Tech lead de Digiplace : 150 000+ collaborateurs (ENGIE)', 'Tech lead · CTO · Management · Mentorat · Agile · ADR · Avant-vente'],
+  ['pilotage', 'pilotage', 0, 'Pilotage', 'Tech lead de Digiplace : 150 000+ collaborateurs (ENGIE)', 'Tech lead · CTO · Développement augmenté · Management · Mentorat · Agile · ADR'],
   ['devops', 'devops', 0, 'DevOps', '15+ projets passés sous Docker (LWA)', 'Docker · Traefik · GitHub Actions · Azure · AWS · Vercel · Grafana · Sentry']
 ];
 const TETE = () => en() ? ['Mathieu Woroniecki', 'Senior tech lead & AI architect'] : ['Mathieu Woroniecki', 'Responsable technique senior & architecte IA'];
