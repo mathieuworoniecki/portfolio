@@ -196,6 +196,16 @@ function encre(c) {
   c.discs.forEach(d => { if (d.userData.c0 != null) d.color.setHex(d.userData.c0); });
 }
 const E = { crache: -1, ondes: [], doigt: null, boucle: 0 };
+/* les modules de l'espace (js/espace-*.js : le dessin, le texte qui défile, les planètes) se branchent ici :
+     pas(dt, chats)       après les chats, à chaque image (forces, chocs avec leurs objets)
+     pose(c)              après la pose d'un chat (où il regarde…)
+     fond(ctx, now)       sur le calque, derrière les chats          devant(ctx, now)   sur le calque, après les ondes
+     grab(x, y)           une clé { mod: { drag(k, x, y), release(k, vx, vy) } } ou rien
+     mode[nom](c, dt)     un chat dans un état à eux (accroché à un trait, dans un abri, sur le texte, aspiré…)
+     envie(c)             un chat à la dérive se demande quoi faire : vrai si le module l'occupe
+     trace                le doigt dans le vide : { debut(x, y), suite(x, y), fin() → vrai si c'était un dessin }
+     entre(), retour()    on arrive dans l'espace, on en repart */
+const X = { pas: [], pose: [], fond: [], devant: [], grab: [], mode: {}, envie: [], entre: [], retour: [], trace: null };
 // on arrive dans l'espace (après le trou, ou directement par la barre du bas)
 function entre() {
   if (T) fin();
@@ -205,6 +215,7 @@ function entre() {
   E.crache = Wd.t; E.flash = performance.now() / 1000; E.ondes.length = 0;
   Wd.props.forEach(it => { it.root.visible = false; });
   const id = ++E.boucle; requestAnimationFrame(() => boucleEspace(id));
+  X.entre.forEach(f => f());
 }
 // recrachés : tous du centre, chacun son tour, dans toutes les directions, en grandissant
 function crache() {
@@ -233,10 +244,22 @@ function espace(dt) {
   const Q = pointeur(), cats = Wd.cats.filter(c => c.sp && !c.gone), acc = cats.filter(c => c.sp.m === 'agrippe');
   cats.forEach(c => flotte(c, dt, Q, acc));
   chocs(cats, dt);
-  cats.forEach(c => { Chat.step(c, dt, { a: Wd.a * (c.sp.m === 'crache' && c.sp.t < c.sp.dl ? 0 : 1) }); c.hp = Chat.where(c, c.head);
+  X.pas.forEach(f => f(dt, cats));
+  cats.forEach(c => {
+    // la pose (chaque pose a son propre temps), le ronron par-dessus ; puis les modules (le regard…)
+    if (c.anim !== c.animP) { c.animP = c.anim; c.at = 0; }
+    (ANIMS[c.anim] || ANIMS.assis)(c, c.tgt, c.at); if (c.purr && Wd.t < c.purr && c.anim !== 'caresse') ANIMS.ronron(c, c.tgt, c.at);
+    X.pose.forEach(f => f(c));
+    Chat.step(c, dt, { a: Wd.a * (c.sp.m === 'crache' && c.sp.t < c.sp.dl ? 0 : 1) }); c.hp = Chat.where(c, c.head);
     // tenu, ou agrippé : la main (ou les pattes de devant) suivent le curseur
     if (c.held) { const n = Chat.where(c, c.headA, [-c.b.head[0] * 0.45, c.b.head[1] * 0.75, 0]); c.x += c.hx - n[0]; c.y += c.hy - n[1]; }
-    else if (c.sp.m === 'agrippe' && Q) { const f = Chat.where(c, c.legs[c.face > 0 ? 'fr' : 'fl'].foot), k = Math.min(1, dt * 14); c.x += (Q.x + c.sp.ox - f[0]) * k; c.y += (Q.y + c.sp.oy - f[1]) * k; } });
+    else if (c.sp.m === 'agrippe' && Q) { const f = Chat.where(c, c.legs[c.face > 0 ? 'fr' : 'fl'].foot), k = Math.min(1, dt * 14); c.x += (Q.x + c.sp.ox - f[0]) * k; c.y += (Q.y + c.sp.oy - f[1]) * k; }
+    // accroché ailleurs (un trait, une lettre…) : le module donne le point où vont ses pattes de devant
+    else if (c.sp.ancre) { const A = c.sp.ancre(), f = Chat.where(c, c.legs[c.face > 0 ? 'fr' : 'fl'].foot), k = Math.min(1, dt * 12); if (A) { c.x += (A[0] - f[0]) * k; c.y += (A[1] - f[1]) * k; } }
+    // (accroché, dans un abri : il reste dans l'écran, jamais sous la barre du bas ; s'il y est poussé, il lâche)
+    if (!c.held && c.sp.m !== 'crache') { const [bx, by] = centreDe(c), r = rayon(c) * 0.9;
+      const ox = bx - r < 0 ? -(bx - r) : bx + r > W ? W - (bx + r) : 0, oy = by - r < HAUT() ? HAUT() - (by - r) : by + r > BAS() ? BAS() - (by + r) : 0;
+      if (ox || oy) { c.x += ox; c.y += oy; if (X.mode[c.sp.m] && Math.abs(ox) + Math.abs(oy) > r * 0.6) { c.sp.m = 'derive'; c.sp.ancre = null; c.sp.corps = null; c.sp.vx = ox * 3; c.sp.vy = oy * 3; } } } });
 }
 function flotte(c, dt, Q, acc) {
   const S = c.sp, k = sc(c); S.t += dt; c.at += dt;
@@ -246,7 +269,9 @@ function flotte(c, dt, Q, acc) {
     S.g = sm((S.t - S.dl) / 0.6); c.s = S.s * Math.max(0.02, S.g);
     if (S.g >= 1) { S.m = 'derive'; S.next = Wd.t + rnd(1.5, 4); S.anim = pick(DERIVE); }
   } else c.s += (S.s - c.s) * Math.min(1, dt * 3);
-  if (c.held) { c.anim = 'porte'; S.m = 'tenu'; return; }
+  if (c.held) { c.anim = 'porte'; S.m = 'tenu'; S.ancre = null; return; }
+  if (X.mode[S.m]) { X.mode[S.m](c, dt); return; }
+  S.ancre = null;
   const [x, y] = centreDe(c);
   if (S.m === 'agrippe') {
     c.anim = 'agrippe'; c.spin *= Math.exp(-dt * 3);
@@ -270,14 +295,15 @@ function flotte(c, dt, Q, acc) {
     S.vx += dx / d * a * dt; S.vy += dy / d * a * dt; const vmax = 260 * Wd.s0 / 150, v = Math.hypot(S.vx, S.vy); if (v > vmax) { S.vx *= vmax / v; S.vy *= vmax / v; }
     c.face = sgn(dx) || c.face; c.anim = 'nage'; c.spin += (0 - c.spin) * Math.min(1, dt * 2);
     if (S.cible === 'curseur' && d < rayon(c) * 1.1 && acc.length < 5) { agrippe(c, Q, acc); return; }
-    if (S.cible && S.cible.x != null && !S.cible.sp && d < rayon(c)) S.m = 'derive';
+    if (S.cible && S.cible.x != null && !S.cible.sp && d < rayon(c) * (S.cible.r || 1)) { if (S.cible.arrive) S.cible.arrive(c); else S.m = 'derive'; }
     if (Wd.t > S.fin) { S.m = 'derive'; S.next = Wd.t + rnd(2, 5); }
   } else {
     // à la dérive : une pose (en boule, en pain, en étoile…), il tourne doucement sur lui-même
     c.anim = S.bonk > Wd.t - 1.2 && ANIMS.etourdi ? 'etourdi' : S.anim; c.spin += S.w * dt; S.w *= Math.exp(-dt * 0.25);
     if (Wd.t > S.next) {
       S.next = Wd.t + rnd(4, 9); const r = Math.random(), autres = Wd.cats.filter(o => o !== c && o.sp && o.sp.m !== 'crache');
-      if (r < 0.28 && autres.length) { S.m = 'nage'; S.cible = pick(autres); S.fin = Wd.t + rnd(3, 6); }   // il va voir un copain (un câlin… ou un bonk)
+      if (X.envie.some(f => f(c))) {}
+      else if (r < 0.28 && autres.length) { S.m = 'nage'; S.cible = pick(autres); S.fin = Wd.t + rnd(3, 6); }   // il va voir un copain (un câlin… ou un bonk)
       else if (r < 0.45) { S.m = 'nage'; S.cible = { x: rnd(0.15, 0.85) * W, y: rnd(0.25, 0.75) * H }; S.fin = Wd.t + rnd(2, 4); }
       else { S.anim = pick(DERIVE); if (Math.random() < 0.3) S.w += rnd(-3, 3); if (Math.random() < 0.3) c.face = -c.face;
         if (Math.random() < 0.25) say(c, pick(['…', 'ouiii', 'rrrr', '✧', 'mia', 'zzz', 'on flotte !'])); }
@@ -363,17 +389,21 @@ const DOIGT = { doigt: true };
 function grab(x, y) {
   if (Wd.trou) return null;
   const c = K.catAt(x, y); if (c && c.sp && c.sp.m !== 'crache') return c;
+  for (const f of X.grab) { const k = f(x, y); if (k) return k; }
   return DOIGT;
 }
 function drag(c, x, y) {
-  if (c.doigt) { let D = E.doigt; if (!D) D = E.doigt = { x: Wd.gx ?? x, y: Wd.gy ?? y, x0: Wd.gx ?? x, y0: Wd.gy ?? y, vx: 0, vy: 0, tl: Wd.t, on: true, loin: false };
+  if (c.mod) return c.mod.drag(c, x, y);
+  if (c.doigt) { let D = E.doigt; if (!D) { D = E.doigt = { x: Wd.gx ?? x, y: Wd.gy ?? y, x0: Wd.gx ?? x, y0: Wd.gy ?? y, vx: 0, vy: 0, tl: Wd.t, on: true, loin: false }; if (X.trace) X.trace.debut(D.x0, D.y0); }
+    if (X.trace) X.trace.suite(x, y);
     const dt = Math.max(1 / 120, Wd.t - D.tl); D.tl = Wd.t; D.vx += ((x - D.x) / dt - D.vx) * 0.35; D.vy += ((y - D.y) / dt - D.vy) * 0.35; D.x = x; D.y = y; if (Math.hypot(x - D.x0, y - D.y0) > 8) D.loin = true; return; }
   if (!c.sp) return;
-  if (!c.held) { if (c.sp.m === 'calin' || c.sp.m === 'agrippe') c.sp.m = 'derive'; c.held = true; c.sp.m = 'tenu'; c.pend = null; say(c, pick(['mia ?', 'hé !', '…'])); }
+  if (!c.held) { if (c.sp.m === 'calin' || c.sp.m === 'agrippe' || X.mode[c.sp.m]) c.sp.m = 'derive'; c.sp.ancre = null; c.held = true; c.sp.m = 'tenu'; c.pend = null; say(c, pick(['mia ?', 'hé !', '…'])); }
   c.hx = x; c.hy = y;
 }
 function release(c, vx, vy) {
-  if (c.doigt) { const D = E.doigt; E.doigt = null; if (!D || !D.loin) onde(D ? D.x : Wd.gx, D ? D.y : Wd.gy); return; }
+  if (c.mod) return c.mod.release(c, vx, vy);
+  if (c.doigt) { const D = E.doigt; E.doigt = null; const fait = D && X.trace ? X.trace.fin() : false; if (!fait && (!D || !D.loin)) onde(D ? D.x : Wd.gx, D ? D.y : Wd.gy); return; }
   if (!c.sp) return;
   if (!c.held) { c.sp.w += rnd(6, 10) * (Math.random() < 0.5 ? -1 : 1); c.sp.anim = 'chute'; c.sp.bonk = Wd.t - 1; say(c, pick(['wiii !', '♥', 'encore !', 'mrrr'])); return; }
   c.held = false; const S = c.sp; S.m = 'derive'; S.lache = Wd.t; S.next = Wd.t + rnd(3, 6); S.anim = 'chute';
@@ -385,7 +415,7 @@ function click(x, y) { const c = K.catAt(x, y); if (c && c.sp) { release(c, 0, 0
 function onde(x, y) {
   E.ondes.push({ x, y, t0: performance.now() / 1000, r: Wd.s0 * 3, a: 1 });
   Wd.cats.forEach(c => { if (!c.sp || c.held || c.sp.m === 'crache') return; const [cx, cy] = centreDe(c), dx = cx - x, dy = cy - y, d = Math.hypot(dx, dy) || 1, R = Wd.s0 * 3; if (d > R) return;
-    const f = (1 - d / R) * 520 * Wd.s0 / 150; if (c.sp.m === 'agrippe' || c.sp.m === 'calin') c.sp.m = 'derive'; c.sp.vx += dx / d * f; c.sp.vy += dy / d * f; c.sp.w += rnd(-5, 5); c.sp.anim = 'chute'; c.sp.next = Wd.t + rnd(1.5, 3);
+    const f = (1 - d / R) * 520 * Wd.s0 / 150; if (c.sp.m === 'agrippe' || c.sp.m === 'calin' || X.mode[c.sp.m]) { c.sp.m = 'derive'; c.sp.ancre = null; } c.sp.vx += dx / d * f; c.sp.vy += dy / d * f; c.sp.w += rnd(-5, 5); c.sp.anim = 'chute'; c.sp.next = Wd.t + rnd(1.5, 3);
     if (Math.random() < 0.4) say(c, pick(['woh', '!', 'wiii'])); });
 }
 
@@ -396,6 +426,7 @@ function boucleEspace(id) {
   taille(); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.clearRect(0, 0, W, H);
   const now = performance.now() / 1000;
   fondNoir(1); cielEtoile(1, now);
+  X.fond.forEach(f => f(ctx, now));
   // le trou blanc : un anneau qui s'ouvre et des rayons, le temps de recracher tout le monde
   const u = now - E.flash, [cx, cy] = centre(), n = Wd.cats.filter(c => !c.gone).length, dur = 1 + n * 0.16;
   if (u < dur + 0.8) {
@@ -410,6 +441,7 @@ function boucleEspace(id) {
   E.ondes = E.ondes.filter(o => now - o.t0 < 0.9);
   E.ondes.forEach(o => { const t = (now - o.t0) / 0.9; ctx.save(); ctx.strokeStyle = '#F4F4EE'; ctx.globalAlpha = o.a * (1 - t);
     [1, 0.7].forEach((q, i) => { ctx.lineWidth = 2 - i * 0.8; ctx.beginPath(); ctx.arc(o.x, o.y, o.r * sm(t) * q, 0, TAU); ctx.stroke(); }); ctx.restore(); });
+  X.devant.forEach(f => f(ctx, now));
   requestAnimationFrame(() => boucleEspace(id));
 }
 
@@ -419,7 +451,7 @@ function retour(force) {
   if (!Wd.espace && !theme0 && !t && !force) return;
   Wd.espace = false; root.classList.remove('espace', 'trou');
   if (theme0 && window.THEME) THEME.set(theme0, true); theme0 = null;
-  E.doigt = null;
+  E.doigt = null; X.retour.forEach(f => f());
   Wd.props.forEach(it => { if (it.tilt0 != null) it.tilt = it.tilt0; it.fade = 0; it.fadeT = 1; });
   Wd.cats.forEach((c, i) => { if (c.gone) return; encre(c); prepare(c); c.held = false;
     c.d = rnd(0.05, 0.6); c.sK = null; c.s = K.sOf(c.d); c.x = rnd(0.12, 0.88) * Wd.W; c.y = -sc(c) * rnd(1.2, 3) - i * 30; c.fall = true; c.vx = rnd(-60, 60); c.vy = 0; c.spin = rnd(-3, 3); c.z = K.zOf(c.d);
@@ -428,5 +460,7 @@ function retour(force) {
 }
 
 Wd.ail = { on: () => !!(Wd.trou || Wd.espace), step: dt => (Wd.trou ? aspiration(dt) : espace(dt)), draw() {}, click, grab, drag, release };
-return { aspire, entre, retour, get actif() { return !!(Wd.trou || Wd.espace); }, get trou() { return !!T; } };
+// pour les modules de l'espace
+const outils = { X, E, K, centre, centreDe, rayon, apres, onde, lache, say, BLANC, HAUT, BAS, DERIVE, get W() { return W; }, get H() { return H; }, get ctx() { return ctx; } };
+return { aspire, entre, retour, outils, get espace() { return !!Wd.espace; }, get actif() { return !!(Wd.trou || Wd.espace); }, get trou() { return !!T; } };
 })();
