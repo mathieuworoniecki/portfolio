@@ -180,10 +180,14 @@ function page() {
             ${D.categories.map(c => `<button type="button" data-c="${c.id}" aria-pressed="false">${ico(c.i)}<span>${esc(c.t)}</span><i>${nb(c.id)}</i></button>`).join('')}
             <button type="button" class="tout" data-c="" aria-pressed="true"><span>${U.tout}</span><i>${tous.length}</i></button>
           </div>
+          <ol class="sx-sommaire" data-rev>${tous.map((p, i) => `
+            <li data-cats="${p.cats.join(' ')}"><a href="#${i < D.projets.length ? 'sx-p' + i : 'sx-a' + (i - D.projets.length)}">
+              ${ico(p.o ? ({ immeuble: 'immeuble', archive: 'doc', bougies: 'bourse', radar: 'bouclier', reseau: 'graphe', caviarde: 'cadenas', fleur: 'particules' })[p.o] || 'code' : p.i)}
+              <b>${esc(p.t)}</b><span>${esc(p.sous || p.d)}</span>${p.prive ? `<i title="${U.prive}">${ico('cadenas')}</i>` : ''}<em aria-hidden="true">→</em></a></li>`).join('')}</ol>
         </div>
       </section>`;
   const projets = projTete + D.projets.map((p, i) => `
-      <section class="sx-sec sx-projet${i % 2 ? ' droite' : ''}" data-obj="${p.o}" data-fond="${p.fond.join(',')}">
+      <section class="sx-sec sx-projet${i % 2 ? ' droite' : ''}" id="sx-p${i}" data-obj="${p.o}" data-fond="${p.fond.join(',')}">
         <div class="sx-col">
           <article class="sx-carte sx-proj" data-rev data-cats="${p.cats.join(' ')}">
             <p class="sx-sur">${n2(i + 1)} / ${n2(D.projets.length)} · ${esc(p.role)}${p.prive ? ' · <span class="sx-prive">' + ico('cadenas') + U.prive + '</span>' : ''}</p>
@@ -202,7 +206,7 @@ function page() {
         <div class="sx-col large">
           <h3 class="sx-h3 petit" data-rev>${esc(D.autresTitre)}</h3>
           <div class="sx-grille-proj">${D.autres.map((p, i) => `
-            <article class="sx-carte sx-mini" data-rev data-cats="${p.cats.join(' ')}" style="--d:${i % 3}">
+            <article class="sx-carte sx-mini" id="sx-a${i}" data-rev data-cats="${p.cats.join(' ')}" style="--d:${i % 3}">
               ${cats(p.cats)}
               <p class="sx-mini-t">${ico(p.i)}<b>${esc(p.t)}</b>${p.prive ? `<span class="sx-prive" title="${U.prive}">${ico('cadenas')}</span>` : ''}</p>
               <p>${esc(p.d)}</p>${tags(p.tags)}
@@ -291,7 +295,7 @@ function batir() {
   leg.forEach(b => b.addEventListener('click', () => {
     const c = el.dataset.cat === b.dataset.c ? '' : b.dataset.c;   // recliquer une étiquette la retire
     if (c) el.dataset.cat = c; else delete el.dataset.cat;
-    el.querySelectorAll('[data-cats]').forEach(n => n.classList.toggle('hors', !!c && !n.dataset.cats.split(' ').includes(c)));
+    el.querySelectorAll('.sx-sommaire li').forEach(n => n.classList.toggle('hors', !!c && !n.dataset.cats.split(' ').includes(c)));   // l'étiquette trie le sommaire, juste en dessous
     leg.forEach(x => x.setAttribute('aria-pressed', String(x.dataset.c === c)));
   }));
   defile = el.querySelector('.sx-defile'); grille = el.querySelector('.sx-grille'); gx = grille.getContext('2d');
@@ -340,7 +344,9 @@ function batir() {
 }
 function va(s) {
   const pin = s.classList.contains('sx-pin');
-  defile.scrollTo({ top: s.offsetTop - (!pin && innerWidth < 900 ? 56 : 0), behavior: reduit ? 'auto' : 'smooth' });
+  const haut = s.getBoundingClientRect().top - defile.getBoundingClientRect().top + defile.scrollTop - (s.classList.contains('sx-sec') ? 0 : innerHeight * 0.2);   // une carte : un peu sous le haut
+  defile.scrollTo({ top: haut - (!pin && innerWidth < 900 ? 56 : 0), behavior: reduit ? 'auto' : 'smooth' });
+  if (!s.classList.contains('sx-sec')) { s.classList.remove('vise'); void s.offsetWidth; s.classList.add('vise'); }
 }
 
 /* les compteurs */
@@ -441,7 +447,10 @@ function ouvre(o) {
   if (ouvert) return Promise.resolve();
   const x = o.x ?? innerWidth / 2, y = o.y ?? innerHeight / 2, r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
   el.style.setProperty('--ox', x + 'px'); el.style.setProperty('--oy', y + 'px'); el.style.setProperty('--or', Math.ceil(r) + 'px');
-  el.classList.remove('ferme', 'la'); el.classList.toggle('instant', !!o.instant || reduit);
+  /* o.papier : le bleu est déjà posé à l'écran (les chats l'ont collé comme du papier peint, js/fuite.js) ; on ne découpe plus de cercle,
+     les éléments du CV arrivent l'un après l'autre (html .arrive, css/serieux.css). Sans papier : le cercle, plus court qu'avant. */
+  el.classList.remove('ferme', 'la', 'arrive', 'papier'); el.classList.toggle('instant', !!o.instant || reduit); el.classList.toggle('papier', !!o.papier);
+  if (!o.instant && !reduit) { void el.offsetWidth; el.classList.add('arrive'); clearTimeout(ouvre.fin); ouvre.fin = setTimeout(() => el.classList.remove('arrive'), 1600); }
   ouvert = true; el.hidden = false; root.classList.add('serieux');
   autres().forEach(n => { if (!n.hasAttribute('inert')) { n.setAttribute('inert', ''); n.dataset.sxInert = '1'; } });
   taille(); defile.scrollTop = 0; active = -1; pins.forEach(P => { P.k = -1; }); t0 = tIntro = performance.now();
@@ -450,7 +459,7 @@ function ouvre(o) {
   cancelAnimationFrame(boucle); boucle = requestAnimationFrame(image);
   setTimeout(() => defile.focus({ preventScroll: true }), 50);
   dispatchEvent(new CustomEvent('serieux:ouvert'));
-  return new Promise(res => setTimeout(res, o.instant || reduit ? 0 : 900));
+  return new Promise(res => setTimeout(res, o.instant || reduit ? 0 : o.papier ? 60 : 480));
 }
 function ferme() {
   if (!ouvert) return Promise.resolve();

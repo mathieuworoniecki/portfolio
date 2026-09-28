@@ -329,3 +329,43 @@ html.serieux, html.serieux body { overflow: hidden; }
   #serieux .sx-haut { gap: 8px; }
   #serieux .sx-marque span { display: none; }
 }
+
+/* ——— l'entrée : plus rapide (Mathieu, 28/09) ; le cercle en .48 s, ou pas de cercle du tout quand les chats ont déjà collé le bleu (.papier),
+   puis chaque élément arrive à son tour (.arrive, posée 1,6 s par Serieux.ouvre) ——— */
+#serieux { transition-duration: .48s; }
+#serieux.papier { clip-path: none !important; transition: none; }
+#serieux.arrive .sx-grille { animation: sx-a-fondu .5s ease-out both; }
+#serieux.arrive .sx-3d { animation: sx-a-fondu .7s .15s ease-out both; }
+#serieux.arrive .sx-haut > * { animation: sx-a-haut .55s cubic-bezier(.2,.9,.25,1.15) both; }
+#serieux.arrive .sx-haut > :nth-child(2) { animation-delay: .06s; } #serieux.arrive .sx-haut > :nth-child(3) { animation-delay: .12s; } #serieux.arrive .sx-haut > :nth-child(4) { animation-delay: .18s; }
+#serieux.arrive .sx-plan a { animation: sx-a-gauche .45s cubic-bezier(.2,.9,.25,1.1) both; }
+#serieux.arrive .sx-plan a:nth-child(2) { animation-delay: .25s; } #serieux.arrive .sx-plan a:nth-child(3) { animation-delay: .29s; } #serieux.arrive .sx-plan a:nth-child(4) { animation-delay: .33s; }
+#serieux.arrive .sx-plan a:nth-child(5) { animation-delay: .37s; } #serieux.arrive .sx-plan a:nth-child(6) { animation-delay: .41s; } #serieux.arrive .sx-plan a:nth-child(7) { animation-delay: .45s; }
+#serieux.arrive .sx-plan a:nth-child(8) { animation-delay: .49s; } #serieux.arrive .sx-plan a:nth-child(9) { animation-delay: .53s; }
+#serieux.arrive .sx-plan a:first-child { animation-delay: .21s; }
+#serieux.arrive .sx-cartouche { animation: sx-a-bas .6s .35s cubic-bezier(.2,.9,.25,1.1) both; }
+#serieux.arrive .sx-cartouche > div { animation: sx-a-fondu .3s both; animation-delay: calc(.45s + var(--i, 0) * 60ms); }
+#serieux.arrive .sx-barre { animation: sx-a-trace .7s .1s cubic-bezier(.6,0,.2,1) both; transform-origin: 0 0; }
+#serieux.arrive .sx-accueil [data-rev]:not(.sx-tete):not(.sx-h1) { transition-duration: .5s, .55s; transition-delay: calc(.25s + var(--i, 0) * 80ms); }
+@keyframes sx-a-fondu { from { opacity: 0; } }
+@keyframes sx-a-haut { from { opacity: 0; transform: translateY(-26px); } }
+@keyframes sx-a-gauche { from { opacity: 0; transform: translateX(-22px); } }
+@keyframes sx-a-bas { from { opacity: 0; transform: translateY(40px) scale(.96); } }
+@keyframes sx-a-trace { from { transform: scaleX(0); } }
+
+/* ——— le sommaire des projets : trié par l'étiquette choisie, chaque ligne mène au projet ——— */
+#serieux .sx-sommaire { list-style: none; margin: 18px 0 0; padding: 0; border-top: 1px solid var(--sx-trait); max-width: 760px; }
+#serieux .sx-sommaire li { border-bottom: 1px solid var(--sx-trait); overflow: hidden; max-height: 80px; transition: max-height .35s, opacity .3s; }
+#serieux .sx-sommaire li.hors { max-height: 0; opacity: 0; border-bottom-color: transparent; }
+#serieux .sx-sommaire a { display: grid; grid-template-columns: 22px minmax(90px, 150px) 1fr auto auto; align-items: center; gap: 12px; padding: 10px 6px; text-decoration: none; color: var(--sx-doux); transition: background .2s, color .2s, padding .2s; }
+#serieux .sx-sommaire a:hover, #serieux .sx-sommaire a:focus-visible { background: var(--sx-accent-pale); color: var(--sx-encre); padding-left: 12px; }
+#serieux .sx-sommaire .sx-ico { width: 18px; height: 18px; color: var(--sx-accent); }
+#serieux .sx-sommaire b { color: var(--sx-encre); font: 600 17px/1.1 var(--sx-titre); letter-spacing: .04em; text-transform: uppercase; }
+#serieux .sx-sommaire span { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#serieux .sx-sommaire i .sx-ico { width: 13px; height: 13px; color: var(--sx-pale); }
+#serieux .sx-sommaire em { font-style: normal; color: var(--sx-accent); transition: transform .2s; }
+#serieux .sx-sommaire a:hover em { transform: translateX(4px); }
+#serieux .sx-carte.vise { animation: sx-vise 1.6s ease-out; }
+@keyframes sx-vise { 0%, 40% { border-color: var(--sx-accent); box-shadow: 0 0 0 4px var(--sx-accent-pale); } }
+#serieux .sx-carte.hors { opacity: 1; filter: none; }
+@media (max-width: 899px) { #serieux .sx-sommaire a { grid-template-columns: 20px 1fr auto; } #serieux .sx-sommaire span, #serieux .sx-sommaire i { display: none; } }

@@ -42,8 +42,8 @@ window.SERIEUX_DONNEES = {
     titre: 'Un développeur, la force d’une équipe',
     chapo: 'Là où il fallait une équipe de dix développeurs et des années, je livre seul, entouré d’agents que j’orchestre. L’IA ne remplace pas le métier : elle démultiplie celui qui sait la diriger. Voici comment je travaille.',
     etapes: [
-      { court: 'Parallèle', t: 'Plusieurs terminaux, plusieurs agents', d: 'Je ne code plus une chose à la fois. Chaque chantier part dans son terminal et son worktree Git isolé, avec son agent : pendant que l’un écrit, un autre teste, un troisième relit.', tags: ['Worktrees Git', 'Multi-terminaux', 'Agents en parallèle'] },
-      { court: 'Orchestration', t: 'Des agents qui délèguent à des sous-agents', d: 'Un agent principal découpe l’objectif et lance des sous-agents spécialisés : exploration, code, tests, revue. Ils rendent leurs résultats ; je recompose, je tranche.', tags: ['Sous-agents', 'Workflows multi-agents', 'Arbitrage'] },
+      { court: 'Parallèle', t: 'Des dizaines de terminaux à la fois', d: 'Je ne code plus une chose à la fois : des dizaines de chantiers tournent en même temps, chacun dans son terminal et son worktree Git isolé, avec son agent. Pendant que l’un écrit, d’autres testent, relisent, documentent.', tags: ['Worktrees Git', 'Multi-terminaux', 'Agents en parallèle'] },
+      { court: 'Orchestration', t: 'Seul, et toute une équipe', d: 'Un agent principal découpe l’objectif et lance des sous-agents spécialisés : exploration, code, tests, revue. Ils travaillent tous en même temps, rendent leurs résultats ; je recompose et je tranche.', tags: ['Sous-agents', 'Workflows multi-agents', 'Arbitrage'] },
       { court: 'Outillage', t: 'Des skills et des plugins sur mesure', d: 'Dès qu’une tâche revient, elle devient un outil : skills, commandes, agents dédiés, serveurs MCP. Sur MARKO, un audit de sécurité complet se lance en une commande.', tags: ['Skills', 'Plugins', 'Serveurs MCP', 'Commandes'] },
       { court: 'Banc d’essai', t: 'Tout tester, tout mesurer', d: 'Harness, orchestrateurs, plugins, extensions : je teste ce qui sort, je compare sur de vrais chantiers et je ne garde que ce qui fait gagner du temps. Certains essais sont devenus des outils publiés.', tags: ['Benchmark continu', 'Harness', 'endless', 'codex-crew'] },
       { court: 'Aujourd’hui', t: 'Une flotte d’agents sur un même produit', d: 'Sur MARKO, les gros chantiers passent par les workflows multi-agents de Claude Code (ultracode), qui répartissent le travail entre de nombreux agents ; un second outil rapide sert aux arbitrages courts. L’outillage change chaque mois, la méthode reste.', tags: ['Claude Code ultracode', 'Décisions rapides', 'Orchestration'] },
@@ -182,7 +182,7 @@ window.SERIEUX_DONNEES = {
     { id: 'outils', t: 'Outils de dev', i: 'terminal' },
     { id: 'creatif', t: 'Créatif & 3D', i: 'particules' }
   ],
-  projetsChapo: 'Sept projets choisis : le produit que je dirige, et ce que je construis à côté pour aller plus loin sur l’IA, la donnée et la sécurité. Les étiquettes les rangent ; cliquez-en une pour ne garder qu’elle.',
+  projetsChapo: 'Sept projets choisis : le produit que je dirige, et ce que je construis à côté pour aller plus loin sur l’IA, la donnée et la sécurité. Choisissez une étiquette : le sommaire ci-dessous se trie, et un clic sur un projet vous y emmène.',
 
   /* 05 — les projets ; o = l'objet 3D, fond = la couleur du papier [haut, milieu, bas] vers laquelle la page glisse,
      faits = [icône, texte court] (icônes dans js/serieux.js) */

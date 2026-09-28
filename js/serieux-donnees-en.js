@@ -43,8 +43,8 @@ window.SERIEUX_DONNEES_EN = {
     titre: 'One developer, the strength of a team',
     chapo: 'Where it used to take a team of ten developers and several years, I ship alone, surrounded by agents I orchestrate. AI doesn’t replace the craft: it multiplies the reach of whoever knows how to direct it. Here is how I work.',
     etapes: [
-      { court: 'Parallel', t: 'Multiple terminals, multiple agents', d: 'I no longer code one thing at a time. Each workstream runs in its own terminal and isolated Git worktree, with its own agent: while one writes, another tests and a third reviews.', tags: ['Git worktrees', 'Multiple terminals', 'Parallel agents'] },
-      { court: 'Orchestration', t: 'Agents that delegate to sub-agents', d: 'A lead agent breaks the goal down and launches specialized sub-agents: exploration, code, tests, review. They report back; I put it together and make the call.', tags: ['Sub-agents', 'Multi-agent workflows', 'Decision-making'] },
+      { court: 'Parallel', t: 'Dozens of terminals at once', d: 'I no longer code one thing at a time: dozens of workstreams run simultaneously, each in its own terminal and isolated Git worktree, with its own agent. While one writes, others test, review and document.', tags: ['Git worktrees', 'Multiple terminals', 'Parallel agents'] },
+      { court: 'Orchestration', t: 'One person, a whole team', d: 'A lead agent breaks the goal down and launches specialized sub-agents: exploration, code, tests, review. They all work at once and report back; I put it together and make the call.', tags: ['Sub-agents', 'Multi-agent workflows', 'Decision-making'] },
       { court: 'Tooling', t: 'Custom skills and plugins', d: 'As soon as a task recurs, it becomes a tool: skills, commands, dedicated agents, MCP servers. On MARKO, a full security audit runs with a single command.', tags: ['Skills', 'Plugins', 'MCP servers', 'Commands'] },
       { court: 'Test bench', t: 'Test everything, measure everything', d: 'Harnesses, orchestrators, plugins, extensions: I test what comes out, compare on real projects and keep only what saves time. Some experiments became published tools.', tags: ['Continuous benchmarking', 'Harness', 'endless', 'codex-crew'] },
       { court: 'Today', t: 'A fleet of agents on a single product', d: 'On MARKO, large workstreams go through Claude Code’s multi-agent workflows (ultracode), which spread the work across many agents; a second, faster tool handles quick decisions. The tooling changes every month; the method stays.', tags: ['Claude Code ultracode', 'Quick decisions', 'Orchestration'] },
@@ -183,7 +183,7 @@ window.SERIEUX_DONNEES_EN = {
     { id: 'outils', t: 'Dev tools', i: 'terminal' },
     { id: 'creatif', t: 'Creative & 3D', i: 'particules' }
   ],
-  projetsChapo: 'Seven selected projects: the product I lead, and what I build on the side to push further into AI, data and security. Tags sort them; click one to show only that category.',
+  projetsChapo: 'Seven selected projects: the product I lead, and what I build on the side to push further into AI, data and security. Pick a tag to sort the index below; click a project to jump straight to it.',
 
   /* 05 — les projets ; o = l'objet 3D, fond = la couleur du papier [haut, milieu, bas] vers laquelle la page glisse,
      faits = [icône, texte court] (icônes dans js/serieux.js) */
