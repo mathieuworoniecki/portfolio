@@ -190,7 +190,8 @@ STEPS.totem = (c, T, dt) => {
 STEPS.etage = (c, T, dt) => {
   const b = T.below; if (!alive(b) || b.fall) return true;
   const top = Chat.where(b, b.body), w = Math.sin(Wd.t * 3.2 + T.i) * sc(b) * (b.wob || 0.08) * T.i * 0.6;
-  c.x = top[0] + w; c.y = b.y - sc(b) * (T.i === 1 ? 0.52 : 0.46); c.face = b.face; c.anim = T.i === 3 ? 'coucou' : 'assis';
+  // (le test des téléportations : quand celui du dessous se retournait, celui du dessus sautait d'un coup de côté ; il suit, vite, mais il suit)
+  const tx = top[0] + w, k = T.t < 0.05 ? 1 : Math.min(1, dt * 14); c.x += (tx - c.x) * k; c.y = b.y - sc(b) * (T.i === 1 ? 0.52 : 0.46); c.face = b.face; c.anim = T.i === 3 ? 'coucou' : 'assis';
   return false;
 };
 
@@ -211,7 +212,7 @@ STEPS.fil = (c, T, dt) => {
   return u > 8;
 };
 // il pend par la peau du cou, au bout du fil (comme quand on le porte : js/chats.js, live)
-H.live.push(c => { if (!c.fil || !(c.task && c.task.k === 'fil')) return; const n = Chat.where(c, c.headA, [-c.b.head[0] * 0.45, c.b.head[1] * 0.75, 0]); c.x += c.fil.x - n[0]; c.y += c.fil.y - n[1]; });
+H.live.push(c => { if (!c.fil || !(c.task && c.task.k === 'fil') || c.task.t < 0.05) return; const n = Chat.where(c, c.headA, [-c.b.head[0] * 0.45, c.b.head[1] * 0.75, 0]); c.x += c.fil.x - n[0]; c.y += c.fil.y - n[1]; });
 
 /* ——— ce qu'on leur jette dessus : un objet, un chat (lâché, lancé, qui tombe) ; chacun réagit à sa façon ——— */
 // la zone du corps (une ellipse autour du corps et de la tête)
@@ -226,7 +227,8 @@ function rebond(o, z, k) {
 }
 const REACT = {
   // le géant : ça rebondit sur lui comme sur un trampoline ; ça le chatouille
-  geant(c, o, z) { rebond(o, z, 1.6); word(pick(['BOING', 'boiing']), o.x, o.y - 30, 26); if (Wd.t - (c.saidT ?? -9) > 1.5) { c.saidT = Wd.t; say(c, pick(['hihi', 'ça chatouille', 'hé ho'])); } },
+  // (28/09, « ils rebondissent à l'infini » : chaque rebond de suite est plus petit ; au troisième, il glisse sur le côté et descend)
+  geant(c, o, z) { o.trampN = Wd.t - (o.trampT ?? -99) < 3 ? (o.trampN || 0) + 1 : 0; o.trampT = Wd.t; if (o.trampN >= 2) { rebond(o, z, 0.35); o.vx = (sgn(o.x - z.x) || 1) * (o.hull ? sOf(o.d) : sc(o)) * 2.5; } else rebond(o, z, 1.6 * Math.pow(0.6, o.trampN)); word(pick(['BOING', 'boiing']), o.x, o.y - 30, 26); if (Wd.t - (c.saidT ?? -9) > 1.5) { c.saidT = Wd.t; say(c, pick(['hihi', 'ça chatouille', 'hé ho'])); } },
   // l'interminable : il ondule de tout son long, râle… et s'en va plus tôt
   interminable(c, o, z) { rebond(o, z, 1); c.ondule = Wd.t; say(c, pick(['aïe !', 'ouille', 'hé !'])); const T = c.task; if (T && T.k === 'defile' && T.ph === 1) T.t1 = Math.min(T.t1, T.t - 6.5); },
   // le ballon : POP ; il se dégonfle en filant dans tous les sens, pfffrrrt

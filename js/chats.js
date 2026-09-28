@@ -286,7 +286,7 @@ function apart(dt) {
 }
 // revenir à sa place (invisible, puis il réapparaît doucement)
 function goHome(it) { Object.assign(it, { fx: it.home.fx, d: it.home.d, dT: it.home.d, lift: 0, vx: 0, vy: 0, tiltV: 0, fade: 0 }); it.tilt = 0; if (it.home.on) stack(it, it.home.on, it.home.onDx); if (it.trail) it.trail.length = 0; it.fadeT = 1; it.away = null; }
-function drop(it, vx, vy, tv) { if (it.on) { it.quitte = it.on; it.quitteT = Wd.t; } it.on = null; it.dans = null; it.fall = true; it.vx = vx; it.vy = vy; it.tiltV = tv; it.down = Wd.t; }
+function drop(it, vx, vy, tv) { if (it.on) { it.quitte = it.on; it.quitteT = Wd.t; } it.on = null; it.dans = null; it.fall = true; it.vx = vx; it.vy = vy; it.tiltV = LOURD[it.kind] ? clamp(tv || 0, -5, 5) : tv; it.down = Wd.t; }
 function updProp(it, dt) {
   if (it._f === Wd.f) return; it._f = Wd.f;
   const s = sOf(it.d);
@@ -318,7 +318,8 @@ function updProp(it, dt) {
       else if (it.vy < -s * 1.6) { dust(it.fx * Wd.W, floorAt(it.d), s * 0.4, 0.8); thud(it); it.vy = -it.vy * (LOURD[it.kind] ? 0.12 : 0.28); it.vx *= 0.6; it.tiltV *= 0.45; }
       else {
         it.vy = 0; it.vx *= Math.exp(-dt * 7);
-        if (!it.r) { const q = it.box ? Math.round(it.tilt / TAU2) * TAU2 : 0; it.tiltV = (q - it.tilt) * 9; if (Math.abs(q - it.tilt) < 0.01 && Math.abs(it.vx) < 4) { it.tilt = q; it.tiltV = 0; it.fall = false; it.lift = -low(it); it.vx = 0; } }
+        // (se redresser par le plus court : après trois tours en l'air, il ne refait pas trois tours à l'envers au sol — « il tourne sans jamais s'arrêter »)
+        if (!it.r) { const q = it.box ? Math.round(it.tilt / TAU2) * TAU2 : Math.round(it.tilt / TAU) * TAU; it.tiltV = (q - it.tilt) * 9; if (Math.abs(q - it.tilt) < 0.01 && Math.abs(it.vx) < 4) { it.tilt = q; it.tiltV = 0; it.fall = false; it.lift = -low(it); it.vx = 0; } }
         else if (Math.abs(it.vx) < 4) { it.fall = false; it.vx = 0; it.tilt = 0; }
       }
     }
@@ -392,7 +393,13 @@ const back = c => c.D.R(Math.PI) * sc(c) * 0.94;
 const residents = () => Wd.cats.filter(c => !c.temp);
 // libérer tout ce que le chat occupait (un coussin, le carton…), vider ses projets
 function free(c) { c.claims.forEach(p => { if (p.busy === c) p.busy = null; }); c.claims = []; }
-function interrupt(c) { free(c); c.q = []; c.task = null; c.jump = null; c.perch = null; c.fight = null; c.busyAct = false; }
+// (28/09, le test des téléportations : interrompu là-haut — sur un bouton, une lettre, un perchoir, en plein saut — il était recollé au sol d'un coup ;
+// maintenant il tombe, et ce qu'on lui demande attend qu'il ait atterri)
+function interrupt(c) {
+  const haut = !c.held && !c.hidden && !c.gone && !c.fall && c.y < floorAt(c.d) - 4 && (c.perch || c.jump || (c.task && (c.task.air || c.task.k === 'climb')));
+  free(c); c.q = []; c.task = null; c.jump = null; c.zj = null; c.perch = null; c.fight = null; c.busyAct = false;
+  if (haut) { c.fall = true; c.vy = 0; c.vx = c.vx || 0; }
+}
 function claim(c, p) { p.busy = c; c.claims.push(p); }
 
 /* les gestes : une file de pas (c.q) ; chacun dure jusqu'à ce qu'il soit fait */
@@ -428,6 +435,8 @@ const STEPS = {
   walk(c, T, dt) {
     const tx = typeof T.x === 'function' ? T.x() : T.x, g = T.g || c.ch.g, v = SPEED[g] * sc(c) * (T.v || 1), dx = tx - c.x;
     if (!Number.isFinite(tx) || (T.d !== undefined && !Number.isFinite(T.d))) return true;   // une cible perdue (son objet a disparu) : on s'arrête
+    // encore perché (sur le canapé, l'arbre) : il saute d'abord en bas, puis il marche (il était recollé au sol d'un coup)
+    if (c.perch && c.y < floorAt(c.d) - 4) { const it = c.perch.it, x = inView(c.x + (sgn(dx) || c.face) * sc(c) * 0.6); c.q.unshift(hop(() => groundAt(x, Math.max(0, it.d - 0.15)), { h: sc(c) * 0.25 }), T); T.t = 0; return true; }
     c.anim = g; c.perch = null;
     // (27/09, Mathieu : « revoir le déplacement entre les niveaux ; ils passent derrière le canapé, dans les meubles ») :
     // un gros meuble sur son chemin, à sa profondeur : il change d'abord de rangée (devant, sinon derrière), puis il avance
@@ -662,6 +671,8 @@ function enter() {
   return c;
 }
 
+// la pose « porté », sans transition (la pose d'avant ne se fond pas dedans)
+function porteTout(c) { c.anim = c.animP = 'porte'; c.at = 0; ANIMS.porte(c, c.tgt, 0); for (let i = 0; i < c.tgt.length; i++) c.cur[i] = c.tgt[i]; }
 /* ——— une image de vie pour un chat ——— */
 function live(c, dt) {
   c.at += dt; c.pushing = 0;
@@ -698,7 +709,12 @@ function live(c, dt) {
     if ((it.fall || it.held) && !(it.kind === 'carton' && Math.abs(it.tilt || 0) < 1.2) && !(it.held && PORTE[it.kind] && Math.abs(it.tilt || 0) < 1.2) || it.suck || !Wd.props.includes(it)) { const vx = it.vx || 0; interrupt(c); c.hidden = 0; c.fall = true; c.vx = vx; c.vy = -sOf(it.d) * 0.6; }
     else { const p = Univers.at(it, [pe.p[0] + dx, pe.p[1], pe.p[2]]); c.x = p[0]; c.y = p[1]; c.zp = p[2]; c.d = it.d; } }
   else c.zp = null;
-  if (!c.perch && !c.jump && !c.fall && !c.held && !(c.task && (c.task.k === 'climb' || c.task.air))) c.y = floorAt(c.d);
+  // au sol : collé au plancher. (28/09, le test des téléportations : entre deux gestes en hauteur — descendre du bouton, de la lettre —
+  // il était recollé au sol une image, puis sautait de là ; et un chat laissé en l'air sans rien à faire y était ramené d'un coup : il tombe)
+  if (!c.gone && !c.perch && !c.jump && !c.fall && !c.held && !(c.task && (c.task.k === 'climb' || c.task.air))) {
+    const nx = !c.task && c.q[0];
+    if (!(nx && (nx.air || nx.k === 'jump' || nx.k === 'fn'))) { if (!c.hidden && c.y < floorAt(c.d) - sc(c) * 0.3) { c.fall = true; c.vy = 0; c.vx = c.vx || 0; } else c.y = floorAt(c.d); }
+  }
   // les petits effets : les z du sommeil
   if (c.task && c.task.zzz && (c.zt = (c.zt || 0) + dt) > 1.3) { c.zt = 0; const h = Chat.where(c, c.head); Wd.fx.push({ k: 'z', x: h[0] + c.face * sc(c) * 0.1, y: h[1] - sc(c) * 0.15, t0: Wd.t, life: 2.4, dx: c.face }); }
   // la pose
@@ -722,7 +738,7 @@ function live(c, dt) {
 // ce qu'un chat contourne : tout ce qui est posé au sol (sauf ce qu'il va chercher, et les petits jouets qu'il bouscule)
 const SOLIDE = it => !it.r && !it.mur && it.kind !== 'poisson' && !it.on && !it.held && !it.fall && !it.run && it.fade > 0.5;
 function spread(dt) {
-  const G = Wd.cats.filter(c => !c.perch && !c.jump && !c.fall && !c.held && !c.fight && !c.hidden && !c.gone && !(c.task && (c.task.k === 'climb' || c.task.k === 'jump' || c.task.air)));
+  const G = Wd.cats.filter(c => !c.perch && !c.jump && !c.fall && !c.held && !c.fight && !c.hidden && !c.gone && !(c.task && (c.task.k === 'climb' || c.task.k === 'jump' || c.task.air)) && c.y > floorAt(c.d) - sc(c) * 0.3);   // (au sol seulement : entre deux gestes, là-haut, il était recollé au sol)
   const walks = c => c.task && c.task.k === 'walk';
   const O = Wd.props.filter(SOLIDE);
   G.forEach(c => {
@@ -774,12 +790,14 @@ function spread(dt) {
 function bump() {
   // un objet qui tombe sur une tête : bonk (et l'objet rebondit)
   Wd.props.forEach(it => {
-    if (!it.fall || it.held || it.vy >= 0 || Wd.t - (it.bonkT ?? -9) < 0.4) return;
+    // (28/09, le test de stress : un meuble posé au sol, qui finissait de se redresser, « tombait » encore à vitesse presque nulle ; un chat dessous :
+    // bonk, il remontait, retombait, bonk… sans fin. Maintenant : seulement une vraie chute, et pas plus de deux bonks de suite)
     const s = sOf(it.d) * (it.big || 1);
+    if (!it.fall || it.held || it.vy > -s * 1.2 || Wd.t - (it.bonkT ?? -9) < 0.4 || (it.bonkN >= 2 && Wd.t - it.bonkT < 3)) return;
     for (const c of Wd.cats) { if (!c.hp || c.hidden || c.held || Math.abs(c.d - it.d) > 0.3) continue; const r = c.b.head[0] * sc(c);
       if (Math.abs(it.x - c.hp[0]) < it.hull.w / 2 * s + r * 0.6 && Math.abs(it.y - (c.hp[1] - r)) < r * 0.8) {
         if (run(H.bonk, it, c)) break;
-        it.bonkT = Wd.t; it.vy = Math.abs(it.vy) * 0.35 + s * 0.8; it.vx = (it.vx || 0) * 0.5 + sgn(it.x - c.x) * s * 1.2; it.tiltV = (it.tiltV || 0) + rnd(-4, 4);
+        it.bonkN = Wd.t - (it.bonkT ?? -9) < 3 ? (it.bonkN || 0) + 1 : 1; it.bonkT = Wd.t; it.vy = Math.abs(it.vy) * (LOURD[it.kind] ? 0.1 : 0.35) + s * (LOURD[it.kind] ? 0.2 : 0.8); it.vx = (it.vx || 0) * 0.5 + sgn(it.x - c.x) * s * 1.2; it.tiltV = (it.tiltV || 0) + rnd(-4, 4);
         c.bonk = Wd.t + 0.5; say(c, pick(['bonk !', 'aïe', 'hé !', '?!'])); startle(c, it.x, 0.6); break; } }
   });
   // la pelote qui file : un joueur part à sa poursuite
@@ -813,7 +831,11 @@ function bump() {
 // il sursaute : un bond de côté (loin de x), le poil hérissé, puis il se remet
 function startle(c, x, p) {
   if (!(free4(c) || (c.task && c.task.k === 'pose' && !c.perch)) || c.held || c.fall || Math.random() > (p ?? 1)) return;
-  interrupt(c); const away = sgn(c.x - x) || 1;
+  // (28/09, Mathieu : « ils sautent à l'infini » : chaque chose qui tombe près de lui le faisait bondir, encore et encore ;
+  // maintenant, un bond, puis quelques secondes où il se contente de sursauter sur place)
+  const away = sgn(c.x - x) || 1, recent = Wd.t - (c.startleT ?? -99) < 4;
+  if (recent) { if (c.task && (c.task.anim === 'sursaut' || c.task.anim === 'feule')) return; interrupt(c); c.q = [pose('sursaut', 0.6, { face: -away }), pose('assis', rnd(0.6, 1.2))]; return; }
+  interrupt(c); c.startleT = Wd.t;
   c.q = [hop(() => groundAt(inView(c.x + away * sc(c) * 0.9), c.d), { h: sc(c) * 0.5 }), pose('feule', rnd(0.5, 0.9), { face: -away }), pose('assis', rnd(0.8, 1.5))];
 }
 // un lourd qui retombe (ou une caisse qui arrive) : les chats d'à côté sursautent
@@ -1267,7 +1289,9 @@ function drag(c, x, y) {
     // (avant, elle le « portait » sans qu'on le veuille, et porté, il finissait par griffer)
     const haut = y < P.y0 - c.D.h * k * (P.n ? 3 : 1.2) - (P.n ? 60 : 20) && y < b[1] - c.D.h * k * (P.belly ? 3.4 : 1.6) - 20;
     if (haut || (!P.n && Math.abs(x - b[0]) > mx && Math.abs(x - P.x0) > mx)) { c.pet = null; c.task = null; } else { pet(c, x, y); return; } }
-  if (!c.held) { interrupt(c); c.fall = false; c.held = true; c.spin = 0; c.pend = { th: 0, w: 0, px: x, py: y, vx: 0, vy: 0, ax: 0 }; say(c, pick(['mia ?', '…', 'hé !'])); }
+  if (!c.held) { interrupt(c); c.fall = false; c.held = true; c.spin = 0; c.pend = { th: 0, w: 0, px: x, py: y, vx: 0, vy: 0, ax: 0 }; say(c, pick(['mia ?', '…', 'hé !']));
+    // (28/09, Mathieu : « le chat n'a pas tout de suite la bonne animation quand je le prends ») : pris par la peau du cou, il pend tout de suite
+    porteTout(c); }
   c.hx = x; c.hy = y;
 }
 // les caresses : chaque aller-retour de la main compte ; il ronronne, pétrit, s'endort… ou en a assez (un coup de patte)
@@ -1327,7 +1351,7 @@ function release(c, vx, vy) {
 }
 
 // pour js/vie.js : le monde et ses outils
-const K = { Wd, H, boutons, rectOf, ANIMS, STEPS, CARAC, SPEED, LOURD, I, sit, lie, blink, rnd, pick, clamp, sgn, sm, c01, lerp, later, sc, front, back, sOf, floorAt, zOf, xOf, grav, inView, groundAt, perchAt, beside,
+const K = { Wd, H, porteTout, boutons, rectOf, ANIMS, STEPS, CARAC, SPEED, LOURD, I, sit, lie, blink, rnd, pick, clamp, sgn, sm, c01, lerp, later, sc, front, back, sOf, floorAt, zOf, xOf, grav, inView, groundAt, perchAt, beside,
   PORTE, SCEN, drawFx, addCat, unCat, free, free4, zoomies, eat, play, climb, push, smash, interrupt, claim, go, pose, hop, fn, say, dust, startle, thud, drop, prop, unprop, kick, residents, leave, enter, catAt, propAt, freeD, stack, topOf, open, unbox, hide, sleep, idle, stroll, press, fire, folle, aspire,
   get MAXC() { return MAXC; } };
 return { K, ANIMS, CARAC, frame, draw, hide: hideAll, click, grab, drag, release, get clicks() { return Wd.clicks; }, get world() { return Wd; }, horde, tower, aspire, folle: () => folle(Wd.P.distrib), ouvre: () => { const b = Wd.props.find(p => p.launched && p.kind === 'caisse' && !p.busy && !p.fall), c = Wd.cats.find(free4); if (b && c) { interrupt(c); open(c, b); } }, fight: () => { const L = Wd.cats.filter(free4).slice(0, 2); if (L.length > 1) fight(L); }, quarrel: () => { const L = Wd.cats.filter(free4); if (L.length > 1) quarrel(L[0], L[1]); } };

@@ -363,7 +363,7 @@ STEPS.titre = (c, T, dt) => {
     if (T.u > 1.6) { tumble(L, rnd(-1, 1) * s, -s * 0.3, rnd(-4, 4)); say(c, pick(['oups', '!!', 'miaa'])); return fallOff(); }
   } else if (A[0] === 'saute') {
     // en bas : un grand saut, retombé sur ses pattes
-    const x = inView(c.x + c.face * s * rnd(0.6, 1.2)), d = rnd(0, 0.4); c.q.unshift(pose('affut', 0.5), hop(() => groundAt(x, d), { h: s * 0.35 }), pose('atterrit', 0.35)); return true;
+    const x = inView(c.x + c.face * s * rnd(0.6, 1.2)), d = rnd(0, 0.4); c.q.unshift(pose('affut', 0.5, { air: true }), hop(() => groundAt(x, d), { h: s * 0.35 }), pose('atterrit', 0.35)); return true;
   }
   return false;
 };
@@ -385,27 +385,97 @@ function tombe() {
   return true;
 }
 
-/* ——— tout là-haut, de lui-même : un grand bond du sol sur le titre ou sur un bouton (carnet des interactions) ——— */
+/* ——— tout là-haut, de lui-même : un grand bond du sol sur le titre ou sur un bouton (carnet des interactions) ———
+   (28/09, Mathieu : « les chats se téléportent sur les lettres en haut, ce n'est pas logique ; ils doivent rater, se rattraper ou y arriver ».)
+   Un chat saute un peu moins de trois fois sa taille, pas plus (PORTEE) ; trop haut, il passe par un meuble (tremplin). Selon la hauteur : il y arrive ; il se rattrape de justesse, pendu par les griffes
+   au bord (il se hisse, ou glisse et tombe, la lettre parfois avec lui) ; ou il rate : il monte, monte… s'arrête sous le bord et retombe.
+   Trop haut (le titre sur un téléphone), il ne tente même pas. */
+const PORTEE = c => sc(c) * (2.5 + (c.ch.grimpe || 0.5) * 0.6) * (LOURDS[c.breed] ? 0.8 : 1);
 // un saut en cloche vers un point (T.x, T.y) qui n'est pas un perchoir ; arrivé, la suite (T.then) prend le relais
+// T.monte : le saut s'arrête à son sommet (vitesse nulle), en (T.x, T.y) : la suite dit s'il s'accroche ou retombe
+// la durée suit la pesanteur : pas de bond de deux étages en une demi-seconde
 STEPS.bond = (c, T, dt) => {
-  if (!T.x0) { T.x0 = c.x; T.y0 = c.y; T.dur = clamp(0.55 + Math.hypot(T.x - c.x, T.y - c.y) / (sc(c) * 7), 0.6, 1.1); c.face = sgn(T.x - c.x) || c.face; T.H = Math.abs(T.y - c.y) * 0.3 + sc(c) * 0.3; }
-  const u = Math.min(1, T.t / T.dur); c.x = T.x0 + (T.x - T.x0) * u; c.y = T.y0 + (T.y - T.y0) * u - T.H * 4 * u * (1 - u); c.anim = u < 0.1 || u > 0.88 ? 'atterrit' : 'saut';
-  if (u >= 1) { c.y = T.y; if (T.then) c.q.unshift(T.then()); return true; }
+  if (!T.x0) {
+    T.x0 = c.x; T.y0 = c.y; c.face = sgn(T.x - c.x) || c.face; const g = K.grav(), up = T.y0 - T.y;
+    // parti d'un perchoir (le tremplin) : il le quitte, la place est libre
+    if (c.perch) { c.perch = null; (c.claims || []).forEach(p => { if (p.busy === c) p.busy = null; }); if (c.claims) c.claims.length = 0; }
+    if (T.monte) { T.H = 0; T.dur = clamp(Math.sqrt(2 * Math.max(up, 1) / g), 0.2, 1.2); }
+    else { T.H = Math.max(0, up) * 0.3 + sc(c) * 0.3; const pk = Math.max(0, up) + T.H * 0.7, dn = Math.max(0, pk - up); T.dur = clamp(Math.sqrt(2 * pk / g) + Math.sqrt(2 * dn / g), 0.45, 1.3); }
+  }
+  const u = Math.min(1, T.t / T.dur);
+  if (T.monte) { const e = 1 - (1 - u) * (1 - u); c.x = T.x0 + (T.x - T.x0) * u; c.y = T.y0 + (T.y - T.y0) * e; c.anim = u < 0.12 ? 'atterrit' : u > 0.8 ? 'accroche' : 'saut'; }
+  else { c.x = T.x0 + (T.x - T.x0) * u; c.y = T.y0 + (T.y - T.y0) * u - T.H * 4 * u * (1 - u); c.anim = u < 0.1 || u > 0.88 ? 'atterrit' : 'saut'; }
+  if (u >= 1) { c.y = T.y; if (T.then) { const n = T.then(); if (n) c.q.unshift(n); } return true; }
   return false;
 };
+// raté : au sommet du saut, les pattes battent l'air sous le bord… et il retombe
+const retombe = (c, dir) => { c.fall = true; c.vy = 0; c.vx = -dir * sc(c) * 0.4; c.task = null; say(c, pick(['raté…', 'presque !', 'nyaa', 'grr'])); word(pick(['fffp', 'woosh']), c.x, c.y - sc(c) * 0.9, 14); return null; };
+// pendu au bord par les griffes (sous une lettre ou un bouton) : il se hisse, ou glisse et tombe
+// T.bord() : le haut du bord et sa demi-largeur, ou rien s'il a disparu ; T.haut() : la suite, une fois hissé ; T.L : la lettre (elle plie sous le poids)
+STEPS.griffesT = (c, T, dt) => {
+  const B = T.bord(), k = sc(c); if (!B) { c.fall = true; c.vy = 0; say(c, pick(['!!', 'hé !'])); return true; }
+  c.x = clamp(c.x, B.x - B.w + 4, B.x + B.w - 4); c.y = B.top + k * 0.62 + (T.glisse ? (Wd.t - T.glisse) * k * 0.5 : 0); c.anim = 'accroche';
+  if (!T.dit) { T.dit = 1; word(pick(['scriiitch', 'kkrrr !', '!!']), c.x, B.top - 10, 16); say(c, pick(['aaah', 'mia !', 'hnnn'])); T.dur = rnd(0.8, 1.8); T.ok = Math.random() < (LOURDS[c.breed] ? 0.35 : 0.6) + (c.ch.grimpe || 0.5) * 0.2; if (T.L) { T.L.wob = Wd.t; T.L.wobA = LOURDS[c.breed] ? 1.6 : 1; } }
+  if (T.t < T.dur) return false;
+  if (T.ok) { c.q.unshift({ k: 'bond', x: c.x, y: B.top, air: true, then: T.haut }); say(c, pick(['hop !', 'ouf', 'hnnn… hop'])); return true; }
+  if (!T.glisse) { T.glisse = Wd.t; T.dur += 0.5; word('scriiiii…', c.x, c.y - k * 0.3, 14); return false; }
+  // il lâche : lourd, il emporte la lettre avec lui
+  if (T.L && !T.L.st && LOURDS[c.breed] && Math.random() < 0.6) { tumble(T.L, rnd(-0.5, 0.5) * k, k * 0.2, rnd(-5, 5)); word(pick(['crac', 'clac']), c.x, B.top, 17); }
+  c.fall = true; c.vy = 0; c.vx = 0; say(c, pick(['MIAAA', 'nooon', 'aaah !'])); return true;
+};
+// sauter vers un bord en haut (x, top) : réussi, rattrapé ou raté selon la hauteur ; bord() le relit à l'arrivée, haut() est la suite une fois dessus
+function tente(c, x, top, bord, haut, L) {
+  const q = (c.y - top) / PORTEE(c), r = Math.random(), dir = sgn(x - c.x) || c.face, k = sc(c);
+  if (c.y - top < k * 1.2) return { k: 'bond', x, y: top, air: true, then: haut };   // presque à hauteur : un petit bond suffit
+  const issue = q <= 0.8 ? (r < 0.88 ? 'ok' : 'griffes') : q <= 1 ? (r < 0.45 ? 'ok' : r < 0.85 ? 'griffes' : 'rate') : q <= 1.2 ? (r < 0.45 ? 'griffes' : 'rate') : 'rate';
+  if (issue === 'ok') return { k: 'bond', x, y: top, air: true, then: haut };
+  if (issue === 'griffes') return { k: 'bond', x: x - dir * k * 0.1, y: top + k * 0.62, monte: true, air: true, then: () => { if (!bord()) return retombe(c, dir); return { k: 'griffesT', bord, haut, L, air: true }; } };
+  // raté : il monte aussi haut qu'il peut, et pas plus
+  const apex = Math.max(top + k * 0.7, c.y - PORTEE(c) * rnd(0.85, 1));
+  return { k: 'bond', x: c.x + (x - c.x) * 0.9, y: apex, monte: true, air: true, then: () => retombe(c, dir) };
+}
+// trop haut depuis le sol : un tremplin, un perchoir d'un meuble (l'arbre à chat, la bibliothèque…) d'où la lettre est à portée
+function tremplin(c, x, top) {
+  const P = PORTEE(c); let best = null, bs = 1e9;
+  for (const it of Wd.props) {
+    if (!it.perches || !it.perches.length || it.held || it.fall || it.run || it.suck || it.a < 0.9) continue;
+    for (const pe of it.perches) {
+      if (pe.busy || pe.inside) continue; const q = perchAt(it, pe, 0), h1 = c.y - q.y, h2 = q.y - top, dx = Math.abs(q.x - x);
+      if (h1 < sc(c) * 0.5 || h1 > P * 0.85 || h2 < -sc(c) * 0.3 || h2 > P * 1.05 || dx > P * 0.7) continue;
+      const sco = h2 / P + dx / P * 0.6 + rnd(0, 0.2); if (sco < bs) { bs = sco; best = { it, pe }; }
+    }
+  }
+  return best;
+}
+// un chat va sous la lettre L (ou sur un tremplin), la vise… et tente sa chance
+function monteTitre(c, L) {
+  const s = sc(c), P = PORTEE(c), x = RECT().left + L.cx, top0 = RECT().top + L.y0 + L.dy, T = c.y - top0 > P * 1.1 ? tremplin(c, x, top0) : null;
+  const vise = fn(c => { const R = RECT(), top = R.top + L.y0 + L.dy; if (L.st || c.y - top > P * 1.25) return;
+    const bord = () => { const R = RECT(); return L.st || L.a < 0.9 ? null : { top: R.top + L.y0 + L.dy, x: lx(L, R), w: (L.x1 - L.x0) / 2 + s * 0.1 }; };
+    c.q.unshift(pose('affut', rnd(0.5, 1), { face: sgn(x - c.x) || c.face, air: true }), tente(c, x, top, bord, () => ({ k: 'titre', air: true, row: L.row }), L)); });
+  if (T) {
+    // d'abord le meuble : il y saute, se retourne vers le titre, mesure… puis le grand saut
+    claim(c, T.pe); const q0 = perchAt(T.it, T.pe, 0);
+    c.q.push(go(inView(q0.x - sgn(x - q0.x || 1) * s * 0.7), { g: 'trot', d: Math.max(0, T.it.d - 0.12) }), pose('affut', rnd(0.5, 1), { face: sgn(q0.x - c.x) || c.face, fx: c => say(c, pick(['par là…', 'hmm', 'plan !'])) }),
+      hop(() => perchAt(T.it, T.pe, 0), { h: s * 0.3, zr: [0, 0.4] }), vise);
+    return;
+  }
+  c.q.push(go(inView(x - sgn(x - c.x || 1) * s * 0.6), { g: 'trot' }), pose('affut', rnd(0.8, 1.4), { face: sgn(x - c.x) || c.face, fx: c => say(c, pick(['là-haut !', 'hmm…', '!'])) }), vise);
+}
+const peutTitre = (c, L, r) => { const top = r.top + L.y0, x = r.left + L.cx; return c.y - top < PORTEE(c) * 1.2 || !!tremplin(c, x, top); };
 H.think.push((c, add) => {
-  if (c.rare || c.temp || c.perch || TL.jeu || Wd.t < 12 || Wd.cats.some(o => o.task && (o.task.k === 'titre' || o.task.k === 'rebord' || o.task.k === 'bond'))) return;
-  const Ls = LETTERS(); if (!Ls) return; const r = RECT(), s = sc(c);
-  // monter sur le titre : une lettre en place, pas trop loin
-  const row = Math.max(...Ls.map(L => L.row)), cand = Ls.filter(L => !L.st && L.a > 0.9 && L.row === row && Math.abs(r.left + L.cx - c.x) < Wd.W * 0.35);
-  if (cand.length) add(c.ch.grimpe * 0.35 + 0.1, () => { const L = pick(cand), x = r.left + L.cx;
-    c.q.push(go(inView(x - sgn(x - c.x || 1) * s * 0.6), { g: 'trot' }), pose('affut', rnd(0.8, 1.4), { face: sgn(x - c.x) || c.face, fx: c => say(c, pick(['là-haut !', 'hmm…', '!'])) }),
-      fn(c => { const top = RECT().top + L.y0 + L.dy; if (L.st) return; c.q.unshift({ k: 'bond', x, y: top, air: true, then: () => ({ k: 'titre', air: true, row: L.row }) }); })); });
+  if (c.rare || c.temp || c.perch || TL.jeu || Wd.t < 12 || Wd.cats.some(o => o.task && ['titre', 'rebord', 'bond', 'griffesT'].includes(o.task.k))) return;
+  const Ls = LETTERS(); if (!Ls) return; const r = RECT(), s = sc(c), P = PORTEE(c);
+  // monter sur le titre : une lettre en place, pas trop loin… et pas trop haut (il se sait un peu trop fort : il tente jusqu'à 1,2 fois sa portée)
+  const row = Math.max(...Ls.map(L => L.row)), cand = Ls.filter(L => !L.st && L.a > 0.9 && L.row === row && Math.abs(r.left + L.cx - c.x) < Wd.W * 0.35 && peutTitre(c, L, r));
+  if (cand.length) add(c.ch.grimpe * 0.35 + 0.1, () => monteTitre(c, pick(cand)));
   // sur un bouton
-  const B = K.boutons().map(o => o.el);
+  const B = K.boutons().map(o => o.el).filter(el => { const b = el.getBoundingClientRect(); return b.width && c.y - b.top < P * 1.2; });
   if (B.length) add(c.ch.grimpe * 0.3 + 0.1, () => { const el = pick(B), b = el.getBoundingClientRect(), x = clamp(c.x, b.left + s * 0.3, b.right - s * 0.3);
     c.q.push(go(inView(x - sgn(x - c.x || 1) * s * 0.5), { g: 'trot' }), pose('affut', rnd(0.6, 1.2), { face: sgn(x - c.x) || c.face }),
-      fn(c => { const b = el.getBoundingClientRect(); if (!b.width || el.disabled) return; c.q.unshift({ k: 'bond', x: clamp(x, b.left + 8, b.right - 8), y: b.top, air: true, then: () => ({ k: 'rebord', el, air: true }) }); })); });
+      fn(c => { const b = el.getBoundingClientRect(); if (!b.width || el.disabled || c.y - b.top > P * 1.25) return;
+        const bord = () => { const b = el.getBoundingClientRect(); return !b.width || el.disabled ? null : { top: b.top, x: (b.left + b.right) / 2, w: b.width / 2 }; };
+        c.q.unshift(tente(c, clamp(x, b.left + 8, b.right - 8), b.top, bord, () => ({ k: 'rebord', el, air: true }))); })); });
 });
 
 /* ——— les lettres touchées (carnet des interactions) ———
@@ -646,5 +716,5 @@ H.draw.push(S => {
   drawTraps(); drawLumps(); drawTongues(); drawBodies(); drawPlume();
 });
 
-return { ptr, plume, V, tombe, TL, puffs, tumble, LETTERS, RECT, lx, ly, rel, setRel };
+return { ptr, plume, V, tombe, TL, puffs, tumble, LETTERS, RECT, lx, ly, rel, setRel, monteTitre, PORTEE };
 })();

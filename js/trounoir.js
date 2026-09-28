@@ -4,7 +4,7 @@
    qui tournent et rapetissent). Derrière, l'espace apparaît. Le trou se referme… et recrache les chats, seulement eux :
    tout est noir, ils ont un contour blanc, ils flottent (la physique reste, la gravité non).
    Dans l'espace : ils nagent dans le vide, dérivent en boule, en pain, en étoile ; se cognent (bonk), se font des câlins en tournant ;
-   le curseur (ou le doigt) les attire : ils s'y agrippent à plusieurs ; secoué fort, ils sont lancés ; on peut les attraper et les jeter ;
+   le curseur (ou le doigt) les attire : un seul s'y agrippe (les autres boudent) ; secoué fort, ils sont lancés ; on peut les attraper et les jeter ;
    un clic dans le vide fait une onde qui les repousse.
    La barre du bas ramène à l'écran 1 : ils retombent du ciel dans la pièce.
    js/chats.js lui laisse la main (Wd.ail) pendant l'aspiration et dans l'espace. */
@@ -291,19 +291,20 @@ function flotte(c, dt, Q, acc) {
   }
   if (S.m === 'calin') { calin(c, dt); return; }
   // le curseur (ou le doigt) passe près : il nage vers lui, pour s'y accrocher
-  if (Q && S.m !== 'nage' && Wd.t - S.lache > 3 && acc.length < 5 && Math.hypot(Q.x - x, Q.y - y) < Wd.s0 * 2.6 && Math.random() < dt * 2.5) {
+  if (Q && S.m !== 'nage' && Wd.t - S.lache > 3 && !acc.length && Math.hypot(Q.x - x, Q.y - y) < Wd.s0 * 2.6 && Math.random() < dt * 2.5) {
     S.m = 'nage'; S.cible = 'curseur'; S.fin = Wd.t + rnd(3, 6); say(c, pick(['!', 'mia !', 'ooh', 'à moi !']));
   }
   if (S.m === 'nage') {
     let tx, ty;
-    if (S.cible === 'curseur') { if (!Q) { S.m = 'derive'; return; } tx = Q.x; ty = Q.y; }
+    // (Mathieu, 28/09 : « quand deux chats veulent s'accrocher au curseur, ça bugue : un seul ») : la place est prise, il boude et repart
+    if (S.cible === 'curseur') { if (!Q) { S.m = 'derive'; return; } if (acc.length) { S.m = 'derive'; S.next = Wd.t + rnd(2, 4); S.anim = pick(DERIVE); if (Math.random() < 0.6) say(c, pick(['pfff', 'trop tard', 'hé !', 'à moi…'])); return; } tx = Q.x; ty = Q.y; }
     else if (S.cible && S.cible.sp) { [tx, ty] = centreDe(S.cible); }
     else if (S.cible && S.cible.x != null) { tx = S.cible.x; ty = S.cible.y; }
     else { S.m = 'derive'; return; }
     const dx = tx - x, dy = ty - y, d = Math.hypot(dx, dy) || 1, a = 520 * Wd.s0 / 150;
     S.vx += dx / d * a * dt; S.vy += dy / d * a * dt; const vmax = 260 * Wd.s0 / 150, v = Math.hypot(S.vx, S.vy); if (v > vmax) { S.vx *= vmax / v; S.vy *= vmax / v; }
     c.face = sgn(dx) || c.face; c.anim = 'nage'; c.spin += (0 - c.spin) * Math.min(1, dt * 2);
-    if (S.cible === 'curseur' && d < rayon(c) * 1.1 && acc.length < 5) { agrippe(c, Q, acc); return; }
+    if (S.cible === 'curseur' && d < rayon(c) * 1.1 && !acc.length) { agrippe(c, Q, acc); return; }
     if (S.cible && S.cible.x != null && !S.cible.sp && d < rayon(c) * (S.cible.r || 1)) { if (S.cible.arrive) S.cible.arrive(c); else S.m = 'derive'; }
     if (Wd.t > S.fin) { S.m = 'derive'; S.next = Wd.t + rnd(2, 5); }
   } else {
@@ -421,7 +422,7 @@ function drag(c, x, y) {
     if (X.trace) X.trace.suite(x, y);
     const dt = Math.max(1 / 120, Wd.t - D.tl); D.tl = Wd.t; D.vx += ((x - D.x) / dt - D.vx) * 0.35; D.vy += ((y - D.y) / dt - D.vy) * 0.35; D.x = x; D.y = y; if (Math.hypot(x - D.x0, y - D.y0) > 8) D.loin = true; return; }
   if (!c.sp) return;
-  if (!c.held) { if (c.sp.m === 'calin' || c.sp.m === 'agrippe' || X.mode[c.sp.m]) c.sp.m = 'derive'; c.sp.ancre = null; c.held = true; c.sp.m = 'tenu'; c.pend = null; say(c, pick(['mia ?', 'hé !', '…'])); }
+  if (!c.held) { if (c.sp.m === 'calin' || c.sp.m === 'agrippe' || X.mode[c.sp.m]) c.sp.m = 'derive'; c.sp.ancre = null; c.held = true; c.sp.m = 'tenu'; c.pend = null; say(c, pick(['mia ?', 'hé !', '…'])); if (K.porteTout) K.porteTout(c); }
   c.hx = x; c.hy = y;
 }
 function release(c, vx, vy) {

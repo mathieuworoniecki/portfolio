@@ -27,13 +27,15 @@ const rect = (x, y, w, h, a, lw, seed) => { ligne(x, y, x + w, y, a, lw, seed); 
 
 // le plus grand vide entre les meubles du fond, dans une plage de l'écran
 function vide(lo, hi, larg) {
-  const occ = Wd.props.filter(p => p.d > 0.8 && !p.run && !p.held && p.a > 0.3 && !p.mur).map(p => { const w = p.hull.w * p.s * 0.5 * (p.big || 1); return [p.x - w, p.x + w]; }).sort((a, b) => a[0] - b[0]);
+  const occ = Wd.props.filter(p => p.d > 0.8 && !p.run && !p.held && !p.mur).map(p => { const w = p.hull.w * p.s * 0.5 * (p.big || 1); return [p.x - w, p.x + w]; }).sort((a, b) => a[0] - b[0]);
   let best = null, x = lo;
   const essaie = (a, b) => { if (b - a >= larg && (!best || b - a > best[1] - best[0])) best = [a, b]; };
   for (const [a, b] of occ) { if (b < lo) continue; if (a > hi) break; essaie(x, Math.min(a, hi)); x = Math.max(x, b); }
   essaie(x, hi); return best ? (best[0] + best[1]) / 2 : null;
 }
 
+const places = {};
+function fixe(nom, W, Hh, f) { const k = W + 'x' + Hh + Wd.mode, P = places[nom]; if (P && P.k === k) return P.v; const v = f(); if (Wd.props.length) places[nom] = { k, v }; return v; }
 function dessine() {
   const W = Wd.W, Hh = Wd.H, s0 = Wd.s0, dpr = Math.min(window.devicePixelRatio || 1, 2);
   if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(Hh * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(Hh * dpr); }
@@ -53,7 +55,9 @@ function dessine() {
   const fw = s0 * (large ? 1.5 : 1.1), fh = Math.min(s0 * 1.25, yB - s0 * 1.2 - top);
   if (fh > s0 * 0.55) {
     // (au-dessus des meubles du fond : elle peut passer derrière eux ; on préfère un vide, sinon le milieu)
-    const cx = vide(W * 0.22, W * 0.8, fw * 0.9) ?? W * 0.5;
+    // (28/09, Mathieu : « le tableau et la fenêtre se téléportent » : leur place est choisie une fois pour cette taille d'écran, puis ne bouge plus,
+    // même quand on déplace un meuble — un mur ne change pas de fenêtre)
+    const cx = fixe('fen', W, Hh, () => vide(W * 0.22, W * 0.8, fw * 0.9) ?? W * 0.5);
     {
       const x = cx - fw / 2, y = yB - s0 * 1.25 - fh, c = ciel();
       // le ciel, derrière les carreaux
@@ -81,7 +85,7 @@ function dessine() {
   // un cadre accroché : le portrait d'un chat (la miche), dans un autre vide
   const pw = s0 * 0.55, ph = s0 * 0.66;
   if (large && yB - s0 * 1.5 - ph > top) {
-    const cx = vide(W * 0.06, W * 0.32, pw * 1.6) ?? vide(W * 0.78, W * 0.97, pw * 1.6);
+    const cx = fixe('cadre', W, Hh, () => vide(W * 0.06, W * 0.32, pw * 1.6) ?? vide(W * 0.78, W * 0.97, pw * 1.6));
     if (cx != null) { const x = cx - pw / 2, y = yB - s0 * 1.6 - ph; rect(x, y, pw, ph, 0.6, 1.8, 150); rect(x + 5, y + 5, pw - 10, ph - 10, 0.3, 1, 151);
       ligne(x + pw / 2, y - ph * 0.22, x + pw * 0.2, y, 0.4, 1, 152, 1); ligne(x + pw / 2, y - ph * 0.22, x + pw * 0.8, y, 0.4, 1, 153, 1);
       // le chat du portrait : une tête, deux oreilles, deux yeux
@@ -132,7 +136,7 @@ H.pre.push(() => {
   if (window.Grid && Grid.sol) Grid.sol(K.floorAt(1) - Wd.s0 * 0.05, Wd.a * trace());
   const t = Wd.P && Wd.P.table, m = new Date();
   const k = [Wd.W, Wd.H, Math.round(Wd.floor), Math.round(Wd.depth / 4), Math.round((Wd.ceil || 0) / 8), Math.round(Wd.s0), ciel(), t && Wd.props.includes(t) && !t.held && !t.fall ? Math.round(t.x / 6) + ':' + t.d.toFixed(2) : '-',
-    Wd.props.filter(p => p.d > 0.8 && !p.run && !p.held).map(p => Math.round(p.x / 12)).join(','), m.getHours() >= 18 ? 1 : 0].join('|');
+    m.getHours() >= 18 ? 1 : 0].join('|');
   if (k === cle) return; cle = k; dessine();
 });
 

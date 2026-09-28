@@ -21,13 +21,16 @@ function place() {
   return { terre: { cx: W / 2, cy: bas - h + R + 18, R, top }, chat: { x: large ? W * 0.74 : W * 0.66, y, r } };
 }
 function naissance() { if (P) return; P = Object.assign(place(), { t0: Wd.t, survol: 0, pousse: 0, aspire: null, seed: Math.random() * 99 }); }
-X.entre.push(() => { P = null; if (reduit) naissance(); });
-X.retour.push(() => { P = null; });
+// (28/09, Mathieu : « fais apparaître la Terre et la planète des chats plus vite ») : elles se dessinent dès l'arrivée, pendant que la présentation s'écrit
+let entreT = null;
+X.entre.push(() => { P = null; entreT = Wd.t; if (reduit) naissance(); });
+X.retour.push(() => { P = null; entreT = null; });
 if (window.EspacePlume) EspacePlume.onFini = () => { naissance(); };
 const trace = (dl, d) => P ? c01((Wd.t - P.t0 - dl) / d) : 0;
 
 /* ——— la physique : la Terre est solide, la planète des chats attire ——— */
 X.pas.push((dt, cats) => {
+  if (!P && entreT != null && Wd.t - entreT > 1.2) naissance();
   if (!P) return;
   const T = P.terre, Cp = P.chat, t = trace(0, 1.5);
   if (t > 0.5) {
@@ -40,9 +43,17 @@ X.pas.push((dt, cats) => {
     (O.lettres || []).forEach(l => repousse(l.x, l.y, l.px * 0.4, (nx, ny, o) => { l.x += nx * o; l.y += ny * o; const vn = l.vx * nx + l.vy * ny; if (vn < 0) { l.vx -= 1.8 * vn * nx; l.vy -= 1.8 * vn * ny; } }));
   }
   if (trace(0.8, 1.5) < 0.6) return;
-  // la planète des chats : une petite gravité autour d'elle ; tout près, on rebondit dessus
+  // la gravité (28/09, Mathieu : « les deux ont de la gravité : si les chats sont proches, ils sont attirés, puis repartent quand ils ont fait une révolution »)
+  // un chat qui dérive près d'une planète est happé : il tombe en orbite, fait son tour (autour de la planète des chats ; le long de la Terre, un grand arc
+  // en rase-mottes), puis la fronde le relance plus vite qu'il n'est venu. Parfois, autour de la planète des chats, il finit par s'y poser.
+  cats.forEach(c => { const S = c.sp; if (!S || c.held || S.m !== 'derive' || P.aspire || Wd.t - (S.orbT ?? -99) < 9 || Wd.t - (S.lache ?? -99) < 2) return;
+    const [x, y] = centreDe(c), r = rayon(c), dx = x - Cp.x, dy = y - Cp.y, d = Math.hypot(dx, dy);
+    if (d < Cp.r * 3 && d > Cp.r + r && Math.random() < dt * 3) return orbite(c, 'chat', Cp.x, Cp.y, d, Math.atan2(dy, dx));
+    const T = P.terre, de = Math.hypot(x - T.cx, y - T.cy), a = Math.atan2(y - T.cy, x - T.cx), half = Math.asin(clamp(O.W / 2 / T.R, 0, 1));
+    if (de < T.R + Wd.s0 * 1.6 && de > T.R + r && Math.abs(a + Math.PI / 2) < half * 0.8 && Math.random() < dt * 1.5) orbite(c, 'terre', T.cx, T.cy, de, a);
+  });
+  // tout près de la planète des chats : on rebondit dessus (ou on s'y pose, doucement)
   cats.forEach(c => { const S = c.sp; if (!S || c.held || S.m === 'aspire' || S.m === 'planete' || X.mode[S.m]) return; const [x, y] = centreDe(c), dx = Cp.x - x, dy = Cp.y - y, d = Math.hypot(dx, dy) || 1, r = rayon(c);
-    if (d < Cp.r * 3.2) { const g = 900 * Cp.r * Cp.r / (d * d) * dt; S.vx += dx / d * Math.min(g, 60 * dt * 10); S.vy += dy / d * Math.min(g, 60 * dt * 10); }
     if (d < Cp.r + r * 0.8) { const nx = -dx / d, ny = -dy / d; c.x += nx * (Cp.r + r * 0.8 - d); c.y += ny * (Cp.r + r * 0.8 - d); const vn = S.vx * nx + S.vy * ny;
       if (vn < 0) { if (-vn < 160 && Math.random() < 0.5 && !P.aspire) { pose(c, Math.atan2(-ny, -nx) + Math.PI); } else { S.vx -= 1.7 * vn * nx; S.vy -= 1.7 * vn * ny; S.w += rnd(-3, 3); } } } });
   // survolée (à la souris) : le texte autour, les choses qui poussent ; au doigt, un peu tout le temps
@@ -53,6 +64,30 @@ X.pas.push((dt, cats) => {
   if (P.aspire) aspire(dt, cats);
 });
 function voisin(x, y) { let b = null, bd = 1e9; Wd.cats.forEach(c => { if (!c.sp) return; const [a, bb] = centreDe(c), d = Math.hypot(a - x, bb - y); if (d < bd) { bd = d; b = c; } }); return b; }
+
+/* ——— en orbite : happé, il tourne, puis la fronde le relance ——— */
+function orbite(c, pl, cx, cy, d, a) {
+  const S = c.sp, sens = (S.vx * -Math.sin(a) + S.vy * Math.cos(a)) >= 0 ? 1 : -1, cible = pl === 'chat' ? P.chat.r + rayon(c) * 1.3 : P.terre.R + rayon(c) * 1.4;
+  Object.assign(S, { m: 'orbite', pl, a, d, d1: cible, sens, tour: 0, fin: pl === 'chat' ? TAU : rnd(0.35, 0.6) * Math.asin(clamp(O.W / 2 / P.terre.R, 0, 1)) * 2, anim: pick(['apesanteur', 'nage', 'chute'].filter(k => ANIMS[k])) });
+  if (Math.random() < 0.5) say(c, pick(en() ? ['whoa!', 'pulled!', 'wheee'] : ['ooh !', 'ça tire !', 'wiii', 'je tourne !']));
+}
+X.mode.orbite = (c, dt) => {
+  const S = c.sp; if (!P || P.aspire) { S.m = 'derive'; return; }
+  const chat = S.pl === 'chat', cx = chat ? P.chat.x : P.terre.cx, cy = chat ? P.chat.y : P.terre.cy;
+  // il descend vers son orbite en tournant, de plus en plus vite près de la planète (Kepler, à peu près)
+  S.d += (S.d1 - S.d) * Math.min(1, dt * 1.6); const v = chat ? TAU / 3.2 * Math.pow(S.d1 / Math.max(S.d, 1), 1.5) : S.fin / 2.6, da = S.sens * v * dt;
+  S.a += da; S.tour += Math.abs(da);
+  const [x, y] = centreDe(c), tx = cx + Math.cos(S.a) * S.d, ty = cy + Math.sin(S.a) * S.d; c.x += tx - x; c.y += ty - y;
+  // le ventre vers la planète, les pattes qui pédalent ; il tourne sur lui-même avec son orbite
+  c.anim = S.anim; c.face = S.sens; c.spin = -(S.a + Math.PI / 2) * c.face;
+  if (S.tour >= S.fin) {
+    // la fin du tour : autour de la planète des chats, il s'y pose parfois ; sinon la fronde : lancé le long de sa trajectoire, plus vite
+    if (chat && Math.random() < 0.3) { pose(c, S.a); return; }
+    const vt = v * S.d * 1.4 + 60; S.m = 'derive'; S.orbT = Wd.t; S.lache = Wd.t; S.next = Wd.t + rnd(2, 4); S.anim = pick(O.DERIVE);
+    S.vx = -Math.sin(S.a) * S.sens * vt + Math.cos(S.a) * 40; S.vy = Math.cos(S.a) * S.sens * vt + Math.sin(S.a) * 40; S.w = rnd(-3, 3); c.spin = 0;
+    if (Math.random() < 0.6) say(c, pick(en() ? ['wheee!', 'bye!', 'again!'] : ['wiiiii !', 'encore !', 'à plus !', 'youhou']));
+  }
+};
 
 /* ——— posé sur la planète, comme le Petit Prince : il se promène un peu à sa surface, puis repart ——— */
 function pose(c, ang) { const S = c.sp;
@@ -129,43 +164,94 @@ function terre(ctx, now) {
   ctx.restore();
 }
 // la planète des chats : une tête de chat ronde, qui nous regarde
+// (28/09, Mathieu : « la planète des chats est moche » : redessinée comme les chats d'ici — un seul contour, joues rondes, oreilles avec leur creux,
+// les grands yeux noirs aux deux reflets, un volume à la plume (hachures du côté de l'ombre, quelques cratères), un anneau de laine torsadée
+// dont un bout pend, et une petite lune-poisson qui tourne autour)
+function tete(ctx, x, y, r, ear) {
+  // le contour d'une tête de chat : le haut rond, les oreilles qui en sortent, les joues un peu plus larges en bas
+  const N = 96; ctx.beginPath();
+  for (let i = 0; i <= N; i++) {
+    const a = -Math.PI / 2 + i / N * TAU, sx = Math.cos(a), sy = Math.sin(a);
+    let k = 1 + 0.16 * Math.max(0, sy) * sx * sx;   // les joues
+    [-1, 1].forEach(sd => { const c = -Math.PI / 2 + sd * 0.62, d = Math.atan2(Math.sin(a - c), Math.cos(a - c)); if (Math.abs(d) < 0.27) k += 0.46 * ear * Math.pow(1 - Math.abs(d) / 0.27, 1.25); });   // les oreilles, pointues
+    const px = x + sx * r * k, py = y + sy * r * k * 0.97; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+  }
+  ctx.closePath();
+}
+function laine(ctx, x, y, r, a0, a1, ring, now) {
+  // l'anneau de laine : deux fils qui s'enroulent l'un autour de l'autre (une torsade), sur l'arc a0 → a1 de l'ellipse
+  // (plus bas que l'équateur, comme un collier : il ne barre plus le visage)
+  const R = r * 1.6, ry = r * 0.27, rot = -0.1, cy = y + r * 0.5, pt = (a, o) => { const ex = Math.cos(a) * (R + o), ey = Math.sin(a) * (ry + o * 0.25); return [x + ex * Math.cos(rot) - ey * Math.sin(rot), cy + ex * Math.sin(rot) + ey * Math.cos(rot)]; };
+  const n = Math.max(8, Math.round((a1 - a0) * 40 * ring));
+  [0, Math.PI].forEach(ph => { ctx.beginPath(); for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * ring * i / n, o = Math.sin(a * 14 + ph + now * 0.6) * r * 0.045, p = pt(a, o); i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); } ctx.stroke(); });
+  return pt;
+}
 function planete(ctx, now) {
   const Cp = P.chat, t = trace(0.8, 1.5), A = P.aspire, z = A ? A.zoom : 0, pur = 1 + P.survol * 0.025 * Math.sin(now * 32);
   const r = Cp.r * pur * (1 + z * (Math.hypot(O.W, O.H) * 1.3 / Cp.r)), x = Cp.x + (O.W / 2 - Cp.x) * z * 0.6, y = Cp.y + (O.H / 2 - Cp.y) * z * 0.6;
   ctx.save(); ctx.lineCap = ctx.lineJoin = 'round'; ctx.strokeStyle = `rgb(${BL})`;
-  // l'anneau de laine, derrière (la moitié du haut)
-  const ring = trace(2.1, 0.8);
-  if (ring > 0 && z < 0.5) { ctx.lineWidth = 2; ctx.globalAlpha = ring; ctx.beginPath(); ctx.ellipse(x, y, r * 1.75, r * 0.38, -0.25, Math.PI, TAU); ctx.stroke(); ctx.globalAlpha = 1; }
-  // le disque (noir : il cache l'anneau et les étoiles derrière), son contour qui se trace, les oreilles
-  if (z > 0) { ctx.save(); ctx.globalCompositeOperation = 'destination-out'; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); ctx.restore();
+  const ring = trace(2.1, 0.8), ear = trace(1.4, 0.5), lune = trace(2.6, 0.6), la = now * 0.45;
+  // un halo, très léger (deux fins cercles, comme l'atmosphère de la Terre)
+  if (z === 0 && t > 0.5) [[1.12, 0.1], [1.24, 0.05]].forEach(([k, al]) => { ctx.strokeStyle = `rgba(${BL},${al * t})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r * k, 0, TAU); ctx.stroke(); });
+  ctx.strokeStyle = `rgb(${BL})`;
+  // la lune-poisson, derrière, quand elle passe de l'autre côté
+  const lp = [x + Math.cos(la) * r * 2.25, y + Math.sin(la) * r * 0.55 - r * 0.25], devantL = Math.sin(la) > 0;
+  if (lune > 0 && z < 0.3 && !devantL) poisson(ctx, lp[0], lp[1], r * 0.16 * lune, Math.cos(la) < 0 ? 1 : -1, now);
+  // l'anneau, derrière (la moitié du haut)
+  if (ring > 0 && z < 0.5) { ctx.lineWidth = 1.6; ctx.globalAlpha = 0.85; laine(ctx, x, y, r, Math.PI, TAU, ring, now); ctx.globalAlpha = 1; }
+  // le disque (noir : il cache l'anneau et les étoiles derrière), son contour qui se trace
+  if (z > 0) { ctx.save(); ctx.globalCompositeOperation = 'destination-out'; tete(ctx, x, y, r, ear); ctx.fill(); ctx.restore();
     const col = `rgb(${lerpC(BL.split(',').map(Number), O.rgb((window.THEME && THEME.ink) || '34,36,40'), sm(z / 0.45))})`; ctx.strokeStyle = col; ctx.fillStyle = col; }
-  else { ctx.fillStyle = '#07080C'; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
-  ctx.lineWidth = 3; arc(ctx, x, y, r, -Math.PI / 2, t);
-  const ear = trace(1.7, 0.4);
-  if (ear > 0) [-1, 1].forEach(s => { const a = -Math.PI / 2 + s * 0.62, b = -Math.PI / 2 + s * 0.2, tip = -Math.PI / 2 + s * 0.45;
-    ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r); ctx.lineTo(x + Math.cos(tip) * r * (1 + 0.42 * ear), y + Math.sin(tip) * r * (1 + 0.42 * ear)); ctx.lineTo(x + Math.cos(b) * r, y + Math.sin(b) * r); ctx.stroke(); });
-  // le visage : des yeux comme ceux des chats d'ici (blancs, un reflet noir), qui suivent le curseur ; le nez, la bouche en w, les moustaches
+  else { ctx.fillStyle = '#07080C'; tete(ctx, x, y, r, ear); ctx.fill(); }
+  ctx.lineWidth = 3;
+  if (t < 1) { ctx.save(); ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, r * 3, -Math.PI / 2, -Math.PI / 2 + TAU * t); ctx.closePath(); ctx.clip(); tete(ctx, x, y, r, ear); ctx.stroke(); ctx.restore(); }
+  else { tete(ctx, x, y, r, ear); ctx.stroke(); }
   const vis = trace(2.0, 0.6);
   if (vis > 0 && z < 0.6) { ctx.globalAlpha = vis;
+    // le creux des oreilles
+    ctx.lineWidth = 1.8; [-1, 1].forEach(sd => { const c = -Math.PI / 2 + sd * 0.62, p = k => [x + Math.cos(c + sd * k * 0.2) * r * (1 + 0.28 * ear - Math.abs(k) * 0.12), y + Math.sin(c + sd * k * 0.2) * r * (1 + 0.28 * ear - Math.abs(k) * 0.12)];
+      const b1 = [x + Math.cos(c - 0.15) * r * 0.99, y + Math.sin(c - 0.15) * r * 0.99], b2 = [x + Math.cos(c + 0.15) * r * 0.99, y + Math.sin(c + 0.15) * r * 0.99], tp = [x + Math.cos(c) * r * (1 + 0.3 * ear), y + Math.sin(c) * r * (1 + 0.3 * ear)];
+      ctx.beginPath(); ctx.moveTo(b1[0] + (x - b1[0]) * 0.08, b1[1] + (y - b1[1]) * 0.08); ctx.quadraticCurveTo(tp[0] + (x - tp[0]) * 0.12, tp[1] + (y - tp[1]) * 0.12, b2[0] + (x - b2[0]) * 0.08, b2[1] + (y - b2[1]) * 0.08); ctx.stroke(); });
+    // le volume : des hachures courbes du côté de l'ombre (en bas à droite), qui suivent la sphère
+    ctx.save(); tete(ctx, x, y, r * 0.985, 0); ctx.clip(); ctx.lineWidth = 1.1; ctx.strokeStyle = `rgba(${BL},0.26)`;
+    for (let i = 0; i < 7; i++) { const k = 0.62 + i * 0.065, a0 = -0.35 + i * 0.05, a1 = 1.75 - i * 0.07; ctx.beginPath(); ctx.arc(x - r * 0.1, y - r * 0.12, r * (k + 0.34), a0, a1); ctx.stroke(); }
+    // quelques cratères (des creux ronds : un cercle, un arc d'ombre dedans)
+    ctx.strokeStyle = `rgba(${BL},0.55)`; [[-0.55, -0.45, 0.09], [0.52, -0.52, 0.06], [-0.62, 0.3, 0.07], [0.2, 0.62, 0.05]].forEach(([u, v, k]) => { ctx.lineWidth = 1.4; ctx.beginPath(); ctx.ellipse(x + u * r, y + v * r, r * k, r * k * 0.8, 0.3, 0, TAU); ctx.stroke(); ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(x + u * r + r * k * 0.15, y + v * r + r * k * 0.1, r * k * 0.7, r * k * 0.55, 0.3, 0.2, 2.2); ctx.stroke(); });
+    ctx.restore(); ctx.strokeStyle = ctx.fillStyle = z > 0 ? ctx.strokeStyle : `rgb(${BL})`;
+    // les yeux : de grands ovales pleins, deux reflets (comme la miche), qui suivent le curseur ; fermés quand elle ronronne
     const Q = Wd.ptr, lx = Q && Q.on ? clamp((Q.x - x) / O.W * 4, -1, 1) : Math.sin(now * 0.5) * 0.4, ly = Q && Q.on ? clamp((Q.y - y) / O.H * 4, -1, 1) : 0;
-    const cl = (now % 4.2) < 0.13 || (P.survol > 0.5 && P.pousse > 0.9);
-    [-1, 1].forEach(s => { const ex = x + s * r * 0.34 + lx * r * 0.06, ey = y - r * 0.05 + ly * r * 0.05;
-      if (cl) { ctx.lineWidth = 2.4; ctx.beginPath(); ctx.arc(ex, ey + r * 0.03, r * 0.1, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke(); }
-      else { ctx.fillStyle = `rgb(${BL})`; ctx.beginPath(); ctx.ellipse(ex, ey, r * 0.1, r * 0.13, 0, 0, TAU); ctx.fill(); ctx.fillStyle = '#07080C'; ctx.beginPath(); ctx.arc(ex - r * 0.03, ey - r * 0.04, r * 0.035, 0, TAU); ctx.fill(); } });
-    ctx.lineWidth = 2.2; const ny = y + r * 0.14;
-    ctx.beginPath(); ctx.moveTo(x - r * 0.05, ny); ctx.lineTo(x + r * 0.05, ny); ctx.lineTo(x, ny + r * 0.05); ctx.closePath(); ctx.stroke();
-    ctx.beginPath(); ctx.arc(x - r * 0.07, ny + r * 0.07, r * 0.07, 0.1, Math.PI - 0.3); ctx.arc(x + r * 0.07, ny + r * 0.07, r * 0.07, 0.3, Math.PI - 0.1); ctx.stroke();
-    ctx.lineWidth = 1.6; [-1, 1].forEach(s => [-0.1, 0, 0.1].forEach(k => { ctx.beginPath(); ctx.moveTo(x + s * r * 0.3, ny + r * (0.04 + k * 0.5)); ctx.lineTo(x + s * r * (1.05 + P.survol * 0.1), ny + r * (k * 1.6 - 0.02)); ctx.stroke(); }));
-    // les rayures sur le front
-    ctx.lineWidth = 2; [-0.12, 0, 0.12].forEach(k => { ctx.beginPath(); ctx.moveTo(x + k * r, y - r * 0.92); ctx.lineTo(x + k * r * 0.8, y - r * 0.68); ctx.stroke(); });
+    const cl = (now % 4.2) < 0.13 || (P.survol > 0.5 && P.pousse > 0.9), ink = z > 0 ? ctx.fillStyle : `rgb(${BL})`;
+    [-1, 1].forEach(s => { const ex = x + s * r * 0.33 + lx * r * 0.05, ey = y + r * 0.02 + ly * r * 0.05;
+      if (cl) { ctx.lineWidth = 2.6; ctx.beginPath(); ctx.arc(ex, ey - r * 0.02, r * 0.1, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke(); }
+      else { ctx.fillStyle = ink; ctx.beginPath(); ctx.ellipse(ex, ey, r * 0.115, r * 0.155, 0, 0, TAU); ctx.fill(); ctx.fillStyle = '#07080C';
+        ctx.beginPath(); ctx.arc(ex - r * 0.035 + lx * r * 0.02, ey - r * 0.055, r * 0.042, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(ex + r * 0.04, ey + r * 0.06, r * 0.02, 0, TAU); ctx.fill(); } });
+    // les joues : trois petits traits (la plume ne rougit pas)
+    ctx.lineWidth = 1.3; [-1, 1].forEach(s => [0, 1, 2].forEach(i => { const bx = x + s * r * (0.5 + i * 0.06), by = y + r * 0.26; ctx.beginPath(); ctx.moveTo(bx - r * 0.025, by + r * 0.03); ctx.lineTo(bx + r * 0.02, by - r * 0.03); ctx.stroke(); }));
+    // le nez (arrondi), la bouche en w, les moustaches (courbes, qui dépassent)
+    ctx.lineWidth = 2.2; const ny = y + r * 0.2;
+    ctx.beginPath(); ctx.moveTo(x - r * 0.055, ny - r * 0.02); ctx.quadraticCurveTo(x, ny - r * 0.05, x + r * 0.055, ny - r * 0.02); ctx.quadraticCurveTo(x + r * 0.02, ny + r * 0.045, x, ny + r * 0.045); ctx.quadraticCurveTo(x - r * 0.02, ny + r * 0.045, x - r * 0.055, ny - r * 0.02); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, ny + r * 0.045); ctx.lineTo(x, ny + r * 0.08); ctx.arc(x - r * 0.06, ny + r * 0.08, r * 0.06, 0, Math.PI * 0.85); ctx.moveTo(x, ny + r * 0.08); ctx.arc(x + r * 0.06, ny + r * 0.08, r * 0.06, Math.PI, Math.PI * 0.15, true); ctx.stroke();
+    ctx.lineWidth = 1.5; [-1, 1].forEach(s => [-1, 0, 1].forEach(k => { const w = 1.12 + P.survol * 0.1 + Math.sin(now * 2 + k) * 0.015; ctx.beginPath(); ctx.moveTo(x + s * r * 0.36, ny + r * (0.03 + k * 0.05)); ctx.quadraticCurveTo(x + s * r * 0.75, ny + r * (k * 0.07 - 0.02), x + s * r * w, ny + r * (k * 0.16 + 0.02)); ctx.stroke(); }));
+    // les rayures du front
+    ctx.lineWidth = 2; [-0.13, 0, 0.13].forEach(k => { ctx.beginPath(); ctx.moveTo(x + k * r, y - r * 0.9); ctx.quadraticCurveTo(x + k * r * 0.9, y - r * 0.78, x + k * r * 0.75, y - r * 0.64); ctx.stroke(); });
     ctx.globalAlpha = 1; }
-  // l'anneau, devant (la moitié du bas)
-  if (ring > 0 && z < 0.5) { ctx.lineWidth = 2; ctx.globalAlpha = ring; ctx.beginPath(); ctx.ellipse(x, y, r * 1.75, r * 0.38, -0.25, 0, Math.PI * ring); ctx.stroke(); ctx.globalAlpha = 1; }
+  // l'anneau, devant (la moitié du bas) ; le bout de laine qui pend, avec sa boucle
+  if (ring > 0 && z < 0.5) { ctx.lineWidth = 1.6; const pt = laine(ctx, x, y, r, 0, Math.PI, ring, now);
+    if (ring >= 1) { const e = pt(0.35, 0), sw = Math.sin(now * 1.3) * r * 0.08; ctx.beginPath(); ctx.moveTo(e[0], e[1]); ctx.bezierCurveTo(e[0] + r * 0.1, e[1] + r * 0.25, e[0] - r * 0.12 + sw, e[1] + r * 0.35, e[0] + r * 0.05 + sw, e[1] + r * 0.5); ctx.stroke();
+      ctx.beginPath(); ctx.arc(e[0] + r * 0.09 + sw, e[1] + r * 0.53, r * 0.04, Math.PI, Math.PI * 2.6); ctx.stroke(); } }
+  if (lune > 0 && z < 0.3 && devantL) poisson(ctx, lp[0], lp[1], r * 0.16 * lune, Math.cos(la) < 0 ? 1 : -1, now);
   // ce qui pousse dessus quand on la survole
   if (P.pousse > 0 && z < 0.3) constructions(ctx, x, y, r, now);
   // le texte qui tourne autour
   if (P.survol > 0.02 && z < 0.3) couronne(ctx, x, y, r, now);
   ctx.restore();
+}
+// la lune : un petit poisson qui nage en rond autour de la planète
+function poisson(ctx, x, y, k, d, now) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(d, 1); ctx.rotate(Math.sin(now * 3) * 0.08); ctx.lineWidth = 1.6; ctx.fillStyle = '#07080C';
+  ctx.beginPath(); ctx.moveTo(k * 1.1, 0); ctx.quadraticCurveTo(k * 0.2, -k * 0.75, -k * 0.7, 0); ctx.quadraticCurveTo(k * 0.2, k * 0.75, k * 1.1, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-k * 0.6, 0); ctx.lineTo(-k * 1.2, -k * 0.45); ctx.lineTo(-k * 1.1, 0); ctx.lineTo(-k * 1.2, k * 0.45); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = `rgb(${BL})`; ctx.beginPath(); ctx.arc(k * 0.6, -k * 0.12, k * 0.1, 0, TAU); ctx.fill(); ctx.restore();
 }
 function papier() { try { const v = getComputedStyle(document.documentElement).getPropertyValue('--bp').trim(); if (v[0] === '#' && v.length === 7 && v !== '#07080C') return [1, 3, 5].map(i => parseInt(v.slice(i, i + 2), 16)); } catch (e) {} return [218, 219, 216]; }
 const lerpC = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',');

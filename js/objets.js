@@ -230,9 +230,11 @@ H.fall.push((c, dt) => {
 });
 STEPS.rebord = (c, T, dt) => {
   const r = K.rectOf(T.el); if (!r.width || T.el.disabled || c.x < r.left - 4 || c.x > r.right + 4) { c.fall = true; c.vy = 0; c.task = null; return true; }
+  // le bouton bouge d'un coup (« Entrer » part en haut) : il est désarçonné, il tombe (au lieu de monter avec)
+  if (T.top0 != null && Math.abs(r.top - T.top0) > sc(c) * 0.3) { c.fall = true; c.vy = 0; c.vx = 0; c.task = null; say(c, pick(['hé !', '!!', 'waah'])); return true; } T.top0 = r.top;
   c.y = r.top; if (!T.plan) { T.plan = [['assis', rnd(2, 4)], [pick(['toilette', 'pain', 'assis']), rnd(3, 6)], ['miaule', 1.5]]; T.i = 0; T.u = 0; }
   const A = T.plan[T.i]; T.u += dt;
-  if (!A) { const x = inView(c.x + c.face * sc(c) * rnd(0.5, 1)), d = rnd(0, 0.4); c.q.unshift(pose('affut', 0.5), hop(() => groundAt(x, d), { h: sc(c) * 0.3 }), pose('atterrit', 0.35)); return true; }
+  if (!A) { const x = inView(c.x + c.face * sc(c) * rnd(0.5, 1)), d = rnd(0, 0.4); c.q.unshift(pose('affut', 0.5, { air: true }), hop(() => groundAt(x, d), { h: sc(c) * 0.3 }), pose('atterrit', 0.35)); return true; }
   c.anim = A[0]; if (A[0] === 'miaule' && T.u < dt * 1.5) say(c, pick(['miaou !', 'clique pas !', 'mrrp']));
   if (T.u > A[1]) { T.i++; T.u = 0; }
   return false;
