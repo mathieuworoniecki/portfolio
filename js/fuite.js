@@ -24,21 +24,18 @@ function go0(btn) {
   Wd.cats.forEach((c, i) => {
     if (c.gone) return; c.held = false; interrupt(c); c.hidden = 0;
     const dir = c.x < Wd.W / 2 ? -1 : 1, s = sc(c);
-    later(i * 0.06, () => { if (c.gone) return; c.fall = true; c.vy = -Math.sqrt(2 * grav() * s * 0.5); c.vx = -dir * 40; c.face = -dir;
+    later(i * 0.02, () => { if (c.gone) return; c.fall = true; c.vy = -Math.sqrt(2 * grav() * s * 0.5); c.vx = -dir * 40; c.face = -dir;
       say(c, pick(en() ? ['!!', 'EEK', 'run!', 'hsss'] : ['!!', 'AAAH', 'fshhh', 'au secours', 'sauve qui peut !', 'mia !!'])); word(pick(['!', '!!', '⚡']), c.x, c.y - s * 1.1, 22); });
-    later(0.5 + i * 0.06, () => { c.fuit = dir; });
+    later(0.2 + i * 0.02, () => { c.fuit = dir; });
   });
   // les objets : chacun son trou, l'un après l'autre (les plus proches du bouton d'abord)
   const P = Wd.props.filter(it => !it.gone && it.fade > 0.3 && !it.ventre).sort((a, b) => Math.abs(a.fx * Wd.W - o.x) - Math.abs(b.fx * Wd.W - o.x));
-  const moi = F; P.forEach((it, i) => later(0.45 + i * 0.12, () => { if (F === moi) avale(it); }));
+  const moi = F; P.forEach((it, i) => later(0.15 + i * 0.035, () => { if (F === moi) avale(it); }));
   // les croquettes par terre : de petits trous
-  Wd.kib.forEach((k, i) => { if (k.gone || k.suck) return; later(0.3 + i * 0.03, () => { if (k.gone) return; trou(k.x, k.y + 2, Wd.s0 * 0.07, 0.2, 0.5); later(0.2, () => { k.gone = true; }); }); });
-  // tout est parti (ou presque) : le mode sérieux s'ouvre depuis le bouton
-  const fin = Math.max(2.4, 0.45 + P.length * 0.12 + 1.1);
-  // (on attend que le dernier chat ait passé le bord, deux secondes au plus)
-  const moi2 = F, ouvre = () => { if (F !== moi2 || F.ouvert) return; if (Wd.cats.some(c => !c.gone && c.fuit) && Wd.t - F.t0 < fin + 2) { later(0.15, ouvre); return; }
-    F.ouvert = true; const p = Serieux.ouvre({ x: o.x, y: o.y }); if (p && p.then) p.then(() => {}, () => {}); };
-  later(fin, ouvre);
+  Wd.kib.forEach((k, i) => { if (k.gone || k.suck) return; later(0.1 + i * 0.01, () => { if (k.gone) return; trou(k.x, k.y + 2, Wd.s0 * 0.07, 0.2, 0.5); later(0.2, () => { k.gone = true; }); }); });
+  // (28/09, 20:42, Mathieu : « bien plus rapide, et une animation : les chats font le papier peint de la partie bleue, puis tous les éléments arrivent »)
+  // pendant que tout file, une équipe de chats pose le bleu en lés de papier peint ; quand le dernier lé est collé : le mode sérieux, sans cercle
+  const moi2 = F; Papier.pose(o, () => { if (F !== moi2 || F.ouvert) return; F.ouvert = true; const p = Serieux.ouvre({ x: o.x, y: o.y, instant: true, papier: true }); if (p && p.then) p.then(() => {}, () => {}); });
   return true;
 }
 // un trou s'ouvre sous l'objet ; il tremble, bascule, tombe dedans en rapetissant ; le trou se referme
@@ -46,9 +43,9 @@ function avale(it) {
   if (!Wd.props.includes(it) || it.gone) return;
   Wd.cats.forEach(c => { if (c.perch && c.perch.it === it) interrupt(c); });
   const s = sOf(it.d) * (it.big || 1), x = it.fx * Wd.W, y = floorAt(it.d), R = clamp(s * (K.LOURD[it.kind] ? 0.75 : 0.45), Wd.s0 * 0.18, Wd.s0 * 1.2);
-  trou(x, y, R, 0.3, 1.1);
+  trou(x, y, R, 0.15, 0.7);
   Object.assign(it, { on: null, dans: null, fall: false, held: false, run: null, vx: 0, vy: 0, suck: null });
-  it.trou = { t0: Wd.t, lift: it.lift, big: it.big || 1, tilt: it.tilt || 0, sens: Math.random() < 0.5 ? -1 : 1 };
+  it.trou = { t0: Wd.t, rapide: true, lift: it.lift, big: it.big || 1, tilt: it.tilt || 0, sens: Math.random() < 0.5 ? -1 : 1 };
 }
 function trou(x, y, r, ouvre, ferme) { trous.push({ x, y, r, t0: Wd.t, ouvre, ferme, fin: Wd.t + ouvre + ferme + 0.45 }); }
 
@@ -66,8 +63,8 @@ H.pre.push(() => {
   Wd.props.forEach(it => {
     const T = it.trou; if (!T) return; const u = Wd.t - T.t0, s = sOf(it.d);
     if (!T.retour) {
-      if (u < 0.3) { it.tilt = T.tilt + Math.sin(u * 60) * 0.06; return; }   // (il tremble au bord)
-      const e = sm((u - 0.3) / 0.55);
+      const tr = T.rapide ? 0.12 : 0.3; if (u < tr) { it.tilt = T.tilt + Math.sin(u * 60) * 0.06; return; }   // (il tremble au bord)
+      const e = sm((u - tr) / (T.rapide ? 0.32 : 0.55));
       it.lift = T.lift * (1 - e) - e * s * 0.25; it.big = T.big * (1 - e * 0.96); it.tilt = T.tilt + T.sens * e * 1.6;
       if (e >= 1) { it.trou = null; it.fade = it.fadeT = 0; it.ventre = true; it.big = T.big; avales.push(it); word(pick(['gloup', 'ploc', 'bloup']), it.fx * Wd.W, floorAt(it.d) - s * 0.2, 17); }
     } else {
