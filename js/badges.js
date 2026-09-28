@@ -72,6 +72,10 @@ const D = {
   heure: A => `<rect x="37" y="27" width="46" height="6" rx="2" fill="${A}"/><rect x="37" y="83" width="46" height="6" rx="2" fill="${A}"/><path d="M42 33 Q42 52 57 58 Q42 64 42 83 H78 Q78 64 63 58 Q78 52 78 33Z" ${PAPIER}/>`
     + `<path d="M48 42 H72 L60 54Z" fill="${CROQ}" stroke-width="1.4"/><path d="M60 58 V73" stroke-dasharray="2 3" stroke-width="1.4"/><path d="M45 83 Q60 70 75 83Z" fill="${CROQ}" stroke-width="1.4"/>`
     + `<path d="M53 77 l2 -5 l3 4 M63 76 l3 -4 l2 5" stroke-width="1.4"/>` + ferme(60, 79, 6),
+  // le géant dans l'espace : une énorme tête de chat, un anneau de planète autour, des étoiles
+  cosmique: A => `<ellipse cx="60" cy="64" rx="34" ry="8" transform="rotate(-12 60 64)"/>` + minou(60, 60, 22, A) + `<path d="M28 68 Q60 80 92 60" transform="rotate(-12 60 64)" stroke-width="2.2"/>` + eclat(30, 34, 5, 'none') + eclat(90, 36, 4, 'none') + eclat(84, 88, 3, 'none'),
+  // le passager clandestin : un petit chat dans son casque d'astronaute, qui flotte
+  apesanteur: A => `<circle cx="60" cy="58" r="24" ${PAPIER}/>` + minou(60, 62, 13, A) + `<path d="M44 44 Q48 38 54 37" stroke-width="1.6"/><ellipse cx="60" cy="82" rx="16" ry="4"/><path d="M72 37 L78 26"/><circle cx="79" cy="24" r="2.2" fill="currentColor" stroke="none"/>` + eclat(30, 76, 4, 'none') + eclat(92, 50, 3, 'none'),
   foule: A => [[7, 44, [34, 47, 60, 73, 86]], [8.5, 60, [40, 53.5, 67, 80.5]], [10, 77, [44, 60, 76]]].map(([r, y, X]) => X.map((x, i) => minou(x, y, r, (i + y) % 3 === 0 ? A : null)).join('')).join(''),
   chaine: A => `<g transform="translate(2 5) rotate(12 48 86)">${caisse(38, 70, 22, 16)}${caisse(40, 54, 20, 16)}${caisse(42, 38, 17, 16)}${minou(51, 31, 7)}</g>`
     + `<path d="M81 26 L70 50 L78 50 L68 74 L91 44 L82 44 L88 26Z" fill="${A}"/>` + vague(60, 92, 82, 4, EAU) + goutte(66, 72, 4) + goutte(88, 70, 3),

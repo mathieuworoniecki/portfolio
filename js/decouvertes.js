@@ -139,6 +139,8 @@ fam('moments', 'Les grands moments', 'Big moments', [
   ['retour', 'Il est revenu', 'He came back', 'Revenir un autre jour : un copain revient te voir.', 'Come back another day: a friend comes to see you.'],
   ['rancunier', 'Un rancunier', 'Holds a grudge', 'À force de le secouer… il s’en souviendra aussi.', 'Shake him enough… he’ll remember that too.'],
   ['tousrares', 'Tous les visiteurs rares', 'Every rare visitor', 'Les six. Bonne chance.', 'All six. Good luck.'],
+  ['rareespace', 'Visiteur en apesanteur', 'Weightless visitor', 'Un visiteur rare est là… et on entre dans l’univers.', 'A rare visitor is here… and you enter the universe.'],
+  ['geantespace', 'Le géant dans l’espace', 'Giant in space', 'Le chat géant, le trou noir, et après ?', 'The giant cat, the black hole, and then?'],
 ]);
 const TOUS = FAM.flatMap(f => f.L), PAR = Object.fromEntries(TOUS.map(d => [d.id, d]));
 TOUS.forEach(d => { if (d.id.startsWith('race-')) d.ok = caractere(d.id.slice(5)); });

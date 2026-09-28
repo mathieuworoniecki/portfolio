@@ -54,6 +54,8 @@ const LISTE = [
   ['carnet', 'or', '★', 'Carnet complet', 'Full notebook', 'Absolument tout le carnet.', 'The whole notebook. All of it.', () => pct() >= 1],
   ['ethologue', 'or', '❀', 'Éthologue', 'Ethologist', 'Toutes les manies, de tous les chats.', 'Every quirk of every cat.', () => MANIES.length && nv(MANIES.map(k => 'manie-' + k)) >= MANIES.length],
   ['heure', 'or', '⧗', 'Une heure avec eux', 'An hour with them', 'Le temps passe vite ici. Une heure en tout.', 'Time flies here. One hour in total.', () => N.minutes >= 60],
+  ['cosmique', 'or', '◎', 'Géant cosmique', 'Cosmic giant', 'Le plus gros des chats n’a jamais vu les étoiles.', 'The biggest cat has never seen the stars.', () => v('geantespace')],
+  ['apesanteur', 'argent', '○', 'Passager clandestin', 'Stowaway', 'Un visiteur de passage, emporté plus loin que prévu.', 'A passing visitor, taken further than planned.', () => v('rareespace')],
   ['foule', 'or', '☷', 'La grande foule', 'The big crowd', 'Douze chats à l’écran en même temps.', 'Twelve cats on screen at once.', () => v('foule')],
   ['chaine', 'or', 'ϟ', 'Réaction en chaîne', 'Chain reaction', 'Une tour de caisses, de l’eau juste à côté, et des chats dessus.', 'A crate tower, water right next to it, and cats on top.', () => v('tourplouf')],
 

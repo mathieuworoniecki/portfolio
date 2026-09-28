@@ -242,7 +242,13 @@ function entre() {
   Wd.props.forEach(it => { it.root.visible = false; });
   const id = ++E.boucle; requestAnimationFrame(() => boucleEspace(id));
   X.entre.forEach(f => f());
+  // un visiteur rare emporté par le trou noir : une découverte (et son haut fait, js/hautsfaits.js)
+  const R = Wd.cats.filter(c => c.rare && !c.gone);
+  if (window.Dex && Dex.vu && R.length) { if (R.some(c => c.rare === 'geant')) Dex.vu('geantespace'); Dex.vu('rareespace'); }
 }
+// la taille d'un chat dans l'espace : tous à peu près pareils (c.s) ; sauf le géant, qui reste énorme (28/09, Mathieu : « si on déclenche
+// le gros chat et qu'on clique pour aller dans l'espace, il devrait aller dans l'espace, c'est un haut fait »)
+const taillEspace = c => c.rare === 'geant' ? Math.min(W, H) * 0.95 / c.b.s : Wd.s0 * 0.72 * clamp(c.b.s, 0.6, 1.5) / c.b.s;
 // recrachés : tous du centre, chacun son tour, dans toutes les directions, en grandissant
 function crache() {
   const [cx, cy] = centre(); let i = 0;
@@ -250,7 +256,9 @@ function crache() {
     if (c.gone) return; prepare(c); blanc(c);
     const a = rnd(0, TAU), v = rnd(200, 420) * Wd.s0 / 150;
     c.x = cx; c.y = cy; c.face = Math.cos(a) < 0 ? -1 : 1;
-    c.sp = { vx: Math.cos(a) * v, vy: Math.sin(a) * v, w: rnd(-5, 5), m: 'crache', t: 0, dl: 0.25 + i++ * 0.16, g: 0, s: Wd.s0 * 0.72 * clamp(c.b.s, 0.6, 1.5) / c.b.s, anim: 'chute', next: 0, bonk: -9, cal: -9, lache: -9 };
+    c.sp = { vx: Math.cos(a) * v, vy: Math.sin(a) * v, w: rnd(-5, 5), m: 'crache', t: 0, dl: 0.25 + i++ * 0.16, g: 0, s: taillEspace(c), anim: 'chute', next: 0, bonk: -9, cal: -9, lache: -9 };
+    // (le géant sort en dernier : le trou blanc a du mal à le recracher)
+    if (c.rare === 'geant') { c.sp.dl += 1.2; c.sp.w = rnd(-1, 1); c.sp.vx *= 0.35; c.sp.vy *= 0.35; apres(2.4, () => { say(c, pick(['ça flotte !', 'hihi', 'oh…', 'coucou l’espace'])); Wd.shake = { t0: Wd.t, a: 6 }; }); }
     // mouvement réduit (le monde ne bouge pas) : déjà là, chacun à sa place, qui flotte
     if (reduit) { const S = c.sp; S.m = 'derive'; S.sorti = true; S.g = 1; S.anim = pick(DERIVE); c.s = S.s; c.x = rnd(0.15, 0.85) * W; c.y = rnd(0.3, 0.8) * H; c.spin = rnd(-0.6, 0.6); (ANIMS[S.anim] || ANIMS.assis)(c, c.cur, 0); c.tgt.set(c.cur); }
   });
@@ -522,7 +530,8 @@ function retour(force) {
   const cx = o ? o.x : W / 2, cy = o ? o.y : H * 0.47, R = Math.max(Math.hypot(cx, cy), Math.hypot(W - cx, H - cy)), items = [];
   const add = (it, x, y, s, chat) => { const dx = x - cx, dy = y - cy, r = Math.hypot(dx, dy); items.push({ o: it, chat, x, y, s, r0: r, a0: Math.atan2(dy, dx), dl: 0.12 + 0.4 * clamp(r / R, 0, 1) + rnd(0, 0.08), rot: rnd(4, 8) * (Math.random() < 0.8 ? 1 : -1), tilt: it.tilt || 0 }); };
   Wd.props.forEach(it => { if (it.gone || it.fadeT === 0) return; const s = K.sOf(it.d) * (it.big || 1); if (it.tilt0 != null) it.tilt = it.tilt0; it.root.visible = true; add(it, it.fx * Wd.W, K.floorAt(it.d) - it.lift, s, false); });
-  Wd.cats.forEach(c => { if (c.gone) return; prepare(c); c.held = false; c.d = rnd(0.05, 0.6); c.sK = null; const s = K.sOf(c.d); add(c, rnd(0.12, 0.88) * Wd.W, K.floorAt(c.d) - s * rnd(0.3, 0.9), s, true); });
+  Wd.cats.forEach(c => { if (c.gone) return; prepare(c); c.held = false; c.d = c.rare === 'geant' ? 0.02 : rnd(0.05, 0.6); c.sK = null; const s = K.sOf(c.d); add(c, rnd(0.12, 0.88) * Wd.W, K.floorAt(c.d) - s * rnd(0.3, 0.9), s, true); });
+  rarerepart();
   RV = { t0: performance.now() / 1000, cx, cy, R: Math.hypot(W, H), items, o, couches: couches(), fond: o && o.dessine };
   root.classList.add('sortie');
   const id = ++E.boucle; requestAnimationFrame(() => boucleSortie(id));
@@ -531,9 +540,18 @@ function retour(force) {
 function tombe() {
   Wd.props.forEach(it => { if (it.tilt0 != null) it.tilt = it.tilt0; it.fade = 0; it.fadeT = 1; });
   Wd.cats.forEach((c, i) => { if (c.gone) return; encre(c); prepare(c); c.held = false;
-    c.d = rnd(0.05, 0.6); c.sK = null; c.s = K.sOf(c.d); c.x = rnd(0.12, 0.88) * Wd.W; c.y = -sc(c) * rnd(1.2, 3) - i * 30; c.fall = true; c.vx = rnd(-60, 60); c.vy = 0; c.spin = rnd(-3, 3); c.z = K.zOf(c.d);
+    c.d = c.rare === 'geant' ? 0.02 : rnd(0.05, 0.6); c.sK = null; c.s = K.sOf(c.d); c.x = rnd(0.12, 0.88) * Wd.W; c.y = -sc(c) * rnd(1.2, 3) - i * 30; c.fall = true; c.vx = rnd(-60, 60); c.vy = 0; c.spin = rnd(-3, 3); c.z = K.zOf(c.d);
     if (Math.random() < 0.5) K.later(0.4 + i * 0.2, () => say(c, pick(['on est rentrés !', 'mia !', 'ouf', 'encore !']))); });
   Wd.nextIn = Wd.t + rnd(8, 14); Wd.nextScen = Wd.t + rnd(20, 30); Wd.nextKib = Wd.t + rnd(10, 20);
+  rarerepart();
+}
+// revenus dans la pièce, les visiteurs rares reprennent leur route : le géant roule jusqu'à l'autre bout, les autres s'en vont en courant
+function rarerepart() {
+  const va = c => { if (!c.rare || c.gone || !Wd.cats.includes(c) || c.held) return; if (c.fall || Wd.espace || RV) { K.later(0.8, () => va(c)); return; } K.interrupt(c);
+    const dir = c.x < Wd.W / 2 ? -1 : 1;
+    if (c.rare === 'geant') { const Rb = sc(c) * 0.36; c.q = [{ k: 'rouleau', dir: -dir, Rb, air: true }, K.fn(c => { c.gone = true; })]; say(c, pick(['on repart !', 'hihi'])); }
+    else c.q = [K.go(dir < 0 ? -sc(c) * 2 : Wd.W + sc(c) * 2, { g: 'galop' }), K.fn(c => { c.gone = true; })]; };
+  K.later(2.5, () => Wd.cats.forEach(va));
 }
 // une image de la sortie (le temps du monde) : le contraire de l'aspiration, en partant du passage
 function sortant(dt) {
