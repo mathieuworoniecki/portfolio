@@ -1086,7 +1086,7 @@ function kibFrame(dt) {
       if (Math.hypot(k.x - c.hp[0], k.y - c.hp[1]) < r) { k.vy = -Math.abs(k.vy) * 0.45 - 60; k.vx += rnd(-80, 80); k.y = c.hp[1] - r;
         c.bonk = Wd.t + 0.45; if (Wd.t - (c.saidBonk || -9) > 0.9) { c.saidBonk = Wd.t; say(c, pick(['bonk', 'aïe', '?!', 'toc'])); } break; } }
     const f = floorAt(k.d);
-    if (k.y >= f && k.vy > 0) { k.y = f; if (k.vy > 180) { k.vy = -k.vy * 0.35; k.vx *= k.swept ? 0.9 : 0.55; } else if (k.swept && Math.abs(k.vx) > 40) { k.vy = -rnd(60, 160); k.vx *= 0.93; } else { k.rest = true; k.swept = false; k.vx = k.vy = 0; } }
+    if (k.y >= f && k.vy > 0) { k.y = f; if (k.vy > 180) { k.vy = -k.vy * 0.35; k.vx *= k.swept ? 0.9 : 0.55; } else if ((k.swept || Wd.t - (k.souf ?? -9) < 0.6) && Math.abs(k.vx) > 40) { k.vy = -rnd(60, 160); k.vx *= 0.93; } else { k.rest = true; k.swept = false; k.vx = k.vy = 0; } }
   });
 }
 function drawKib(S) {

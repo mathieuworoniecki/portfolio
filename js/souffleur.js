@@ -33,7 +33,12 @@ H.post.push(dt => {
       o.soufT = Wd.t; o.vx += C.dx * s * 14 * f / m * dt; o.vy += (s * 11 * f / m - C.dy * s * 6 * f) * dt; if (o.tiltV != null) o.tiltV += rnd(-8, 8) * f * dt;
     });
     // les croquettes
-    Wd.kib.forEach(k => { const f = dansCone(C, k.x, k.y) * P; if (f <= 0.02 || k.who || k.suck) return; k.dans = null; k.rest = false; k.vx = (k.vx || 0) + C.dx * 900 * f * dt; k.vy = (k.vy || 0) - (700 * f - C.dy * 300 * f) * dt; });
+    // les croquettes : (28/09, Mathieu : « le souffleur devrait aussi souffler les croquettes ») elles décollent, filent en sautillant
+    //  et roulent loin devant la buse (avant, la gravité les recollait aussitôt au sol : elles ne bougeaient presque pas)
+    Wd.kib.forEach(k => { const f = dansCone(C, k.x, k.y - 6) * P; if (f <= 0.02 || k.who || k.suck || Wd.t < k.t0) return; k.dans = null; k.rest = false; k.souf = Wd.t;
+      k.vx = clamp((k.vx || 0) + C.dx * 2800 * f * dt, -1400, 1400); k.vy = (k.vy || 0) + C.dy * 1400 * f * dt - 900 * f * dt;
+      if (k.y >= floorAt(k.d) - 2 && k.vy > -60) k.vy = -rnd(120, 320) * (0.4 + f); });
+    if (Wd.kib.some(k => k.souf === Wd.t) && Wd.t - (it.kibT ?? -9) > 2.2) { it.kibT = Wd.t; const k = Wd.kib.find(k => k.souf === Wd.t); word(pick(['croquettes !', 'tic tic tic', 'ma gamelle !']), k.x, k.y - 30, 16); }
     // les chats : ils décollent
     Wd.cats.forEach(c => {
       if (c.held || c.hidden || c.gone || !c.hp || (c.rare && ['geant', 'interminable', 'totem', 'eclair'].includes(c.rare))) return;
