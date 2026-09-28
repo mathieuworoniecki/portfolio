@@ -1,337 +1,377 @@
-/* Dans l'espace (l'écran 2) : les compétences de Mathieu, sur des cartes dessinées à la craie qui flottent en apesanteur
-   (28/09, Mathieu : « vire le texte sur l'étape deux, on doit sur cette étape présenter mes compétences […] tu dois mettre beaucoup
-   en avant mes compétences liées à l'IA » ; puis, 17:41 : « on dessine à la craie les cartes de chaque ensemble de compétences »).
-   - En haut, son nom et son titre s'écrivent seuls, au stylo blanc.
-   - Une carte par ensemble : au centre, la plus grande, l'IA (neuf compétences, chacune avec sa preuve) ; autour, Front, Back, Pilotage, DevOps.
-     Chaque carte a son stylo : il trace le cadre à la craie, puis le titre, puis les compétences, contour après contour ; les puces s'allument.
-   - Les cartes flottent : elles dérivent un peu autour de leur place, tanguent ; on les attrape et on les lance (elles reviennent, sans se presser) ;
-     un chat qui passe les bouscule ; un chat s'y pend par les pattes de devant (la carte penche sous son poids) ; l'onde d'un clic les secoue.
-   - Survoler (ou toucher) une compétence écrit sa preuve en bas, tirée du CV ; on s'en va, le stylo la gomme.
-   - Tout vient du CV et du profil LinkedIn de Mathieu (28/09) : ne rien ajouter qui n'y soit pas. */
+/* Dans l'espace (l'écran 2) : les compétences de Mathieu, racontées par les étoiles, comme un cinéma en plein air
+   (28/09, 19:28, Mathieu : « plutôt une histoire animée et dessinée pour présenter chacune de mes compétences, qui s'imagent, et les chats regardent
+   comme un cinéma en plein air, ou quand on regarde des constellations ; mais les étoiles génèrent les dessins, les illustrations et les objets 3D,
+   un par un, pour présenter mes compétences » ; avant : des cartes à la craie, jugées illisibles à 19:27).
+   - Une scène par compétence : l'IA d'abord (huit scènes : un dev = une équipe, les agents, les terminaux, les skills, le benchmark, MARKO, le RAG,
+     MCP, le machine learning), puis Front, Back-end, Pilotage, DevOps.
+   - Chaque scène : des étoiles quittent le ciel et viennent se poser ; des traits les relient (une constellation) ; le trait s'affirme et le dessin
+     s'anime (un objet en 3D qui tourne, un réseau parcouru d'influx, des barres qui se mesurent…). Dessous, comme des sous-titres : une icône,
+     le nom, les outils, et la preuve, tirée du CV. Puis les étoiles repartent dans le ciel, et la scène suivante se forme.
+   - On attrape la constellation pour la faire tourner ; un toucher passe à la suivante ; les petites étoiles en bas mènent à une scène précise.
+     La souris sur les sous-titres : la scène attend qu'on ait fini de lire.
+   - Les chats viennent s'asseoir sur la Terre, en bas, le nez en l'air, et regardent la séance (« ooh… ») ; parfois l'un d'eux s'endort.
+   - Tout vient du CV, du profil LinkedIn, des dépôts GitHub et des mots de Mathieu (28/09) : rien d'autre. Jamais « il maîtrise les modèles »
+     (19:16) : sa méthode (un dev qui fait le travail d'une équipe, agents et sous-agents, skills et plugins, benchmark permanent). */
 window.EspacePlume = (() => {
 if (!window.TrouNoir || !TrouNoir.outils) return null;
-const O = TrouNoir.outils, { X, K, centreDe, rayon, say } = O, { Wd, rnd, pick, clamp, sgn, sm } = K;
+const O = TrouNoir.outils, { X, K, centreDe, rayon, say } = O, { Wd, ANIMS, rnd, pick, clamp, sgn, sm } = K;
 const TAU = Math.PI * 2, BL = '244,244,238';
 const reduit = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 const en = () => !!(window.I18N && I18N.lang && I18N.lang !== 'fr');
-// les compétences : [nom, preuve] ; les preuves viennent du CV (28/09)
-// les compétences, par carte : [titre, preuve de la carte, compétences] ; l'IA : chaque compétence a sa propre preuve. Tout vient du CV (28/09).
-// (18:48 : les compétences mises à jour avec tous ses dépôts GitHub, comme le mode sérieux, js/serieux-donnees.js ;
-//  19:16, Mathieu : pas de « modèles maîtrisés », pas de « +35 % » : sa méthode d'abord, un dev qui remplace une équipe, agents, sous-agents, skills, benchmark)
-const DONNEES = () => en() ? {
-  nom: 'Mathieu Woroniecki', role: 'Senior tech lead & AI architect',
-  ia: ['AI', 'CTO of MARKO, an AI-native B2B SaaS for real estate'],
-  noeuds: [['1 dev = 1 team', 'Alone, platforms that would have taken a 10-dev team years'], ['Agents · sub-agents', 'Several agents and sub-agents launched in parallel'],
-    ['Multi-terminal', 'Advanced workflows across many terminals at once'], ['Skills · plugins', 'He builds his own skills and plugins to reach his goals'],
-    ['Constant benchmark', 'Every harness, plugin and tool on the market, tested and compared'], ['Agentic AI', 'Agentic AI at the core of MARKO'],
-    ['Hybrid RAG', 'Archon: Gemini RAG + Qdrant/Meilisearch, reranking, entity graph'], ['MCP · WebMCP', 'MCP for the Figma-to-code flow; WebMCP in SafeShare'],
-    ['Document AI · OCR', 'MARKO: Document AI, OCR and data extraction'], ['Machine learning', 'NumerusX: AI trading agents (research), SHAP/LIME']],
-  groupes: [
-    ['Front', 'Vue/Nuxt architecture for Hermès, Chanel, Ardian', ['React · Next', 'Vue · Nuxt', 'TypeScript', 'three.js · Canvas', 'GSAP · D3']],
-    ['Back', 'The MARKO API: FastAPI and PostgreSQL', ['Python · FastAPI', 'Node.js · Go', 'PHP · Symfony', 'PostgreSQL · Redis', 'Celery · Socket.IO']],
-    ['Lead', 'Tech lead of Digiplace: 150,000+ users (ENGIE)', ['Tech lead · CTO', 'Management · Mentoring', 'Agile · ADR', 'Roadmap · Pre-sales', 'OWASP · WCAG']],
-    ['DevOps', '15+ projects moved to Docker (LWA)', ['Docker · Traefik', 'CI/CD · GitHub Actions', 'Azure · AWS · Vercel', 'Grafana · Sentry']]]
-} : {
-  nom: 'Mathieu Woroniecki', role: 'Responsable technique senior & architecte IA',
-  ia: ['IA', 'CTO de MARKO, un SaaS B2B AI-native pour l’immobilier'],
-  noeuds: [['1 dev = 1 équipe', 'Seul, des plateformes qui auraient pris des années à une équipe de 10 devs'], ['Agents · sous-agents', 'Plusieurs agents et sous-agents lancés en parallèle'],
-    ['Multi-terminaux', 'Des workflows avancés sur plusieurs terminaux à la fois'], ['Skills · plugins', 'Ses propres skills et plugins, créés pour atteindre ses objectifs'],
-    ['Benchmark permanent', 'Harness, plugins, outils : tout ce qui sort, testé et comparé'], ['Agentic AI', 'Agentic AI au cœur de MARKO'],
-    ['RAG hybride', 'Archon : RAG Gemini + Qdrant/Meilisearch, reranking, graphe d’entités'], ['MCP · WebMCP', 'MCP pour le flux Figma → code ; WebMCP dans SafeShare'],
-    ['Document AI · OCR', 'MARKO : Document AI, OCR et extraction de données'], ['Machine learning', 'NumerusX : agents IA de trading (recherche), SHAP/LIME']],
-  groupes: [
-    ['Front', 'Architecture Vue/Nuxt pour Hermès, Chanel, Ardian', ['React · Next', 'Vue · Nuxt', 'TypeScript', 'three.js · Canvas', 'GSAP · D3']],
-    ['Back', 'L’API de MARKO : FastAPI et PostgreSQL', ['Python · FastAPI', 'Node.js · Go', 'PHP · Symfony', 'PostgreSQL · Redis', 'Celery · Socket.IO']],
-    ['Pilotage', 'Tech lead de Digiplace : 150 000+ collaborateurs (ENGIE)', ['Tech lead · CTO', 'Management · Mentorat', 'Agile · ADR', 'Roadmap · Avant-vente', 'OWASP · RGAA']],
-    ['DevOps', '15+ projets passés sous Docker (LWA)', ['Docker · Traefik', 'CI/CD · GitHub Actions', 'Azure · AWS · Vercel', 'Grafana · Sentry']]]
+const c01 = v => clamp(v, 0, 1);
+const bruit = n => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+
+/* ——— les scènes : [dessin, icône, IA ?, titre, preuve, outils] (FR, puis EN) ———
+   (les outils : ceux du mode sérieux, js/serieux-donnees.js, tirés du CV et de la lecture de ses dépôts) */
+const SCENES = () => en() ? [
+  ['equipe', 'ia', 1, '1 dev = 1 team', 'Alone, platforms that would have taken a 10-dev team years', ''],
+  ['agents', 'ia', 1, 'Agents & sub-agents', 'Several agents and sub-agents launched in parallel', 'Multi-agent orchestration · Sub-agents · Agentic AI'],
+  ['terminaux', 'ia', 1, 'Multi-terminal', 'Advanced workflows across many terminals at once', ''],
+  ['skills', 'ia', 1, 'Skills & plugins', 'He builds his own skills and plugins to reach his goals', 'Skills · Plugins · Prompt engineering'],
+  ['bench', 'ia', 1, 'Constant benchmark', 'Every harness, plugin and tool on the market, tested and compared', 'Claude · Gemini · Mistral · OpenAI / Codex · DeepSeek · Ollama'],
+  ['marko', 'ia', 1, 'MARKO · Agentic AI', 'CTO of MARKO, an AI-native B2B SaaS for real estate', 'Agentic AI · Document AI · OCR · Data extraction'],
+  ['rag', 'ia', 1, 'Hybrid RAG', 'Archon: Gemini RAG + Qdrant/Meilisearch, reranking, entity graph', 'Embeddings · pgvector · Qdrant · Meilisearch · RAG evaluation'],
+  ['mcp', 'ia', 1, 'MCP · WebMCP', 'MCP for the Figma-to-code flow; WebMCP in SafeShare', ''],
+  ['ml', 'ia', 1, 'Machine learning', 'NumerusX: AI trading agents (research), SHAP/LIME', 'scikit-learn · LightGBM · Optuna · MLflow'],
+  ['front', 'front', 0, 'Front', 'Vue/Nuxt architecture for Hermès, Chanel, Ardian', 'React · Next.js · Vue · Nuxt · TypeScript · three.js · GSAP · D3'],
+  ['back', 'back', 0, 'Back-end', 'The MARKO API: FastAPI and PostgreSQL', 'Python · FastAPI · Node.js · Go · PHP · Symfony · PostgreSQL · Redis · Celery'],
+  ['pilotage', 'pilotage', 0, 'Leadership', 'Tech lead of Digiplace: 150,000+ users (ENGIE)', 'Tech lead · CTO · Management · Mentoring · Agile · ADR · Pre-sales'],
+  ['devops', 'devops', 0, 'DevOps', '15+ projects moved to Docker (LWA)', 'Docker · Traefik · GitHub Actions · Azure · AWS · Vercel · Grafana · Sentry']
+] : [
+  ['equipe', 'ia', 1, '1 dev = 1 équipe', 'Seul, des plateformes qui auraient pris des années à une équipe de 10 devs', ''],
+  ['agents', 'ia', 1, 'Agents & sous-agents', 'Plusieurs agents et sous-agents lancés en parallèle', 'Orchestration multi-agents · Sous-agents · Agentic AI'],
+  ['terminaux', 'ia', 1, 'Multi-terminaux', 'Des workflows avancés sur plusieurs terminaux à la fois', ''],
+  ['skills', 'ia', 1, 'Skills & plugins', 'Ses propres skills et plugins, créés pour atteindre ses objectifs', 'Skills · Plugins · Prompt engineering'],
+  ['bench', 'ia', 1, 'Benchmark permanent', 'Harness, plugins, outils : tout ce qui sort, testé et comparé', 'Claude · Gemini · Mistral · OpenAI / Codex · DeepSeek · Ollama'],
+  ['marko', 'ia', 1, 'MARKO · Agentic AI', 'CTO de MARKO, un SaaS B2B AI-native pour l’immobilier', 'Agentic AI · Document AI · OCR · Extraction de données'],
+  ['rag', 'ia', 1, 'RAG hybride', 'Archon : RAG Gemini + Qdrant/Meilisearch, reranking, graphe d’entités', 'Embeddings · pgvector · Qdrant · Meilisearch · Évaluation RAG'],
+  ['mcp', 'ia', 1, 'MCP · WebMCP', 'MCP pour le flux Figma → code ; WebMCP dans SafeShare', ''],
+  ['ml', 'ia', 1, 'Machine learning', 'NumerusX : agents IA de trading (recherche), SHAP/LIME', 'scikit-learn · LightGBM · Optuna · MLflow'],
+  ['front', 'front', 0, 'Front', 'Architecture Vue/Nuxt pour Hermès, Chanel, Ardian', 'React · Next.js · Vue · Nuxt · TypeScript · three.js · GSAP · D3'],
+  ['back', 'back', 0, 'Back-end', 'L’API de MARKO : FastAPI et PostgreSQL', 'Python · FastAPI · Node.js · Go · PHP · Symfony · PostgreSQL · Redis · Celery'],
+  ['pilotage', 'pilotage', 0, 'Pilotage', 'Tech lead de Digiplace : 150 000+ collaborateurs (ENGIE)', 'Tech lead · CTO · Management · Mentorat · Agile · ADR · Avant-vente'],
+  ['devops', 'devops', 0, 'DevOps', '15+ projets passés sous Docker (LWA)', 'Docker · Traefik · GitHub Actions · Azure · AWS · Vercel · Grafana · Sentry']
+];
+const TETE = () => en() ? ['Mathieu Woroniecki', 'Senior tech lead & AI architect'] : ['Mathieu Woroniecki', 'Responsable technique senior & architecte IA'];
+
+/* ——— les dessins : des points (x, y, z dans [-1, 1], y vers le bas ; la taille de l'étoile qui s'y pose, 0 : un simple coude du trait) et des traits
+   (a, b, style : '' plein, 'fin' en pointillé) ; flux : les traits que parcourt un influx ; geo(P, t) : ce qui bouge ; rot(t) : [rx, ry, rz] ——— */
+function fig() {
+  const f = { p: [], e: [], flux: [], rot: () => [0.2, 0, 0] };
+  f.pt = (x, y, z = 0, s = 1, k) => { f.p.push([x, y, z, s, k]); return f.p.length - 1; };
+  f.lg = (pts, ferme, s = 1, st = '') => { const i0 = f.p.length; pts.forEach((q, j) => f.pt(q[0], q[1], q[2] || 0, typeof s === 'function' ? s(j) : s));
+    for (let j = 1; j < pts.length; j++) f.e.push([i0 + j - 1, i0 + j, st]); if (ferme) f.e.push([i0 + pts.length - 1, i0, st]); return i0; };
+  f.rond = (cx, cy, cz, r, n, s = 1, plan = 'xy', st = '') => f.lg(Array.from({ length: n }, (_, j) => { const a = j / n * TAU;
+    return plan === 'xz' ? [cx + Math.cos(a) * r, cy, cz + Math.sin(a) * r] : [cx + Math.cos(a) * r, cy + Math.sin(a) * r, cz]; }), true, s, st);
+  f.boite = (x0, y0, z0, x1, y1, z1, s = 1) => { const i0 = f.p.length;
+    [[x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1], [x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1]].forEach(([x, y, z], j) => f.pt(x, y, z, typeof s === 'function' ? s(j) : s));
+    [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7]].forEach(([a, b]) => f.e.push([i0 + a, i0 + b, ''])); return i0; };
+  f.ar = (a, b, st = '') => { f.e.push([a, b, st]); };
+  return f;
+}
+const balance = (a, v) => t => a * Math.sin(t * v);
+const DESSINS = {
+  // un dev = une équipe : lui au centre, et autour, une équipe entière de silhouettes qu'il relie
+  equipe() { const f = fig();
+    f.rond(0, -0.2, 0, 0.17, 12, j => j % 3 ? 0 : 1.2);
+    f.lg([[-0.36, 0.3], [-0.3, 0.1], [-0.14, 0.02], [0.14, 0.02], [0.3, 0.1], [0.36, 0.3]], false, j => j % 5 ? 0 : 1);
+    const hub = f.pt(0, 0.12, 0, 0);
+    for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + (k + 0.5) / 10 * TAU, x = Math.cos(a) * 0.86, y = Math.sin(a) * 0.72;
+      f.rond(x, y - 0.06, 0, 0.065, 6, j => j === 4 ? 0.8 : 0); const i = f.lg([[x - 0.1, y + 0.1], [x, y + 0.02], [x + 0.1, y + 0.1]], false, 0);
+      f.ar(hub, i + 1, 'fin'); f.flux.push([hub, i + 1]); }
+    f.rot = t => [0.15, 0.35 * Math.sin(t * 0.5), 0]; return f; },
+  // les agents : un chef d'orchestre, trois agents, neuf sous-agents ; l'arbre tourne, les consignes descendent
+  agents() { const f = fig(), r0 = f.pt(0, -0.82, 0, 2);
+    f.rond(0, -0.1, 0, 0.5, 18, 0, 'xz', 'fin'); f.rond(0, 0.62, 0, 0.95, 30, 0, 'xz', 'fin');
+    for (let k = 0; k < 3; k++) { const a = k * TAU / 3, i = f.pt(Math.cos(a) * 0.5, -0.1, Math.sin(a) * 0.5, 1.5); f.ar(r0, i); f.flux.push([r0, i]);
+      for (let m = -1; m <= 1; m++) { const b = a + m * 0.5, j = f.pt(Math.cos(b) * 0.95, 0.62, Math.sin(b) * 0.95, 1); f.ar(i, j); f.flux.push([i, j]); } }
+    f.rot = t => [0.32, t * 0.4, 0]; return f; },
+  // plusieurs terminaux ouverts à la fois, en éventail dans la profondeur ; chacun tape ses lignes
+  terminaux() { const f = fig(); f.fen = [];
+    for (let k = 0; k < 3; k++) { const x0 = -1 + k * 0.4, y0 = -0.72 + k * 0.3, z = -0.45 + k * 0.45, w = 1.2, h = 0.82;
+      const i = f.lg([[x0, y0, z], [x0 + w, y0, z], [x0 + w, y0 + h, z], [x0, y0 + h, z]], true, 1);
+      f.lg([[x0, y0 + 0.15, z], [x0 + w, y0 + 0.15, z]], false, 0);
+      [0.08, 0.15, 0.22].forEach(d => f.pt(x0 + d, y0 + 0.075, z, 0.45)); f.fen.push(i); }
+    f.plus = (ctx, Q, t, u, now) => { if (u <= 0) return;
+      f.fen.forEach((i, k) => { const A = Q[i], B = Q[i + 1], C = Q[i + 2], D = Q[i + 3], at = (a, b) => { const x0 = A[0] + (B[0] - A[0]) * a, y0 = A[1] + (B[1] - A[1]) * a, x1 = D[0] + (C[0] - D[0]) * a, y1 = D[1] + (C[1] - D[1]) * a; return [x0 + (x1 - x0) * b, y0 + (y1 - y0) * b]; };
+        ctx.globalAlpha = u * (0.5 + 0.5 * (A[3] + 1) / 2);
+        [0.36, 0.52, 0.68, 0.84].forEach((v, r) => { const cyc = ((t * 0.9 + k * 0.8 + r * 0.45) % 4) / 4, L = [0.62, 0.44, 0.7, 0.3][(r + k) % 4] * c01(cyc * 1.6);
+          const p0 = at(0.07, v), p1 = at(0.1, v - 0.04), p2 = at(0.07, v - 0.08); ctx.beginPath(); ctx.moveTo(p2[0], p2[1]); ctx.lineTo(p1[0], p1[1]); ctx.lineTo(p0[0], p0[1]); ctx.stroke();
+          if (L > 0) { const a = at(0.15, v - 0.04), b = at(0.15 + L * 0.8, v - 0.04); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+            if (cyc < 0.6 && Math.sin(now * 8) > 0) O.brille(ctx, b[0] + 3, b[1], 1.6, 0.8, false, now, r); } }); }); };
+    f.rot = t => [0.14, -0.35 + 0.4 * Math.sin(t * 0.45), 0]; return f; },
+  // ses skills, ses plugins : une prise qui vient se brancher (étincelles), et la prise s'allume
+  skills() { const f = fig(), i0 = f.p.length;
+    f.lg([[-0.64, -0.28], [-0.14, -0.28], [-0.06, -0.2], [-0.06, 0.2], [-0.14, 0.28], [-0.64, 0.28]], true, j => j === 0 || j === 5 ? 1 : j === 2 || j === 3 ? 0.7 : 0);
+    f.lg([[-0.06, -0.12], [0.3, -0.12]], false, j => j ? 1 : 0); f.lg([[-0.06, 0.12], [0.3, 0.12]], false, j => j ? 1 : 0);
+    f.lg([[-0.64, 0], [-0.8, 0.02], [-0.94, 0.16], [-1, 0.42], [-0.9, 0.7]], false, j => j === 4 ? 1.2 : 0);
+    const i1 = f.p.length;
+    f.rond(0.62, 0, 0, 0.42, 18, j => j % 3 ? 0 : 1); f.rond(0.62, 0, 0, 0.3, 14, 0, 'xy', 'fin');
+    f.pt(0.34, -0.12, 0, 0.5); f.pt(0.34, 0.12, 0, 0.5);
+    const va = t => -0.34 * (1 - sm(c01((t - 3.4) / 1.1)));
+    f.geo = (P, t) => { const d = va(t); for (let i = i0; i < i1; i++) P[i][0] += d; };
+    f.plus = (ctx, Q, t, u, now) => { const k = t - 4.5; if (k < 0) return;
+      const c = Q[i1 + 18 + 14], d = Q[i1 + 18 + 15]; if (!c || !d) return;
+      if (k < 0.8) { ctx.globalAlpha = 1 - k / 0.8; [c, d].forEach((p, j) => { for (let n = 0; n < 7; n++) { const a = n / 7 * TAU + j, r0 = 4 + k * 40, r1 = r0 + 8; ctx.beginPath(); ctx.moveTo(p[0] + Math.cos(a) * r0, p[1] + Math.sin(a) * r0); ctx.lineTo(p[0] + Math.cos(a) * r1, p[1] + Math.sin(a) * r1); ctx.stroke(); } }); }
+      const m = Q[i1], ctr = [(c[0] + d[0]) / 2, (c[1] + d[1]) / 2]; O.brille(ctx, ctr[0] + (m[0] - ctr[0]) * 0.55, ctr[1], 5 + 1.5 * Math.sin(now * 3), 0.9 * c01(k * 2), true, now, 2); };
+    f.rot = t => [0.1, 0.3 * Math.sin(t * 0.4), 0]; return f; },
+  // le benchmark permanent : des barres qui se mesurent, se remesurent ; la meilleure brille (et ce n'est jamais la même longtemps)
+  bench() { const f = fig(), base = 0.72, B = []; f.lg([[-1.05, base, -0.35], [1.05, base, -0.35], [1.05, base, 0.35], [-1.05, base, 0.35]], true, 0.6);
+    for (let k = 0; k < 5; k++) { const x = -0.84 + k * 0.42; B.push(f.boite(x - 0.13, base - 1, -0.13, x + 0.13, base, 0.13, j => j < 4 ? 1 : 0)); }
+    const haut = (k, n) => 0.45 + 1.1 * bruit(k * 7.3 + n * 3.1);
+    f.h = t => { const n = Math.floor(t / 2.6), e = sm(c01((t - n * 2.6) / 0.8)), g = sm(c01((t - 1.4) / 1.6)); return B.map((_, k) => g * (haut(k, n - 1) + (haut(k, n) - haut(k, n - 1)) * e)); };
+    f.geo = (P, t) => { const H = f.h(t); B.forEach((i, k) => { for (let j = 0; j < 4; j++) P[i + j][1] = base - Math.max(0.02, H[k]); }); };
+    f.plus = (ctx, Q, t, u, now) => { if (u <= 0) return; const H = f.h(t), k = H.indexOf(Math.max(...H)), i = B[k], x = (Q[i][0] + Q[i + 1][0] + Q[i + 2][0] + Q[i + 3][0]) / 4, y = (Q[i][1] + Q[i + 1][1] + Q[i + 2][1] + Q[i + 3][1]) / 4;
+      O.brille(ctx, x, y - 12, 4.5, u, true, now, 1); };
+    f.rot = t => [0.34, -0.5 + 0.35 * Math.sin(t * 0.35), 0]; return f; },
+  // MARKO : une tour (l'immobilier), un document que l'IA lit (une ligne de lumière le parcourt), et ce qu'elle en tire file vers la tour
+  marko() { const f = fig(), T = f.boite(-0.24, -0.78, -0.24, 0.24, 0.78, 0.24, j => j < 4 ? 1 : 0.5);
+    [-0.4, -0.02, 0.36].forEach(y => f.lg([[-0.24, y, -0.24], [0.24, y, -0.24], [0.24, y, 0.24], [-0.24, y, 0.24]], true, 0, 'fin'));
+    const s0 = f.pt(0, -0.78, 0, 0), s1 = f.pt(0, -1.05, 0, 1.6); f.ar(s0, s1);
+    f.boite(0.34, 0.12, -0.18, 0.74, 0.78, 0.18, j => j < 4 ? 0.8 : 0);
+    const D = f.lg([[-1.02, -0.36, 0.3], [-0.66, -0.36, 0.3], [-0.52, -0.22, 0.3], [-0.52, 0.42, 0.3], [-1.02, 0.42, 0.3]], true, j => j === 2 ? 0 : 1);
+    [-0.12, 0.04, 0.2].forEach((y, k) => f.lg([[-0.94, y, 0.3], [-0.6 - k * 0.06, y, 0.3]], false, 0, 'fin'));
+    const a = f.pt(-0.52, 0.1, 0.3, 0), b = f.pt(-0.24, 0.1, 0.24, 0.6); f.ar(a, b, 'fin'); f.flux.push([a, b]);
+    f.plus = (ctx, Q, t, u, now) => { if (u <= 0) return; const v = (t * 0.45) % 1, A = Q[D], B = Q[D + 3], C = Q[D + 4], y0 = A[1] + (C[1] - A[1]) * v;
+      ctx.globalAlpha = u * 0.9; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(A[0] + (C[0] - A[0]) * v, y0); ctx.lineTo(Q[D + 1][0] + (B[0] - Q[D + 1][0]) * v + 4, Q[D + 1][1] + (B[1] - Q[D + 1][1]) * v); ctx.stroke();
+      O.brille(ctx, A[0] + (C[0] - A[0]) * v, y0, 3, u, false, now, 4); ctx.lineWidth = 1.4;
+      // (les étages s'allument, un par un, du bas vers le haut)
+      const e = Math.floor(t * 1.2) % 4, P0 = Q[T + 4], P1 = Q[T + 5]; O.brille(ctx, P0[0] + (P1[0] - P0[0]) * 0.5, P0[1] + (Q[T][1] - P0[1]) * (0.12 + e * 0.25), 3.2, u * 0.8, false, now, 6); };
+    f.rot = t => [0.22, 0.5 + 0.45 * Math.sin(t * 0.3), 0]; return f; },
+  // le RAG hybride : une sphère de connaissances (un graphe), la question au centre ; les influx vont chercher les bons morceaux
+  rag() { const f = fig(), n = 30, P = [];
+    for (let i = 0; i < n; i++) { const y = 1 - (i + 0.5) / n * 2, r = Math.sqrt(1 - y * y), a = i * 2.39996; P.push([Math.cos(a) * r * 0.88, y * 0.88, Math.sin(a) * r * 0.88]); }
+    P.forEach((q, i) => f.pt(q[0], q[1], q[2], 0.6 + bruit(i) * 0.8));
+    const vu = new Set(); P.forEach((q, i) => { P.map((o, j) => [j, Math.hypot(o[0] - q[0], o[1] - q[1], o[2] - q[2])]).filter(([j]) => j !== i).sort((a, b) => a[1] - b[1]).slice(0, 3)
+      .forEach(([j]) => { const k = i < j ? i + ',' + j : j + ',' + i; if (vu.has(k)) return; vu.add(k); f.ar(i, j); if (bruit(i * 3 + j) < 0.3) f.flux.push([i, j]); }); });
+    const c = f.pt(0, 0, 0, 1.8); [2, 9, 15, 21, 27].forEach(i => { f.ar(c, i, 'fin'); f.flux.push([c, i]); });
+    f.rot = t => [0.3, t * 0.3, 0]; return f; },
+  // MCP : une maquette (Figma) à gauche, du code à droite, et entre les deux, le pont du protocole
+  mcp() { const f = fig();
+    f.lg([[-1.02, -0.52], [-0.38, -0.52], [-0.38, 0.52], [-1.02, 0.52]], true, 1);
+    f.rond(-0.8, -0.2, 0, 0.12, 10, j => j % 5 ? 0 : 0.7); f.lg([[-0.64, 0.02], [-0.46, 0.02], [-0.46, 0.34], [-0.64, 0.34]], true, 0);
+    f.lg([[-0.94, 0.2], [-0.72, 0.2]], false, 0, 'fin'); f.lg([[-0.94, 0.34], [-0.76, 0.34]], false, 0, 'fin');
+    f.lg([[0.5, -0.52], [0.42, -0.46], [0.42, -0.08], [0.33, 0], [0.42, 0.08], [0.42, 0.46], [0.5, 0.52]], false, j => j === 0 || j === 3 || j === 6 ? 1 : 0);
+    f.lg([[0.9, -0.52], [0.98, -0.46], [0.98, -0.08], [1.07, 0], [0.98, 0.08], [0.98, 0.46], [0.9, 0.52]], false, j => j === 0 || j === 3 || j === 6 ? 1 : 0);
+    [[-0.22, 0.28], [-0.05, 0.18], [0.1, 0.24]].forEach(([y, l], k) => f.lg([[0.54 + k * 0.04, y], [0.54 + k * 0.04 + l, y]], false, 0, 'fin'));
+    f.rond(0, 0, 0, 0.13, 10, j => j % 5 ? 0 : 1);
+    const a = f.pt(-0.36, 0, 0, 0), b = f.pt(-0.14, 0, 0, 0), c = f.pt(0.14, 0, 0, 0), d = f.pt(0.3, 0, 0, 0), h1 = f.pt(0.24, -0.06, 0, 0), h2 = f.pt(0.24, 0.06, 0, 0);
+    f.ar(a, b); f.ar(c, d); f.ar(h1, d); f.ar(h2, d); f.flux.push([a, b], [c, d]);
+    f.rot = t => [0.1, 0.3 * Math.sin(t * 0.4), 0]; return f; },
+  // le machine learning : un réseau de neurones ; les influx le traversent, couche après couche
+  ml() { const f = fig(), C = [3, 5, 5, 2], L = C.map((n, k) => Array.from({ length: n }, (_, j) => f.pt(-0.9 + k * 0.6, (j - (n - 1) / 2) * 0.36, 0, 1.2)));
+    for (let k = 0; k < 3; k++) L[k].forEach((a, i) => L[k + 1].forEach((b, j) => { f.ar(a, b, 'fin'); if (bruit(a * 5 + b) < 0.35) f.flux.push([a, b]); }));
+    f.rot = t => [0.12, 0.45 * Math.sin(t * 0.4), 0]; return f; },
+  // le front : une fenêtre de navigateur, et devant, un cube en 3D qui tourne (three.js, Canvas)
+  front() { const f = fig();
+    f.lg([[-1, -0.7], [1, -0.7], [1, 0.7], [-1, 0.7]], true, 1); f.lg([[-1, -0.5], [1, -0.5]], false, 0);
+    [-0.9, -0.82, -0.74].forEach(x => f.pt(x, -0.6, 0, 0.5));
+    [[-0.3, 0.6], [-0.15, 0.45], [0.3, 0.55], [0.45, 0.35]].forEach(([y, l]) => f.lg([[-0.85, y], [-0.85 + l, y]], false, 0, 'fin'));
+    const i = f.boite(-1, -1, -1, 1, 1, 1, 1);
+    f.geo = (P, t) => { const a = t * 0.9, b = t * 0.6, s = 0.26; for (let j = 0; j < 8; j++) { const [x, y, z] = P[i + j]; const x1 = x * Math.cos(a) + z * Math.sin(a), z1 = -x * Math.sin(a) + z * Math.cos(a), y1 = y * Math.cos(b) - z1 * Math.sin(b), z2 = y * Math.sin(b) + z1 * Math.cos(b);
+      P[i + j][0] = 0.48 + x1 * s; P[i + j][1] = 0.1 + y1 * s; P[i + j][2] = 0.35 + z2 * s; } };
+    f.rot = t => [0.14, 0.4 * Math.sin(t * 0.35), 0]; return f; },
+  // le back-end : trois serveurs empilés (leurs voyants clignotent), une base de données dessous
+  back() { const f = fig();
+    [-0.8, -0.38, 0.04].forEach(y => { f.boite(-0.68, y, -0.4, 0.68, y + 0.3, 0.4, j => j === 3 || j === 7 ? 0 : 0.8); [-0.52, -0.4].forEach(x => f.pt(x, y + 0.15, 0.4, 0.8, 'clig')); f.lg([[-0.2, y + 0.15, 0.4], [0.5, y + 0.15, 0.4]], false, 0, 'fin'); });
+    const h = f.rond(0, 0.52, 0, 0.36, 16, j => j % 4 ? 0 : 1, 'xz'), b = f.rond(0, 0.86, 0, 0.36, 16, 0, 'xz');
+    [0, 4, 8, 12].forEach(j => f.ar(h + j, b + j));
+    const a = f.pt(0, 0.34, 0, 0), c = f.pt(0, 0.52, 0, 0); f.ar(a, c, 'fin'); f.flux.push([a, c]);
+    f.rot = t => [0.34, t * 0.3, 0]; return f; },
+  // le pilotage : la barre du navire ; elle tourne à gauche, à droite (il tient le cap)
+  pilotage() { const f = fig();
+    f.rond(0, 0, 0, 0.64, 24, j => j % 3 ? 0 : 0.8); f.rond(0, 0, 0, 0.15, 10, 0);
+    for (let k = 0; k < 8; k++) { const a = k / 8 * TAU, i = f.pt(Math.cos(a) * 0.15, Math.sin(a) * 0.15, 0, 0), j = f.pt(Math.cos(a) * 0.98, Math.sin(a) * 0.98, 0, 1.3); f.ar(i, j); }
+    f.rot = t => [0.35, 0.2 * Math.sin(t * 0.3), 0.9 * Math.sin(t * 0.55)]; return f; },
+  // le DevOps : la boucle sans fin (construire, livrer, recommencer), une lumière qui en fait le tour
+  devops() { const f = fig(), n = 48, P = [];
+    for (let i = 0; i < n; i++) { const t = i / n * TAU, d = 1 + Math.sin(t) * Math.sin(t); P.push([Math.cos(t) / d, 0.9 * Math.sin(t) * Math.cos(t) / d, 0.3 * Math.sin(t)]); }
+    const i0 = f.lg(P, true, j => j % 6 ? 0 : 1);
+    f.plus = (ctx, Q, t, u, now) => { if (u <= 0) return; for (let k = 0; k < 2; k++) { const v = ((t * 0.25 + k * 0.5) % 1) * n, j = Math.floor(v), e = v - j, A = Q[i0 + j], B = Q[i0 + (j + 1) % n];
+      O.brille(ctx, A[0] + (B[0] - A[0]) * e, A[1] + (B[1] - A[1]) * e, 4, u, true, now, k); } };
+    f.rot = t => [0.4, 0.5 * Math.sin(t * 0.35), 0]; return f; }
 };
 
-/* ——— les lettres (19:27, Mathieu : « les textes sont assez illisibles ; il faudrait des icônes et changer la façon dont le texte est écrit ») ———
-   Avant : le contour de chaque lettre, tracé au stylo (creux, fin, difficile à lire). Maintenant : des lettres pleines, nettes (Space Grotesk ;
-   le nom dans la police du grand titre), que la pointe du stylo dévoile de gauche à droite en passant. */
-const toile = document.createElement('canvas'), tx = toile.getContext('2d');
-const long = P => { let L = 0; for (let i = 1; i < P.length; i++) L += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); return L; };
-
-
-/* ——— la mise en page : des cartes (x0, y0 : leur centre ; w, h), et dans chaque carte ses mots (lx, ly : leur coin, dans la carte) ——— */
-let M = null;   // { cartes, mots, preuves, planete, t0, total, fin, W, H }
-// k = true : la police du grand titre de l'écran 1 ; 'fort' : Space Grotesk grasse (les titres des cartes) ; sinon Space Grotesk
+/* ——— les lettres : pleines et nettes (19:27, Mathieu : « les textes sont assez illisibles ») ; Space Grotesk, le nom dans la police du grand titre ——— */
 const NET = '"Space Grotesk","Barlow",system-ui,sans-serif';
 const police = (px, k) => { if (k === 'fort') return `600 ${px}px ${NET}`; if (!k) return `500 ${px}px ${NET}`;
   const h1 = document.querySelector('h1[data-title]'), cs = h1 && getComputedStyle(h1); return cs ? `${cs.fontWeight} ${px}px ${cs.fontFamily}` : `600 ${px}px ${NET}`; };
+const toile = document.createElement('canvas'), tx = toile.getContext('2d');
 const largeur = (txt, font) => { tx.font = font; return tx.measureText(txt).width; };
-// (le haut de la Terre, comme js/espace-planetes.js la pose : on n'écrit pas dessous)
+// (des lignes qui tiennent dans wmax, coupées entre les mots)
+function lignes(txt, font, wmax) { const R = []; let l = ''; txt.split(' ').forEach(m => { const e = l ? l + ' ' + m : m; if (l && largeur(e, font) > wmax) { R.push(l); l = m; } else l = e; }); if (l) R.push(l); return R; }
+
+// la Terre, en bas (la même que js/espace-planetes.js) : les chats s'y assoient pour regarder
 const hautTerre = () => { const H = O.H, h = clamp(H * 0.13, 60, 130); return O.BAS() - h + 18; };
-// un nombre qui ne change pas d'une image à l'autre (le tremblé de la craie)
-const bruit = n => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
-// le cadre à la craie : un rectangle aux coins arrondis, à main levée, qui dépasse un peu à la fin (le trait se croise)
-function cadre(w, h, r, seed) {
-  const P = [], pas = 9, x0 = -w / 2, y0 = -h / 2, per = 2 * (w + h - 4 * r) + TAU * r;
-  const point = u => { u = ((u % per) + per) % per; const a = w - 2 * r, b = h - 2 * r;
-    if (u < a) return [x0 + r + u, y0]; u -= a;
-    if (u < TAU * r / 4) { const t = -Math.PI / 2 + u / r; return [x0 + w - r + Math.cos(t) * r, y0 + r + Math.sin(t) * r]; } u -= TAU * r / 4;
-    if (u < b) return [x0 + w, y0 + r + u]; u -= b;
-    if (u < TAU * r / 4) { const t = u / r; return [x0 + w - r + Math.cos(t) * r, y0 + h - r + Math.sin(t) * r]; } u -= TAU * r / 4;
-    if (u < a) return [x0 + w - r - u, y0 + h]; u -= a;
-    if (u < TAU * r / 4) { const t = Math.PI / 2 + u / r; return [x0 + r + Math.cos(t) * r, y0 + h - r + Math.sin(t) * r]; } u -= TAU * r / 4;
-    if (u < b) return [x0, y0 + h - r - u]; u -= b;
-    const t = Math.PI + u / r; return [x0 + r + Math.cos(t) * r, y0 + r + Math.sin(t) * r]; };
-  const fin = per + Math.min(26, w * 0.1), n = Math.ceil(fin / pas);
-  for (let i = 0; i <= n; i++) { const u = i / n * fin, p = point(u), k = 1.3 * Math.sin(u * 0.045 + seed) + (bruit(seed + i) - 0.5) * 1.1, q = i / n > 0.97 ? 1.6 : 0;   // (en bout de course, le trait s'écarte un peu)
-    const e = 0.4; const p2 = point(u + e), nx = -(p2[1] - p[1]) / e, ny = (p2[0] - p[0]) / e; P.push([p[0] + nx * (k + q), p[1] + ny * (k + q)]); }
-  return P;
+function terre() { const W = O.W, H = O.H, bas = O.BAS(), h = clamp(H * 0.13, 60, 130), R = Math.max(W * 1.15, (W * W / 4) / (2 * h) + h / 2); return { cx: W / 2, cy: bas - h + R + 18, R }; }
+const surface = x => { const T = terre(); return T.cy - Math.sqrt(Math.max(0, T.R * T.R - (x - T.cx) * (x - T.cx))); };
+
+/* ——— la mise en page : l'en-tête (nom, titre), l'écran du ciel (où se forment les dessins), les sous-titres, la rangée de petites étoiles ——— */
+let M = null;
+function sousTitre(S, L, wmax, cote) {
+  const pT = L ? 30 : 21, pP = L ? 18.5 : 15, pO = L ? 14.5 : 12.5, is = pT * 0.62, pad = L ? 20 : 12, g = pT * 0.45, ws = wmax - pad * 2;
+  const fT = police(pT, 'fort'), fP = police(pP), fO = police(pO), R = [];
+  let y = pad; const tl = lignes(S[3], fT, ws - is * 2 - g), wT = Math.max(...tl.map(l => largeur(l, fT)));
+  tl.forEach((l, i) => { R.push({ txt: l, font: fT, w: largeur(l, fT), y: y + pT * 0.95, a: 1, dl: i * 0.3, t: 1 }); y += pT * 1.2; }); y += pT * 0.2;
+  lignes(S[4], fP, ws).forEach((l, i) => { R.push({ txt: l, font: fP, w: largeur(l, fP), y: y + pP * 1.05, a: 0.96, dl: 0.35 + i * 0.25 }); y += pP * 1.45; });
+  if (S[5]) { y += pO * 0.3; lignes(S[5], fO, ws).forEach((l, i) => { R.push({ txt: l, font: fO, w: largeur(l, fO), y: y + pO * 1.05, a: 0.68, dl: 0.8 + i * 0.25 }); y += pO * 1.5; }); }
+  // (x : depuis le bord gauche de la bande ; sur le côté, tout est aligné à gauche ; sinon, centré)
+  const bw = cote ? wmax : Math.min(wmax, Math.max(wT + is * 2 + g, ...R.map(l => l.w)) + pad * 2), x0 = cote ? pad : (bw - (wT + is * 2 + g)) / 2;
+  R.forEach(l => { l.x = l.t ? x0 + is * 2 + g : cote ? pad : (bw - l.w) / 2; });
+  return { L: R, ic: { x: x0 + is, y: pad + pT * 0.6, s: is }, w: bw, h: y + pad * 0.7, k: S[1] };
 }
-function compose(t0) {
-  const W = O.W, H = O.H, D = DONNEES(), L = W >= 760;
-  let px = L ? (W < 1000 ? 17 : 20) : 15, R = null;
-  // (trop grand pour l'écran : on recommence un peu plus petit)
-  for (let essai = 0; essai < 7 && !R; essai++, px *= 0.9) R = pose(W, H, D, L, px, essai === 6);
-  const { cartes, mots, preuves, planete } = R;
-  // l'horaire des stylos : le premier écrit le nom et le titre ; puis un stylo par carte, en même temps (l'IA d'abord) :
-  // le cadre à la craie, le titre, puis chaque compétence ; la puce s'allume quand le stylo arrive au mot
-  const v = px * 130; let t = 0;
-  const ecrire = (m, t) => { m.t0 = t; m.t1 = t + m.tw / (m.px * (m.titre ? 9 : 16)); return m.t1; };
-  cartes[0].mots.forEach(m => { t = ecrire(m, t + 0.06); });
-  const debut = t + 0.2; let total = t;
-  cartes.slice(1).forEach((C, i) => { let u = debut + i * 0.3; const b = C.cadre; b.L = long(b); b.t0 = u; b.d = b.L / (v * 2.2); u += b.d + 0.1;
-    C.mots.forEach(m => { u = ecrire(m, u + 0.05); }); C.t1 = u; total = Math.max(total, u); });
-  return { cartes, mots, preuves, planete, t0, total, W, H, fin: false };
-}
-// tout placer, pour une taille de lettres ; null si ça ne tient pas (sauf au dernier essai)
-function pose(W, H, D, L, px, force) {
-  const pt = px * (L ? 1.9 : 1.75), cartes = [], mots = [], preuves = [], lh = px * 1.5, pad = px * 0.95;
-  const preuve = (txt, ia) => { const p = { txt, ia, al: 'c', px: Math.max(14, px * 1.02), u: 0, C: null }; preuves.push(p); return p; };
-  const mot = (C, txt, taille, titre, lx, ly, puce) => {   // (lx, ly : où commence le texte, et le milieu de ses lettres, dans la carte)
-    const font = police(taille, titre), tw = largeur(txt, font), y0 = taille * 1.2;   // (y0 : la ligne de base, dans la boîte du mot)
-    const m = { txt, titre: titre === true, font, px: taille, w: tw + taille * 0.6, h: taille * 1.7, tw, lx: lx - taille * 0.3, ly: ly - y0 + taille * 0.35, carte: C, survol: 0, preuve: null };
-    if (puce) { m.et = [taille * 0.3 - taille * 0.75, y0 - taille * 0.35]; m.eR = puce; }
-    C.mots.push(m); mots.push(m); return m;
-  };
-  const carte = (o) => { const C = Object.assign({ id: cartes.length, dx: 0, dy: 0, vx: 0, vy: 0, a: 0, va: 0, tenu: false, survol: 0, poids: 0, couple: 0, ph: rnd(0, TAU), mots: [], preuve: null, cadre: null }, o); cartes.push(C); return C; };
-  // en haut : le nom, le titre (une « carte » sans cadre, qui ne bouge presque pas)
-  let y = O.HAUT() + (L ? H * 0.05 : H * 0.035);
-  const wn = largeur(D.nom, police(pt, true)), wr = largeur(D.role, police(px * 1.05));
-  const T = carte({ tete: true, x0: W / 2, y0: y + pt * 0.55, w: Math.max(wn, wr) + px, h: pt * 0.9 + px * 1.3 });
-  mot(T, D.nom, pt, true, -wn / 2, -T.h / 2 + pt * 0.45); mot(T, D.role, px * 1.05, false, -wr / 2, -T.h / 2 + pt * 0.9 + px * 0.55);
-  if (Math.max(wn, wr) > W - 20 && !force) return null;
-  y = T.y0 + T.h / 2 + px * 0.9;
-  const yp = hautTerre() - px * 1.05, yb = yp - px * 1.3, r = L ? clamp(Math.min(W, H) * 0.07, 38, 64) : clamp(Math.min(W, H) * 0.09, 38, 90);
-  // les mesures d'une carte : [largeur d'une colonne, nombre de lignes] pour des compétences, en 1 ou 2 colonnes
-  // (la carte de l'IA a ses lettres plus grandes : c'est elle qu'on doit voir d'abord)
-  const pxI = L ? px * 1.25 : px, lhI = pxI * 1.5, ptC = px * 1.25, ptIA = L ? pt * 1.55 : pt * 1.3, sousPx = L ? px * 0.95 : px * 0.82;
-  const col = (L0, q = px) => Math.max(...L0.map(s => largeur(s, police(q)))) + q * 1.2;
-  const hauteur = (n, cols, titre, sous, l = lh) => pad + titre * 1.05 + (sous ? sousPx * 1.6 : 0) + (Math.ceil(n / cols) + 0.2) * l + pad;
-  // la carte de l'IA
-  const nomsIA = D.noeuds.map(n => n[0]), cIA = col(nomsIA, pxI), wSous = largeur(D.ia[1], police(sousPx));
-  let planete, cols = 2;
-  let wIA = Math.max(2 * cIA + pad * 2.6, wSous + pad * 2, largeur(D.ia[0], police(ptIA, true)) + pad * 2);
-  const placeCarte = (C, items, cols, titreTxt, titrePx, titreGros, sous, q = px, l = lh) => {
-    let yy = -C.h / 2 + pad + titrePx * 0.5;
-    const t = mot(C, titreTxt, titrePx, titreGros ? true : 'fort', -C.w / 2 + pad, yy); t.estTitre = true; yy += titrePx * 0.55;
-    if (sous) { yy += sousPx * 0.95; mot(C, sous, sousPx, false, -C.w / 2 + pad, yy); yy += sousPx * 0.4; }
-    yy += l * 0.75; const cw = (C.w - pad * 2) / cols, n = Math.ceil(items.length / cols);
-    return items.map((s, i) => { const c = Math.floor(i / n), k = i % n; return mot(C, s, q, false, -C.w / 2 + pad + c * cw + q * 0.95, yy + k * l, q === px ? 2.2 : 2.8); });
-  };
-  if (L) {
-    // grand écran : l'IA au centre ; Front et Back à gauche, Pilotage et DevOps à droite (sous la planète des chats)
-    planete = [W - W * 0.035 - r, O.HAUT() + r * 1.25 + 20];
-    const hIA = hauteur(nomsIA.length, 2, ptIA, true, lhI); if (y + hIA > yb && !force) return null;
-    const G = D.groupes.map(([t, pr, l], i) => ({ t, pr, l, k: ICONES[i], w: Math.max(col(l) + pad * 2, largeur(t, police(ptC, 'fort')) + ptC * 1.6 + pad * 2), h: hauteur(l.length, 1, ptC, false) }));
-    const wG = Math.max(...G.map(g => g.w)), marge = W * 0.035, gap = px * 1.2;
-    if (marge + wG + gap + wIA / 2 > W / 2 && !force) return null;
-    const C = carte({ ia: true, icone: 'ia', x0: W / 2, y0: Math.max(y + hIA / 2, (y + yb) / 2), w: wIA, h: hIA, seed: 1 });
-    placeCarte(C, nomsIA, 2, D.ia[0], ptIA, true, D.ia[1], pxI, lhI).forEach((m, i) => { m.preuve = preuve(D.noeuds[i][1], true); });
-    const hautD = planete[1] + r * 1.35 + px * 0.4, colonne = (L0, x, y0) => {
-      const libre = yb - y0 - L0.reduce((s, g) => s + g.h, 0); if (libre < gap * 0.5 && !force) return false;
-      let yy = y0 + Math.max(0, libre) / (L0.length + 1) * 0.8;
-      L0.forEach((g, i) => { const Cg = carte({ x0: x + (i % 2 ? -1 : 1) * px * 0.6, y0: yy + g.h / 2, w: g.w, h: g.h, seed: 3 + cartes.length, icone: g.k }); Cg.preuve = preuve(g.pr, false);
-        placeCarte(Cg, g.l, 1, g.t, ptC, false).forEach(m => { m.preuve = Cg.preuve; }); yy += g.h + Math.max(gap, Math.max(0, libre) / (L0.length + 1)); });
-      return true; };
-    if (!colonne(G.slice(0, 2), marge + wG / 2, y) || !colonne(G.slice(2), W - marge - wG / 2, Math.max(y, hautD))) return null;
+function compose() {
+  const W = O.W, H = O.H, L = W >= 760, cote = W >= 900 && W / H > 1.15, D = TETE(), SC = SCENES();
+  // en haut : le nom et le titre ; la planète des chats dans le coin (js/espace-planetes.js la prend là)
+  const pn = L ? clamp(W * 0.024, 24, 34) : 21, pr = L ? 15.5 : 13, r = L ? clamp(Math.min(W, H) * 0.07, 38, 64) : clamp(Math.min(W, H) * 0.075, 32, 52);
+  const top = O.HAUT() + (L ? H * 0.025 : 24), planete = L ? [W - W * 0.035 - r, top + r * 1.15] : [W - r - 12, top + r + 6];
+  const marge = W * 0.04, capW = cote ? clamp(W * 0.33, 340, 470) : Math.min(W - 24, L ? 860 : 9999), capX = W - marge - capW;
+  const cxS = cote ? (marge + capX - 20) / 2 : W / 2;
+  const fr = police(pr), wr = cote ? capX - marge : L ? W - 40 : W - r * 2 - 44, role = lignes(D[1], fr, wr);
+  const tete = { al: L ? 'c' : 'g', x: L ? cxS : 16, nom: D[0], fn: police(pn, true), yn: top + pn, role, fr, yr: top + pn + pr * 1.55, lr: pr * 1.35, pn, pr };
+  const basTete = tete.yr + (role.length - 1) * tete.lr + pr * 0.7;
+  const caps = SC.map(S => sousTitre(S, L, capW, cote)), hMax = Math.max(...caps.map(c => c.h)), place = L ? 62 : 50, pas = L ? 20 : 17;
+  let cx, cy, s, yPts, yCap = 0, capY = 0, xPts;
+  if (cote) {
+    // grand écran : l'écran du ciel à gauche, les sous-titres à droite (sous la planète), la rangée d'étoiles dessous
+    const t0 = basTete + 14, b0 = hautTerre() - place - 6; cx = cxS; cy = (t0 + b0) / 2;
+    s = Math.max(60, Math.min((b0 - t0) / 2 * 0.92, (capX - 20 - marge) / 2 * 0.66));
+    capY = Math.max(planete[1] + r * 2.4, cy - (hMax + 40) / 2); yPts = capY + hMax + 26; xPts = capX + capW / 2;
   } else {
-    // téléphone : la carte de l'IA et la planète à sa droite ; puis les quatre autres, deux par deux
-    const wmax = W - 24 - r * 2 - 8; cols = 2 * cIA + pad * 2.6 <= wmax ? 2 : 1;
-    wIA = Math.min(wmax, Math.max(cols * cIA + pad * (cols === 2 ? 2.6 : 2), largeur(D.ia[0], police(ptIA, true)) + pad * 2));
-    const sous = wSous <= wIA - pad * 2 ? D.ia[1] : null, hIA = hauteur(nomsIA.length, cols, ptIA, !!sous);
-    const C = carte({ ia: true, icone: 'ia', x0: 12 + wIA / 2, y0: y + hIA / 2, w: wIA, h: hIA, seed: 1 });
-    placeCarte(C, nomsIA, cols, D.ia[0], ptIA, true, sous).forEach((m, i) => { m.preuve = preuve(D.noeuds[i][1], true); });
-    planete = [W - r - 10, y + r * 1.2];
-    y += hIA + px * 0.8;
-    const wg = (W - 24 - px * 0.8) / 2, G = D.groupes.map(([t, pr, l], i) => ({ t, pr, l: l.slice(0, 4), k: ICONES[i], h: hauteur(Math.min(4, l.length), 1, ptC, false) }));
-    for (let i = 0; i < 4; i += 2) { const h = Math.max(G[i].h, G[i + 1].h);
-      [0, 1].forEach(k => { const g = G[i + k], Cg = carte({ x0: 12 + wg / 2 + k * (wg + px * 0.8), y0: y + h / 2, w: wg, h, seed: 3 + cartes.length, icone: g.k }); Cg.preuve = preuve(g.pr, false);
-        placeCarte(Cg, g.l, 1, g.t, ptC, false).forEach(m => { m.preuve = Cg.preuve; }); });
-      y += h + px * 0.7; }
-    if (y > yb + px && !force) return null;
-    if (G.some(g => col(g.l) + pad * 2 > wg) && !force) return null;
+    // téléphone (ou écran étroit) : l'écran du ciel au milieu, les sous-titres dessous, la rangée d'étoiles, puis la Terre et les spectateurs
+    yPts = hautTerre() - place - 10; yCap = yPts - (L ? 20 : 16); xPts = W / 2;
+    const t0 = basTete + (L ? 14 : 8), b0 = yCap - hMax - (L ? 16 : 10); cx = W / 2; cy = (t0 + b0) / 2;
+    s = Math.max(40, Math.min((b0 - t0) / 2 * 0.8, L ? W * 0.2 : W / 2 * 0.72));
   }
-  // les cadres, et où s'écrivent les preuves (une ligne, en bas, juste au-dessus de la Terre)
-  cartes.forEach(C => { C.pad = pad; C.is = C.ia ? ptIA * 0.42 : ptC * 0.6; if (!C.tete) C.cadre = cadre(C.w, C.h, px * 0.8, C.seed || 2); C.m = C.w * C.h / (Wd.s0 * Wd.s0 * 0.6); });
-  preuves.forEach(p => { p.x = W / 2; p.y = yp; });
-  return { cartes, mots, preuves, planete };
+  // la rangée d'étoiles : une par scène (un petit écart entre l'IA et le reste), deux flèches aux bouts
+  const gap = pas * 0.8, nIA = SC.filter(S => S[2]).length, larg = (SC.length - 1) * pas + gap;
+  const pts = SC.map((S, i) => ({ x: xPts - larg / 2 + i * pas + (i >= nIA ? gap : 0), y: yPts }));
+  const fl = [{ x: pts[0].x - pas * 1.5, y: yPts, d: -1 }, { x: pts[pts.length - 1].x + pas * 1.5, y: yPts, d: 1 }];
+  return { W, H, L, cote, tete, caps, yCap, capX, capY, cx, cy, s, pts, fl, planete, pas, SC };
 }
+// où se pose une bande de sous-titres : son coin haut gauche
+const coin = (L, cap) => L.cote ? [L.capX, L.capY] : [L.W / 2 - cap.w / 2, L.yCap - cap.h];
 
-/* ——— le monde : les stylos avancent ; les cartes flottent ——— */
-let pret = false, onFini = null;
-const tps = () => M ? Wd.t - M.t0 : 0;
-const ecrit = m => M && tps() >= m.t0;
-const fini = m => M && tps() >= m.t1;
-const dessinee = C => M && (C.tete ? tps() >= C.mots[0].t0 : tps() >= C.cadre.t0);
-// chaque preuve d'IA lue en entier : toutes → une découverte (le haut fait « Recruteur curieux »)
+/* ——— la séance : une scène à la fois ——— */
+const DUREE = reduit ? { A: 0.01, B: 0.01, C: 0.01 } : { A: 1.7, B: 1.7, C: 0.9 };
+const tenue = cap => (reduit ? 4 : 0) + clamp(4.2 + cap.L.reduce((n, l) => n + l.txt.length, 0) / 26, 6, 10.5);
+let pret = false, onFini = null, fin1 = false;
+function scene(i) {
+  const lay = M.lay, S = lay.SC[i], f = DESSINS[S[0]](), W = lay.W, hb = hautTerre();
+  // (d'où vient chaque étoile : un endroit du ciel, au hasard ; les plus proches arrivent les premières)
+  const et = f.p.map((p, j) => ({ ox: rnd(0.02, 0.98) * W, oy: rnd(O.HAUT() + 4, hb - 30), dl: 0.55 * bruit(j * 1.7 + i * 13), ph: rnd(0, TAU) }));
+  return { i, S, f, et, t0: Wd.t, cap: lay.caps[i], tenue: tenue(lay.caps[i]), Q: null, reagi: false };
+}
+// passer à une scène : les étoiles de l'ancienne repartent dans le ciel ; ses sous-titres s'effacent au stylo
+function aller(j) {
+  if (!M) return; const n = M.lay.SC.length; j = ((j % n) + n) % n; const C = M.sc;
+  if (C && C.Q) C.f.p.forEach((p, k) => { if (p[3] <= 0) return; const q = C.pos ? C.pos[k] : C.Q[k]; M.part.push({ x: q[0], y: q[1], ox: rnd(0.02, 0.98) * M.lay.W, oy: rnd(O.HAUT() + 4, hautTerre() - 30), t0: Wd.t, R: 1.3 + 1.3 * p[3], ph: C.et[k].ph }); });
+  if (C) M.vieux = { cap: C.cap, t0: Wd.t, tl: Wd.t - C.t0 };
+  M.sc = scene(j); M.ry = M.rx = 0;
+}
+const tps = () => M && M.sc ? Wd.t - M.sc.t0 : 0;
+const forme = () => M && M.sc && tps() >= DUREE.A + DUREE.B + DUREE.C;
 const lusIA = new Set();
-function luIA(p) { if (lusIA.has(p.txt)) return; lusIA.add(p.txt); if (M.preuves.filter(q => q.ia).every(q => lusIA.has(q.txt)) && window.Dex && Dex.vu) Dex.vu('competences'); }
-// un point d'une carte (coordonnées de la carte, son centre en 0, 0) vers l'écran, et l'inverse ; d'un mot, via sa carte
-const vc = (C, x, y) => { const co = Math.cos(C.a), si = Math.sin(C.a); return [C.x0 + C.dx + co * x - si * y, C.y0 + C.dy + si * x + co * y]; };
-const dc = (C, X0, Y0) => { const co = Math.cos(C.a), si = Math.sin(C.a), x = X0 - C.x0 - C.dx, y = Y0 - C.y0 - C.dy; return [co * x + si * y, -si * x + co * y]; };
-const vers = (m, lx, ly) => vc(m.carte, m.lx + lx, m.ly + ly);
-// la pointe du stylo, maintenant (toutes les pointes : un stylo par carte)
-function pointes() {
-  const R = []; if (!M || M.fin) return R; const t = tps(); if (t < 0) return R;
-  M.cartes.forEach(C => {
-    const b = C.cadre; if (b && t >= b.t0 && t < b.t0 + b.d) { const p = pas(b, (t - b.t0) / b.d); R.push(vc(C, p[0], p[1])); return; }
-    for (const m of C.mots) { if (t > m.t1 + 0.05 || t < m.t0) continue; const u = clamp((t - m.t0) / (m.t1 - m.t0), 0, 1);
-      R.push(vers(m, m.px * 0.3 + m.tw * u, m.px * (1.2 + 0.12 * Math.sin(u * 40)))); return; } });
-  return R;
-}
-const pointe = () => pointes()[0] || null;
-function pas(b, u) { let r = b.L * clamp(u, 0, 1); for (let i = 1; i < b.length; i++) { const a = b[i - 1], z = b[i], l = Math.hypot(z[0] - a[0], z[1] - a[1]); if (r <= l) { const k = l ? r / l : 0; return [a[0] + (z[0] - a[0]) * k, a[1] + (z[1] - a[1]) * k]; } r -= l; } return b[b.length - 1]; }
 
-// la carte sous un point (la dernière posée est dessus), puis le mot
-function carteA(x, y, marge) {
-  for (let i = M.cartes.length - 1; i >= 0; i--) { const C = M.cartes[i]; if (!dessinee(C)) continue; const [lx, ly] = dc(C, x, y);
-    if (Math.abs(lx) < C.w / 2 + (marge || 0) && Math.abs(ly) < C.h / 2 + (marge || 0)) return C; }
-  return null;
-}
-function motA(x, y) {
-  const C = carteA(x, y, 4); if (!C) return null; const [cx, cy] = dc(C, x, y);
-  return C.mots.find(m => ecrit(m) && cx > m.lx + (m.et ? m.et[0] - 8 : 0) && cx < m.lx + m.tw + m.px * 0.6 && cy > m.ly + m.h * 0.12 && cy < m.ly + m.h * 0.92) || null;
-}
-// une preuve : sa police et sa place, calculées la première fois qu'on la demande
-function prepare(p) {
-  let font = police(p.px), tw = largeur(p.txt, font), px = p.px;
-  if (tw > O.W - 24) { px *= (O.W - 24) / tw; font = police(px); tw = largeur(p.txt, font); }
-  p.C = true; p.font = font; p.tw = tw; p.pxv = px;
-  p.hx = p.al === 'g' ? p.x : p.al === 'd' ? p.x - tw : p.x - tw / 2; p.hy = p.y + px * 0.35;   // (hy : la ligne de base)
-}
-X.entre.push(() => { M = null; pret = false;
-  const go = () => { pret = true; M = compose(Wd.t + (reduit ? -999 : 3)); };
+X.entre.push(() => { M = null; pret = false; fin1 = false;
+  const go = () => { pret = true; M = { lay: compose(), t0: Wd.t, part: [], vus: new Set(), fin: false, rx: 0, ry: 0, vrx: 0, vry: 0, bw: 0, bh: 0, sc: null, vieux: null };
+    M.lay0 = Wd.t + (reduit ? 0 : 2.2); };
   // (les polices doivent être chargées, sinon les largeurs mesurées seraient celles d'une autre)
   if (document.fonts && document.fonts.load) Promise.all([document.fonts.load(police(24)), document.fonts.load(police(24, 'fort')), document.fonts.load(police(24, true))]).then(go, go); else go(); });
 X.retour.push(() => { M = null; pret = false; });
 
 X.pas.push((dt, cats) => {
   if (!M) return;
-  // l'écran a changé de taille : on recompose, sans perdre où en étaient les stylos
-  if (M.W !== O.W || M.H !== O.H) { const t0 = M.t0, f = M.fin; M = compose(t0); M.fin = f; }
-  if (!M.fin && tps() > M.total + 2.5) { M.fin = true; if (onFini) onFini(); }
-  const ondes = O.E.ondes, now = Wd.t, hautY = O.HAUT(), basY = O.BAS();
-  M.cartes.forEach(C => {
-    if (!dessinee(C) || C.tenu) { C.poids = C.couple = 0; return; }
-    // l'apesanteur : chaque carte dérive doucement autour de sa place, et tangue ; un ressort mou l'y ramène (le titre, lui, bouge à peine)
-    const f = O.W < 760 ? 0.45 : 1, k = C.tete ? 60 : 7, amo = C.tete ? 7 : 2.4, bx = C.tete ? 0 : Math.sin(now * 0.37 + C.ph) * 5 * f, by = C.tete ? 0 : Math.sin(now * 0.51 + C.ph * 1.7) * 7 * f, ba = C.tete ? 0 : Math.sin(now * 0.29 + C.ph) * 0.025;
-    C.vx += (-k * (C.dx - bx) - amo * C.vx) * dt; C.vy += (-k * (C.dy - by) - amo * C.vy + C.poids * 220 / C.m) * dt;
-    C.va += (-k * 1.5 * (C.a - ba) - amo * 1.5 * C.va + C.couple * 1.6 / C.m) * dt;
-    C.dx += C.vx * dt; C.dy += C.vy * dt; C.a += C.va * dt; C.a = clamp(C.a, -1.2, 1.2);
-    // les bords de l'écran : elle rebondit (un coin qui sort)
-    if (!C.tete) { let ox = 0, oy = 0; [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([sx, sy]) => { const [x, y] = vc(C, sx * C.w / 2, sy * C.h / 2);
-        if (x < 2) ox = Math.max(ox, 2 - x); if (x > O.W - 2) ox = Math.min(ox, O.W - 2 - x); if (y < hautY) oy = Math.max(oy, hautY - y); if (y > basY) oy = Math.min(oy, basY - y); });
-      if (ox) { C.dx += ox; if (C.vx * ox < 0) { C.vx = -C.vx * 0.6; C.va += rnd(-1, 1); } }
-      if (oy) { C.dy += oy; if (C.vy * oy < 0) { C.vy = -C.vy * 0.6; C.va += rnd(-1, 1); } } }
-    // l'onde d'un clic dans le vide : elle la secoue
-    ondes.forEach(o => { if (o.plume && o.plume.has(C)) return; const [x, y] = vc(C, 0, 0), d = Math.hypot(x - o.x, y - o.y); if (d > Wd.s0 * 3 + Math.max(C.w, C.h) / 2) return;
-      (o.plume || (o.plume = new Set())).add(C); const f = (C.tete ? 300 : 520) * clamp(1 - d / (Wd.s0 * 3 + C.w / 2), 0.2, 1) / Math.sqrt(C.m); C.vx += (x - o.x) / (d || 1) * f; C.vy += (y - o.y) / (d || 1) * f; C.va += rnd(-1.5, 1.5) / Math.sqrt(C.m); });
-    C.poids = C.couple = 0;
-  });
-  // les cartes entre elles : celle qu'on a lancée (ou qu'on tient) bouscule celles qu'elle touche ; au repos, elles ne se gênent pas
-  // (seulement celle qu'on vient de lancer, et tant qu'elle file : les cartes bousculées, elles, rentrent chez elles sans se gêner)
-  const vive = C => C.tenu || (Wd.t - (C.lance ?? -9) < 1.4 && Math.hypot(C.vx, C.vy) > 150);
-  for (let i = 1; i < M.cartes.length; i++) for (let j = i + 1; j < M.cartes.length; j++) {
-    const A = M.cartes[i], B = M.cartes[j]; if (!dessinee(A) || !dessinee(B) || (!vive(A) && !vive(B))) continue;
-    const [ax, ay] = vc(A, 0, 0), [bx, by] = vc(B, 0, 0), ox = (A.w + B.w) / 2 - Math.abs(ax - bx), oy = (A.h + B.h) / 2 - Math.abs(ay - by); if (ox <= 0 || oy <= 0) continue;
-    const tot = A.m + B.m, sx = sgn(ax - bx) || 1, sy = sgn(ay - by) || 1;
-    if (ox < oy) { if (!A.tenu) A.dx += sx * ox * B.m / tot; if (!B.tenu) B.dx -= sx * ox * A.m / tot; const vn = (A.vx - B.vx) * sx; if (vn < 0) { const j2 = -1.6 * vn / (1 / A.m + 1 / B.m); A.vx += sx * j2 / A.m; B.vx -= sx * j2 / B.m; A.va += rnd(-0.6, 0.6); B.va += rnd(-0.6, 0.6); if (-vn > 250) toc(ax + (bx - ax) / 2, ay + (by - ay) / 2); } }
-    else { if (!A.tenu) A.dy += sy * oy * B.m / tot; if (!B.tenu) B.dy -= sy * oy * A.m / tot; const vn = (A.vy - B.vy) * sy; if (vn < 0) { const j2 = -1.6 * vn / (1 / A.m + 1 / B.m); A.vy += sy * j2 / A.m; B.vy -= sy * j2 / B.m; A.va += rnd(-0.6, 0.6); B.va += rnd(-0.6, 0.6); if (-vn > 250) toc(ax + (bx - ax) / 2, ay + (by - ay) / 2); } }
-  }
-  // le survol : la souris sur une compétence (ou sur sa carte) ; on l'a touchée (téléphone) : épinglée un moment
-  const P = Wd.ptr, vif = P && P.on && Wd.t - P.moved < 6, sousM = vif ? motA(P.x, P.y) : null, sousC = vif ? carteA(P.x, P.y) : null;
-  let voulu = null;
-  M.cartes.forEach(C => { const on = C === sousC || (C.pin && Wd.t < C.pin); C.survol += ((on ? 1 : 0) - C.survol) * Math.min(1, dt * 8); });
-  M.mots.forEach(m => { const on = m === sousM || (m.pin && Wd.t < m.pin); m.survol += ((on ? 1 : 0) - m.survol) * Math.min(1, dt * 8); if (on && m.preuve && fini(m)) voulu = m.preuve; });
-  if (!voulu) { const C = M.cartes.find(C => (C === sousC || (C.pin && Wd.t < C.pin)) && C.preuve && C.t1 && tps() >= C.t1); if (C) voulu = C.preuve; }
-  // les preuves : une à la fois ; la nouvelle attend que le stylo ait gommé l'ancienne
-  M.preuves.forEach(p => { const autre = M.preuves.some(q => q !== p && q.u > 0);
-    if (p === voulu && !autre) { if (!p.C) prepare(p); p.u = Math.min(1, p.u + dt * 1100 / (p.tw + 200)); if (p.u >= 1 && p.ia) luIA(p); }
-    else if (p.u > 0) p.u = Math.max(0, p.u - dt * 2400 / (p.tw + 200)); });
-  // les chats qui passent : ils bousculent les cartes (et rebondissent) ; le choc se partage selon les masses
-  cats.forEach(c => { const S = c.sp; if (!S || c.held || !(S.m === 'derive' || S.m === 'nage')) return; const r = rayon(c) * 0.8, mc = Math.pow(rayon(c) / (Wd.s0 * 0.4), 2);
-    M.cartes.forEach(C => { if (!dessinee(C) || C.tenu) return; const [x, y] = centreDe(c), [lx, ly] = dc(C, x, y), hw = C.w / 2, hh = C.h / 2;
-      if (Math.abs(lx) > hw + r || Math.abs(ly) > hh + r) return;
-      let px = clamp(lx, -hw, hw), py = clamp(ly, -hh, hh), nx, ny, d;
-      if (px === lx && py === ly) { const ex = hw - Math.abs(lx), ey = hh - Math.abs(ly);   // (le centre du chat est dedans : il sort par le bord le plus proche)
-        if (ex < ey) { nx = sgn(lx) || 1; ny = 0; px = nx * hw; } else { nx = 0; ny = sgn(ly) || 1; py = ny * hh; } d = -Math.min(ex, ey); }
-      else { d = Math.hypot(lx - px, ly - py); if (d > r) return; nx = (lx - px) / (d || 1); ny = (ly - py) / (d || 1); }
-      // (dans le repère de l'écran)
-      const co = Math.cos(C.a), si = Math.sin(C.a), wx = co * nx - si * ny, wy = si * nx + co * ny, o = r - d;
-      c.x += wx * o * C.m / (C.m + mc); c.y += wy * o * C.m / (C.m + mc); if (!C.tete) { C.dx -= wx * o * mc / (C.m + mc); C.dy -= wy * o * mc / (C.m + mc); }
-      const vn = (S.vx - C.vx) * wx + (S.vy - C.vy) * wy;
-      if (vn < 0) { const j = -1.5 * vn / (1 / mc + 1 / C.m); S.vx += j * wx / mc; S.vy += j * wy / mc; C.vx -= j * wx / C.m * (C.tete ? 0.3 : 1); C.vy -= j * wy / C.m * (C.tete ? 0.3 : 1); C.va += (px * wy - py * wx) * -j / (C.m * C.w * C.w * 0.08) * (C.tete ? 0.2 : 1);
-        if (-vn > 120 && Wd.t - (C.tocT || -9) > 0.5 && Math.random() < 0.5) { C.tocT = Wd.t; toc(...vc(C, px, py)); } } }); });
-  // les chats pendus : leur poids (la carte descend et penche du côté où il pend)
-  cats.forEach(c => { const S = c.sp; if (S && S.m === 'mot' && S.carte) { const mc = Math.pow(rayon(c) / (Wd.s0 * 0.4), 2); S.carte.poids += mc * (S.carte.tete ? 0.3 : 1); S.carte.couple += mc * S.lx * (S.carte.tete ? 0.1 : 1); } });
+  if (M.lay.W !== O.W || M.lay.H !== O.H) { M.lay = compose(); if (M.sc) M.sc.cap = M.lay.caps[M.sc.i]; }
+  if (!M.sc) { if (Wd.t >= M.lay0) aller(0); return; }
+  const C = M.sc, tl = tps(), F = DUREE.A + DUREE.B + DUREE.C;
+  // la souris sur les sous-titres (on lit) : la scène attend
+  const P = Wd.ptr, b = M.bande;
+  if (tl > F && b && P && P.on && Wd.t - P.moved < 8 && P.x > b.x && P.x < b.x + b.w && P.y > b.y && P.y < b.y + b.h) C.t0 += dt;
+  if (tl > F && !C.reagi) { C.reagi = true; M.vus.add(C.i); reagit(C);
+    if (C.S[2]) { lusIA.add(C.i); if (M.lay.SC.every((S, i) => !S[2] || lusIA.has(i)) && window.Dex && Dex.vu) Dex.vu('competences'); }
+    if (!fin1) { fin1 = true; if (onFini) onFini(); }
+    if (M.vus.size >= M.lay.SC.length) M.fin = true; }
+  if (tl > F + C.tenue) aller(C.i + 1);
+  // la constellation qu'on a fait tourner revient doucement de face
+  if (!M.tenu) { M.ry += M.vry * dt; M.rx += M.vrx * dt; M.vry *= Math.exp(-dt * 1.6); M.vrx *= Math.exp(-dt * 1.6); M.ry *= Math.exp(-dt * 0.5); M.rx *= Math.exp(-dt * 0.9); }
+  M.rx = clamp(M.rx, -1.1, 1.1);
+  M.part = M.part.filter(p => Wd.t - p.t0 < 1.3);
+  // les chats qui flottent devant l'écran du ciel ou devant les sous-titres : doucement poussés sur le côté (on regarde la séance, on ne la cache pas)
+  const L = M.lay, bd = M.bande;
+  cats.forEach(c => { const S = c.sp; if (!S || c.held || !(S.m === 'derive' || (S.m === 'nage' && !(S.cible && S.cible.siege != null)))) return; const [x, y] = centreDe(c), r = rayon(c);
+    const dx = x - L.cx, dy = y - L.cy, d = Math.hypot(dx, dy) || 1, R = L.s * 1.2 + r;
+    if (d < R) { const f = 320 * (1 - d / R) + 60; S.vx += dx / d * f * dt; S.vy += dy / d * f * dt; }
+    if (bd && x > bd.x - r && x < bd.x + bd.w + r && y > bd.y - r && y < bd.y + bd.h + r) { const ex = x - (bd.x + bd.w / 2), ey = y - (bd.y + bd.h / 2), q = Math.hypot(ex, ey) || 1; S.vx += ex / q * 300 * dt; S.vy += ey / q * 300 * dt; } });
 });
-const toc = (x, y) => Wd.fx.push({ k: 'txt', text: pick(['toc', 'poc', 'bonk']), x, y: y - 12, t0: Wd.t, life: 0.8, rot: rnd(-0.2, 0.2), size: 14 });
 
-/* ——— les chats : pendus au bas d'une carte, ou après la pointe du stylo ——— */
-function pend(c, C) {
-  const S = c.sp, [x, y] = centreDe(c), [lx] = dc(C, x, y);
-  Object.assign(S, { m: 'mot', carte: C, lx: clamp(lx, -C.w * 0.42, C.w * 0.42), fin: Wd.t + rnd(5, 12) });
-  C.vx += S.vx * 0.2; C.vy += S.vy * 0.2 + 40; C.va += rnd(-0.3, 0.3);
-  S.ancre = () => S.carte ? vc(S.carte, S.lx, S.carte.h / 2) : null;
-  if (Math.random() < 0.6) say(c, pick(en() ? ['hanging!', 'got it', 'reading…'] : ['accroché !', 'je lis…', 'wiii', 'c\'est écrit quoi ?', 'IA ?']));
+/* ——— le dessin ——— */
+// les points de la scène, à l'écran : [x, y, perspective, profondeur]
+function projette(C, tl) {
+  const f = C.f, L = M.lay, P = f.p.map(p => p.slice()); if (f.geo) f.geo(P, tl);
+  const [a0, b0, c0] = f.rot(reduit ? 0 : tl), rx = a0 + M.rx, ry = b0 + M.ry, rz = c0, K3 = 3.4;
+  const cx = Math.cos(rx), sx = Math.sin(rx), cy = Math.cos(ry), sy = Math.sin(ry), cz = Math.cos(rz), sz = Math.sin(rz);
+  return P.map(([x, y, z]) => { const x1 = x * cz - y * sz, y1 = x * sz + y * cz, x2 = x1 * cy + z * sy, z2 = -x1 * sy + z * cy, y3 = y1 * cx - z2 * sx, z3 = y1 * sx + z2 * cx, k = K3 / (K3 - z3);
+    return [L.cx + x2 * L.s * k, L.cy + y3 * L.s * k, k, z3]; });
 }
-function lache(c, v) { const S = c.sp; S.ancre = null; S.carte = null; S.m = 'derive'; S.next = Wd.t + rnd(2, 4); S.lache = Wd.t; S.vx = rnd(-v, v); S.vy = rnd(-v, v * 0.3); S.w = rnd(-3, 3); }
-X.mode.mot = (c, dt) => {
-  const S = c.sp, C = S.carte; c.anim = 'agrippe'; c.spin *= Math.exp(-dt * 3);
-  if (!C || !M || !M.cartes.includes(C)) { lache(c, 60); return; }
-  // il avance le long du bord, patte après patte ; secoué fort (ou lassé), il lâche
-  S.lx = clamp(S.lx + Math.sin(S.t * 1.3) * 14 * dt, -C.w / 2, C.w / 2);
-  if (Math.hypot(C.vx, C.vy) > 650 || Math.abs(C.va) > 4) { lache(c, 220); say(c, pick(['aaah !', 'mia !', 'trop fort'])); return; }
-  if (Wd.t > S.fin) { lache(c, 120); if (Math.random() < 0.4) say(c, pick(['hop', 'bon.', 'suivant !'])); }
-};
-X.envie.push(c => {
-  if (!M) return false; const S = c.sp;
-  // pendant l'écriture : courir après une pointe de stylo
-  if (!M.fin && Math.random() < 0.18 && pointe()) { const k = Math.floor(Math.random() * 5); S.m = 'nage'; S.fin = Wd.t + 4;
-    const ici = () => { const P = pointes(); return P[k % Math.max(1, P.length)] || null; };
-    S.cible = { get x() { const p = ici(); return p ? p[0] : -9999; }, get y() { const p = ici(); return p ? p[1] : -9999; }, r: 1,
-      arrive: c => { c.sp.m = 'derive'; c.sp.next = Wd.t + rnd(1.5, 3); c.sp.vx += rnd(-60, 60); c.sp.vy -= 40; say(c, pick(en() ? ['got the pen!', 'mine!'] : ['la craie !', 'attrapé !', 'à moi !', 'qu\'est-ce qu\'il écrit ?'])); } };
-    return true; }
-  // une carte déjà écrite : s'y pendre (deux chats au plus par carte)
-  const L = M.cartes.filter(C => !C.tete && C.t1 && tps() >= C.t1 && Wd.cats.filter(o => o.sp && o.sp.carte === C).length < 2); if (!L.length || Math.random() < 0.5) return false;
-  const C = pick(L), lx = rnd(-0.38, 0.38) * C.w;
-  S.m = 'nage'; S.fin = Wd.t + 6; S.cible = { get x() { return vc(C, lx, C.h / 2)[0]; }, get y() { return vc(C, lx, C.h / 2)[1] + rayon(c) * 0.6; }, r: 1.2, arrive: c => pend(c, C) };
-  return true;
-});
+const prof = d => 0.42 + 0.58 * c01((d + 1.1) / 2.2);
+function etoile(ctx, x, y, R, k, br, now, ph) { O.brille(ctx, x, y, R, k, br, now, ph); ctx.globalAlpha = Math.min(1, k * 1.1); ctx.fillStyle = `rgb(${BL})`; ctx.beginPath(); ctx.arc(x, y, R * 0.42, 0, TAU); ctx.fill(); }
+function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 
-/* ——— attraper une carte, la lancer (elle revient à sa place, sans se presser) ; un simple toucher épingle la compétence ——— */
-const MOD = {
-  drag(k, x, y) { const C = k.C; if (!C.tenu) { if (Math.hypot(x - k.x0, y - k.y0) < 6) return; C.tenu = true; k.px = x; k.py = y; k.t = Wd.t; }
-    const dt = Math.max(1 / 120, Wd.t - k.t); k.t = Wd.t; k.vx = (x - k.px) / dt; k.vy = (y - k.py) / dt; C.dx += x - k.px; C.dy += y - k.py; k.px = x; k.py = y;
-    C.a += (clamp(-k.vx * 0.0003, -0.4, 0.4) - C.a) * 0.15;
-    if (Math.hypot(k.vx, k.vy) > 1600) Wd.cats.forEach(c => { if (c.sp && c.sp.carte === C) { lache(c, 300); say(c, 'wiii !'); } }); },
-  release(k, vx, vy) { const C = k.C;
-    if (!C.tenu) { M.mots.forEach(o => { o.pin = 0; }); M.cartes.forEach(o => { o.pin = 0; }); if (k.m) k.m.pin = Wd.t + 7; else C.pin = Wd.t + 7; return; }
-    C.tenu = false; C.lance = Wd.t; const f = C.tete ? 0.4 : 1; C.vx = clamp(vx || 0, -1600, 1600) * f; C.vy = clamp(vy || 0, -1600, 1600) * f; C.va += clamp((vx || 0) * 0.0015, -4, 4) * f; }
-};
-X.grab.push((x, y) => {
-  if (!M) return null;
-  const C = carteA(x, y, 6); return C ? { mod: MOD, C, m: motA(x, y), x0: x, y0: y } : null;
+X.fond.push((ctx, now) => {
+  if (!M) return; const L = M.lay, T = L.tete, th = Wd.t - M.t0;
+  ctx.save(); ctx.lineCap = ctx.lineJoin = 'round'; ctx.strokeStyle = ctx.fillStyle = `rgb(${BL})`;
+  // l'en-tête : le nom, puis le titre, dévoilés de gauche à droite
+  const ecrit = (txt, font, x, y, u, al) => { if (u <= 0) return; ctx.font = font; const w = largeur(txt, font), x0 = al === 'c' ? x - w / 2 : x; ctx.save(); ctx.beginPath(); ctx.rect(x0 - 4, y - 200, (w + 8) * c01(u), 400); ctx.clip(); ctx.globalAlpha = 1; ctx.fillText(txt, x0, y); ctx.restore(); };
+  ctx.textBaseline = 'alphabetic';
+  ecrit(T.nom, T.fn, T.x, T.yn, reduit ? 1 : th / 0.9, T.al); T.role.forEach((l, i) => { ctx.globalAlpha = 0.8; ecrit(l, T.fr, T.x, T.yr + i * T.lr, reduit ? 1 : (th - 0.7 - i * 0.3) / 0.8, T.al); });
+  ctx.globalAlpha = 1;
+  // les étoiles qui repartent dans le ciel (celles de la scène d'avant)
+  M.part.forEach((p, j) => { const u = c01((Wd.t - p.t0) / 1.2), e = sm(u), x = p.x + (p.ox - p.x) * e, y = p.y + (p.oy - p.y) * e; etoile(ctx, x, y, p.R * (1 - u) + 0.8 * u, 0.9, false, now, p.ph); });
+  const C = M.sc;
+  if (C) {
+    const tl = tps(), { A, B } = DUREE, Cd = DUREE.C, Q = C.Q = projette(C, tl), f = C.f, u = sm(c01((tl - A - B) / Cd)), ne = f.e.length;
+    // les traits : la constellation se relie, trait après trait ; puis le trait s'affirme (le dessin)
+    ctx.lineWidth = 1;
+    f.e.forEach(([a, b, st], j) => { const g = c01((tl - A - (j / ne) * B * 0.85) / 0.35); if (g <= 0) return; const P = Q[a], R = Q[b], k = prof((P[3] + R[3]) / 2);
+      if (st === 'fin') { ctx.setLineDash([3, 5]); ctx.globalAlpha = 0.34 * k; ctx.lineWidth = 1; } else { ctx.setLineDash([]); ctx.globalAlpha = (0.42 + 0.5 * u) * k; ctx.lineWidth = 1 + 0.9 * u; }
+      ctx.beginPath(); ctx.moveTo(P[0], P[1]); ctx.lineTo(P[0] + (R[0] - P[0]) * g, P[1] + (R[1] - P[1]) * g); ctx.stroke(); });
+    ctx.setLineDash([]); ctx.lineWidth = 1.4;
+    // les influx : de petites lumières qui parcourent certains traits
+    if (u > 0 && !reduit) f.flux.forEach(([a, b], k) => { const v = (tl * 0.6 + k * 0.37) % 1.5; if (v >= 1) return; const P = Q[a], R = Q[b]; O.brille(ctx, P[0] + (R[0] - P[0]) * v, P[1] + (R[1] - P[1]) * v, 2.4, u * Math.sin(Math.PI * v), false, now, k); });
+    if (f.plus) { ctx.save(); ctx.strokeStyle = ctx.fillStyle = `rgb(${BL})`; ctx.lineWidth = 1.4; f.plus(ctx, Q, tl, u, now); ctx.restore(); }
+    // les étoiles : elles quittent le ciel, filent (une petite traîne), se posent (un éclat), puis scintillent
+    const pos = C.pos = [];
+    f.p.forEach((p, j) => { const s = p[3], q = Q[j]; if (s <= 0) { pos[j] = q; return; } const E = C.et[j], d0 = A - 0.55, k = c01((tl - E.dl) / d0), e = sm(k);
+      const x = E.ox + (q[0] - E.ox) * e, y = E.oy + (q[1] - E.oy) * e; pos[j] = [x, y];
+      if (k > 0 && k < 1) { const e2 = sm(c01(k - 0.08)); ctx.globalAlpha = 0.35; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(E.ox + (q[0] - E.ox) * e2, E.oy + (q[1] - E.oy) * e2); ctx.lineTo(x, y); ctx.stroke(); }
+      const flash = k >= 1 ? Math.max(0, 1 - (tl - E.dl - d0) * 2.5) : 0, clig = p[4] === 'clig' && u > 0 ? (Math.sin(now * 4 + j * 1.7) > 0 ? 1 : 0.3) : 1;
+      const R = (1.1 + 1.25 * s) * q[2] * (1 + flash * 0.9) * (0.85 + 0.15 * Math.sin(now * 2.3 + E.ph)) * (k < 1 ? 0.75 + 0.25 * k : 1);
+      etoile(ctx, x, y, R, (0.55 + 0.45 * prof(q[3])) * clig, s >= 1.2 || flash > 0.3, now, E.ph); });
+  }
+  // les sous-titres : sur une bande de nuit (lisibles, même quand un chat passe derrière) ; l'icône, le nom, la preuve, les outils
+  const cap = C && C.cap, V = M.vieux, tl = tps(), vu = V ? c01((Wd.t - V.t0) / 0.35) : 1;
+  if (cap) { const k = Math.min(1, dt0()); M.bw = M.bw ? M.bw + (cap.w - M.bw) * k : cap.w; M.bh = M.bh ? M.bh + (cap.h - M.bh) * k : cap.h;
+    const ap = reduit || M.vus.size || C.i ? 1 : sm(c01((tl - 0.2) / 0.6)), w = M.bw * ap, h = M.bh;
+    const x = L.cote ? L.capX : L.W / 2 - w / 2, y = L.cote ? L.capY : L.yCap - h;
+    M.bande = { x: L.cote ? L.capX : L.W / 2 - M.bw / 2, w: M.bw, h, y };
+    if (w > 2) { ctx.globalAlpha = 1; ctx.fillStyle = 'rgba(6,8,12,0.66)'; rr(ctx, x, y, w, h, 12); ctx.fill(); ctx.globalAlpha = 0.28; ctx.lineWidth = 1.2; ctx.strokeStyle = `rgb(${BL})`; ctx.stroke(); ctx.fillStyle = `rgb(${BL})`; }
+    const txt = (D, q) => { const [ox, oy] = coin(L, D); D.L.forEach(l => { const r = c01(q(l)); if (r <= 0) return; ctx.save(); ctx.beginPath(); ctx.rect(ox + l.x - 4, oy + l.y - 60, (l.w + 8) * r, 90); ctx.clip();
+      ctx.globalAlpha = l.a; ctx.font = l.font; ctx.fillStyle = `rgb(${BL})`; ctx.fillText(l.txt, ox + l.x, oy + l.y); ctx.restore(); }); };
+    // (l'ancienne s'efface d'abord, de droite à gauche ; la nouvelle s'écrit ensuite)
+    if (V && vu < 1) txt(V.cap, l => 1 - vu);
+    else { txt(cap, l => reduit ? 1 : (tl - 0.5 - l.dl) * 900 / (l.w + 120)); const [ox, oy] = coin(L, cap);
+      const ui = reduit ? 1 : c01((tl - 0.45) / 0.9); if (ui > 0) icone(ctx, cap.k, ox + cap.ic.x, oy + cap.ic.y, cap.ic.s, ui, now, 0); } }
+  // la rangée de petites étoiles : une par scène (celle d'en cours est plus grosse, un cercle montre le temps qui reste) ; les flèches aux bouts
+  if (C) { L.pts.forEach((p, i) => { const on = i === C.i, R = on ? 3.4 : M.vus.has(i) ? 2.2 : 1.6; etoile(ctx, p.x, p.y, R, on ? 1 : M.vus.has(i) ? 0.75 : 0.45, on, now, i);
+      if (on && !reduit) { const F = DUREE.A + DUREE.B + DUREE.C, v = c01(tl / (F + C.tenue)); ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeStyle = `rgb(${BL})`; ctx.beginPath(); ctx.arc(p.x, p.y, 7.5, -Math.PI / 2, -Math.PI / 2 + v * TAU); ctx.stroke(); } });
+    ctx.globalAlpha = 0.75; ctx.lineWidth = 1.6; ctx.strokeStyle = `rgb(${BL})`; L.fl.forEach(a => { const s = 5; ctx.beginPath(); ctx.moveTo(a.x - a.d * s * 0.5, a.y - s); ctx.lineTo(a.x + a.d * s * 0.5, a.y); ctx.lineTo(a.x - a.d * s * 0.5, a.y + s); ctx.stroke(); }); }
+  ctx.restore();
 });
+let tPrec = 0; const dt0 = () => { const d = Wd.t - tPrec; tPrec = Wd.t; return clamp(d * 6, 0, 1); };
 
-/* ——— les icônes des cartes : au trait, comme le reste ; elles se tracent (u : 0 → 1) quand le titre s'écrit ———
-   ia : un petit réseau (un nœud, six voisins, des influx) · front : une fenêtre de navigateur et </> · back : trois serveurs empilés
-   pilotage : une boussole · devops : la boucle sans fin (construire, livrer, recommencer) */
-const ICONES = ['front', 'back', 'pilotage', 'devops'];
+/* ——— les icônes des sous-titres : au trait, comme le reste ; elles se tracent (u : 0 → 1) ———
+   ia : un petit réseau · front : une fenêtre de navigateur et </> · back : trois serveurs empilés · pilotage : une boussole · devops : la boucle sans fin */
 function icone(ctx, k, x, y, s, u, now, vif) {
   ctx.save(); ctx.translate(x, y); ctx.strokeStyle = ctx.fillStyle = `rgb(${BL})`; ctx.lineWidth = 1.5 + (vif || 0) * 0.5; ctx.lineCap = ctx.lineJoin = 'round'; ctx.globalAlpha = 0.95;
   ctx.setLineDash([s * 14 * u, s * 20]);   // (le trait se dessine)
@@ -362,50 +402,63 @@ function icone(ctx, k, x, y, s, u, now, vif) {
 }
 
 /* ——— le dessin : la craie des cadres, le stylo des mots ; la pointe, au bout ——— */
-// un tracé partiel : les u premiers pixels d'une ligne de points
-function trace(ctx, b, r) { ctx.beginPath(); ctx.moveTo(b[0][0], b[0][1]); for (let i = 1; i < b.length && r > 0; i++) { const a = b[i - 1], z = b[i], l = Math.hypot(z[0] - a[0], z[1] - a[1]); if (r >= l) ctx.lineTo(z[0], z[1]); else ctx.lineTo(a[0] + (z[0] - a[0]) * r / l, a[1] + (z[1] - a[1]) * r / l); r -= l; } ctx.stroke(); }
-X.fond.push((ctx, now) => {
-  if (!M) return; const t = tps(); if (t < 0) return;
-  ctx.save(); ctx.lineCap = ctx.lineJoin = 'round';
-  M.cartes.forEach(C => {
-    if (!dessinee(C)) return;
-    ctx.save(); const [ox, oy] = vc(C, 0, 0); ctx.translate(ox, oy); ctx.rotate(C.a);
-    const b = C.cadre;
-    if (b) { const u = clamp((t - b.t0) / b.d, 0, 1);
-      // le fond de la carte : un voile de nuit (les étoiles derrière s'effacent un peu), qui se pose quand le cadre se ferme
-      if (u > 0.9) { ctx.beginPath(); b.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fillStyle = `rgba(6,8,12,${0.62 * sm((u - 0.9) / 0.1)})`; ctx.fill(); }
-      // la craie : un trait, et un second plus pâle, un peu décalé (le grain)
-      ctx.strokeStyle = `rgb(${BL})`; ctx.globalAlpha = 0.9; ctx.lineWidth = (C.ia ? 2.2 : 1.8) + C.survol * 0.6; trace(ctx, b, b.L * u);
-      ctx.save(); ctx.translate(1.1, 0.8); ctx.globalAlpha = 0.28; ctx.lineWidth = 1.2; trace(ctx, b, b.L * u); ctx.restore();
-      // la carte de l'IA : une lumière qui fait le tour de son cadre
-      if (C.ia && u >= 1 && !reduit) { const q = pas(b, ((now * 0.09) % 1)); O.brille(ctx, q[0], q[1], 3.2, 0.95, false, now, 0); const q2 = pas(b, ((now * 0.09 + 0.5) % 1)); O.brille(ctx, q2[0], q2[1], 2.4, 0.7, false, now, 1); }
-      ctx.globalAlpha = 1; }
-    // les mots : leur puce (une petite étoile qui s'allume), puis leurs lettres, dévoilées par la pointe
-    C.mots.forEach((m, i) => { if (t < m.t0) return;
-      if (m.et) { const k = sm(clamp((t - m.t0) / 0.35, 0, 1)), R = m.eR * (1 + m.survol * 0.7) * k, x = m.lx + m.et[0], y = m.ly + m.et[1];
-        O.brille(ctx, x, y, R, 0.7 + 0.2 * Math.sin(now * 2.1 + i + C.id) + m.survol * 0.4, true, now, i); ctx.globalAlpha = 1; ctx.fillStyle = `rgb(${BL})`; ctx.beginPath(); ctx.arc(x, y, R * 0.42, 0, TAU); ctx.fill(); }
-      ctx.save(); ctx.translate(m.lx, m.ly); ctx.strokeStyle = ctx.fillStyle = `rgb(${BL})`; ctx.globalAlpha = m.estTitre || m.titre || m.survol > 0.05 || C.tete ? 1 : 0.92;
-      const u = clamp((t - m.t0) / (m.t1 - m.t0), 0, 1);
-      ctx.save(); if (u < 1) { ctx.beginPath(); ctx.rect(0, -m.px * 0.4, m.px * 0.3 + m.tw * u, m.h + m.px * 0.8); ctx.clip(); }
-      ctx.font = m.font; ctx.textBaseline = 'alphabetic'; ctx.fillText(m.txt, m.px * 0.3, m.px * 1.2);
-      if (m.survol > 0.05) { ctx.globalAlpha = m.survol * 0.35; ctx.fillText(m.txt, m.px * 0.3 + 0.6, m.px * 1.2); }   // (survolé : un peu plus gras)
-      ctx.restore(); ctx.lineWidth = 1.4;
-      // (le titre de la carte : souligné à la craie)
-      if (m.estTitre && !C.tete) { const u = clamp((t - m.t1) / 0.3, 0, 1); if (u > 0) { ctx.lineWidth = 1.4; ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.moveTo(m.px * 0.3, m.h * 0.86); ctx.quadraticCurveTo(m.px * 0.3 + m.tw * 0.5 * u, m.h * 0.9, m.px * 0.3 + m.tw * u, m.h * 0.85); ctx.stroke(); } }
-      ctx.restore(); });
-    if (C.icone) { const T = C.mots[0], u = clamp((t - T.t0) / 0.9, 0, 1); if (u > 0) icone(ctx, C.icone, C.w / 2 - C.pad - C.is, -C.h / 2 + C.pad + C.is * 0.9, C.is, u, now, C.survol); }
-    ctx.restore();
-  });
-  // les preuves : écrites au stylo en bas, et gommées de même
-  // (sur un fond de nuit, pour qu'on la lise même quand un chat ou une étoile passe derrière ; la pointe au bout du texte)
-  M.preuves.forEach(p => { if (p.u <= 0 || !p.C) return; const e = sm(p.u), w = p.tw * e; ctx.save();
-    ctx.fillStyle = 'rgba(6,8,12,0.72)'; ctx.beginPath(); ctx.rect(p.hx - p.pxv * 0.6, p.hy - p.pxv * 1.15, w + p.pxv * 1.2, p.pxv * 1.6); ctx.fill();
-    ctx.beginPath(); ctx.rect(p.hx - 2, p.hy - p.pxv * 1.3, w + 2, p.pxv * 1.8); ctx.clip();
-    ctx.fillStyle = `rgb(${BL})`; ctx.font = p.font; ctx.textBaseline = 'alphabetic'; ctx.fillText(p.txt, p.hx, p.hy); ctx.restore();
-    ctx.save(); ctx.strokeStyle = `rgb(${BL})`; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(p.hx - p.pxv * 0.6, p.hy + p.pxv * 0.45); ctx.lineTo(p.hx - p.pxv * 0.6 + (w + p.pxv * 1.2), p.hy + p.pxv * 0.45); ctx.stroke(); ctx.restore(); });
-  ctx.restore();
-});
-X.devant.push(ctx => { const P = pointes(); if (!P.length) return; ctx.save(); ctx.fillStyle = `rgb(${BL})`; P.forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 2.6, 0, TAU); ctx.fill(); }); ctx.restore(); });
 
-return { get M() { return M; }, pointe, get planete() { return M && M.planete; }, set onFini(f) { onFini = f; }, get fini() { return !!(M && M.fin); } };
+/* ——— la main : attraper la constellation pour la faire tourner (un toucher : la scène suivante) ; les petites étoiles d'en bas, les flèches ———
+   (seulement sur une étoile de la constellation : ailleurs, dans le ciel, on dessine toujours, js/espace-dessin.js) */
+const TOURNE = {
+  drag(k, x, y) { if (!k.bouge) { if (Math.hypot(x - k.x0, y - k.y0) < 6) return; k.bouge = true; M.tenu = true; k.px = x; k.py = y; }
+    M.ry += (x - k.px) * 0.009; M.rx -= (y - k.py) * 0.007; k.px = x; k.py = y; },
+  release(k, vx, vy) { M.tenu = false; if (!k.bouge) { aller(M.sc.i + 1); return; } M.vry = clamp((vx || 0) * 0.006, -6, 6); M.vrx = clamp(-(vy || 0) * 0.004, -3, 3); }
+};
+const BOUTON = { drag() {}, release(k) { if (M) aller(k.j); } };
+X.grab.push((x, y) => {
+  if (!M || !M.sc) return null; const L = M.lay;
+  for (let i = 0; i < L.pts.length; i++) { const p = L.pts[i]; if (Math.abs(x - p.x) < L.pas / 2 && Math.abs(y - p.y) < 16) return { mod: BOUTON, j: i }; }
+  for (const a of L.fl) if (Math.hypot(x - a.x, y - a.y) < 18) return { mod: BOUTON, j: M.sc.i + a.d };
+  const P = M.sc.pos; if (!P || tps() < DUREE.A) return null;
+  if (M.sc.f.p.some((p, j) => p[3] > 0 && P[j] && Math.hypot(P[j][0] - x, P[j][1] - y) < 18)) return { mod: TOURNE, x0: x, y0: y };
+  return null;
+});
+
+/* ——— les chats : au cinéma. Ils viennent s'asseoir sur la Terre, le nez vers le ciel, et regardent la séance ——— */
+function siege(c) {
+  const W = O.W, r = rayon(c), autres = Wd.cats.filter(o => o !== c && o.sp && (o.sp.m === 'cine' || (o.sp.cible && o.sp.cible.siege != null))).map(o => [o.sp.m === 'cine' ? o.sp.sx : o.sp.cible.siege, rayon(o)]);
+  for (let n = 0; n < 14; n++) { const x = rnd(0.05, 0.95) * W; if (autres.every(([a, ro]) => Math.abs(a - x) > (r + ro) * 0.95)) return x; }
+  return null;
+}
+function assied(c, x) {
+  const S = c.sp, dodo = Math.random() < 0.12 && ANIMS.dodo;
+  Object.assign(S, { m: 'cine', sx: x, fin: Wd.t + rnd(18, 40), anim: dodo ? 'dodo' : pick(['assis', 'assis', 'pain', 'assis'].filter(a => ANIMS[a])) || 'assis', vx: 0, vy: 0, cible: null });
+  if (Math.random() < 0.5) say(c, pick(en() ? ['showtime!', 'shh…', 'popcorn?', 'front row'] : ['la séance !', 'chut…', 'pop-corn ?', 'premier rang', 'ça commence']));
+  if (window.Dex && Dex.vu) Dex.vu('cinema');
+}
+function leve(c, v) { const S = c.sp; S.m = 'derive'; S.vx = rnd(-60, 60); S.vy = -rnd(0.7, 1) * v; S.next = Wd.t + rnd(2, 4); S.lache = Wd.t; S.anim = 'apesanteur'; c.spin = 0; }
+X.mode.cine = (c, dt) => {
+  const S = c.sp; if (!M) { leve(c, 120); return; }
+  const T = terre(), x = S.sx, y = surface(x), a = Math.atan2(y - T.cy, x - T.cx);
+  // (assis sur la courbe de la Terre, tourné vers l'écran du ciel)
+  c.face = sgn(M.lay.cx - x) || 1; c.spin = -(a + Math.PI / 2) * c.face; c.x = x; c.y = y;
+  c.anim = S.rea && Wd.t < S.rea ? S.animR : S.anim;
+  if (Wd.t > S.fin) { leve(c, 150); if (Math.random() < 0.4) say(c, pick(en() ? ['brb', 'stretch!'] : ['entracte', 'je reviens', 'hop'])); }
+};
+// à la fin de chaque dessin : un ou deux spectateurs réagissent
+function reagit(C) {
+  const V = Wd.cats.filter(c => c.sp && c.sp.m === 'cine'); if (!V.length) return;
+  const n = Math.min(V.length, Math.random() < 0.4 ? 2 : 1);
+  for (let k = 0; k < n; k++) { const c = V.splice(Math.floor(Math.random() * V.length), 1)[0], S = c.sp;
+    if (S.anim === 'dodo') { if (Math.random() < 0.5) say(c, 'zzz'); continue; }
+    S.rea = Wd.t + 1.4; S.animR = ANIMS.debout ? 'debout' : S.anim;
+    later(k * 0.5, () => say(c, pick(en() ? ['ooh…', 'wow', '✦', 'again!', C.S[2] ? 'AI!' : 'nice'] : ['ooh…', 'waouh', '✦', 'encore !', 'joli', C.S[2] ? 'IA !' : 'bravo']))); }
+}
+const later = (d, f) => (K.later ? K.later(d, f) : setTimeout(f, d * 1000));
+X.envie.push(c => {
+  if (!M || !M.sc || Math.random() < 0.3 || c.rare === 'geant') return false; const S = c.sp;
+  const n = Wd.cats.filter(o => o.sp && (o.sp.m === 'cine' || (o.sp.m === 'nage' && o.sp.cible && o.sp.cible.siege != null))).length;
+  if (n >= Math.max(3, Math.ceil(Wd.cats.filter(o => o.sp).length * 0.75))) return false;
+  const x = siege(c); if (x == null) return false;
+  S.m = 'nage'; S.fin = Wd.t + 9; S.cible = { siege: x, x, get y() { return surface(x) - rayon(c) * 0.9; }, r: 1.3, arrive: c => assied(c, x) };
+  return true;
+});
+
+return { get M() { return M; }, pointe: () => null, get planete() { return M && M.lay.planete; }, set onFini(f) { onFini = f; }, get fini() { return !!(M && M.fin); }, aller };
 })();

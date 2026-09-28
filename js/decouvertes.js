@@ -156,7 +156,8 @@ fam('espace', 'L’espace', 'Space', [
   ['porte', 'La porte', 'The door', 'Un coup de trait à travers un mur.', 'A stroke right through a wall.'],
   ['coupe', 'Coupé en deux', 'Cut in two', 'Un coup de trait sec à travers une liane.', 'A quick stroke across a vine.'],
   ['nyanespace', 'Nyan dans les étoiles', 'Nyan among the stars', 'Un arc-en-ciel qui traverse l’espace.', 'A rainbow crossing space.'],
-  ['competences', 'Toutes les compétences IA', 'Every AI skill', 'Chaque nom autour de « IA », et ce qu’il y a derrière.', 'Every name around “AI”, and what’s behind it.'],
+  ['cinema', 'La séance', 'Showtime', 'Assis sur la Terre, le nez vers les étoiles.', 'Sitting on the Earth, nose up to the stars.'],
+  ['competences', 'Toutes les compétences IA', 'Every AI skill', 'Chaque dessin des étoiles sur l’IA, jusqu’au bout.', 'Every star drawing about AI, to the end.'],
   ['retourplanete', 'Retour par la planète', 'Home through the planet', 'La planète des chats ramène à la maison.', 'The cat planet takes you home.'],
 ]);
 const TOUS = FAM.flatMap(f => f.L), PAR = Object.fromEntries(TOUS.map(d => [d.id, d]));
