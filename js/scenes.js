@@ -20,7 +20,7 @@ const popGrab = { grab: (x, y) => Pops.hit(x, y), drag: (o, x, y) => Pops.hold(o
 
 /* ——— 1 · la station « Salut » ——— */
 const enterBtn = $('#enter'), stayBtn = $('#stay'), root = document.documentElement;
-let reste = null, chute = false;   // l'horloge du clic sur « Restez jouer ici » (null : pas encore)
+let reste = null, chute = false;   // (l'ancien « Restez jouer ici » : devenu « Mode sérieux », il ne sert plus ; null : on ne quitte jamais le titre)
 // « Restez jouer ici » : le même cadre que l'autre bouton, mais il brille : un halo de lumière qui respire,
 // un reflet qui le traverse (css/site.css) et de petites étoiles qui scintillent autour
 function glowButton(el, prog, seed, clock) {
@@ -37,17 +37,9 @@ function glowButton(el, prog, seed, clock) {
     if (sz < 0.5) continue; const x = cx + Math.cos(ang) * (r.width / 2 + 16), y = cy + Math.sin(ang) * (r.height / 2 + 12);
     C.line(x - sz, y, x + sz, y, 1, { w: 1.3, a: 0.8, seed: k, tip: false, amp: 0 }); C.line(x, y - sz, x, y + sz, 1, { w: 1.3, a: 0.8, seed: k + 9, tip: false, amp: 0 }); }
 }
-// on reste jouer : le titre tombe (ou s'efface), ce bouton s'en va, et le bouton d'entrée file en haut de l'écran
-if (stayBtn) stayBtn.addEventListener('click', () => {
-  if (reste !== null) return; reste = Film.clock; stayBtn.disabled = true;
-  // les lettres du titre dégringolent jusqu'au sol (js/vie.js) ; sans elles, le titre se dé-écrit
-  chute = !!(window.Vie && Vie.tombe());
-  setTimeout(() => {
-    const a = enterBtn.getBoundingClientRect(); root.classList.add('jeu'); const b = enterBtn.getBoundingClientRect();
-    enterBtn.style.transition = 'none'; enterBtn.style.transform = `translate(${a.left - b.left}px,${a.top - b.top}px)`; void enterBtn.offsetWidth;
-    enterBtn.style.transition = 'transform .8s cubic-bezier(.3,1.4,.5,1),letter-spacing .3s'; enterBtn.style.transform = '';
-  }, 750);
-});
+// le bouton « Mode sérieux » (28/09, Mathieu : il remplace « Restez jouer ici ») : les chats s'enfuient, les objets tombent dans des trous,
+// puis le CV au défilement s'ouvre (js/fuite.js, puis js/serieux.js) ; sans ces deux-là, rien ne se passe
+if (stayBtn) stayBtn.addEventListener('click', () => { if (window.Fuite) Fuite.go(stayBtn); else if (window.Serieux) Serieux.ouvre(); });
 // (depuis la sortie de l'espace : le titre et les boutons s'écrivent une fois la pièce revenue, js/trounoir.js)
 const vu = S => TN ? Math.min(S.since, TN.depuis) : S.since;
 const salut = Object.assign({

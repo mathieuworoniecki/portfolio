@@ -27,7 +27,7 @@ fr: {
   'tuto.coucou': 'coucou !', 'tuto.attrape': 'Attrape un chat : appuie et tire', 'tuto.caresse': 'Caresse-le : passe et repasse sur son dos',
   'tuto.clic': 'Clique dans le vide : un chat tombe du ciel', 'tuto.lance': 'Attrape un objet et lance-le',
   'indice.levier': 'Abaisse mon levier !', 'indice.distrib': 'Clique-moi trois fois…', 'indice.coffre': 'Ouvre-moi : un jouet !',
-  'salut.cta': 'Entrer dans mon univers', 'salut.stay': 'Restez jouer ici', 'salut.hint': 'clique : un chat tombe du ciel · le coffre : un jouet',
+  'salut.cta': 'Entrer dans mon univers', 'salut.stay': 'Mode sérieux', 'salut.hint': 'clique : un chat tombe du ciel · le coffre : un jouet',
   'essai.title': 'Une scène de cinq secondes', 'essai.note': 'le temps ralentit ici', 'essai.cap': 'Une phrase écrite sur la ligne du temps, lettre à lettre.',
   'jeu.title': 'Terrain de jeu', 'jeu.hint': 'clique, attrape, lance'
 },
@@ -48,7 +48,7 @@ en: {
   'tuto.coucou': 'hi!', 'tuto.attrape': 'Grab a cat: press and pull', 'tuto.caresse': 'Pet it: move back and forth over its back',
   'tuto.clic': 'Click on empty space: a cat falls from the sky', 'tuto.lance': 'Grab an object and throw it',
   'indice.levier': 'Pull my lever down!', 'indice.distrib': 'Click me three times…', 'indice.coffre': 'Open me: a toy!',
-  'salut.cta': 'Enter my universe', 'salut.stay': 'Stay and play here', 'salut.hint': 'click: a cat falls from the sky · the chest: a toy',
+  'salut.cta': 'Enter my universe', 'salut.stay': 'Serious mode', 'salut.hint': 'click: a cat falls from the sky · the chest: a toy',
   'essai.title': 'A five-second scene', 'essai.note': 'time slows down here', 'essai.cap': 'A sentence written on the timeline, letter by letter.',
   'jeu.title': 'Playground', 'jeu.hint': 'click, grab, throw'
 }};

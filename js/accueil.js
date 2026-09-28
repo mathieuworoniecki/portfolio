@@ -86,7 +86,7 @@ H.draw.push(() => {
 });
 
 H.post.push(() => {
-  if (Wd.a < 0.6) { montre(null); return; }
+  if (Wd.a < 0.6 || Wd.fuite) { montre(null); return; }   // (pendant la fuite vers le mode sérieux, js/fuite.js : plus de tuto)
   if (!arrive && Wd.t > 1.6) bienvenue();
   Wd.props.forEach(it => { if (it.held) porte = it; });
   const reste = ETAPES.some(e => !fait[e.id]);
