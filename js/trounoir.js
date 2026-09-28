@@ -284,7 +284,7 @@ function espace(dt) {
     // accroché ailleurs (un trait, une lettre…) : le module donne le point où vont ses pattes de devant
     else if (c.sp.ancre) { const A = c.sp.ancre(), f = Chat.where(c, c.legs[c.face > 0 ? 'fr' : 'fl'].foot), k = Math.min(1, dt * 12); if (A) { c.x += (A[0] - f[0]) * k; c.y += (A[1] - f[1]) * k; } }
     // (accroché, dans un abri : il reste dans l'écran, jamais sous la barre du bas ; s'il y est poussé, il lâche)
-    if (!c.held && c.sp.m !== 'crache') { const [bx, by] = centreDe(c), r = rayon(c) * 0.9;
+    if (!c.held && c.sp.m !== 'crache' && c.sp.m !== 'nyan') { const [bx, by] = centreDe(c), r = rayon(c) * 0.9;
       const ox = bx - r < 0 ? -(bx - r) : bx + r > W ? W - (bx + r) : 0, oy = by - r < HAUT() ? HAUT() - (by - r) : by + r > BAS() ? BAS() - (by + r) : 0;
       if (ox || oy) { c.x += ox; c.y += oy; if (X.mode[c.sp.m] && Math.abs(ox) + Math.abs(oy) > r * 0.6) { c.sp.m = 'derive'; c.sp.ancre = null; c.sp.corps = null; c.sp.vx = ox * 3; c.sp.vy = oy * 3; } } } });
 }

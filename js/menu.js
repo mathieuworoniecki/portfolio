@@ -51,9 +51,14 @@ function dit(id) {
 }
 // (28/09, Mathieu : « ne garder que les gros événements impressionnants en bouton, le reste plus petit se déclenche aléatoirement »)
 const EV = [
-  ['geant', () => Rares.lance('geant')], ['horde', () => Chats.horde()], ['tour', () => { if (Wd.tower) Wd.tower.w = 2; else Chats.tower(); }],
-  ['aspirateur', () => Chats.aspire()], ['folle', () => Chats.folle()],
-  ['arc', () => quand(3, () => { const L = libres().slice(0, 3); L.forEach((c, i) => setTimeout(() => { if (window.Arc && Wd.cats.includes(c)) Arc.vomit(c, 'menu'); }, i * 700)); })],
+  // (28/09, Mathieu : « pas mal d'événements cliquables ne marchent pas ou ne sont pas impressionnants ») : du menu, chacun en grand ;
+  // et s'il ne peut pas partir tout de suite (une tour déjà là, trop de chats), il se passe quand même quelque chose
+  ['geant', () => Rares.lance('geant')],
+  ['horde', () => { if (Chats.horde(true) === false) setTimeout(() => Chats.horde(true), 2500); }],
+  ['tour', () => { if (Wd.tower) Wd.tower.w = 2; else if (Chats.tower(true) === false) setTimeout(() => { if (!Wd.tower) Chats.tower(true); }, 1500); }],
+  ['aspirateur', () => Chats.aspire(true)], ['folle', () => Chats.folle()],
+  // l'arc-en-ciel : une parade de Nyan Cats traverse la pièce (js/nyan.js), et des chats de la maison vomissent des arcs-en-ciel en chœur
+  ['arc', () => { if (window.Nyan) Nyan.parade(); quand(2, () => { const L = libres().slice(0, 2); L.forEach((c, i) => setTimeout(() => { if (window.Arc && Wd.cats.includes(c)) Arc.vomit(c, 'menu'); }, 900 + i * 600)); }); }],
 ].filter(([id]) => ICON[id]);
 // les petits : ils arrivent d'eux-mêmes, à tour de rôle avec les scénarios (js/chats.js, SCEN ; le colis, la mouche, le concert, la vitre y sont déjà)
 // (sans annonce ni secousse : ce sont des surprises ; faux = pas possible maintenant, on passe au suivant)

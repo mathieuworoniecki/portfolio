@@ -898,20 +898,32 @@ function fightCloud(f, u, fade, K) {
 }
 
 /* ——— les scénarios : de temps en temps ——— */
-function horde() {
-  if (Wd.cats.filter(c => c.temp).length > 4 || Wd.cats.length > MAXC + 6) return false;   // une horde à la fois, pas de foule
+// (28/09, Mathieu : « pas mal d'événements cliquables ne marchent pas ou ne sont pas impressionnants ») : lancée du menu (grand),
+// c'est une ruée : deux fois plus de chats, sur toute la profondeur, plus vite, la pièce qui tremble et la poussière tout du long
+function horde(grand) {
+  if (grand ? Wd.cats.filter(c => c.temp).length > 8 : Wd.cats.filter(c => c.temp).length > 4 || Wd.cats.length > MAXC + 6) return false;   // une horde à la fois, pas de foule
   const dir = Math.random() < 0.5 ? 1 : -1, d = rnd(0.02, 0.2), s = sOf(d), W = Wd.W;
   const m = prop('souris', dir > 0 ? -0.05 : 1.05, d, { yaw: dir > 0 ? -0.35 : Math.PI + 0.35 });
   m.run = { dir, v: s * 2.1 }; m.zo = 200;
-  const n = Wd.mode === 'large' ? 4 + Math.floor(Math.random() * 3) : 3;
+  const n = grand ? (Wd.mode === 'large' ? 10 + Math.floor(Math.random() * 3) : 6) : Wd.mode === 'large' ? 4 + Math.floor(Math.random() * 3) : 3;
   for (let i = 0; i < n; i++) {
-    const k = addCat({ temp: true, d: clamp(d + rnd(-0.02, 0.4), 0, 1), face: dir });
-    k.x = m.fx * W - dir * (sc(k) * 1.6 + i * sc(k) * rnd(0.7, 1.1));
-    k.q = [go(dir > 0 ? W + sc(k) * 2 + i * 10 : -sc(k) * 2 - i * 10, { g: 'galop', v: rnd(1, 1.15) }), fn(k => { k.gone = true; })]; k.balai = dir;   // la horde balaie le bazar au passage
+    const k = addCat({ temp: true, d: grand ? rnd(0, 1) : clamp(d + rnd(-0.02, 0.4), 0, 1), face: dir });
+    k.x = m.fx * W - dir * (sc(k) * 1.6 + i * sc(k) * (grand ? rnd(0.45, 0.8) : rnd(0.7, 1.1)));
+    k.q = [go(dir > 0 ? W + sc(k) * 2 + i * 10 : -sc(k) * 2 - i * 10, { g: 'galop', v: grand ? rnd(1.25, 1.6) : rnd(1, 1.15) }), fn(k => { k.gone = true; })]; k.balai = dir;   // la horde balaie le bazar au passage
+    if (grand) k.rue = true;
   }
+  if (grand) { Wd.rue = { t0: Wd.t, fin: Wd.t + 7, dir, dit: 0 }; later(0.3, () => Wd.fx.push({ k: 'txt', text: 'BADABOUM', x: dir > 0 ? W * 0.2 : W * 0.8, y: floorAt(0.3) - sOf(0.3) * 2.2, t0: Wd.t, life: 1.8, rot: -0.12 * dir, size: 40 })); }
   // les chats de la maison qui traînent : certains se joignent à la course
   Wd.cats.filter(k => !k.temp && free4(k) && Math.random() < 0.4).forEach(k => { interrupt(k); k.q = [pose('affut', rnd(0.3, 0.9), { face: dir }), go(dir > 0 ? W + sc(k) * 2 : -sc(k) * 2, { g: 'galop' }), fn(k => { k.gone = true; })]; });
   later(0.6, () => { const lead = Wd.cats.filter(k => k.temp).sort((a, b) => dir * (b.x - a.x))[0]; if (lead) say(lead, '!'); });
+}
+// la ruée : la pièce tremble tant qu'elle passe, la poussière vole sous les pattes, des onomatopées
+function rue() {
+  const R = Wd.rue; if (!R) return; const L = Wd.cats.filter(c => c.rue && !c.gone && c.x > -sc(c) && c.x < Wd.W + sc(c));
+  if (Wd.t > R.fin || (!L.length && Wd.t - R.t0 > 2)) { Wd.rue = null; return; }
+  if (L.length) { Wd.shake = { t0: Wd.t, a: 3 + Math.min(4, L.length * 0.4) };
+    const c = pick(L); if (!c.fall) dust(c.x - c.face * sc(c) * 0.5, floorAt(c.d), sc(c) * 0.5, 0.8);
+    if (Wd.t > R.dit) { R.dit = Wd.t + rnd(0.5, 0.9); Wd.fx.push({ k: 'txt', text: pick(['VROOOM', 'tagada tagada', 'BRRRM', 'place !', 'ZOOOM', 'mia mia mia']), x: c.x, y: c.y - sc(c) * 1.3, t0: Wd.t, life: 1.1, rot: rnd(-0.2, 0.2), size: rnd(20, 30) }); } }
 }
 function runMice(dt) {
   Wd.props.filter(p => p.run).forEach(m => {
@@ -919,28 +931,32 @@ function runMice(dt) {
     if ((m.run.dir > 0 && m.fx > 1.1) || (m.run.dir < 0 && m.fx < -0.1)) unprop(m);
   });
 }
-function tower() {
+// (lancée du menu, grand : une vraie tour, jusqu'en haut de l'écran, qui tombe caisse après caisse en tremblant ; plus de chats y montent ;
+//  quand elle s'écroule, tout vole à travers la pièce : PATATRAS)
+function tower(grand) {
   if (Wd.tower) return false;   // une tour à la fois
   // une pile de caisses tombe du ciel, une à une ; les chats y grimpent ; ça penche… et tout s'écroule
   const tr = Wd.P.arbre, clear = tr ? tr.fx + (0.75 + 0.35) * Wd.s0 / Wd.W : 0.15;   // pas contre l'arbre
   const cands = [0.2, 0.3, 0.45, 0.55, 0.7, 0.85].filter(f => f > clear && (Wd.mode === 'large' || f > 0.3));
+  if (!cands.length && grand) cands.push(0.62, 0.78);
   if (!cands.length) return false;   // pas de place (écran étroit, l'arbre au milieu) : un autre scénario
   const fx = cands.sort((a, b) => Math.min(...Wd.props.filter(p => !p.run).map(p => Math.abs(p.fx - b))) - Math.min(...Wd.props.filter(p => !p.run).map(p => Math.abs(p.fx - a))))[0];
-  const d = rnd(0.3, 0.6), all = Wd.mode === 'large' ? [2, 2, 1, 1, 0, 0] : [1, 1, 0], H = [0.24, 0.3, 0.34];
-  // pas plus haute que la place libre sous le titre et les boutons
-  const room = (floorAt(d) - ceilY()) / sOf(d) - 0.35; let h = 0; const sizes = all.filter(z => (h += H[z]) < room); if (sizes.length < 2) return false;
+  const d = grand ? rnd(0.15, 0.35) : rnd(0.3, 0.6), all = grand ? (Wd.mode === 'large' ? [2, 2, 2, 1, 1, 1, 0, 0, 0, 0] : [1, 1, 1, 0, 0, 0, 0]) : Wd.mode === 'large' ? [2, 2, 1, 1, 0, 0] : [1, 1, 0], H = [0.24, 0.3, 0.34];
+  // pas plus haute que la place libre sous le titre et les boutons (la grande : jusqu'en haut de l'écran)
+  const room = (floorAt(d) - (grand ? Wd.H * 0.07 : ceilY())) / sOf(d) - 0.35; let h = 0; const sizes = all.filter(z => (h += H[z]) < room); if (sizes.length < 2) return false;
   // un escalier en zigzag : chaque caisse déborde d'un côté, et laisse à celle du dessous une marche où poser les pattes
   const z0 = Math.random() < 0.5 ? -1 : 1, offs = sizes.map((_, i) => i ? (i % 2 ? z0 : -z0) * 0.16 : 0);
-  const T = Wd.tower = { boxes: [], t: 0, phase: 'pile', w: 0, fx, d, offs };
-  sizes.forEach((size, i) => later(i * 0.52, () => {
+  const T = Wd.tower = { boxes: [], t: 0, phase: 'pile', w: 0, fx, d, offs, grand: !!grand };
+  sizes.forEach((size, i) => later(i * (grand ? 0.42 : 0.52), () => {
     if (Wd.tower !== T) return;
     const b = prop('caisse', fx + offs.slice(0, i + 1).reduce((a, o) => a + o, 0) * sOf(d) / Wd.W + rnd(-0.002, 0.002), d, { size }); b.tower = T; b.fall = true; b.lift = Wd.H + sOf(d) * 0.5; b.vy = -sOf(d) * 2; b.tilt = rnd(-0.25, 0.25); b.tiltV = -b.tilt * 1.5;
     b.target = T.boxes[T.boxes.length - 1] || null; b.zo = 100; T.boxes.push(b);
+    if (grand) later(0.55, () => { if (Wd.tower !== T) return; Wd.shake = { t0: Wd.t, a: 2 + i * 0.6 }; Wd.fx.push({ k: 'txt', text: pick(['poc', 'BOM', 'tchac', 'et une !', 'encore ?']), x: xOf(b) + rnd(-30, 30), y: b.y - sOf(d) * 0.5, t0: Wd.t, life: 0.9, rot: rnd(-0.3, 0.3), size: 18 + i * 2 }); });
     if (i === sizes.length - 1) later(1.2, () => { if (Wd.tower === T) { T.phase = 'debout'; T.t = 0; climbers(T); } });
   }));
 }
 function climbers(T) {
-  const n = Math.min(3, Wd.mode === 'large' ? 3 : 2), who = Wd.cats.filter(k => !k.temp && free4(k)).slice(0, n);
+  const n = Math.min(T.grand ? 5 : 3, T.boxes.length - 1, Wd.mode === 'large' ? (T.grand ? 5 : 3) : (T.grand ? 3 : 2)), who = Wd.cats.filter(k => !k.temp && free4(k)).slice(0, n);
   while (who.length < n && residents().length < MAXC) { const k = enter(); k.q = []; who.push(k); }
   // la marche d'une caisse : le bout de dessus que la caisse d'au-dessus laisse libre (en unités, le long du perchoir)
   const step = i => { const b = T.boxes[i], up = T.boxes[i + 1]; return up && up.on === b ? -sgn(up.onDx || T.offs[i + 1]) * (b.box.w / 2 - 0.08) : 0; };
@@ -958,13 +974,17 @@ function towerFrame(dt) {
   if (T.phase === 'debout') {
     // chaque chat perché au-dessus de la deuxième caisse fait pencher la pile
     const up = Wd.cats.filter(k => k.perch && k.perch.it.tower === T && T.boxes.indexOf(k.perch.it) >= 1).length;
-    T.w += dt * (0.05 + up * 0.14); const bs = Wd.P.bassin, x0 = xOf(T.boxes[0]), dir = T.dir || (T.dir = bs && !bs.held && Math.abs(xOf(bs) - x0) < Wd.W * 0.35 && Math.random() < 0.7 ? sgn(xOf(bs) - x0) : Math.random() < 0.5 ? -1 : 1);   // (27/09 : le bassin à côté l'attire : tout le monde à l'eau)
+    T.w += dt * (0.05 + up * (T.grand ? 0.09 : 0.14)); const bs = Wd.P.bassin, x0 = xOf(T.boxes[0]), dir = T.dir || (T.dir = bs && !bs.held && Math.abs(xOf(bs) - x0) < Wd.W * 0.35 && Math.random() < 0.7 ? sgn(xOf(bs) - x0) : Math.random() < 0.5 ? -1 : 1);   // (27/09 : le bassin à côté l'attire : tout le monde à l'eau)
     T.boxes.forEach((b, i) => { if (b.on && i) b.tilt = Math.sin(T.t * 5 + i * 0.6) * T.w * 0.03 * i + dir * T.w * 0.02 * i; });
+    if (T.grand && T.w > 0.6 && Wd.t > (T.gr || 0)) { T.gr = Wd.t + 0.7; Wd.shake = { t0: Wd.t, a: 2 }; const b = T.boxes[T.boxes.length - 1]; Wd.fx.push({ k: 'txt', text: pick(['criiic', 'ça penche…', 'oh oh', 'crrraaac']), x: xOf(b) + dir * 40, y: b.y - sOf(b.d) * 0.4, t0: Wd.t, life: 1, rot: dir * 0.2, size: 20 }); }
     if (T.w > 1 || T.t > 22) {
       T.phase = 'chute'; T.t = 0;
-      T.boxes.forEach((b, i) => { if (!i) return; const s = sOf(b.d); b.deTour = Wd.t; drop(b, dir * s * (0.5 + i * 0.35) * rnd(0.7, 1.3), s * rnd(0.2, 1), -dir * rnd(1.5, 4.5)); b.dT = clamp(T.d + rnd(-0.35, 0.35), 0, 1); });
+      const G = T.grand ? 1.7 : 1;
+      T.boxes.forEach((b, i) => { if (!i) return; const s = sOf(b.d); b.deTour = Wd.t; drop(b, dir * s * (0.5 + i * 0.35) * rnd(0.7, 1.3) * G * (T.grand ? rnd(0.3, 1.2) : 1), s * rnd(0.2, 1) * G, -dir * rnd(1.5, 4.5) * G); b.dT = clamp(T.d + rnd(-0.35, 0.35) * G, 0, 1);
+        if (T.grand) later(0.2 + i * 0.08, () => { if (Wd.props.includes(b)) dust(xOf(b), b.y, s * 0.6, 1); }); });
       const b = T.boxes[T.boxes.length - 1]; dust(xOf(b), b.y, sOf(b.d) * 0.8, 1);
-      Wd.shake = { t0: Wd.t, a: 7 };
+      Wd.shake = { t0: Wd.t, a: T.grand ? 14 : 7 };
+      if (T.grand) Wd.fx.push({ k: 'txt', text: 'PATATRAS !', x: clamp(xOf(T.boxes[0]) + dir * 60, 150, Wd.W - 150), y: floorAt(T.d) - sOf(T.d) * 2.6, t0: Wd.t, life: 2.2, rot: -0.12 * dir, size: 52 });
       if (window.Rares && Rares.panique) Rares.panique(xOf(T.boxes[0]));   // (la panique, comme pour le géant : js/rares.js)
       Wd.fx.push({ k: 'txt', text: 'boum !', x: xOf(T.boxes[0]), y: floorAt(T.d) - sOf(T.d) * 1.6, t0: Wd.t, life: 1.6, rot: -0.1, size: 26 });
     }
@@ -974,7 +994,7 @@ function towerFrame(dt) {
 // ce qui est tombé revient à sa place (en fondu), un moment après
 function tidy() {
   Wd.props.forEach(it => {
-    if (!it.home || it.fall || it.held || it.tower || it.run) return;
+    if (!it.home || it.fall || it.held || it.tower || it.run || it.ventre) return;
     const moved = it.home.on ? it.on !== it.home.on : Math.abs(it.fx - it.home.fx) > 0.25 || Math.abs(it.tilt || 0) > 0.1;
     if (!moved) { it.away = null; return; }
     if (!it.away) it.away = Wd.t;
@@ -1015,7 +1035,7 @@ function machines(dt) {
     }
   });
   // les cartons lancés et effacés s'en vont pour de bon
-  Wd.props.slice().forEach(p => { if (p.gone) { unprop(p); return; } if (p.launched && !p.fadeT && p.fade < 0.02) { Wd.cats.forEach(c => { if (c.perch && c.perch.it === p) interrupt(c); }); unprop(p); } });
+  Wd.props.slice().forEach(p => { if (p.gone) { unprop(p); return; } if (p.launched && !p.fadeT && p.fade < 0.02 && !p.ventre) { Wd.cats.forEach(c => { if (c.perch && c.perch.it === p) interrupt(c); }); unprop(p); } });
 }
 // le distributeur devient fou : il tremble, saute, et crache des croquettes partout, longtemps
 function folle(g) {
@@ -1105,7 +1125,7 @@ function extras() {
     Wd.nextExtra = Wd.t + rnd(1.5, 4);
   }
   if (X.length > want + 1) { const it = X.find(p => !p.busy && p.fadeT); if (it) it.fadeT = 0; }
-  X.slice().forEach(it => { if (!it.fadeT && it.fade < 0.02) { X.splice(X.indexOf(it), 1); Wd.cats.forEach(c => { if (c.perch && c.perch.it === it) interrupt(c); }); unprop(it); } });
+  X.slice().forEach(it => { if (!it.fadeT && it.fade < 0.02 && !it.ventre) { X.splice(X.indexOf(it), 1); Wd.cats.forEach(c => { if (c.perch && c.perch.it === it) interrupt(c); }); unprop(it); } });
 }
 
 
@@ -1113,9 +1133,11 @@ function extras() {
    d'un bord à l'autre et aspire ce qui traîne (les cartons lancés, les croquettes, les objets déplacés, qui reviennent à leur place) ;
    les chats s'enfuient… sauf un curieux, aspiré puis recraché ——— */
 const clutter = () => Wd.props.filter(p => p.launched && !p.suck).length + Math.floor(Wd.kib.filter(k => k.rest).length / 12) + Wd.props.filter(p => p.away && !p.launched && Wd.t - p.away > 6).length;
-function aspire() {
-  if (Wd.vac) return; const dir = Math.random() < 0.5 ? 1 : -1;
-  Wd.vac = { t0: Wd.t, dir, x: dir > 0 ? Wd.s0 * 0.6 : Wd.W - Wd.s0 * 0.6, ph: 'descend', curious: false };
+// (lancé du menu, grand : il aspire TOUT ce qui n'est pas trop lourd — coussins, pelotes, gamelles, cartons — et plusieurs chats ;
+//  puis, remonté, il a un hoquet… et recrache tout du ciel : ça pleut dans la pièce, chaque chose retombe à peu près chez elle)
+function aspire(grand) {
+  if (Wd.vac) { if (grand && !Wd.vac.grand) { Wd.vac.grand = true; Wd.vac.ventre = []; } return; } const dir = Math.random() < 0.5 ? 1 : -1;
+  Wd.vac = { t0: Wd.t, dir, x: dir > 0 ? Wd.s0 * 0.6 : Wd.W - Wd.s0 * 0.6, ph: 'descend', curious: false, grand: !!grand, ventre: [], nC: 0 };
   const c = Wd.cats.find(k => free4(k)); if (c) say(c, '?!');
 }
 function vacFrame(dt) {
@@ -1124,20 +1146,22 @@ function vacFrame(dt) {
   V.y = V.ph === 'descend' ? -s0 + (mouthY + s0) * sm(u / 1.3) : V.ph === 'remonte' ? mouthY - (mouthY + s0 * 1.5) * sm((Wd.t - V.tu) / 1.2) : mouthY + Math.sin(u * 5) * 4;
   if (V.ph === 'descend' && u > 1.3) { V.ph = 'balaye'; V.tb = Wd.t; if (window.Rares && Rares.panique) Rares.panique(V.x); Wd.fx.push({ k: 'txt', text: 'VROUUUM', x: V.x, y: mouthY - s0 * 0.9, t0: Wd.t, life: 1.6, rot: -0.1, size: 22 }); }
   if (V.ph === 'balaye') {
-    V.x += V.dir * Wd.W / 5.5 * dt;
+    V.x += V.dir * Wd.W / (V.grand ? 7 : 5.5) * dt;
+    if (V.grand) Wd.shake = { t0: Wd.t, a: 1.5 };
     const R = s0 * 0.9;
     // ce qui traîne sous la bouche s'envole vers elle
     Wd.props.forEach(it => { if (it.suck || it.held || it.run || it.mur || Math.abs(it.x - V.x) > R) return;
-      const temp = it.launched || it.tmp || (it.away && Wd.t - it.away > 2 && !it.tower); if (!temp) return;   // (it.tmp : la feuille arrachée)
+      const temp = V.grand ? !LOURD[it.kind] && !it.tower && !it.pivot && it.kind !== 'eau' && !it.ventre : it.launched || it.tmp || (it.away && Wd.t - it.away > 2 && !it.tower); if (!temp) return;   // (it.tmp : la feuille arrachée)
       it.suck = { t0: Wd.t, fx: it.fx, lift: it.lift }; it.on = null; it.fall = false; });
     Wd.kib.forEach(k => { if (!k.suck && Math.abs(k.x - V.x) < R) { k.suck = Wd.t; k.sx = k.x; k.sy = k.y; if (k.who) k.who = null; } });
     // les chats : ils filent de l'autre côté ; un curieux s'approche trop… aspiré, puis recraché
     Wd.cats.forEach(c => { if (c.rare || c.held || c.fall || c.hidden || c.perch || Math.abs(c.x - V.x) > R * 1.8 || Wd.t - (c.fled || -9) < 4) return;
       c.fled = Wd.t;
-      if (!V.curious && Math.random() < 0.35 && Math.abs(c.x - V.x) < R) { V.curious = true; interrupt(c); say(c, 'miaaa !!'); c.fall = true; c.vx = (V.x - c.x) * 2; c.vy = -Math.sqrt(2 * grav() * Math.max(10, c.y - V.y)); c.spin = Math.PI * 2 * sgn(Math.random() - 0.5);
+      if ((V.grand ? V.nC < 4 && Math.random() < 0.75 : !V.curious && Math.random() < 0.35) && Math.abs(c.x - V.x) < R) { V.curious = true; V.nC++; interrupt(c); say(c, 'miaaa !!'); c.fall = true; c.vx = (V.x - c.x) * 2; c.vy = -Math.sqrt(2 * grav() * Math.max(10, c.y - V.y)); c.spin = Math.PI * 2 * sgn(Math.random() - 0.5);
         later(0.9, () => Wd.fx.push({ k: 'txt', text: 'ptoui !', x: V.x, y: V.y + 10, t0: Wd.t, life: 1.2, rot: 0.1, size: 18 })); return; }
       interrupt(c); say(c, pick(['!!', 'fshhh', 'mia !'])); c.q = [go(inView(c.x + V.dir * Wd.W * 0.35), { g: 'galop' }), pose('affut', rnd(1, 2), { face: -V.dir }), pose('toilette', rnd(1.5, 3))]; });
-    if (V.x < -s0 * 0.4 || V.x > Wd.W + s0 * 0.4 || Wd.t - V.tb > 7) { V.ph = 'remonte'; V.tu = Wd.t; V.x = clamp(V.x, 0, Wd.W);
+    if (V.x < -s0 * 0.4 || V.x > Wd.W + s0 * 0.4 || Wd.t - V.tb > (V.grand ? 9 : 7)) { V.ph = 'remonte'; V.tu = Wd.t; V.x = clamp(V.x, 0, Wd.W);
+      if (V.grand) recrache(V);
       Wd.fx.push({ k: 'txt', text: pick(['propre !', 'voilà.', 'merci qui ?']), x: clamp(V.x, 60, Wd.W - 60), y: mouthY - s0 * 0.5, t0: Wd.t, life: 2, rot: -0.08, size: 22 }); }
   }
   if (V.ph === 'remonte' && Wd.t - V.tu > 1.2 && !Wd.props.some(p => p.suck) && !Wd.kib.some(k => k.suck)) { Wd.vac = null; Wd.vacCool = Wd.t + rnd(70, 140); }
@@ -1146,8 +1170,19 @@ function vacFrame(dt) {
   Wd.props.slice().forEach(it => { if (!it.suck) return; const q = Math.min(1, (Wd.t - it.suck.t0) / 0.7), e = q * q;
     it.fx = it.suck.fx + (mx / Wd.W - it.suck.fx) * e; it.lift = it.suck.lift + (floorAt(it.d) - my - it.suck.lift) * e; it.tilt = (it.tilt || 0) + dt * 9; it.fade = it.fadeT = 1 - e;
     Wd.cats.forEach(c => { if (c.perch && c.perch.it === it) { interrupt(c); c.fall = true; c.vy = -sOf(it.d); say(c, '!!'); } });
-    if (q >= 1) { it.suck = null; if (it.launched || !it.home) unprop(it); else goHome(it); } });
+    if (q >= 1) { it.suck = null; if (V.grand) { it.ventre = true; V.ventre.push(it); } else if (it.launched || !it.home) unprop(it); else goHome(it); } });
   Wd.kib.forEach(k => { if (!k.suck) return; const q = Math.min(1, (Wd.t - k.suck) / 0.45); k.rest = true; k.x = k.sx + (mx - k.sx) * q * q; k.y = k.sy + (my - k.sy) * q * q; if (q >= 1) k.gone = true; });
+}
+// le hoquet : tout ce qu'il a avalé retombe du ciel, à peu près chez soi, en tournant ; les chats curieux avec
+function recrache(V) {
+  const L = V.ventre.slice(); V.ventre = [];
+  later(0.9, () => { Wd.shake = { t0: Wd.t, a: 10 }; Wd.fx.push({ k: 'txt', text: pick(['HIC !', 'BEUARK', 'BLOURP']), x: Wd.W / 2, y: Wd.H * 0.22, t0: Wd.t, life: 1.8, rot: -0.1, size: 48 }); });
+  L.forEach((it, i) => later(1 + i * 0.13, () => {
+    if (!Wd.props.includes(it)) return; it.ventre = false;
+    const h = it.home && !it.home.on ? it.home : null;
+    Object.assign(it, { fx: h ? h.fx + rnd(-0.04, 0.04) : rnd(0.1, 0.9), on: null, dans: null, fall: true, lift: Wd.H * rnd(1, 1.3), vx: rnd(-40, 40), vy: 0, tiltV: LOURD[it.kind] ? rnd(-4, 4) : rnd(-9, 9), fade: 1, fadeT: 1, launched: it.launched });
+    if (h) it.dT = h.d; it.away = Wd.t;
+  }));
 }
 function drawVac(S) {
   const V = Wd.vac; if (!V) return; const C = Chalk, s0 = Wd.s0, x = V.x, y = V.y, a = 0.85 * Wd.a, w = s0 * 0.28;
@@ -1195,7 +1230,7 @@ function step(S, dt) {
   if (Wd.t > (Wd.ceilT || 0)) { Wd.ceil = ceilY(); Wd.s0T = size0(); Wd.ceilT = Wd.t + 0.5; }
   if (Math.abs(Wd.s0T - Wd.s0) > 0.05) Wd.s0 += (Wd.s0T - Wd.s0) * Math.min(1, dt * 1.5);
   { const D = profondeur(); if (Math.abs(D - Wd.depth) > 0.5) Wd.depth += (D - Wd.depth) * Math.min(1, dt * 1.2); }
-  laters(); H.pre.forEach(f => f(dt)); runMice(dt); towerFrame(dt); kibFrame(dt); vacFrame(dt); extras(); machines(dt);
+  laters(); H.pre.forEach(f => f(dt)); runMice(dt); rue(); towerFrame(dt); kibFrame(dt); vacFrame(dt); extras(); machines(dt);
   Wd.cats.forEach(c => { if (c.pet && Wd.t - c.pet.t > 5) { c.pet = null; c.task = null; } });
   if (dt && Wd.t > Wd.nextKib) { const g = Wd.props.find(p => p.kind === 'distrib'); if (g) fire(g); Wd.nextKib = Wd.t + rnd(16, 32); }
   Wd.props.forEach(it => updProp(it, dt)); apart(dt);
