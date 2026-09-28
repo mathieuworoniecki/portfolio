@@ -306,7 +306,7 @@ function flotte(c, dt, Q, acc) {
     if (!S.sorti) { S.sorti = true; const [cx, cy] = S.o || centre(); c.x = cx; c.y = cy; E.ondes.push({ x: cx, y: cy, t0: performance.now() / 1000, r: Wd.s0 * 1.2, a: 0.7 }); if (Math.random() < 0.6) apres(0.4, () => say(c, pick(['wiii !', 'mia ?', 'ooh', 'où…', '!', 'c\'est où ?']))); }
     S.g = sm((S.t - S.dl) / 0.6); c.s = S.s * Math.max(0.02, S.g);
     if (S.g >= 1) { S.m = 'derive'; S.next = Wd.t + rnd(1.5, 4); S.anim = pick(DERIVE); }
-  } else c.s += (S.s - c.s) * Math.min(1, dt * 3);
+  } else c.s += (S.s * (X.echelle ? X.echelle(c) : 1) - c.s) * Math.min(1, dt * 3);   // (X.echelle : un module qui les veut plus petits, js/espace-plume.js)
   if (c.held) { c.anim = 'porte'; S.m = 'tenu'; S.ancre = null; return; }
   if (X.mode[S.m]) { X.mode[S.m](c, dt); return; }
   S.ancre = null;
