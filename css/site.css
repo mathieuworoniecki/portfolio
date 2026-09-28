@@ -154,10 +154,15 @@ h2{font-size:clamp(1.9rem,min(5.2vw,8.2vh),4.4rem);line-height:.95;letter-spacin
 [data-scene="salut"]{--chat:clamp(64px,min(19vw,19vh),165px);justify-content:flex-start;gap:calc(var(--chat) * .95);padding-top:calc(var(--sheet) + max(clamp(78px,12vh,140px),var(--chat) * 1.15))}
 [data-scene="salut"] h1{font-size:clamp(2.6rem,min(6vw,10vh),5.6rem)}
 .ctas{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:clamp(30px,4vw,64px)}
+/* (20:04, Mathieu : les deux boutons de l'accueil, l'un à côté de l'autre) */
+[data-scene="salut"] .ctas{gap:clamp(18px,1.8vw,26px)}
 /* « Restez jouer ici » : comme l'autre bouton, mais lumineux (le halo et les étoiles sont dessinés par js/scenes.js) :
    un reflet de lumière le traverse de temps en temps */
-.cta-jeu{position:relative;overflow:hidden;text-shadow:0 0 12px rgba(255,255,255,.95)}
-.cta-jeu::after{content:"";position:absolute;inset:-20% auto -20% -40%;width:30%;background:linear-gradient(100deg,rgba(255,255,255,0),rgba(255,255,255,.85),rgba(255,255,255,0));transform:skewX(-20deg);animation:reflet 3.2s ease-in-out infinite;pointer-events:none}
+.cta-jeu{--m:0;position:relative;overflow:hidden;text-shadow:0 0 12px rgba(255,255,255,calc(.95 * (1 - var(--m))));color:color-mix(in srgb,rgb(var(--ink)) calc(100% - var(--m) * 100%),#EEF5FF);background:linear-gradient(#1C58A2,#1C58A2) center/calc(var(--m) * 100%) 100% no-repeat}
+/* (au survol, il devient le bouton du mode sérieux : js/scenes.js, morphButton ; l'autre police une fois les lettres brouillées) */
+.cta-jeu.serieux-on{font-family:"Space Grotesk","Barlow",system-ui,sans-serif;font-weight:600;letter-spacing:.08em}
+.cta-jeu.serieux-on:hover,.cta-jeu.serieux-on:focus-visible{letter-spacing:.1em}
+.cta-jeu::after{opacity:calc(1 - var(--m));content:"";position:absolute;inset:-20% auto -20% -40%;width:30%;background:linear-gradient(100deg,rgba(255,255,255,0),rgba(255,255,255,.85),rgba(255,255,255,0));transform:skewX(-20deg);animation:reflet 3.2s ease-in-out infinite;pointer-events:none}
 @keyframes reflet{0%,55%{left:-40%}85%,100%{left:120%}}
 @media (prefers-reduced-motion:reduce){.cta-jeu::after{animation:none;opacity:0}}
 /* on reste jouer : le titre et ce bouton s'en vont, le bouton d'entrée monte en haut de l'écran */
@@ -267,7 +272,7 @@ html:not(.locked) #gate:not(.open){display:none}
   /* (la barre des événements à gauche : le titre et les boutons se poussent un peu) */
   [data-scene="salut"]{padding-left:58px;padding-right:12px}
   .ctas{flex-direction:column;gap:14px}
-  [data-scene="salut"] .ctas{gap:calc(var(--chat) * .95)}
+  [data-scene="salut"] .ctas{gap:16px}
   .jeu #enter{top:calc(var(--sheet) + 60px + env(safe-area-inset-top,0px));font-size:.68rem;white-space:nowrap}
   [data-scene="essai"]{padding-top:calc(var(--sheet) + 96px)}
   [data-scene="jeu"]{padding-top:calc(var(--sheet) + 104px)}

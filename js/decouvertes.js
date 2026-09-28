@@ -150,14 +150,9 @@ fam('espace', 'L’espace', 'Space', [
   ['fronde', 'La fronde', 'The slingshot', 'Trop près d’une planète, on fait un tour… et on repart plus vite.', 'Too close to a planet, you go around… and leave faster.'],
   ['petitprince', 'Le Petit Prince', 'The Little Prince', 'Un chat qui se pose sur sa planète.', 'A cat landing on its planet.'],
   ['astronaute', 'L’astronaute', 'The astronaut', 'Quelque chose flotte, un chat le veut.', 'Something floats by, a cat wants it.'],
-  ['liane', 'La liane', 'The vine', 'Dessine une ligne dans le vide.', 'Draw a line in the void.'],
-  ['abriespace', 'Une maison dans les étoiles', 'A house among the stars', 'Dessine presque un rond, laisse une entrée.', 'Draw almost a circle, leave a way in.'],
-  ['cage', 'La cage', 'The cage', 'Dessine tout autour d’un chat, bien fermé.', 'Draw all around a cat, closed tight.'],
-  ['porte', 'La porte', 'The door', 'Un coup de trait à travers un mur.', 'A stroke right through a wall.'],
-  ['coupe', 'Coupé en deux', 'Cut in two', 'Un coup de trait sec à travers une liane.', 'A quick stroke across a vine.'],
   ['nyanespace', 'Nyan dans les étoiles', 'Nyan among the stars', 'Un arc-en-ciel qui traverse l’espace.', 'A rainbow crossing space.'],
   ['cinema', 'La séance', 'Showtime', 'Assis sur la Terre, le nez vers les étoiles.', 'Sitting on the Earth, nose up to the stars.'],
-  ['competences', 'Toutes les compétences IA', 'Every AI skill', 'Chaque dessin des étoiles sur l’IA, jusqu’au bout.', 'Every star drawing about AI, to the end.'],
+  ['competences', 'Toutes les compétences IA', 'Every AI skill', 'La présentation des étoiles, jusqu’au bout.', 'The star show, to the end.'],
   ['retourplanete', 'Retour par la planète', 'Home through the planet', 'La planète des chats ramène à la maison.', 'The cat planet takes you home.'],
 ]);
 const TOUS = FAM.flatMap(f => f.L), PAR = Object.fromEntries(TOUS.map(d => [d.id, d]));

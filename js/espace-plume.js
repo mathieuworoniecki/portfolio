@@ -1,17 +1,17 @@
-/* Dans l'espace (l'écran 2) : les compétences de Mathieu, racontées par les étoiles, comme un cinéma en plein air
-   (28/09, 19:28, Mathieu : « plutôt une histoire animée et dessinée pour présenter chacune de mes compétences, qui s'imagent, et les chats regardent
-   comme un cinéma en plein air, ou quand on regarde des constellations ; mais les étoiles génèrent les dessins, les illustrations et les objets 3D,
-   un par un, pour présenter mes compétences » ; avant : des cartes à la craie, jugées illisibles à 19:27).
-   - Une scène par compétence : l'IA d'abord (huit scènes : un dev = une équipe, les agents, les terminaux, les skills, le benchmark, MARKO, le RAG,
-     MCP, le machine learning), puis Front, Back-end, Pilotage, DevOps.
+/* Dans l'espace (l'écran 2) : la présentation de Mathieu, racontée par les étoiles, qui défile toute seule
+   (28/09, 19:28, Mathieu : « une histoire animée et dessinée pour présenter chacune de mes compétences […] les étoiles génèrent les dessins,
+   les illustrations et les objets 3D, un par un […] les chats regardent comme un cinéma en plein air » ;
+   20:08 : « beaucoup plus structuré : explique comment je travaille, puis mes compétences, visuellement ; tout doit défiler automatiquement ;
+   pas convaincu par l'encart de texte sur le côté ; vire l'effet au clic et au glisser qui dessine » (js/espace-dessin.js n'est plus chargé)).
+   - Deux chapitres, annoncés par une barre en haut qui avance : I. Comment je travaille (l'équipe, puis les six temps de sa méthode),
+     II. Mes compétences (la puce, puis ses six couches). Les mots viennent du mode sérieux (js/serieux-donnees.js), la source de vérité.
    - Chaque scène : des étoiles quittent le ciel et viennent se poser ; des traits les relient (une constellation) ; le trait s'affirme et le dessin
-     s'anime (un objet en 3D qui tourne, un réseau parcouru d'influx, des barres qui se mesurent…). Dessous, comme des sous-titres : une icône,
-     le nom, les outils, et la preuve, tirée du CV. Puis les étoiles repartent dans le ciel, et la scène suivante se forme.
-   - On attrape la constellation pour la faire tourner ; un toucher passe à la suivante ; les petites étoiles en bas mènent à une scène précise.
-     La souris sur les sous-titres : la scène attend qu'on ait fini de lire.
-   - Les chats viennent s'asseoir sur la Terre, en bas, le nez en l'air, et regardent la séance (« ooh… ») ; parfois l'un d'eux s'endort.
-   - Tout vient du CV, du profil LinkedIn, des dépôts GitHub et des mots de Mathieu (28/09) : rien d'autre. Jamais « il maîtrise les modèles »
-     (19:16) : sa méthode (un dev qui fait le travail d'une équipe, agents et sous-agents, skills et plugins, benchmark permanent). */
+     s'anime (un objet en 3D qui tourne, un réseau parcouru d'influx, des barres qui se mesurent…). Dessous, centrés, sans encart : le numéro,
+     le titre et son icône, une phrase, les outils. Puis les étoiles repartent dans le ciel, et la scène suivante se forme. Rien à cliquer.
+     (la souris sur les sous-titres : la scène attend qu'on ait fini de lire)
+   - Les chats viennent s'asseoir sur la Terre, en bas, le nez en l'air, et regardent la séance (« ooh… ») ; parfois l'un d'eux s'endort ;
+     ceux qui flottent devant le dessin ou le texte sont doucement poussés de côté.
+   - Jamais « il maîtrise les modèles » (19:16) : sa méthode (un dev et ses agents = une équipe de dix). */
 window.EspacePlume = (() => {
 if (!window.TrouNoir || !TrouNoir.outils) return null;
 const O = TrouNoir.outils, { X, K, centreDe, rayon, say } = O, { Wd, ANIMS, rnd, pick, clamp, sgn, sm } = K;
@@ -21,38 +21,41 @@ const en = () => !!(window.I18N && I18N.lang && I18N.lang !== 'fr');
 const c01 = v => clamp(v, 0, 1);
 const bruit = n => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 
-/* ——— les scènes : [dessin, icône, IA ?, titre, preuve, outils] (FR, puis EN) ———
-   (les outils : ceux du mode sérieux, js/serieux-donnees.js, tirés du CV et de la lecture de ses dépôts) */
-const SCENES = () => en() ? [
-  ['equipe', 'ia', 1, '1 dev + his agents = a team of 10', 'Alone with his agents, platforms that would have taken a ten-developer team years', ''],
-  ['agents', 'ia', 1, 'Agents & sub-agents', 'Agents that delegate to sub-agents', 'Multi-agent orchestration · Sub-agents · Agentic AI'],
-  ['terminaux', 'ia', 1, 'Multi-terminal', 'Several terminals and agents in parallel, one Git worktree per agent', 'Claude Code multi-agent workflows (ultracode) on MARKO'],
-  ['skills', 'ia', 1, 'Skills & plugins', 'Custom skills and plugins: commands, MCP servers', 'Skills · Plugins · MCP servers · Prompt engineering'],
-  ['bench', 'ia', 1, 'Constant benchmark', 'A permanent test bench for harnesses, plugins and orchestrators', 'Guardrails: tests, CI review, scanners, a human decision before every merge'],
-  ['marko', 'ia', 1, 'MARKO · Agentic AI', 'CTO of MARKO, an AI-native B2B SaaS for real estate', 'Agentic AI · Document AI · OCR · Data extraction'],
-  ['rag', 'ia', 1, 'Hybrid RAG', 'Archon: Gemini RAG + Qdrant/Meilisearch, reranking, entity graph', 'Embeddings · pgvector · Qdrant · Meilisearch · RAG evaluation'],
-  ['mcp', 'ia', 1, 'MCP · WebMCP', 'MCP for the Figma-to-code flow; WebMCP in SafeShare', ''],
-  ['ml', 'ia', 1, 'Machine learning', 'NumerusX: AI trading agents (research), SHAP/LIME', 'scikit-learn · LightGBM · Optuna · MLflow'],
-  ['front', 'front', 0, 'Front', 'Vue/Nuxt architecture for Hermès, Chanel, Ardian', 'React · Next.js · Vue · Nuxt · TypeScript · three.js · GSAP · D3'],
-  ['back', 'back', 0, 'Back-end', 'The MARKO API: FastAPI and PostgreSQL', 'Python · FastAPI · Node.js · Go · PHP · Symfony · PostgreSQL · Redis · Celery'],
-  ['pilotage', 'pilotage', 0, 'Leadership', 'Tech lead of Digiplace: 150,000+ users (ENGIE)', 'Tech lead · CTO · Augmented development · Management · Mentoring · Agile · ADR'],
-  ['devops', 'devops', 0, 'DevOps', '15+ projects moved to Docker (LWA)', 'Docker · Traefik · GitHub Actions · Azure · AWS · Vercel · Grafana · Sentry']
+/* ——— le récit : [dessin, icône, chapitre, titre, phrase, outils] ; la première scène de chaque chapitre l'annonce ———
+   (les mots : ceux du mode sérieux, js/serieux-donnees.js : methode, competences) */
+const CHAPITRES = () => en() ? ['How I work', 'My skills'] : ['Comment je travaille', 'Mes compétences'];
+const COURT = () => en() ? ['Method', 'Skills'] : ['Méthode', 'Compétences'];   // (sur téléphone, dans la barre)
+const SCENES = () => (en() ? [
+  ['equipe', 'ia', 0, 'One developer, the strength of a team', 'Where it took ten developers and years, I deliver alone, surrounded by agents I orchestrate.', 'AI doesn’t replace the craft: it multiplies whoever knows how to direct it'],
+  ['terminaux', 'ia', 0, 'Many terminals, many agents', 'Each job gets its own terminal, its own Git worktree and its own agent: one writes, another tests, a third reviews.', 'Git worktrees · Multi-terminal · Agents in parallel'],
+  ['agents', 'ia', 0, 'Agents that delegate to sub-agents', 'A lead agent splits the goal and launches specialised sub-agents: exploration, code, tests, review. I recompose and decide.', 'Sub-agents · Multi-agent workflows · Arbitration'],
+  ['skills', 'ia', 0, 'Custom skills and plugins', 'As soon as a task comes back, it becomes a tool: skills, commands, dedicated agents, MCP servers.', 'Skills · Plugins · MCP servers · Commands'],
+  ['bench', 'ia', 0, 'Test everything, measure everything', 'Harnesses, orchestrators, plugins: I test what comes out, compare on real work and keep only what saves time.', 'Continuous benchmark · Harness · endless · codex-crew'],
+  ['flotte', 'ia', 0, 'A fleet of agents on one product', 'On MARKO, big jobs go through Claude Code multi-agent workflows (ultracode); a second, fast tool handles short calls.', 'Claude Code ultracode · Fast decisions · Orchestration'],
+  ['gardefous', 'ia', 0, 'Speed, without losing control', 'Tests at every step, automated review in CI, security scanners, and a human decision before every merge.', 'Tests · CI review · Scanners · Human in the loop'],
+  ['puce', 'ia', 1, 'Six layers, like a chip', 'AI at the core, what you see above, what holds everything underneath. From the CV and a read of all my repositories.', ''],
+  ['rag', 'ia', 1, 'AI & data', 'Systems that read, search, reason and act, in production as in research.', 'Hybrid RAG · Agents & sub-agents · MCP / WebMCP · Document AI · OCR · Machine learning'],
+  ['front', 'front', 1, 'Front-end & interfaces', 'What you see and touch: fast, animated, accessible interfaces.', 'React · Next.js · Vue · Nuxt · TypeScript · three.js · GSAP · D3'],
+  ['back', 'back', 1, 'Back-end & data', 'What holds everything: APIs, task queues, databases isolated per client.', 'Python · FastAPI · Node.js · Go · PHP · Celery · Redis · PostgreSQL'],
+  ['devops', 'devops', 1, 'DevOps & cloud', 'Containers, deployments, observability.', 'Docker · Traefik · GitHub Actions · GitLab CI · Azure · AWS · Vercel · Grafana'],
+  ['secu', 'secu', 1, 'Security & quality', 'We test, we scan, we protect the data.', 'OWASP · CodeQL · Semgrep · Trivy · Privacy by design · Playwright · WCAG'],
+  ['pilotage', 'pilotage', 1, 'Leadership & method', 'Teams, a method, a roadmap.', 'Tech lead · Management · Mentoring · Augmented development · Agile · ADR · Pre-sales']
 ] : [
-  ['equipe', 'ia', 1, '1 dev + ses agents = une équipe de 10', 'Seul avec ses agents, des plateformes qui auraient demandé des années à une équipe de dix développeurs', ''],
-  ['agents', 'ia', 1, 'Agents & sous-agents', 'Des agents qui délèguent à des sous-agents', 'Orchestration multi-agents · Sous-agents · Agentic AI'],
-  ['terminaux', 'ia', 1, 'Multi-terminaux', 'Plusieurs terminaux et plusieurs agents en parallèle, un worktree Git par agent', 'Sur MARKO : les workflows multi-agents de Claude Code (ultracode)'],
-  ['skills', 'ia', 1, 'Skills & plugins', 'Des skills et plugins sur mesure : commandes, serveurs MCP', 'Skills · Plugins · Serveurs MCP · Prompt engineering'],
-  ['bench', 'ia', 1, 'Benchmark permanent', 'Un banc d’essai permanent : harness, plugins, orchestrateurs', 'Garde-fous : tests, revue en CI, scanners, décision humaine avant chaque fusion'],
-  ['marko', 'ia', 1, 'MARKO · Agentic AI', 'CTO de MARKO, un SaaS B2B AI-native pour l’immobilier', 'Agentic AI · Document AI · OCR · Extraction de données'],
-  ['rag', 'ia', 1, 'RAG hybride', 'Archon : RAG Gemini + Qdrant/Meilisearch, reranking, graphe d’entités', 'Embeddings · pgvector · Qdrant · Meilisearch · Évaluation RAG'],
-  ['mcp', 'ia', 1, 'MCP · WebMCP', 'MCP pour le flux Figma → code ; WebMCP dans SafeShare', ''],
-  ['ml', 'ia', 1, 'Machine learning', 'NumerusX : agents IA de trading (recherche), SHAP/LIME', 'scikit-learn · LightGBM · Optuna · MLflow'],
-  ['front', 'front', 0, 'Front', 'Architecture Vue/Nuxt pour Hermès, Chanel, Ardian', 'React · Next.js · Vue · Nuxt · TypeScript · three.js · GSAP · D3'],
-  ['back', 'back', 0, 'Back-end', 'L’API de MARKO : FastAPI et PostgreSQL', 'Python · FastAPI · Node.js · Go · PHP · Symfony · PostgreSQL · Redis · Celery'],
-  ['pilotage', 'pilotage', 0, 'Pilotage', 'Tech lead de Digiplace : 150 000+ collaborateurs (ENGIE)', 'Tech lead · CTO · Développement augmenté · Management · Mentorat · Agile · ADR'],
-  ['devops', 'devops', 0, 'DevOps', '15+ projets passés sous Docker (LWA)', 'Docker · Traefik · GitHub Actions · Azure · AWS · Vercel · Grafana · Sentry']
-];
-const TETE = () => en() ? ['Mathieu Woroniecki', 'Senior tech lead & AI architect'] : ['Mathieu Woroniecki', 'Responsable technique senior & architecte IA'];
+  ['equipe', 'ia', 0, 'Un développeur, la force d’une équipe', 'Là où il fallait une équipe de dix développeurs et des années, je livre seul, entouré d’agents que j’orchestre.', 'L’IA ne remplace pas le métier : elle démultiplie celui qui sait la diriger'],
+  ['terminaux', 'ia', 0, 'Plusieurs terminaux, plusieurs agents', 'Chaque chantier part dans son terminal et son worktree Git isolé, avec son agent : l’un écrit, un autre teste, un troisième relit.', 'Worktrees Git · Multi-terminaux · Agents en parallèle'],
+  ['agents', 'ia', 0, 'Des agents qui délèguent à des sous-agents', 'Un agent principal découpe l’objectif et lance des sous-agents spécialisés : exploration, code, tests, revue. Je recompose, je tranche.', 'Sous-agents · Workflows multi-agents · Arbitrage'],
+  ['skills', 'ia', 0, 'Des skills et des plugins sur mesure', 'Dès qu’une tâche revient, elle devient un outil : skills, commandes, agents dédiés, serveurs MCP.', 'Skills · Plugins · Serveurs MCP · Commandes'],
+  ['bench', 'ia', 0, 'Tout tester, tout mesurer', 'Harness, orchestrateurs, plugins : je teste ce qui sort, je compare sur de vrais chantiers et je ne garde que ce qui fait gagner du temps.', 'Benchmark continu · Harness · endless · codex-crew'],
+  ['flotte', 'ia', 0, 'Une flotte d’agents sur un même produit', 'Sur MARKO, les gros chantiers passent par les workflows multi-agents de Claude Code (ultracode) ; un second outil rapide sert aux arbitrages courts.', 'Claude Code ultracode · Décisions rapides · Orchestration'],
+  ['gardefous', 'ia', 0, 'La vitesse, sans perdre le contrôle', 'Tests à chaque étape, revue automatique en CI, scanners de sécurité, et une décision humaine avant chaque fusion.', 'Tests · Revue en CI · Scanners · Humain dans la boucle'],
+  ['puce', 'ia', 1, 'Six couches, comme une puce', 'L’IA au cœur, ce qu’on voit au-dessus, ce qui tient tout en dessous. Tiré du CV et de la lecture de tous mes dépôts.', ''],
+  ['rag', 'ia', 1, 'IA & données', 'Des systèmes qui lisent, cherchent, raisonnent et agissent, en production comme en recherche.', 'RAG hybride · Agents & sous-agents · MCP / WebMCP · Document AI · OCR · Machine learning'],
+  ['front', 'front', 1, 'Front & interfaces', 'Ce qu’on voit et ce qu’on touche : des interfaces rapides, animées, accessibles.', 'React · Next.js · Vue · Nuxt · TypeScript · three.js · GSAP · D3'],
+  ['back', 'back', 1, 'Back-end & données', 'Ce qui tient tout : des API, des files de tâches, des bases isolées par client.', 'Python · FastAPI · Node.js · Go · PHP · Celery · Redis · PostgreSQL'],
+  ['devops', 'devops', 1, 'DevOps & cloud', 'Des conteneurs, des déploiements, de l’observabilité.', 'Docker · Traefik · GitHub Actions · GitLab CI · Azure · AWS · Vercel · Grafana'],
+  ['secu', 'secu', 1, 'Sécurité & qualité', 'On teste, on scanne, on protège les données.', 'OWASP · CodeQL · Semgrep · Trivy · Privacy by design · Playwright · RGAA'],
+  ['pilotage', 'pilotage', 1, 'Leadership & méthode', 'Des équipes, une méthode, une feuille de route.', 'Tech lead · Management · Mentorat · Développement augmenté · Agile · ADR · Avant-vente']
+]).map(([d, ic, ch, t, x, o]) => ({ d, ic, ch, t, x, o }));
 
 /* ——— les dessins : des points (x, y, z dans [-1, 1], y vers le bas ; la taille de l'étoile qui s'y pose, 0 : un simple coude du trait) et des traits
    (a, b, style : '' plein, 'fin' en pointillé) ; flux : les traits que parcourt un influx ; geo(P, t) : ce qui bouge ; rot(t) : [rx, ry, rz] ——— */
@@ -189,7 +192,40 @@ const DESSINS = {
     const i0 = f.lg(P, true, j => j % 6 ? 0 : 1);
     f.plus = (ctx, Q, t, u, now) => { if (u <= 0) return; for (let k = 0; k < 2; k++) { const v = ((t * 0.25 + k * 0.5) % 1) * n, j = Math.floor(v), e = v - j, A = Q[i0 + j], B = Q[i0 + (j + 1) % n];
       O.brille(ctx, A[0] + (B[0] - A[0]) * e, A[1] + (B[1] - A[1]) * e, 4, u, true, now, k); } };
-    f.rot = t => [0.4, 0.5 * Math.sin(t * 0.35), 0]; return f; }
+    f.rot = t => [0.4, 0.5 * Math.sin(t * 0.35), 0]; return f; },
+  // une flotte d'agents : le produit au centre (un cube), deux orbites d'agents qui tournent autour et y envoient leur travail
+  flotte() { const f = fig(), c = f.boite(-0.34, -0.34, -0.34, 0.34, 0.34, 0.34, 1), mid = f.pt(0, 0, 0, 0), A = [];
+    for (let k = 0; k < 14; k++) { A.push(f.pt(0, 0, 0, k % 4 === 0 ? 1.8 : 1.3)); if (k % 2 === 0) { f.ar(A[k], mid, 'fin'); f.flux.push([A[k], mid]); } }
+    for (let k = 0; k < 8; k++) f.ar(A[k], A[(k + 1) % 8], 'fin'); for (let k = 0; k < 6; k++) f.ar(A[8 + k], A[8 + (k + 1) % 6], 'fin');
+    f.geo = (P, t) => A.forEach((i, k) => { const o = k < 8 ? 0 : 1, n = o ? 6 : 8, j = o ? k - 8 : k, a = j / n * TAU + t * (o ? -0.5 : 0.7), R = o ? 0.66 : 0.95, ti = o ? -0.5 : 0.35;
+      P[i][0] = Math.cos(a) * R; P[i][1] = Math.sin(a) * R * Math.sin(ti); P[i][2] = Math.sin(a) * R * Math.cos(ti); });
+    f.rot = t => [0.3, t * 0.2, 0]; return f; },
+  // les garde-fous : un bouclier, sa coche ; une ligne de contrôle le parcourt de haut en bas
+  gardefous() { const f = fig(), B = [];
+    for (let i = 0; i <= 12; i++) { const u = i / 12, y = -0.85 + u * 1.75, x = 0.62 * (u < 0.45 ? 1 : Math.cos((u - 0.45) / 0.55 * Math.PI / 2)); B.push([x, y - (u === 0 ? 0 : 0)]); }
+    const P = [[0, -0.95]].concat(B.map(([x, y]) => [x, y])).concat(B.slice(0, -1).reverse().map(([x, y]) => [-x, y]));
+    const i0 = f.lg(P, true, j => j % 4 ? 0 : 1);
+    f.lg([[-0.3, 0.02], [-0.07, 0.26], [0.34, -0.26]], false, j => j === 2 ? 1.5 : 0.8);
+    f.plus = (ctx, Q, t, u, now) => { if (u <= 0) return; const v = (t * 0.35) % 1, y = -0.85 + v * 1.75; let a = null, b = null;
+      Q.forEach((q, j) => { if (j < i0 || j >= i0 + P.length) return; const p = P[j - i0]; if (Math.abs(p[1] - y) < 0.08) { if (p[0] >= 0) a = a || q; else b = b || q; } });
+      if (a && b) { ctx.globalAlpha = u * 0.8; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); O.brille(ctx, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, 3.4, u, false, now, 2); } };
+    f.rot = t => [0.12, 0.45 * Math.sin(t * 0.4), 0]; return f; },
+  // la puce : six couches empilées (l'IA au cœur) qui s'écartent, se resserrent ; des broches autour de celle du milieu
+  puce() { const f = fig(), C = [];
+    for (let k = 0; k < 6; k++) { const s = k === 2 ? 0.62 : 0.52 + (k % 2) * 0.06; C.push(f.lg([[-s, 0, -s], [s, 0, -s], [s, 0, s], [-s, 0, s]], true, k === 2 ? 1.4 : 0.8)); }
+    const B = []; for (let k = 0; k < 4; k++) for (let j = -1; j <= 1; j++) { const a = f.pt(0, 0, 0, 0), b = f.pt(0, 0, 0, 0.5); f.ar(a, b); B.push([a, b, k, j * 0.3]); }
+    f.geo = (P, t) => { const e = 0.16 + 0.07 * Math.sin(t * 0.9); C.forEach((i, k) => { for (let j = 0; j < 4; j++) P[i + j][1] = (k - 2.5) * e; });
+      B.forEach(([a, b, k, o]) => { const y = (2 - 2.5) * e, s = 0.62, d = [[1, 0], [0, 1], [-1, 0], [0, -1]][k]; P[a][0] = d[0] * s + d[1] * o; P[a][2] = d[1] * s + d[0] * o; P[a][1] = y; P[b][0] = d[0] * (s + 0.22) + d[1] * o; P[b][2] = d[1] * (s + 0.22) + d[0] * o; P[b][1] = y; }); };
+    f.rot = t => [0.5, t * 0.3, 0]; return f; },
+  // la sécurité : un cadenas ; son anse se referme, clic
+  secu() { const f = fig(), i0 = f.p.length;
+    f.lg([[-0.46, -0.05], [0.46, -0.05], [0.46, 0.72], [-0.46, 0.72]], true, 1);
+    f.rond(0, 0.26, 0, 0.09, 8, 0); f.lg([[0, 0.35], [0, 0.52]], false, j => j ? 0.8 : 0);
+    const A = []; for (let k = 0; k <= 10; k++) { const a = Math.PI + k / 10 * Math.PI; A.push([Math.cos(a) * 0.3, -0.05 + Math.sin(a) * 0.46 - 0.1]); }
+    const j0 = f.lg([[-0.3, -0.05]].concat(A.slice(1, -1)).concat([[0.3, -0.05]]), false, j => j % 5 ? 0 : 1);
+    const n = A.length; f.geo = (P, t) => { const d = -0.22 * (1 - sm(c01((t - 3.6) / 0.5))); for (let i = j0; i < j0 + n; i++) P[i][1] += d; };
+    f.plus = (ctx, Q, t, u, now) => { const k = t - 4.1; if (k < 0) return; const q = Q[j0 + n - 1]; O.brille(ctx, q[0], q[1], 4 + 2 * Math.max(0, 1 - k), 0.9, true, now, 1); };
+    f.rot = t => [0.15, 0.4 * Math.sin(t * 0.4), 0]; return f; }
 };
 
 /* ——— les lettres : pleines et nettes (19:27, Mathieu : « les textes sont assez illisibles ») ; Space Grotesk, le nom dans la police du grand titre ——— */
@@ -199,65 +235,54 @@ const police = (px, k) => { if (k === 'fort') return `600 ${px}px ${NET}`; if (!
 const toile = document.createElement('canvas'), tx = toile.getContext('2d');
 const largeur = (txt, font) => { tx.font = font; return tx.measureText(txt).width; };
 // (des lignes qui tiennent dans wmax, coupées entre les mots)
-function lignes(txt, font, wmax) { const R = []; let l = ''; txt.split(' ').forEach(m => { const e = l ? l + ' ' + m : m; if (l && largeur(e, font) > wmax) { R.push(l); l = m; } else l = e; }); if (l) R.push(l); return R; }
+function lignes(txt, font, wmax) { txt = txt.replace(/ ([:;!?»])/g, '\u00a0$1').replace(/« /g, '«\u00a0'); const R = []; let l = ''; txt.split(' ').forEach(m => { const e = l ? l + ' ' + m : m; if (l && largeur(e, font) > wmax) { R.push(l); l = m; } else l = e; }); if (l) R.push(l); return R; }
 
 // la Terre, en bas (la même que js/espace-planetes.js) : les chats s'y assoient pour regarder
 const hautTerre = () => { const H = O.H, h = clamp(H * 0.13, 60, 130); return O.BAS() - h + 18; };
 function terre() { const W = O.W, H = O.H, bas = O.BAS(), h = clamp(H * 0.13, 60, 130), R = Math.max(W * 1.15, (W * W / 4) / (2 * h) + h / 2); return { cx: W / 2, cy: bas - h + R + 18, R }; }
 const surface = x => { const T = terre(); return T.cy - Math.sqrt(Math.max(0, T.R * T.R - (x - T.cx) * (x - T.cx))); };
 
-/* ——— la mise en page : l'en-tête (nom, titre), l'écran du ciel (où se forment les dessins), les sous-titres, la rangée de petites étoiles ——— */
+/* ——— la mise en page : en haut, la barre des deux chapitres ; au milieu, l'écran du ciel (où se forment les dessins) ;
+   dessous, centrés, les sous-titres (sans encart) ; en bas, la Terre, où s'assoient les spectateurs ——— */
 let M = null;
-function sousTitre(S, L, wmax, cote) {
-  const pT = L ? 30 : 21, pP = L ? 18.5 : 15, pO = L ? 14.5 : 12.5, is = pT * 0.62, pad = L ? 20 : 12, g = pT * 0.45, ws = wmax - pad * 2;
-  const fT = police(pT, 'fort'), fP = police(pP), fO = police(pO), R = [];
-  let y = pad; const tl = lignes(S[3], fT, ws - is * 2 - g), wT = Math.max(...tl.map(l => largeur(l, fT)));
-  tl.forEach((l, i) => { R.push({ txt: l, font: fT, w: largeur(l, fT), y: y + pT * 0.95, a: 1, dl: i * 0.3, t: 1 }); y += pT * 1.2; }); y += pT * 0.2;
-  lignes(S[4], fP, ws).forEach((l, i) => { R.push({ txt: l, font: fP, w: largeur(l, fP), y: y + pP * 1.05, a: 0.96, dl: 0.35 + i * 0.25 }); y += pP * 1.45; });
-  if (S[5]) { y += pO * 0.3; lignes(S[5], fO, ws).forEach((l, i) => { R.push({ txt: l, font: fO, w: largeur(l, fO), y: y + pO * 1.05, a: 0.68, dl: 0.8 + i * 0.25 }); y += pO * 1.5; }); }
-  // (x : depuis le bord gauche de la bande ; sur le côté, tout est aligné à gauche ; sinon, centré)
-  const bw = cote ? wmax : Math.min(wmax, Math.max(wT + is * 2 + g, ...R.map(l => l.w)) + pad * 2), x0 = cote ? pad : (bw - (wT + is * 2 + g)) / 2;
-  R.forEach(l => { l.x = l.t ? x0 + is * 2 + g : cote ? pad : (bw - l.w) / 2; });
-  return { L: R, ic: { x: x0 + is, y: pad + pT * 0.6, s: is }, w: bw, h: y + pad * 0.7, k: S[1] };
+const ROMAIN = ['I', 'II'], MONO = '"IBM Plex Mono",ui-monospace,monospace';
+const espace = (ctx, v) => { if ('letterSpacing' in ctx) ctx.letterSpacing = v; };
+function sousTitre(S, L, wmax, num, N, chap) {
+  const intro = num === 0, pE = L ? 12.5 : 11, pT = intro ? (L ? 34 : 24) : (L ? 28 : 21), pP = L ? 17.5 : 15, pO = L ? 14 : 12.5, is = pT * 0.55, g = pT * 0.4;
+  const fE = `500 ${pE}px ${MONO}`, fT = police(pT, 'fort'), fP = police(pP), fO = police(pO), R = [];
+  const eti = (ROMAIN[S.ch] + ' · ' + chap + (intro ? '' : `  —  ${String(num).padStart(2, '0')} / ${String(N - 1).padStart(2, '0')}`)).toUpperCase();
+  espace(tx, '0.18em'); R.push({ txt: eti, font: fE, w: largeur(eti, fE), y: pE, a: 0.62, dl: 0, esp: '0.18em' }); espace(tx, '0px');
+  let y = pE + pT * 0.5; const tl = lignes(S.t, fT, wmax - is * 2 - g), wT = Math.max(...tl.map(l => largeur(l, fT)));
+  tl.forEach((l, i) => { const w = largeur(l, fT); R.push({ txt: l, font: fT, w, y: y + pT * 0.95, a: 1, dl: 0.2 + i * 0.3, t: 1 }); y += pT * 1.2; }); y += pT * 0.15;
+  lignes(S.x, fP, wmax).forEach((l, i) => { R.push({ txt: l, font: fP, w: largeur(l, fP), y: y + pP * 1.05, a: 0.96, dl: 0.5 + i * 0.25 }); y += pP * 1.45; });
+  if (S.o) { y += pO * 0.35; lignes(S.o, fO, wmax).forEach((l, i) => { R.push({ txt: l, font: fO, w: largeur(l, fO), y: y + pO * 1.05, a: 0.66, dl: 0.9 + i * 0.25 }); y += pO * 1.5; }); }
+  // (x : depuis le centre ; le titre laisse la place de son icône, à gauche)
+  R.forEach(l => { l.x = l.t ? -(wT + is * 2 + g) / 2 + is * 2 + g + (wT - l.w) / 2 : -l.w / 2; });
+  return { L: R, ic: { x: -(wT + is * 2 + g) / 2 + is, y: R.find(l => l.t).y - pT * 0.35, s: is }, w: Math.max(...R.map(l => l.w)) + is * 2 + g, h: y, k: S.ic };
 }
 function compose() {
-  const W = O.W, H = O.H, L = W >= 760, cote = W >= 900 && W / H > 1.15, D = TETE(), SC = SCENES();
-  // en haut : le nom et le titre ; la planète des chats dans le coin (js/espace-planetes.js la prend là)
-  const pn = L ? clamp(W * 0.024, 24, 34) : 21, pr = L ? 15.5 : 13, r = L ? clamp(Math.min(W, H) * 0.07, 38, 64) : clamp(Math.min(W, H) * 0.075, 32, 52);
-  const top = O.HAUT() + (L ? H * 0.025 : 24), planete = L ? [W - W * 0.035 - r, top + r * 1.15] : [W - r - 12, top + r + 6];
-  const marge = W * 0.04, capW = cote ? clamp(W * 0.33, 340, 470) : Math.min(W - 24, L ? 860 : 9999), capX = W - marge - capW;
-  const cxS = cote ? (marge + capX - 20) / 2 : W / 2;
-  const fr = police(pr), wr = cote ? capX - marge : L ? W - 40 : W - r * 2 - 44, role = lignes(D[1], fr, wr);
-  const tete = { al: L ? 'c' : 'g', x: L ? cxS : 16, nom: D[0], fn: police(pn, true), yn: top + pn, role, fr, yr: top + pn + pr * 1.55, lr: pr * 1.35, pn, pr };
-  const basTete = tete.yr + (role.length - 1) * tete.lr + pr * 0.7;
-  const caps = SC.map(S => sousTitre(S, L, capW, cote)), hMax = Math.max(...caps.map(c => c.h)), place = L ? 62 : 50, pas = L ? 20 : 17;
-  let cx, cy, s, yPts, yCap = 0, capY = 0, xPts;
-  if (cote) {
-    // grand écran : l'écran du ciel à gauche, les sous-titres à droite (sous la planète), la rangée d'étoiles dessous
-    const t0 = basTete + 14, b0 = hautTerre() - place - 6; cx = cxS; cy = (t0 + b0) / 2;
-    s = Math.max(60, Math.min((b0 - t0) / 2 * 0.92, (capX - 20 - marge) / 2 * 0.66));
-    capY = Math.max(planete[1] + r * 2.4, cy - (hMax + 40) / 2); yPts = capY + hMax + 26; xPts = capX + capW / 2;
-  } else {
-    // téléphone (ou écran étroit) : l'écran du ciel au milieu, les sous-titres dessous, la rangée d'étoiles, puis la Terre et les spectateurs
-    yPts = hautTerre() - place - 10; yCap = yPts - (L ? 20 : 16); xPts = W / 2;
-    const t0 = basTete + (L ? 14 : 8), b0 = yCap - hMax - (L ? 16 : 10); cx = W / 2; cy = (t0 + b0) / 2;
-    s = Math.max(40, Math.min((b0 - t0) / 2 * 0.8, L ? W * 0.2 : W / 2 * 0.72));
-  }
-  // la rangée d'étoiles : une par scène (un petit écart entre l'IA et le reste), deux flèches aux bouts
-  const gap = pas * 0.8, nIA = SC.filter(S => S[2]).length, larg = (SC.length - 1) * pas + gap;
-  const pts = SC.map((S, i) => ({ x: xPts - larg / 2 + i * pas + (i >= nIA ? gap : 0), y: yPts }));
-  const fl = [{ x: pts[0].x - pas * 1.5, y: yPts, d: -1 }, { x: pts[pts.length - 1].x + pas * 1.5, y: yPts, d: 1 }];
-  return { W, H, L, cote, tete, caps, yCap, capX, capY, cx, cy, s, pts, fl, planete, pas, SC };
+  const W = O.W, H = O.H, L = W >= 760, SC = SCENES(), CH = CHAPITRES();
+  // la barre des chapitres : deux segments (un par chapitre), une encoche par scène
+  const yB = O.HAUT() + (L ? 14 : 40), wB = Math.min(W - (L ? 80 : 32), 760), xB = W / 2 - wB / 2, gB = L ? 28 : 16;
+  const nc = [0, 1].map(c => SC.filter(S => S.ch === c).length), seg = [0, 1].map(c => ({ x: xB + (c ? (wB - gB) * nc[0] / (nc[0] + nc[1]) + gB : 0), w: (wB - gB) * nc[c] / (nc[0] + nc[1]), n: nc[c], nom: `${ROMAIN[c]} · ${L ? CH[c] : COURT()[c]}`.toUpperCase() }));
+  const barre = { y: yB, seg, bas: yB + (L ? 22 : 18) };
+  const r = L ? clamp(Math.min(W, H) * 0.07, 38, 64) : clamp(Math.min(W, H) * 0.07, 30, 44), planete = L ? [W - W * 0.035 - r, barre.bas + r + 18] : [W - r - 10, barre.bas + r + 26];
+  // les sous-titres : ancrés en bas, au-dessus des spectateurs
+  const place = L ? 14 : 50, wmax = Math.min(W - 32, L ? 900 : 9999), yCap = hautTerre() - place - 4;
+  const caps = SC.map((S, i) => { const num = SC.slice(0, i + 1).filter(q => q.ch === S.ch).length - 1; return sousTitre(S, L, wmax, num, nc[S.ch], CH[S.ch]); });
+  const hMax = Math.max(...caps.map(c => c.h));
+  // l'écran du ciel : tout ce qui reste entre la barre et les sous-titres
+  const t0 = barre.bas + (L ? 18 : 10), b0 = yCap - hMax - (L ? 22 : 14), cx = W / 2, cy = (t0 + b0) / 2;
+  const s = Math.max(40, Math.min((b0 - t0) / 2 * 0.86, L ? W * 0.26 : W / 2 * 0.74));
+  return { W, H, L, barre, caps, yCap, cx, cy, s, planete, SC };
 }
-// où se pose une bande de sous-titres : son coin haut gauche
-const coin = (L, cap) => L.cote ? [L.capX, L.capY] : [L.W / 2 - cap.w / 2, L.yCap - cap.h];
 
 /* ——— la séance : une scène à la fois ——— */
 const DUREE = reduit ? { A: 0.01, B: 0.01, C: 0.01 } : { A: 1.7, B: 1.7, C: 0.9 };
 const tenue = cap => (reduit ? 4 : 0) + clamp(4.2 + cap.L.reduce((n, l) => n + l.txt.length, 0) / 26, 6, 10.5);
 let pret = false, onFini = null, fin1 = false;
 function scene(i) {
-  const lay = M.lay, S = lay.SC[i], f = DESSINS[S[0]](), W = lay.W, hb = hautTerre();
+  const lay = M.lay, S = lay.SC[i], f = DESSINS[S.d](), W = lay.W, hb = hautTerre();
   // (d'où vient chaque étoile : un endroit du ciel, au hasard ; les plus proches arrivent les premières)
   const et = f.p.map((p, j) => ({ ox: rnd(0.02, 0.98) * W, oy: rnd(O.HAUT() + 4, hb - 30), dl: 0.55 * bruit(j * 1.7 + i * 13), ph: rnd(0, TAU) }));
   return { i, S, f, et, t0: Wd.t, cap: lay.caps[i], tenue: tenue(lay.caps[i]), Q: null, reagi: false };
@@ -271,7 +296,6 @@ function aller(j) {
 }
 const tps = () => M && M.sc ? Wd.t - M.sc.t0 : 0;
 const forme = () => M && M.sc && tps() >= DUREE.A + DUREE.B + DUREE.C;
-const lusIA = new Set();
 
 X.entre.push(() => { M = null; pret = false; fin1 = false;
   const go = () => { pret = true; M = { lay: compose(), t0: Wd.t, part: [], vus: new Set(), fin: false, rx: 0, ry: 0, vrx: 0, vry: 0, bw: 0, bh: 0, sc: null, vieux: null };
@@ -289,9 +313,8 @@ X.pas.push((dt, cats) => {
   const P = Wd.ptr, b = M.bande;
   if (tl > F && b && P && P.on && Wd.t - P.moved < 8 && P.x > b.x && P.x < b.x + b.w && P.y > b.y && P.y < b.y + b.h) C.t0 += dt;
   if (tl > F && !C.reagi) { C.reagi = true; M.vus.add(C.i); reagit(C);
-    if (C.S[2]) { lusIA.add(C.i); if (M.lay.SC.every((S, i) => !S[2] || lusIA.has(i)) && window.Dex && Dex.vu) Dex.vu('competences'); }
     if (!fin1) { fin1 = true; if (onFini) onFini(); }
-    if (M.vus.size >= M.lay.SC.length) M.fin = true; }
+    if (M.vus.size >= M.lay.SC.length) { M.fin = true; if (window.Dex && Dex.vu) Dex.vu('competences'); } }
   if (tl > F + C.tenue) aller(C.i + 1);
   // la constellation qu'on a fait tourner revient doucement de face
   if (!M.tenu) { M.ry += M.vry * dt; M.rx += M.vrx * dt; M.vry *= Math.exp(-dt * 1.6); M.vrx *= Math.exp(-dt * 1.6); M.ry *= Math.exp(-dt * 0.5); M.rx *= Math.exp(-dt * 0.9); }
@@ -319,12 +342,17 @@ function etoile(ctx, x, y, R, k, br, now, ph) { O.brille(ctx, x, y, R, k, br, no
 function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 
 X.fond.push((ctx, now) => {
-  if (!M) return; const L = M.lay, T = L.tete, th = Wd.t - M.t0;
+  if (!M) return; const L = M.lay, th = Wd.t - M.t0;
   ctx.save(); ctx.lineCap = ctx.lineJoin = 'round'; ctx.strokeStyle = ctx.fillStyle = `rgb(${BL})`;
-  // l'en-tête : le nom, puis le titre, dévoilés de gauche à droite
-  const ecrit = (txt, font, x, y, u, al) => { if (u <= 0) return; ctx.font = font; const w = largeur(txt, font), x0 = al === 'c' ? x - w / 2 : x; ctx.save(); ctx.beginPath(); ctx.rect(x0 - 4, y - 200, (w + 8) * c01(u), 400); ctx.clip(); ctx.globalAlpha = 1; ctx.fillText(txt, x0, y); ctx.restore(); };
-  ctx.textBaseline = 'alphabetic';
-  ecrit(T.nom, T.fn, T.x, T.yn, reduit ? 1 : th / 0.9, T.al); T.role.forEach((l, i) => { ctx.globalAlpha = 0.8; ecrit(l, T.fr, T.x, T.yr + i * T.lr, reduit ? 1 : (th - 0.7 - i * 0.3) / 0.8, T.al); });
+  // la barre des chapitres : le nom de chaque chapitre, une ligne par chapitre qui se remplit, une encoche par scène
+  const B = L.barre, C0 = M.sc, ap = reduit ? 1 : c01(th / 1.2);
+  if (C0) { let k0 = 0; ctx.textBaseline = 'alphabetic';
+    B.seg.forEach((g, c) => { const on = C0.S.ch === c, fait = C0.S.ch > c, i = C0.i - k0, F = DUREE.A + DUREE.B + DUREE.C, v = on ? c01((i + c01(tps() / (F + C0.tenue))) / g.n) : fait ? 1 : 0, yL = B.bas - 4;
+      ctx.font = `500 ${L.L ? 12 : 10.5}px ${MONO}`; espace(ctx, '0.16em'); ctx.globalAlpha = (on ? 0.95 : 0.45) * ap; ctx.fillStyle = `rgb(${BL})`; ctx.fillText(g.nom, g.x, B.y); espace(ctx, '0px');
+      ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 1; ctx.globalAlpha = 0.25 * ap; ctx.beginPath(); ctx.moveTo(g.x, yL); ctx.lineTo(g.x + g.w * ap, yL); ctx.stroke();
+      if (v > 0) { ctx.globalAlpha = 0.95; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(g.x, yL); ctx.lineTo(g.x + g.w * v, yL); ctx.stroke(); if (on && !reduit) O.brille(ctx, g.x + g.w * v, yL, 3, 0.9, false, now, c); }
+      for (let j = 1; j < g.n; j++) { const x = g.x + g.w * j / g.n; ctx.globalAlpha = 0.4 * ap; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, yL - 3); ctx.lineTo(x, yL + 3); ctx.stroke(); }
+      k0 += g.n; }); }
   ctx.globalAlpha = 1;
   // les étoiles qui repartent dans le ciel (celles de la scène d'avant)
   M.part.forEach((p, j) => { const u = c01((Wd.t - p.t0) / 1.2), e = sm(u), x = p.x + (p.ox - p.x) * e, y = p.y + (p.oy - p.y) * e; etoile(ctx, x, y, p.R * (1 - u) + 0.8 * u, 0.9, false, now, p.ph); });
@@ -349,26 +377,17 @@ X.fond.push((ctx, now) => {
       const R = (1.1 + 1.25 * s) * q[2] * (1 + flash * 0.9) * (0.85 + 0.15 * Math.sin(now * 2.3 + E.ph)) * (k < 1 ? 0.75 + 0.25 * k : 1);
       etoile(ctx, x, y, R, (0.55 + 0.45 * prof(q[3])) * clig, s >= 1.2 || flash > 0.3, now, E.ph); });
   }
-  // les sous-titres : sur une bande de nuit (lisibles, même quand un chat passe derrière) ; l'icône, le nom, la preuve, les outils
+  // les sous-titres : centrés sous le dessin, sans encart ; l'étiquette du chapitre, le titre et son icône, la phrase, les outils
+  // (l'ancienne s'efface d'abord, de droite à gauche ; la nouvelle s'écrit ensuite, ligne après ligne)
   const cap = C && C.cap, V = M.vieux, tl = tps(), vu = V ? c01((Wd.t - V.t0) / 0.35) : 1;
-  if (cap) { const k = Math.min(1, dt0()); M.bw = M.bw ? M.bw + (cap.w - M.bw) * k : cap.w; M.bh = M.bh ? M.bh + (cap.h - M.bh) * k : cap.h;
-    const ap = reduit || M.vus.size || C.i ? 1 : sm(c01((tl - 0.2) / 0.6)), w = M.bw * ap, h = M.bh;
-    const x = L.cote ? L.capX : L.W / 2 - w / 2, y = L.cote ? L.capY : L.yCap - h;
-    M.bande = { x: L.cote ? L.capX : L.W / 2 - M.bw / 2, w: M.bw, h, y };
-    if (w > 2) { ctx.globalAlpha = 1; ctx.fillStyle = 'rgba(6,8,12,0.66)'; rr(ctx, x, y, w, h, 12); ctx.fill(); ctx.globalAlpha = 0.28; ctx.lineWidth = 1.2; ctx.strokeStyle = `rgb(${BL})`; ctx.stroke(); ctx.fillStyle = `rgb(${BL})`; }
-    const txt = (D, q) => { const [ox, oy] = coin(L, D); D.L.forEach(l => { const r = c01(q(l)); if (r <= 0) return; ctx.save(); ctx.beginPath(); ctx.rect(ox + l.x - 4, oy + l.y - 60, (l.w + 8) * r, 90); ctx.clip();
-      ctx.globalAlpha = l.a; ctx.font = l.font; ctx.fillStyle = `rgb(${BL})`; ctx.fillText(l.txt, ox + l.x, oy + l.y); ctx.restore(); }); };
-    // (l'ancienne s'efface d'abord, de droite à gauche ; la nouvelle s'écrit ensuite)
+  const txt = (D, q) => { const ox = L.W / 2, oy = L.yCap - D.h; D.L.forEach(l => { const r = c01(q(l)); if (r <= 0) return; ctx.save(); ctx.beginPath(); ctx.rect(ox + l.x - 4, oy + l.y - 60, (l.w + 8) * r, 90); ctx.clip();
+    ctx.globalAlpha = l.a; ctx.font = l.font; espace(ctx, l.esp || '0px'); ctx.fillStyle = `rgb(${BL})`; ctx.fillText(l.txt, ox + l.x, oy + l.y); ctx.restore(); }); };
+  if (cap) { M.bande = { x: L.W / 2 - cap.w / 2 - 12, y: L.yCap - cap.h - 12, w: cap.w + 24, h: cap.h + 24 };
     if (V && vu < 1) txt(V.cap, l => 1 - vu);
-    else { txt(cap, l => reduit ? 1 : (tl - 0.5 - l.dl) * 900 / (l.w + 120)); const [ox, oy] = coin(L, cap);
-      const ui = reduit ? 1 : c01((tl - 0.45) / 0.9); if (ui > 0) icone(ctx, cap.k, ox + cap.ic.x, oy + cap.ic.y, cap.ic.s, ui, now, 0); } }
-  // la rangée de petites étoiles : une par scène (celle d'en cours est plus grosse, un cercle montre le temps qui reste) ; les flèches aux bouts
-  if (C) { L.pts.forEach((p, i) => { const on = i === C.i, R = on ? 3.4 : M.vus.has(i) ? 2.2 : 1.6; etoile(ctx, p.x, p.y, R, on ? 1 : M.vus.has(i) ? 0.75 : 0.45, on, now, i);
-      if (on && !reduit) { const F = DUREE.A + DUREE.B + DUREE.C, v = c01(tl / (F + C.tenue)); ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeStyle = `rgb(${BL})`; ctx.beginPath(); ctx.arc(p.x, p.y, 7.5, -Math.PI / 2, -Math.PI / 2 + v * TAU); ctx.stroke(); } });
-    ctx.globalAlpha = 0.75; ctx.lineWidth = 1.6; ctx.strokeStyle = `rgb(${BL})`; L.fl.forEach(a => { const s = 5; ctx.beginPath(); ctx.moveTo(a.x - a.d * s * 0.5, a.y - s); ctx.lineTo(a.x + a.d * s * 0.5, a.y); ctx.lineTo(a.x - a.d * s * 0.5, a.y + s); ctx.stroke(); }); }
+    else { txt(cap, l => reduit ? 1 : (tl - 0.5 - l.dl) * 900 / (l.w + 120));
+      const ui = reduit ? 1 : c01((tl - 0.65) / 0.9); if (ui > 0) icone(ctx, cap.k, L.W / 2 + cap.ic.x, L.yCap - cap.h + cap.ic.y, cap.ic.s, ui, now, 0); } }
   ctx.restore();
 });
-let tPrec = 0; const dt0 = () => { const d = Wd.t - tPrec; tPrec = Wd.t; return clamp(d * 6, 0, 1); };
 
 /* ——— les icônes des sous-titres : au trait, comme le reste ; elles se tracent (u : 0 → 1) ———
    ia : un petit réseau · front : une fenêtre de navigateur et </> · back : trois serveurs empilés · pilotage : une boussole · devops : la boucle sans fin */
@@ -394,6 +413,9 @@ function icone(ctx, k, x, y, s, u, now, vif) {
     const a = Math.sin(now * 0.9) * 0.35 + 0.6; ctx.save(); ctx.rotate(a); ctx.beginPath(); ctx.moveTo(0, -s * 0.68); ctx.lineTo(s * 0.18, 0); ctx.lineTo(0, s * 0.68); ctx.lineTo(-s * 0.18, 0); ctx.closePath(); ctx.stroke();
     ctx.setLineDash([]); if (u >= 1) { ctx.beginPath(); ctx.moveTo(0, -s * 0.68); ctx.lineTo(s * 0.18, 0); ctx.lineTo(-s * 0.18, 0); ctx.closePath(); ctx.fill(); } ctx.restore();
     [0, 1, 2, 3].forEach(i => { const b = i * Math.PI / 2; ctx.beginPath(); ctx.moveTo(Math.cos(b) * s * 0.92, Math.sin(b) * s * 0.92); ctx.lineTo(Math.cos(b) * s * 1.1, Math.sin(b) * s * 1.1); ctx.stroke(); });
+  } else if (k === 'secu') {
+    rr(-s * 0.72, -s * 0.1, s * 1.44, s * 1.05, s * 0.14); ctx.beginPath(); ctx.arc(0, -s * 0.1, s * 0.45, Math.PI, 0); ctx.stroke();
+    ctx.setLineDash([]); if (u >= 1) { ctx.beginPath(); ctx.arc(0, s * 0.33, s * 0.11, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.moveTo(0, s * 0.4); ctx.lineTo(0, s * 0.6); ctx.stroke(); }
   } else if (k === 'devops') {
     ctx.beginPath(); for (let i = 0; i <= 60; i++) { const t = i / 60 * TAU, d = 1 + Math.sin(t) * Math.sin(t); ctx.lineTo(s * Math.cos(t) / d, s * 0.9 * Math.sin(t) * Math.cos(t) / d); } ctx.stroke();
     ctx.setLineDash([]); if (u >= 1 && !reduit) { const t = now * 1.6, d = 1 + Math.sin(t) * Math.sin(t); O.brille(ctx, s * Math.cos(t) / d, s * 0.9 * Math.sin(t) * Math.cos(t) / d, 2.4, 0.9, false, now, 5); }
@@ -403,27 +425,11 @@ function icone(ctx, k, x, y, s, u, now, vif) {
 
 /* ——— le dessin : la craie des cadres, le stylo des mots ; la pointe, au bout ——— */
 
-/* ——— la main : attraper la constellation pour la faire tourner (un toucher : la scène suivante) ; les petites étoiles d'en bas, les flèches ———
-   (seulement sur une étoile de la constellation : ailleurs, dans le ciel, on dessine toujours, js/espace-dessin.js) */
-const TOURNE = {
-  drag(k, x, y) { if (!k.bouge) { if (Math.hypot(x - k.x0, y - k.y0) < 6) return; k.bouge = true; M.tenu = true; k.px = x; k.py = y; }
-    M.ry += (x - k.px) * 0.009; M.rx -= (y - k.py) * 0.007; k.px = x; k.py = y; },
-  release(k, vx, vy) { M.tenu = false; if (!k.bouge) { aller(M.sc.i + 1); return; } M.vry = clamp((vx || 0) * 0.006, -6, 6); M.vrx = clamp(-(vy || 0) * 0.004, -3, 3); }
-};
-const BOUTON = { drag() {}, release(k) { if (M) aller(k.j); } };
-X.grab.push((x, y) => {
-  if (!M || !M.sc) return null; const L = M.lay;
-  for (let i = 0; i < L.pts.length; i++) { const p = L.pts[i]; if (Math.abs(x - p.x) < L.pas / 2 && Math.abs(y - p.y) < 16) return { mod: BOUTON, j: i }; }
-  for (const a of L.fl) if (Math.hypot(x - a.x, y - a.y) < 18) return { mod: BOUTON, j: M.sc.i + a.d };
-  const P = M.sc.pos; if (!P || tps() < DUREE.A) return null;
-  if (M.sc.f.p.some((p, j) => p[3] > 0 && P[j] && Math.hypot(P[j][0] - x, P[j][1] - y) < 18)) return { mod: TOURNE, x0: x, y0: y };
-  return null;
-});
-
 /* ——— les chats : au cinéma. Ils viennent s'asseoir sur la Terre, le nez vers le ciel, et regardent la séance ——— */
 function siege(c) {
   const W = O.W, r = rayon(c), autres = Wd.cats.filter(o => o !== c && o.sp && (o.sp.m === 'cine' || (o.sp.cible && o.sp.cible.siege != null))).map(o => [o.sp.m === 'cine' ? o.sp.sx : o.sp.cible.siege, rayon(o)]);
-  for (let n = 0; n < 14; n++) { const x = rnd(0.05, 0.95) * W; if (autres.every(([a, ro]) => Math.abs(a - x) > (r + ro) * 0.95)) return x; }
+  // (sur grand écran, les sous-titres descendent jusqu'à la Terre : les spectateurs s'assoient de part et d'autre)
+  for (let n = 0; n < 14; n++) { const x = W >= 760 ? (Math.random() < 0.5 ? rnd(0.04, 0.27) : rnd(0.73, 0.96)) * W : rnd(0.05, 0.95) * W; if (autres.every(([a, ro]) => Math.abs(a - x) > (r + ro) * 0.95)) return x; }
   return null;
 }
 function assied(c, x) {
@@ -448,7 +454,7 @@ function reagit(C) {
   for (let k = 0; k < n; k++) { const c = V.splice(Math.floor(Math.random() * V.length), 1)[0], S = c.sp;
     if (S.anim === 'dodo') { if (Math.random() < 0.5) say(c, 'zzz'); continue; }
     S.rea = Wd.t + 1.4; S.animR = ANIMS.debout ? 'debout' : S.anim;
-    later(k * 0.5, () => say(c, pick(en() ? ['ooh…', 'wow', '✦', 'again!', C.S[2] ? 'AI!' : 'nice'] : ['ooh…', 'waouh', '✦', 'encore !', 'joli', C.S[2] ? 'IA !' : 'bravo']))); }
+    later(k * 0.5, () => say(c, pick(en() ? ['ooh…', 'wow', '✦', 'again!', C.S.ic === 'ia' ? 'AI!' : 'nice'] : ['ooh…', 'waouh', '✦', 'encore !', 'joli', C.S.ic === 'ia' ? 'IA !' : 'bravo']))); }
 }
 const later = (d, f) => (K.later ? K.later(d, f) : setTimeout(f, d * 1000));
 X.envie.push(c => {
