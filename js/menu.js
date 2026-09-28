@@ -1,7 +1,8 @@
 /* Le menu des événements (27/09, Mathieu : « sur la gauche, une sorte de menu kawaii avec des illustrations, qui nous permette de déclencher
    les événements spéciaux »).
-   Une barre au bord gauche, toujours là : une colonne de pastilles dessinées au trait : les chats rares, la horde, la tour de cartons,
-   l'aspirateur, le distributeur fou, la bagarre, le colis, la mouche, le concert, la vitre, l'arc-en-ciel, le bain. Au survol, leur nom.
+   Une barre au bord gauche, toujours là : une colonne de grandes pastilles au trait, seulement les gros événements (le chat géant, la horde,
+   la tour de cartons, l'aspirateur, le distributeur fou, l'arc-en-ciel), leur nom écrit à la main à côté ; puis le carnet et les hauts faits.
+   Les petits (les autres chats rares, la bagarre, le bain…) arrivent d'eux-mêmes.
    Seulement sur l'écran des chats. */
 window.Menu = (() => {
 if (!window.Chats || !Chats.K) return null;
@@ -26,7 +27,7 @@ const ICON = {
   mouche: '<ellipse cx="20" cy="23" rx="6" ry="8"/><ellipse cx="13" cy="13" rx="6" ry="4" transform="rotate(-30 13 13)"/><ellipse cx="27" cy="13" rx="6" ry="4" transform="rotate(30 27 13)"/>' + yeux(20, 20, 2.5),
   concert: tete(14, 26, 8) + yeux(14, 26, 3) + '<path d="M26 22 v-14 l8 -2 v12"/><circle cx="24" cy="22" r="2.5" class="p"/><circle cx="32" cy="18" r="2.5" class="p"/>',
   vitre: '<rect x="6" y="6" width="28" height="28" rx="2"/><path d="M20 6 v28 M6 20 h28"/>' + tete(20, 24, 7) + yeux(20, 24, 3),
-  arc: '<path d="M4 32 a16 16 0 0 1 32 0" class="r1"/><path d="M8 32 a12 12 0 0 1 24 0" class="r2"/><path d="M12 32 a8 8 0 0 1 16 0" class="r3"/><path d="M16 32 a4 4 0 0 1 8 0" class="r4"/>',
+  arc: '<path d="M4 32 a16 16 0 0 1 32 0"/><path d="M8 32 a12 12 0 0 1 24 0"/><path d="M12 32 a8 8 0 0 1 16 0"/><path d="M2 32 q3 -3 6 0 M32 32 q3 -3 6 0"/>',
   bain: '<path d="M5 24 h30 q0 10 -15 10 q-15 0 -15 -10z"/>' + tete(20, 20, 7) + yeux(20, 20, 3) + '<circle cx="9" cy="14" r="2"/><circle cx="31" cy="11" r="2.5"/><circle cx="28" cy="5" r="1.5"/>',
 };
 const libres = () => Wd.cats.filter(c => K.free4(c) && !c.temp && !c.rare);
@@ -48,15 +49,19 @@ function dit(id) {
   // les chats lèvent la tête
   Wd.cats.forEach(c => { if (!c.rare && c.hp && Math.random() < 0.45) K.say(c, pick(['!', '?!', 'oh !'])); });
 }
+// (28/09, Mathieu : « ne garder que les gros événements impressionnants en bouton, le reste plus petit se déclenche aléatoirement »)
 const EV = [
-  ['geant', () => Rares.lance('geant')], ['interminable', () => Rares.lance('interminable')], ['ballon', () => Rares.lance('ballon')],
-  ['eclair', () => Rares.lance('eclair')], ['totem', () => Rares.lance('totem')], ['acrobate', () => Rares.lance('acrobate')],
-  ['horde', () => Chats.horde()], ['tour', () => { if (Wd.tower) Wd.tower.w = 2; else Chats.tower(); }], ['aspirateur', () => Chats.aspire()], ['folle', () => Chats.folle()],
-  ['bagarre', () => quand(2, () => Chats.fight())], ['colis', () => Scenarios.colis(true)], ['mouche', () => Scenarios.mouche()],
-  ['concert', () => quand(3, () => Scenarios.concert())], ['vitre', () => quand(1, () => Scenarios.vitre())],
+  ['geant', () => Rares.lance('geant')], ['horde', () => Chats.horde()], ['tour', () => { if (Wd.tower) Wd.tower.w = 2; else Chats.tower(); }],
+  ['aspirateur', () => Chats.aspire()], ['folle', () => Chats.folle()],
   ['arc', () => quand(3, () => { const L = libres().slice(0, 3); L.forEach((c, i) => setTimeout(() => { if (window.Arc && Wd.cats.includes(c)) Arc.vomit(c, 'menu'); }, i * 700)); })],
-  ['bain', () => quand(3, () => { const b = window.Bassin && Bassin.bassins()[0]; if (!b) return; libres().slice(0, 4).forEach(c => { K.interrupt(c); Bassin.bain(c, b); }); })],
 ].filter(([id]) => ICON[id]);
+// les petits : ils arrivent d'eux-mêmes, à tour de rôle avec les scénarios (js/chats.js, SCEN ; le colis, la mouche, le concert, la vitre y sont déjà)
+// (sans annonce ni secousse : ce sont des surprises ; faux = pas possible maintenant, on passe au suivant)
+const rare = id => () => { if (!window.Rares || Wd.cats.some(c => c.rare)) return false; Rares.lance(id); };
+const PETITS = [rare('interminable'), rare('ballon'), rare('eclair'), rare('totem'), rare('acrobate'),
+  () => { if (libres().length < 2) return false; Chats.fight(); },
+  () => { const b = window.Bassin && Bassin.bassins()[0], L = libres(); if (!b || L.length < 2) return false; L.slice(0, K.rnd(2, 4) | 0).forEach(c => { K.interrupt(c); Bassin.bain(c, b); }); }];
+if (K.SCEN) K.SCEN.push(...PETITS);
 
 const nav = document.createElement('nav'); nav.className = 'evts'; nav.setAttribute('aria-label', L_('menu.titre'));
 // (27/09, Mathieu : « plutôt une barre sur le côté, avec tous les boutons directement accessibles », surtout sur téléphone)
