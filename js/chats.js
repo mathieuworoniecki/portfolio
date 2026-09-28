@@ -843,9 +843,17 @@ function drawFx(S) {
     else if (f.k === 'bagarre') fightCloud(f, u, fade, K);
     else if (f.k === 'heart') heart(f.x, f.y - u * 26, f.r * K, fade);
   });
-  // le fil des pelotes
-  Wd.props.forEach(it => { if (!it.trail || it.trail.length < 2) return; const col = undefined;
-    C.stroke(it.trail.concat([[it.x, it.y]]), 1, { w: 1.3, a: 0.6 * it.a, color: col, amp: 0.4, seed: 7, tip: false }); });
+  drawFil(C);
+}
+// le fil des pelotes : sur sa propre toile, sous les objets et les chats (28/09, Mathieu : « les traits des jouets type pelote de laine passent par-dessus tout »)
+let filCv = null;
+function drawFil(C) {
+  if (!filCv) { filCv = document.createElement('canvas'); filCv.id = 'fil'; filCv.setAttribute('aria-hidden', 'true'); const o = document.getElementById('obj'); if (o) o.before(filCv); else document.body.prepend(filCv); }
+  const main = C.ctx, fc = filCv.getContext('2d'); if (!main) return;
+  if (filCv.width !== main.canvas.width || filCv.height !== main.canvas.height) { filCv.width = main.canvas.width; filCv.height = main.canvas.height; }
+  fc.setTransform(1, 0, 0, 1, 0, 0); fc.clearRect(0, 0, filCv.width, filCv.height); fc.setTransform(main.getTransform());
+  const L = Wd.props.filter(it => it.trail && it.trail.length >= 2 && it.a > 0.01); if (!L.length) return;
+  C.ctx = fc; try { L.forEach(it => C.stroke(it.trail.concat([[it.x, it.y]]), 1, { w: 1.3, a: 0.6 * it.a, amp: 0.4, seed: 7, tip: false })); } finally { C.ctx = main; }
 }
 function heart(x, y, r, a) {
   const P = []; for (let i = 0; i <= 24; i++) { const q = i / 24 * Math.PI * 2; P.push([x + 16 * Math.pow(Math.sin(q), 3) * r / 16, y - (13 * Math.cos(q) - 5 * Math.cos(2 * q) - 2 * Math.cos(3 * q) - Math.cos(4 * q)) * r / 16]); }
