@@ -69,7 +69,7 @@ function voisin(x, y) { let b = null, bd = 1e9; Wd.cats.forEach(c => { if (!c.sp
 
 /* ——— en orbite : happé, il tourne, puis la fronde le relance ——— */
 function orbite(c, pl, cx, cy, d, a) {
-  const S = c.sp, sens = (S.vx * -Math.sin(a) + S.vy * Math.cos(a)) >= 0 ? 1 : -1, cible = pl === 'chat' ? P.chat.r + rayon(c) * 1.3 : P.terre.R + rayon(c) * 1.4;
+  const S = c.sp, sens = (S.vx * -Math.sin(a) + S.vy * Math.cos(a)) >= 0 ? 1 : -1, cible = pl === 'chat' ? P.chat.r * 1.5 + rayon(c) * 0.6 : P.terre.R + rayon(c) * 1.4;
   Object.assign(S, { m: 'orbite', pl, a, d, d1: cible, sens, tour: 0, fin: pl === 'chat' ? TAU : rnd(0.35, 0.6) * Math.asin(clamp(O.W / 2 / P.terre.R, 0, 1)) * 2, anim: pick(['apesanteur', 'nage', 'chute'].filter(k => ANIMS[k])) });
   if (Math.random() < 0.5) say(c, pick(en() ? ['whoa!', 'pulled!', 'wheee'] : ['ooh !', 'ça tire !', 'wiii', 'je tourne !']));
 }
@@ -79,9 +79,11 @@ X.mode.orbite = (c, dt) => {
   // il descend vers son orbite en tournant, de plus en plus vite près de la planète (Kepler, à peu près)
   S.d += (S.d1 - S.d) * Math.min(1, dt * 1.6); const v = chat ? TAU / 3.2 * Math.pow(S.d1 / Math.max(S.d, 1), 1.5) : S.fin / 2.6, da = S.sens * v * dt;
   S.a += da; S.tour += Math.abs(da);
-  const [x, y] = centreDe(c), tx = cx + Math.cos(S.a) * S.d, ty = cy + Math.sin(S.a) * S.d; c.x += tx - x; c.y += ty - y;
+  // (28/09, Mathieu : « la planète en 3D, sur un plan plus lointain ») : autour de la planète des chats, l'orbite est un anneau incliné, vu de biais ;
+  // devant (en bas), le chat est un peu plus gros ; derrière (en haut), plus petit, et caché par la planète quand il passe derrière elle
+  const tx = cx + Math.cos(S.a) * S.d, ty = chat ? cy + Math.sin(S.a) * S.d * 0.34 - Math.cos(S.a) * S.d * 0.06 : cy + Math.sin(S.a) * S.d, [x, y] = centreDe(c); c.x += tx - x; c.y += ty - y; S.prof = chat ? Math.sin(S.a) : 1;
   // le ventre vers la planète, les pattes qui pédalent ; il tourne sur lui-même avec son orbite
-  c.anim = S.anim; c.face = S.sens; c.spin = -(S.a + Math.PI / 2) * c.face;
+  c.anim = S.anim; c.face = S.sens; c.spin = chat ? Math.sin(S.a * 2) * 0.4 * S.sens : -(S.a + Math.PI / 2) * c.face;
   if (S.tour >= S.fin) {
     // la fin du tour : autour de la planète des chats, il s'y pose parfois ; sinon la fronde : lancé le long de sa trajectoire, plus vite
     if (chat && Math.random() < 0.3) { pose(c, S.a); return; }
@@ -89,6 +91,17 @@ X.mode.orbite = (c, dt) => {
     S.vx = -Math.sin(S.a) * S.sens * vt + Math.cos(S.a) * 40; S.vy = Math.cos(S.a) * S.sens * vt + Math.sin(S.a) * 40; S.w = rnd(-3, 3); c.spin = 0;
     if (Math.random() < 0.6) say(c, pick(en() ? ['wheee!', 'bye!', 'again!'] : ['wiiiii !', 'encore !', 'à plus !', 'youhou']));
   }
+};
+
+// (28/09, 20:46, Mathieu : « quand les chats sont sur la planète chat ou en approche, ils doivent devenir plus petits au fur et à mesure,
+// pour qu'on les voie bien tout autour, comme si la planète était loin ») : la taille d'un chat selon sa distance à la planète des chats
+const LOIN = 0.3;
+X.loin = c => {
+  const S = c.sp; if (!P || !S || S.m === 'aspire' || S.m === 'cine' || trace(0.8, 1.5) < 0.5) return 1; const Cp = P.chat;
+  if (S.m === 'planete') return LOIN;
+  if (S.m === 'orbite' && S.pl === 'chat') { const [x, y] = centreDe(c), dd = Math.hypot(x - Cp.x, y - Cp.y), pr = S.prof || 0, cache = pr < 0 ? c01((dd - Cp.r * 0.8) / (Cp.r * 0.35)) : 1;
+    return Math.max(0.004, LOIN * (1 + 0.3 * pr) * cache); }
+  const [x, y] = centreDe(c), d = Math.hypot(x - Cp.x, y - Cp.y); return LOIN + (1 - LOIN) * sm(c01((d - Cp.r * 1.2) / (Cp.r * 4.5)));
 };
 
 /* ——— posé sur la planète, comme le Petit Prince : il se promène un peu à sa surface, puis repart ——— */
@@ -216,6 +229,9 @@ function planete(ctx, now) {
       ctx.beginPath(); ctx.moveTo(b1[0] + (x - b1[0]) * 0.08, b1[1] + (y - b1[1]) * 0.08); ctx.quadraticCurveTo(tp[0] + (x - tp[0]) * 0.12, tp[1] + (y - tp[1]) * 0.12, b2[0] + (x - b2[0]) * 0.08, b2[1] + (y - b2[1]) * 0.08); ctx.stroke(); });
     // le volume : des hachures courbes du côté de l'ombre (en bas à droite), qui suivent la sphère
     ctx.save(); tete(ctx, x, y, r * 0.985, 0); ctx.clip(); ctx.lineWidth = 1.1; ctx.strokeStyle = `rgba(${BL},0.26)`;
+    // le globe : des méridiens qui tournent et des parallèles (une sphère vue au loin, qui tourne sur elle-même)
+    for (let j = 0; j < 8; j++) { const ph = now * 0.3 + j * Math.PI / 8, sx = Math.sin(ph), fr = Math.cos(ph); if (fr < 0) continue; ctx.globalAlpha = 0.1 + 0.16 * fr; ctx.beginPath(); ctx.ellipse(x, y, Math.max(0.5, Math.abs(sx) * r), r, 0, -Math.PI / 2, Math.PI / 2, sx < 0); ctx.stroke(); }
+    [-0.55, -0.2, 0.2, 0.55].forEach(k => { const rx = r * Math.sqrt(1 - k * k); ctx.globalAlpha = 0.2; ctx.beginPath(); ctx.ellipse(x, y + k * r, rx, rx * 0.16, 0, 0, Math.PI); ctx.stroke(); }); ctx.globalAlpha = vis;
     for (let i = 0; i < 7; i++) { const k = 0.62 + i * 0.065, a0 = -0.35 + i * 0.05, a1 = 1.75 - i * 0.07; ctx.beginPath(); ctx.arc(x - r * 0.1, y - r * 0.12, r * (k + 0.34), a0, a1); ctx.stroke(); }
     // quelques cratères (des creux ronds : un cercle, un arc d'ombre dedans)
     ctx.strokeStyle = `rgba(${BL},0.55)`; [[-0.55, -0.45, 0.09], [0.52, -0.52, 0.06], [-0.62, 0.3, 0.07], [0.2, 0.62, 0.05]].forEach(([u, v, k]) => { ctx.lineWidth = 1.4; ctx.beginPath(); ctx.ellipse(x + u * r, y + v * r, r * k, r * k * 0.8, 0.3, 0, TAU); ctx.stroke(); ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(x + u * r + r * k * 0.15, y + v * r + r * k * 0.1, r * k * 0.7, r * k * 0.55, 0.3, 0.2, 2.2); ctx.stroke(); });
