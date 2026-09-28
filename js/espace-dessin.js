@@ -209,8 +209,12 @@ function versAbri(c, b) {
 }
 function entreAbri(c, b) {
   if (b.fin || b.dans.length >= b.place || b.dans.includes(c)) return;
-  const S = c.sp, [x, y] = centreDe(c); b.dans.push(c);
-  Object.assign(S, { m: 'abri', corps: b, loc: versLocal(b, x, y), fin: Wd.t + rnd(8, 22), anim: pick(['dodo', 'pain', 'donut', 'ronron'].filter(a => K.ANIMS[a])), vx: 0, vy: 0 });
+  const S = c.sp, [x, y] = centreDe(c);
+  // (chacun sa place dans l'abri : pas sur un autre)
+  let loc = versLocal(b, x, y); const r = rayon(c) * 1.3, occupe = l => b.dans.some(o => o.sp && o.sp.loc && Math.hypot(o.sp.loc[0] - l[0], o.sp.loc[1] - l[1]) < r);
+  if (occupe(loc)) { const L = b.loc.map(p => [p[0] * 0.55, p[1] * 0.55]).filter(l => !occupe(l)); if (!L.length) return; loc = L[Math.floor(Math.random() * L.length)]; }
+  b.dans.push(c);
+  Object.assign(S, { m: 'abri', corps: b, loc, fin: Wd.t + rnd(8, 22), anim: pick(['dodo', 'pain', 'donut', 'ronron'].filter(a => K.ANIMS[a])), vx: 0, vy: 0 });
   // il arrive avec son élan : l'abri l'encaisse
   say(c, pick(['chez moi', 'rrrr', 'on est bien', '♥', 'zzz']));
 }

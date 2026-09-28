@@ -53,10 +53,14 @@ X.pas.push((dt, cats) => {
 function voisin(x, y) { let b = null, bd = 1e9; Wd.cats.forEach(c => { if (!c.sp) return; const [a, bb] = centreDe(c), d = Math.hypot(a - x, bb - y); if (d < bd) { bd = d; b = c; } }); return b; }
 
 /* ——— posé sur la planète, comme le Petit Prince : il se promène un peu à sa surface, puis repart ——— */
-function pose(c, ang) { const S = c.sp; Object.assign(S, { m: 'planete', ang, fin: Wd.t + rnd(6, 14), anim: pick(['assis', 'pain', 'toilette', 'debout', 'dodo'].filter(a => ANIMS[a])), vx: 0, vy: 0, marche: Math.random() < 0.4 ? sgn(rnd(-1, 1)) * rnd(0.15, 0.3) : 0 }); if (Math.random() < 0.6) say(c, pick(['chez moi', 'ma planète', 'on est bien', '♥'])); }
+function pose(c, ang) { const S = c.sp;
+  // (pas deux chats au même endroit de la planète : il se pose à côté de ceux qui y sont déjà)
+  const gap = rayon(c) * 1.3 / P.chat.r, autres = Wd.cats.filter(o => o !== c && o.sp && o.sp.m === 'planete').map(o => o.sp.ang), loin = a => autres.every(b => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))) > gap);
+  if (!loin(ang)) { const k = [1, -1, 2, -2, 3, -3, 4, -4].map(i => ang + i * gap).find(loin); if (k == null) { S.vx = Math.cos(ang) * 120; S.vy = Math.sin(ang) * 120; return; } ang = k; } Object.assign(S, { m: 'planete', ang, fin: Wd.t + rnd(6, 14), anim: pick(['assis', 'pain', 'toilette', 'debout', 'dodo'].filter(a => ANIMS[a])), vx: 0, vy: 0, marche: Math.random() < 0.4 ? sgn(rnd(-1, 1)) * rnd(0.15, 0.3) : 0 }); if (Math.random() < 0.6) say(c, pick(['chez moi', 'ma planète', 'on est bien', '♥'])); }
 X.mode.planete = (c, dt) => {
   const S = c.sp, Cp = P && P.chat; if (!Cp || P.aspire) { S.m = 'derive'; return; }
   S.ang += S.marche * dt; c.anim = S.marche ? 'pas' : S.anim;
+  { const gap = rayon(c) * 1.2 / Cp.r; Wd.cats.forEach(o => { if (o === c || !o.sp || o.sp.m !== 'planete') return; const d = Math.atan2(Math.sin(S.ang - o.sp.ang), Math.cos(S.ang - o.sp.ang)); if (Math.abs(d) < gap) { S.ang += Math.sign(d || 1) * (gap - Math.abs(d)) * 0.5; if (S.marche && Math.sign(S.marche) === -Math.sign(d || 1)) S.marche = -S.marche; } }); }
   // debout sur la surface, les pattes vers le centre : il tourne avec l'endroit où il est
   const r = Cp.r * (1 + (P.pousse * 0.02)), up = S.ang; c.spin = -(up + Math.PI / 2) * c.face;
   c.x = Cp.x + Math.cos(up) * r; c.y = Cp.y + Math.sin(up) * r;

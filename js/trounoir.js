@@ -245,6 +245,7 @@ function espace(dt) {
   cats.forEach(c => flotte(c, dt, Q, acc));
   chocs(cats, dt);
   X.pas.forEach(f => f(dt, cats));
+  separe(cats);
   cats.forEach(c => {
     // la pose (chaque pose a son propre temps), le ronron par-dessus ; puis les modules (le regard…)
     if (c.anim !== c.animP) { c.animP = c.anim; c.at = 0; }
@@ -322,8 +323,9 @@ function flotte(c, dt, Q, acc) {
   c.z = 8000 + c.id * 3;
 }
 function agrippe(c, Q, acc) {
-  const S = c.sp, n = acc.length, a = -Math.PI / 2 + (n ? (n % 2 ? 1 : -1) * Math.ceil(n / 2) * 0.9 : 0), r = n ? Wd.s0 * 0.22 : 0;
-  S.m = 'agrippe'; S.ox = Math.cos(a) * r * 0.9; S.oy = Math.sin(a) * r * 0.4 + (n ? Wd.s0 * 0.1 : 0); S.fin = Wd.t + rnd(6, 14); S.vx = S.vy = 0;
+  // (Mathieu, 28/09 : « deux chats se superposent » : chacun sa place autour du curseur, en éventail, à une largeur de chat l'un de l'autre)
+  const S = c.sp, pris = acc.map(o => o.sp.slot), n = [0, 1, 2, 3, 4, 5].find(i => !pris.includes(i)) ?? acc.length, k = Math.ceil(n / 2), sd = n % 2 ? 1 : -1, r = Math.max(rayon(c), Wd.s0 * 0.22);
+  S.m = 'agrippe'; S.slot = n; S.ox = sd * k * r * 2.3; S.oy = k * r * 0.5; S.fin = Wd.t + rnd(6, 14); S.vx = S.vy = 0;
   acc.push(c); say(c, pick(['hop !', 'attrapé !', 'je te tiens', 'mia !']));
 }
 function lache(c, Q) {
@@ -333,7 +335,7 @@ function lache(c, Q) {
 }
 // deux chats qui se croisent doucement : un câlin, ils tournent l'un autour de l'autre en ronronnant
 function commenceCalin(a, b) {
-  const [ax, ay] = centreDe(a), [bx, by] = centreDe(b), M = { x: (ax + bx) / 2, y: (ay + by) / 2, th: Math.atan2(ay - by, ax - bx), d: (rayon(a) + rayon(b)) * 0.42, fin: Wd.t + rnd(3, 5.5), L: [a, b], vx: (a.sp.vx + b.sp.vx) / 2, vy: (a.sp.vy + b.sp.vy) / 2, h: Wd.t };
+  const [ax, ay] = centreDe(a), [bx, by] = centreDe(b), M = { x: (ax + bx) / 2, y: (ay + by) / 2, th: Math.atan2(ay - by, ax - bx), d: (rayon(a) + rayon(b)) * 0.45 + Wd.s0 * 0.1, fin: Wd.t + rnd(3, 5.5), L: [a, b], vx: (a.sp.vx + b.sp.vx) / 2, vy: (a.sp.vy + b.sp.vy) / 2, h: Wd.t };
   [a, b].forEach(k => { k.sp.m = 'calin'; k.sp.C = M; }); say(a, '♥');
 }
 function calin(c, dt) {
@@ -363,6 +365,19 @@ function chocs(L, dt) {
     const jmp = -vn * 0.9; A.vx -= jmp * nx; A.vy -= jmp * ny; B.vx += jmp * nx; B.vy += jmp * ny;
     A.w += rnd(-4, 4); B.w += rnd(-4, 4);
     if (-vn > 110) { A.bonk = B.bonk = Wd.t; A.m = B.m = 'derive'; Wd.fx.push({ k: 'txt', text: pick(['bonk !', 'boing', 'toc', 'paf']), x: (ax + bx) / 2, y: (ay + by) / 2 - Wd.s0 * 0.3, t0: Wd.t, life: 1, rot: rnd(-0.25, 0.25), size: 17 }); }
+  }
+}
+
+// jamais l'un dans l'autre : ceux qui flottent librement s'écartent des autres, quels qu'ils soient (accrochés, en câlin, posés…)
+function separe(L) {
+  const libre = c => ['derive', 'nage', 'calin'].includes(c.sp.m);
+  for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) {
+    const a = L[i], b = L[j]; if (a.held || b.held || a.sp.m === 'crache' || b.sp.m === 'crache' || (a.sp.C && a.sp.C === b.sp.C && a.sp.m === 'calin')) continue;
+    const la = libre(a), lb = libre(b); if (!la && !lb) continue;
+    const [ax, ay] = centreDe(a), [bx, by] = centreDe(b), need = (rayon(a) + rayon(b)) * 0.95, dx = bx - ax, dy = by - ay, d = Math.hypot(dx, dy) || 0.01; if (d >= need) continue;
+    const nx = dx / d || 1, ny = dy / d, o = need - d, ka = la && lb ? 0.5 : la ? 1 : 0, kb = la && lb ? 0.5 : lb ? 1 : 0;
+    const mv = (c, k, sg) => { if (!k) return; if (c.sp.m === 'calin' && c.sp.C) { c.sp.C.x += sg * nx * o * k; c.sp.C.y += sg * ny * o * k; } else { c.x += sg * nx * o * k; c.y += sg * ny * o * k; } };
+    mv(a, ka, -1); mv(b, kb, 1);
   }
 }
 
