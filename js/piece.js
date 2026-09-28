@@ -129,6 +129,7 @@ H.pre.push(() => {
   if (t0 == null && Wd.props.length) arrivee();
   if (trace() < 1 || (t0 != null && Wd.t - t0 < DUREE + 0.1)) { cle = ''; }
   cv.style.opacity = Wd.a;
+  if (window.Grid && Grid.sol) Grid.sol(K.floorAt(1) - Wd.s0 * 0.05, Wd.a * trace());
   const t = Wd.P && Wd.P.table, m = new Date();
   const k = [Wd.W, Wd.H, Math.round(Wd.floor), Math.round(Wd.depth / 4), Math.round((Wd.ceil || 0) / 8), Math.round(Wd.s0), ciel(), t && Wd.props.includes(t) && !t.held && !t.fall ? Math.round(t.x / 6) + ':' + t.d.toFixed(2) : '-',
     Wd.props.filter(p => p.d > 0.8 && !p.run && !p.held).map(p => Math.round(p.x / 12)).join(','), m.getHours() >= 18 ? 1 : 0].join('|');

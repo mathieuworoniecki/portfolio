@@ -11,6 +11,10 @@ const c01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 let cv, ctx, W = 1, H = 1, dpr = 1, mode = 'deform', gy = 0, last = performance.now();
 let mx = -1e4, my = -1e4, sx = -1e4, sy = -1e4, act = 0, on = 0;
 const cells = new Map(), trail = []; let vu = '';
+// le sol de la pièce (js/piece.js : Grid.sol(y, a)) : sous la plinthe, la grille s'efface presque, pour ne pas croiser les lattes du parquet
+// (28/09, Mathieu : « les lignes de fond rentrent en conflit avec les lignes du sol »)
+let solY = 0, solA = 0;
+function sol(y, a) { solY = y; solA = a > 0.01 ? a : 0; }
 
 function mark(x0, y0, x1, y1) {
   const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 6));
@@ -48,7 +52,7 @@ function frame(dy) {
   sx += (mx - sx) * 0.18; sy += (my - sy) * 0.18; act += (on - act) * 0.08;
   // rien n'a bougé (la loupe au repos, le téléphone sans souris) : l'image d'avant reste, on ne redessine pas tout l'écran
   // (27/09, « optimise tout » : la grille était retracée à chaque image, même immobile)
-  if (mode === 'deform') { const sig = [gy, W, H, dpr, INK, GA, DOTS, act > 0.01 ? Math.round(sx * 2) + ',' + Math.round(sy * 2) + ',' + Math.round(act * 300) : 0].join('|'); if (sig === vu) return; vu = sig; } else vu = '';
+  if (mode === 'deform') { const sig = [gy, W, H, dpr, INK, GA, DOTS, Math.round(solY), Math.round(solA * 20), act > 0.01 ? Math.round(sx * 2) + ',' + Math.round(sy * 2) + ',' + Math.round(act * 300) : 0].join('|'); if (sig === vu) return; vu = sig; } else vu = '';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
   const oy = ((gy % MINOR) + MINOR) % MINOR, j0 = Math.floor(-gy / MINOR);
   ctx.lineWidth = 1;
@@ -69,6 +73,11 @@ function frame(dy) {
     for (let x = 0; x <= W; x += step) { const X = Math.round(x) + 0.5; mode === 'deform' ? warpLine(X, -20, X, H + 20) : (ctx.beginPath(), ctx.moveTo(X, 0), ctx.lineTo(X, H), ctx.stroke()); }
     for (let y = o; y <= H; y += step) { const Y = Math.round(y) + 0.5; mode === 'deform' ? warpLine(-20, Y, W + 20, Y) : (ctx.beginPath(), ctx.moveTo(0, Y), ctx.lineTo(W, Y), ctx.stroke()); }
   });
+  if (solA) {
+    const y0 = solY - 4, y1 = solY + 36, g = ctx.createLinearGradient(0, y0, 0, y1);
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${0.85 * solA})`);
+    ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = g; ctx.fillRect(0, y0, W, H - y0); ctx.globalCompositeOperation = 'source-over';
+  }
   if (mode === 'deform' && act > 0.01) {
     // un léger halo sous la loupe
     const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, 170); g.addColorStop(0, `rgba(${INK},${0.06 * act})`); g.addColorStop(1, `rgba(${INK},0)`);
@@ -106,5 +115,5 @@ function frame(dy) {
     }
   }
 }
-return { init, resize, frame, setMode, get mode() { return mode; } };
+return { init, resize, frame, setMode, sol, get mode() { return mode; } };
 })();

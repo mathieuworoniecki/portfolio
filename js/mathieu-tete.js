@@ -212,7 +212,7 @@ function pose(m, o) {
   const w = Math.max(1.3, Math.min(9, u * PEN));
   m.M.line.uniforms.width.value = w; m.M.soft.uniforms.width.value = w * 0.6; m.Mb.line.uniforms.width.value = w * 2;
   // en logo, tout petit : sans les traits pâles
-  [m.M.line, m.M.soft, m.Mb.line].forEach((x, i) => { x.opacity = a * (i === 1 ? (m.logo ? 0 : 0.5) : 1); }); m.fill.opacity = a; m.paperM.opacity = a;
+  [m.M.line, m.M.soft, m.Mb.line].forEach((x, i) => { x.opacity = a * (i === 1 ? (m.logo ? 0 : 0.5) : 1); }); m.fill.opacity = a; m.paperM.opacity = a; [m.M, m.Mb].forEach(M => { if (M.fill) M.fill.opacity = a; });
   m.F.deform(Math.round(Math.max(0, Math.min(1, p.open ?? 0)) * 400) / 400);
   m.root.updateMatrixWorld(true); m.F.contour();
   return m;

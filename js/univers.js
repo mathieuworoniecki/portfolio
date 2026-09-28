@@ -346,7 +346,7 @@ function place(it) {
   qa.setFromAxisAngle(AX, Chat.VIEW.tilt); qb.setFromAxisAngle(AY, it.yaw); qa.multiply(qb); it.view.quaternion.copy(qa);
   if (it.parts.ball) it.parts.ball.quaternion.copy(it.spin);
   if (it.tilt) { qb.setFromAxisAngle(ZAX, it.tilt); it.view.quaternion.multiply(qb); }
-  it.mats.forEach(m => { m.line.opacity = Math.min(1, 0.92 * it.a); m.soft.opacity = 0.42 * it.a; });
+  it.mats.forEach(m => { m.line.opacity = Math.min(1, 0.92 * it.a); m.soft.opacity = 0.42 * it.a; if (m.fill) m.fill.opacity = Math.min(1, it.a); });
   it.root.visible = it.a > 0.01;
 }
 // la souris qui court : les pattes qui moulinent, la queue qui ondule, le corps qui sautille (t : le temps, v : la vitesse 0 → 1)

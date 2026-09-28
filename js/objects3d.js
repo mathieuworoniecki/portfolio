@@ -13,6 +13,38 @@ const T = THREE, TAU = Math.PI * 2, inkNow = () => (window.THEME && THEME.inkHex
 let renderer = null, scene, camera, W = 1, H = 1, ok = false, used = {}, zc = 0, drawn = false;
 const LIB = {}, proto = {}, pool = {};
 const OCC = new T.MeshBasicMaterial({ colorWrite: false, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2 });
+/* le fond plein (28/09, Mathieu : « tout devrait avoir un fond, de la même couleur que le fond ») : les volumes ne sont plus transparents,
+   ils se peignent de la couleur du papier juste derrière eux (le dégradé et le voile des bords de #stage, recalculés au pixel),
+   et cachent ainsi la grille, le parquet, le fil de laine et les traits des autres objets qui passent derrière. */
+const PAP = { hi: { value: new T.Color() }, bp: { value: new T.Color() }, deep: { value: new T.Color() }, vig: { value: new T.Vector4(0, 0, 0, 0) }, geo: { value: new T.Vector4(0.5, 0.4, 0.45, 0) } };
+function papSync() {
+  const cs = getComputedStyle(document.documentElement), v = (n, d) => cs.getPropertyValue(n).trim() || d, col = s => { try { return new T.Color(s); } catch (e) { return new T.Color(0xdadbd8); } };
+  PAP.hi.value.copy(col(v('--bp-hi', '#E8E9E6'))); PAP.bp.value.copy(col(v('--bp', '#DADBD8'))); PAP.deep.value.copy(col(v('--bp-deep', '#C4C6C2')));
+  const m = v('--vig', 'rgba(90,80,60,.14)').match(/[\d.]+/g) || [0, 0, 0, 0]; PAP.vig.value.set(m[0] / 255, m[1] / 255, m[2] / 255, +m[3] || 0);
+  const ard = document.documentElement.dataset.style === 'ardoise'; PAP.geo.value.set(ard ? 0.4 : 0.5, ard ? 0.35 : 0.4, ard ? 0.5 : 0.45, 0);
+}
+papSync(); addEventListener('themechange', () => setTimeout(papSync, 0));
+function paper(stencil) {
+  const u = Object.assign({ opacity: { value: 1 }, res: { value: null } }, PAP);
+  const m = new T.ShaderMaterial({ uniforms: u, transparent: true, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2,
+    vertexShader: 'void main() { gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `uniform vec3 hi; uniform vec3 bp; uniform vec3 deep; uniform vec4 vig; uniform vec4 geo; uniform vec2 res; uniform float opacity;
+      void main() {
+        vec2 p = vec2(gl_FragCoord.x / res.x, 1.0 - gl_FragCoord.y / res.y);
+        // radial-gradient(ellipse at geo.x geo.y, hi 0, bp geo.z, deep 100%) : l'ellipse passe par le coin le plus loin
+        vec2 r = vec2(max(geo.x, 1.0 - geo.x), max(geo.y, 1.0 - geo.y)) * 1.41421;
+        float t = length((p - geo.xy) / r);
+        vec3 c = t < geo.z ? mix(hi, bp, t / geo.z) : mix(bp, deep, clamp((t - geo.z) / (1.0 - geo.z), 0.0, 1.0));
+        // #stage::after : le voile des bords, de 55 % à 100 %
+        float s = length((p - 0.5) / 0.70711), va = vig.w * clamp((s - 0.55) / 0.45, 0.0, 1.0);
+        gl_FragColor = vec4(mix(c, vig.rgb, va), opacity);
+      }` });
+  u.res.value = FAT.res.value;
+  Object.defineProperty(m, 'opacity', { get: () => u.opacity.value, set: v => { if (u) u.opacity.value = v; } });
+  m.userData.own = 1; m.paper = true;
+  if (stencil) Object.assign(m, { stencilWrite: true, stencilRef: stencil, stencilFunc: T.AlwaysStencilFunc, stencilZPass: T.ReplaceStencilOp });
+  return m;
+}
 const V3 = (x, y, z) => new T.Vector3(x, y, z), eul = new T.Euler(), q0 = new T.Quaternion(), dir = new T.Vector3();
 
 /* ——— de quoi modeler ——— */
@@ -105,12 +137,12 @@ function make(name) {
 function instance(name) {
   const P = proto[name] || (proto[name] = make(name)), d = P.span * 0.011;
   const mats = { line: new T.LineBasicMaterial({ color: inkNow(), transparent: true, depthWrite: false }), soft: new T.LineBasicMaterial({ color: inkNow(), transparent: true, depthWrite: false }),
-    hid: new T.LineDashedMaterial({ color: inkNow(), transparent: true, depthWrite: false, depthFunc: T.GreaterDepth, dashSize: d, gapSize: d }) };
+    hid: new T.LineDashedMaterial({ color: inkNow(), transparent: true, depthWrite: false, depthFunc: T.GreaterDepth, dashSize: d, gapSize: d }), fill: paper() };
   const root = new T.Group(), inner = new T.Group(); inner.position.copy(P.c).negate(); root.add(inner);
   const add = (g, o, ord) => { o.renderOrder = ord; o.frustumCulled = false; g.add(o); };
   const parts = P.parts.map(pp => {
     const g = new T.Group(); inner.add(g);
-    pp.occ.forEach(o => add(g, new T.Mesh(o, OCC), 0));
+    pp.occ.forEach(o => add(g, new T.Mesh(o, mats.fill), 0));
     if (pp.crease) { add(g, new T.LineSegments(pp.crease, mats.line), 1); add(g, new T.LineSegments(pp.crease, mats.hid), 2); }
     if (pp.soft) { add(g, new T.LineSegments(pp.soft, mats.soft), 1); add(g, new T.LineSegments(pp.soft, mats.hid), 2); }
     let sil = null;
@@ -159,14 +191,15 @@ function mats(color, o) {
     const M = { line: fatMat(c, o.fat, 1), soft: fatMat(c, o.fatSoft || o.fat * 0.7, 0.5), hid: null, nohid: true, fat: o.fat };
     // o.uni (1…255) : un seul contour autour de toutes les pièces (le corps, les pattes, la queue fondus ensemble, comme un dessin d'un trait).
     // Les volumes inscrivent ce numéro au pochoir ; le contour, deux fois plus épais, ne se dessine que hors du pochoir : seule sa moitié extérieure reste.
-    const uni = r => { const occ = OCC.clone(); occ.userData.own = 1; Object.assign(occ, { stencilWrite: true, stencilRef: r, stencilFunc: T.AlwaysStencilFunc, stencilZPass: T.ReplaceStencilOp }); return [fatMat(c, o.fat * 2, 1, r), occ]; };
+    const uni = r => [fatMat(c, o.fat * 2, 1, r), paper(r)];
+    M.fill = paper();
     if (o.uni) [M.out, M.occ] = uni(o.uni);
     // o.uni2 : un second contour d'un seul trait (la tête, sur le corps : son bord se voit, ses plis dedans non)
     if (o.uni2) { [M.out2, M.occ2] = uni(o.uni2); M.out2.uniforms.width.value = o.fat * 1.6; }   // un peu moins épais : sous le menton, le trait doublait
     return M;
   }
   return { line: new T.LineBasicMaterial({ color: c, transparent: true, depthWrite: false }), soft: new T.LineBasicMaterial({ color: c, transparent: true, opacity: 0.5, depthWrite: false }),
-    hid: new T.LineBasicMaterial({ color: c, transparent: true, opacity: 0, depthWrite: false, depthFunc: T.GreaterDepth }), nohid: true };
+    hid: new T.LineBasicMaterial({ color: c, transparent: true, opacity: 0, depthWrite: false, depthFunc: T.GreaterDepth }), nohid: true, fill: paper() };
 }
 /* ——— les traits épais ———
    WebGL ne dessine que des traits d'un pixel : chaque segment devient ici un petit rectangle tourné vers l'écran,
@@ -211,7 +244,7 @@ function fatSegs(arr, M) {
 // own : la pièce garde son propre trait (true) ou a le second contour unique (2 : la tête)
 function mount(pp, M, own) {
   const g = new T.Group(), add = (o, ord) => { o.renderOrder = ord; o.frustumCulled = false; g.add(o); };
-  const two = own === 2 && M.out2, occ = two ? M.occ2 : own ? OCC : M.occ || OCC;
+  const two = own === 2 && M.out2, occ = two ? M.occ2 : own ? M.fill || OCC : M.occ || M.fill || OCC;
   pp.occ.forEach(o => add(new T.Mesh(o, occ), 0));
   if (M.fat) {
     if (pp.crease) add(fatSegs(pp.crease.attributes.position.array, M.line), 1);
@@ -268,7 +301,7 @@ function put(name, x, y, size, rot, o) {
     rq.copy(p.g.quaternion); pc.copy(p.pp.pc).applyQuaternion(rq);
     p.g.position.set(v[0] * e * P.span + p.pp.pc.x - pc.x, v[1] * e * P.span + p.pp.pc.y - pc.y, v[2] * e * P.span + p.pp.pc.z - pc.z);
   });
-  I.mats.line.opacity = Math.min(1, 0.95 * a); I.mats.soft.opacity = Math.min(1, 0.42 * a); I.mats.hid.opacity = Math.min(1, (o.hid ?? 0.15) * a);
+  I.mats.line.opacity = Math.min(1, 0.95 * a); I.mats.soft.opacity = Math.min(1, 0.42 * a); I.mats.hid.opacity = Math.min(1, (o.hid ?? 0.15) * a); I.mats.fill.opacity = Math.min(1, a);
   // une couleur à soi (o.color, en hexadécimal), sinon le trait du thème
   const col = o.color ?? inkNow(); if (I.col !== col) { I.col = col; I.mats.line.color.setHex(col); I.mats.soft.color.setHex(col); I.mats.hid.color.setHex(col); }
   return true;

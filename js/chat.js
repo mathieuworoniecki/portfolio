@@ -322,7 +322,7 @@ function apply(c, opts) {
     g.rotation.set(0, ry, rz); c.tailM[i].scale.set(1, puff, puff); });
   tailOutline(c, puff);
   const a = c.a * (opts && opts.a !== undefined ? opts.a : 1);
-  c.mats.forEach(m => { m.line.opacity = Math.min(1, 0.95 * a); m.soft.opacity = 0.5 * a; if (m.out) m.out.opacity = m.line.opacity; if (m.out2) m.out2.opacity = m.line.opacity; }); c.discs.forEach(m => { m.opacity = Math.min(1, a); });
+  c.mats.forEach(m => { m.line.opacity = Math.min(1, 0.95 * a); m.soft.opacity = 0.5 * a; if (m.out) m.out.opacity = m.line.opacity; if (m.out2) m.out2.opacity = m.line.opacity; const f = Math.min(1, a); [m.fill, m.occ, m.occ2].forEach(o => { if (o && o.paper) o.opacity = f; }); }); c.discs.forEach(m => { m.opacity = Math.min(1, a); });
   c.root.visible = a > 0.01;
 }
 /* le contour de la queue : sa ligne (les jointures) vue de face ; de chaque côté, à la distance du rayon, perpendiculairement ; le bout en demi-cercle.

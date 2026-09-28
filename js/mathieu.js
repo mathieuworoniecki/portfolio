@@ -395,7 +395,7 @@ function pose(m, o) {
     m.mesh.material.uniforms.face.value = face; m.hull.visible = face < 0.5 && rel < 2.3;
     m.mesh.visible = rel < 2.3;   // presque de dos : le visage est derrière la tête
     m.hull.material.uniforms.off.value = w * 0.9 / (u * TETE); m.hull.material.uniforms.opacity.value = a;
-    m.M.line.uniforms.width.value = w; m.M.soft.uniforms.width.value = w * 0.6; m.M.out.uniforms.width.value = w * 2; [m.M.line, m.M.out].forEach(x => { x.opacity = a; }); m.M.soft.opacity = a * 0.5;
+    m.M.line.uniforms.width.value = w; m.M.soft.uniforms.width.value = w * 0.6; m.M.out.uniforms.width.value = w * 2; [m.M.line, m.M.out, m.M.fill, m.M.occ].forEach(x => { if (x) x.opacity = a; }); m.M.soft.opacity = a * 0.5;
   }
   const open = Math.max(0, Math.min(1, p.open ?? 0)), M = m.A.mouth, gap = open * DROP;
   [m.mesh, m.jaw].forEach(x => { x.material.uniforms.open.value = open; x.material.uniforms.opacity.value = a; }); m.jaw.visible = open > 0.015 && m.mesh.visible;
