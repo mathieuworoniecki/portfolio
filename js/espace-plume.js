@@ -16,14 +16,16 @@ const reduit = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: redu
 const en = () => !!(window.I18N && I18N.lang && I18N.lang !== 'fr');
 // les compétences : [nom, preuve] ; les preuves viennent du CV (28/09)
 // les compétences, par carte : [titre, preuve de la carte, compétences] ; l'IA : chaque compétence a sa propre preuve. Tout vient du CV (28/09).
-// (18:48 : les compétences mises à jour avec tous ses dépôts GitHub, comme le mode sérieux, js/serieux-donnees.js)
+// (18:48 : les compétences mises à jour avec tous ses dépôts GitHub, comme le mode sérieux, js/serieux-donnees.js ;
+//  19:16, Mathieu : pas de « modèles maîtrisés », pas de « +35 % » : sa méthode d'abord, un dev qui remplace une équipe, agents, sous-agents, skills, benchmark)
 const DONNEES = () => en() ? {
   nom: 'Mathieu Woroniecki', role: 'Senior tech lead & AI architect',
   ia: ['AI', 'CTO of MARKO, an AI-native B2B SaaS for real estate'],
-  noeuds: [['LLM', 'Gemini, Mistral, Claude, OpenAI, DeepSeek, Ollama'], ['Hybrid RAG', 'Archon: Gemini RAG + Qdrant/Meilisearch, reranking, entity graph'],
-    ['AI agents', 'Agentic AI at the core of MARKO'], ['Multi-agents', 'codex-crew: a multi-agent Codex orchestrator'], ['MCP · WebMCP', 'MCP for the Figma-to-code flow; WebMCP in SafeShare'],
-    ['Document AI · OCR', 'MARKO: Document AI, OCR and data extraction'], ['Generative AI', 'Led generative AI adoption at LWA: +35% team productivity'],
-    ['Vectors', 'Qdrant, pgvector, ChromaDB: vector search for RAG'], ['Prompt engineering', 'MARKO: generative AI, LLM/RAG, prompt engineering'], ['Machine learning', 'NumerusX: AI trading agents (research), SHAP/LIME']],
+  noeuds: [['1 dev = 1 team', 'Alone, platforms that would have taken a 10-dev team years'], ['Agents · sub-agents', 'Several agents and sub-agents launched in parallel'],
+    ['Multi-terminal', 'Advanced workflows across many terminals at once'], ['Skills · plugins', 'He builds his own skills and plugins to reach his goals'],
+    ['Constant benchmark', 'Every harness, plugin and tool on the market, tested and compared'], ['Agentic AI', 'Agentic AI at the core of MARKO'],
+    ['Hybrid RAG', 'Archon: Gemini RAG + Qdrant/Meilisearch, reranking, entity graph'], ['MCP · WebMCP', 'MCP for the Figma-to-code flow; WebMCP in SafeShare'],
+    ['Document AI · OCR', 'MARKO: Document AI, OCR and data extraction'], ['Machine learning', 'NumerusX: AI trading agents (research), SHAP/LIME']],
   groupes: [
     ['Front', 'Vue/Nuxt architecture for Hermès, Chanel, Ardian', ['React · Next', 'Vue · Nuxt', 'TypeScript', 'three.js · Canvas', 'GSAP · D3']],
     ['Back', 'The MARKO API: FastAPI and PostgreSQL', ['Python · FastAPI', 'Node.js · Go', 'PHP · Symfony', 'PostgreSQL · Redis', 'Celery · Socket.IO']],
@@ -32,10 +34,11 @@ const DONNEES = () => en() ? {
 } : {
   nom: 'Mathieu Woroniecki', role: 'Responsable technique senior & architecte IA',
   ia: ['IA', 'CTO de MARKO, un SaaS B2B AI-native pour l’immobilier'],
-  noeuds: [['LLM', 'Gemini, Mistral, Claude, OpenAI, DeepSeek, Ollama'], ['RAG hybride', 'Archon : RAG Gemini + Qdrant/Meilisearch, reranking, graphe d’entités'],
-    ['Agents IA', 'Agentic AI au cœur de MARKO'], ['Multi-agents', 'codex-crew : un orchestrateur multi-agents Codex'], ['MCP · WebMCP', 'MCP pour le flux Figma → code ; WebMCP dans SafeShare'],
-    ['Document AI · OCR', 'MARKO : Document AI, OCR et extraction de données'], ['IA générative', 'Adoption de l’IA générative chez LWA : +35 % de productivité'],
-    ['Vecteurs', 'Qdrant, pgvector, ChromaDB : la recherche vectorielle du RAG'], ['Prompt engineering', 'MARKO : IA générative, LLM/RAG, prompt engineering'], ['Machine learning', 'NumerusX : agents IA de trading (recherche), SHAP/LIME']],
+  noeuds: [['1 dev = 1 équipe', 'Seul, des plateformes qui auraient pris des années à une équipe de 10 devs'], ['Agents · sous-agents', 'Plusieurs agents et sous-agents lancés en parallèle'],
+    ['Multi-terminaux', 'Des workflows avancés sur plusieurs terminaux à la fois'], ['Skills · plugins', 'Ses propres skills et plugins, créés pour atteindre ses objectifs'],
+    ['Benchmark permanent', 'Harness, plugins, outils : tout ce qui sort, testé et comparé'], ['Agentic AI', 'Agentic AI au cœur de MARKO'],
+    ['RAG hybride', 'Archon : RAG Gemini + Qdrant/Meilisearch, reranking, graphe d’entités'], ['MCP · WebMCP', 'MCP pour le flux Figma → code ; WebMCP dans SafeShare'],
+    ['Document AI · OCR', 'MARKO : Document AI, OCR et extraction de données'], ['Machine learning', 'NumerusX : agents IA de trading (recherche), SHAP/LIME']],
   groupes: [
     ['Front', 'Architecture Vue/Nuxt pour Hermès, Chanel, Ardian', ['React · Next', 'Vue · Nuxt', 'TypeScript', 'three.js · Canvas', 'GSAP · D3']],
     ['Back', 'L’API de MARKO : FastAPI et PostgreSQL', ['Python · FastAPI', 'Node.js · Go', 'PHP · Symfony', 'PostgreSQL · Redis', 'Celery · Socket.IO']],
