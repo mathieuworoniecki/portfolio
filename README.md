@@ -27,6 +27,9 @@ js/objects3d.js     le moteur 3D en traits ; bibliothèque vide sauf deux exempl
 js/theme.js         styles × couleurs, appliqués en direct ; par défaut Esquisse / gris
 js/picker.js        le sélecteur de thème et de langue ; chalkFrame
 js/i18n.js          les langues (fr, en pour l'instant) : data-i18n, L('clé')
+css/serieux.css     le mode sérieux (le CV au défilement), à part du mode chat : un plan bleu, traits blancs
+js/serieux*.js      le mode sérieux : serieux-donnees.js (le contenu du CV), serieux-3d.js (ses objets 3D en traits),
+                    serieux.js (la page ; Serieux.ouvre({x, y}) / Serieux.ferme(), évènements serieux:ouvert / serieux:ferme, ?serieux)
 tools/serve.py      serveur local sans cache (port 8940)
 tools/preview.py    l'aperçu en ligne (Artifact) : une page avec tout intégré
 ```

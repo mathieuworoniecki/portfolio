@@ -15,6 +15,9 @@ try{var c=null;if(c)c.split(/;(?![^(]*\))/).forEach(function(p){var i=p.indexOf(
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,700&family=Barlow:wght@400;500&family=IBM+Plex+Mono:wght@400;500&family=Caveat:wght@500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Architects+Daughter&display=swap">
 <link rel="stylesheet" href="css/site.css">
+<!-- le mode sérieux (le CV au défilement) : son style à part ; ?serieux l'ouvre directement, sans montrer l'écran des chats avant -->
+<link rel="stylesheet" href="css/serieux.css">
+<script>if(/[?&]serieux(=|&|$)/.test(location.search))document.documentElement.classList.add('serieux')</script>
 <!-- les mesures de Vercel (site statique, sans build) : Web Analytics et Speed Insights, servis par Vercel sous /_vercel -->
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};window.si=window.si||function(){(window.siq=window.siq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
@@ -121,6 +124,10 @@ try{var c=null;if(c)c.split(/;(?![^(]*\))/).forEach(function(p){var i=p.indexOf(
 <script src="js/titles.js"></script>
 <script src="js/logo.js"></script>
 <script src="js/outils.js"></script>
+<!-- le mode sérieux : à part du mode chat (js/serieux*.js) ; point d'entrée Serieux.ouvre() / Serieux.ferme() -->
+<script src="js/serieux-donnees.js"></script>
+<script src="js/serieux-3d.js"></script>
+<script src="js/serieux.js"></script>
 <script src="js/film.js"></script>
 <script src="js/scenes.js"></script>
 </body>
