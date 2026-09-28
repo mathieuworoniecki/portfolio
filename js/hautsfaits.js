@@ -60,13 +60,10 @@ const LISTE = [
   // l'espace (28/09, Mathieu : « des hauts faits sur l'espace, et en créer des spécifiques »)
   ['decollage', 'bronze', '◌', 'Décollage', 'Lift-off', 'Un trou noir s’ouvre quand on entre.', 'A black hole opens when you enter.', () => v('decollage')],
   ['troublanc', 'bronze', '∘', 'Fontaine à chats', 'Cat fountain', 'Là-haut aussi, un clic dans le vide…', 'Up there too, a click on empty space…', () => v('troublanc')],
-  ['tarzan', 'bronze', '∫', 'Tarzan', 'Tarzan', 'Dessine une ligne dans l’espace. Quelqu’un va s’y accrocher.', 'Draw a line in space. Someone will hang on.', () => v('liane')],
   ['astronaute', 'argent', '◍', 'Un petit pas pour un chat', 'One small step for a cat', 'Parfois, quelque chose flotte. Un chat le veut.', 'Sometimes something floats by. A cat wants it.', () => v('astronaute')],
   ['fronde', 'argent', '↺', 'Fronde gravitationnelle', 'Gravity slingshot', 'Trop près d’une planète, on fait un tour.', 'Too close to a planet, you go around.', () => v('fronde')],
   ['petitprince', 'argent', '♁', 'Le Petit Prince', 'The Little Prince', 'Certains restent un moment sur leur planète.', 'Some stay a while on their planet.', () => v('petitprince')],
-  ['zoo', 'argent', '▢', 'Zoo spatial', 'Space zoo', 'Dessine autour d’un chat. Ferme bien.', 'Draw around a cat. Close it tight.', () => v('cage')],
-  ['architecte', 'argent', '⊓', 'Architecte', 'Architect', 'Une forme fermée, un coup de trait à travers le mur.', 'A closed shape, a stroke through the wall.', () => v('porte')],
-  ['recruteur', 'or', '✧', 'Recruteur curieux', 'Curious recruiter', 'Toutes les compétences en IA, une par une.', 'Every AI skill, one by one.', () => v('competences')],
+  ['recruteur', 'or', '✧', 'Recruteur curieux', 'Curious recruiter', 'Toute la présentation, jusqu’à la dernière étoile.', 'The whole show, to the last star.', () => v('competences')],
   ['astronome', 'or', '⊛', 'Astronome', 'Astronomer', 'Tout ce qui peut arriver dans l’espace.', 'Everything that can happen in space.', () => ESP.length && ESP.every(v)],
   ['foule', 'or', '☷', 'La grande foule', 'The big crowd', 'Douze chats à l’écran en même temps.', 'Twelve cats on screen at once.', () => v('foule')],
   ['chaine', 'or', 'ϟ', 'Réaction en chaîne', 'Chain reaction', 'Une tour de caisses, de l’eau juste à côté, et des chats dessus.', 'A crate tower, water right next to it, and cats on top.', () => v('tourplouf')],
@@ -78,7 +75,6 @@ const LISTE = [
   ['lune', 'secret', '✶', 'Décrocher la lune', 'Reach for the moon', 'Vise plus haut.', 'Aim higher.', () => v('plafond')],
   ['papillon', 'secret', '⋈', 'Papillon de nuit', 'Moth', 'Ce qui vole quand tout le monde dort.', 'What flies while everyone sleeps.', () => v('papillon')],
   ['nyanespace', 'secret', '≋', 'Nyan sidéral', 'Sidereal Nyan', 'Un arc-en-ciel, là où il n’y a pas de pluie.', 'A rainbow where there is no rain.', () => v('nyanespace')],
-  ['ciseaux', 'secret', '✂', 'Coupé en deux', 'Cut in two', 'Ce qu’on dessine se défait aussi.', 'What you draw can be undone.', () => v('coupe')],
   ['pouf', 'secret', '✺', 'Après la pluie', 'After the rain', 'Tout plat, puis tout gonflé.', 'All flat, then all fluffy.', () => v('regonfle')],
 ];
 const RANG = { bronze: { fr: 'Facile', en: 'Easy', c: '205,127,50' }, argent: { fr: 'Moyen', en: 'Medium', c: '150,160,175' }, or: { fr: 'Difficile', en: 'Hard', c: '226,176,40' }, secret: { fr: 'Secret', en: 'Secret', c: '150,90,200' } };
