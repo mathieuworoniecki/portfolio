@@ -449,8 +449,9 @@ function ouvre(o) {
   el.style.setProperty('--ox', x + 'px'); el.style.setProperty('--oy', y + 'px'); el.style.setProperty('--or', Math.ceil(r) + 'px');
   /* o.papier : le bleu est déjà posé à l'écran (les chats l'ont collé comme du papier peint, js/fuite.js) ; on ne découpe plus de cercle,
      les éléments du CV arrivent l'un après l'autre (html .arrive, css/serieux.css). Sans papier : le cercle, plus court qu'avant. */
-  el.classList.remove('ferme', 'la', 'arrive', 'papier'); el.classList.toggle('instant', !!o.instant || reduit); el.classList.toggle('papier', !!o.papier);
-  if (!o.instant && !reduit) { void el.offsetWidth; el.classList.add('arrive'); clearTimeout(ouvre.fin); ouvre.fin = setTimeout(() => el.classList.remove('arrive'), 1600); }
+  el.classList.remove('ferme', 'la', 'arrive', 'papier'); el.classList.toggle('instant', (!!o.instant && !o.papier) || reduit); el.classList.toggle('papier', !!o.papier);
+  /* avec papier, même « instant » : le fond est là tout de suite, les éléments arrivent à leur tour */
+  if ((!o.instant || o.papier) && !reduit) { void el.offsetWidth; el.classList.add('arrive'); clearTimeout(ouvre.fin); ouvre.fin = setTimeout(() => el.classList.remove('arrive'), 1600); }
   ouvert = true; el.hidden = false; root.classList.add('serieux');
   autres().forEach(n => { if (!n.hasAttribute('inert')) { n.setAttribute('inert', ''); n.dataset.sxInert = '1'; } });
   taille(); defile.scrollTop = 0; active = -1; pins.forEach(P => { P.k = -1; }); t0 = tIntro = performance.now();
@@ -459,7 +460,7 @@ function ouvre(o) {
   cancelAnimationFrame(boucle); boucle = requestAnimationFrame(image);
   setTimeout(() => defile.focus({ preventScroll: true }), 50);
   dispatchEvent(new CustomEvent('serieux:ouvert'));
-  return new Promise(res => setTimeout(res, o.instant || reduit ? 0 : o.papier ? 60 : 480));
+  return new Promise(res => setTimeout(res, o.papier ? 60 : o.instant || reduit ? 0 : 480));
 }
 function ferme() {
   if (!ouvert) return Promise.resolve();
