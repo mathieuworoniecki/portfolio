@@ -16,30 +16,31 @@ const reduit = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: redu
 const en = () => !!(window.I18N && I18N.lang && I18N.lang !== 'fr');
 // les compétences : [nom, preuve] ; les preuves viennent du CV (28/09)
 // les compétences, par carte : [titre, preuve de la carte, compétences] ; l'IA : chaque compétence a sa propre preuve. Tout vient du CV (28/09).
+// (18:48 : les compétences mises à jour avec tous ses dépôts GitHub, comme le mode sérieux, js/serieux-donnees.js)
 const DONNEES = () => en() ? {
   nom: 'Mathieu Woroniecki', role: 'Senior tech lead & AI architect',
   ia: ['AI', 'CTO of MARKO, an AI-native B2B SaaS for real estate'],
-  noeuds: [['LLM', 'HUman (areweai.dev): what if we were the biggest LLM?'], ['RAG', 'LLMs and RAG in the dev cycle: +35% productivity'],
-    ['AI agents', 'Agentic AI at the core of MARKO'], ['Generative AI', 'Led generative AI adoption at LWA'], ['Document AI', 'Document AI and data extraction at MARKO'],
-    ['Prompt engineering', 'MARKO: generative AI, LLM/RAG, prompt engineering'], ['MCP', 'MCP to speed up the Figma-to-code flow'],
-    ['Qdrant', 'Qdrant: a vector database for RAG'], ['Automation', 'Workflow automation at MARKO']],
+  noeuds: [['LLM', 'Gemini, Mistral, Claude, OpenAI, DeepSeek, Ollama'], ['Hybrid RAG', 'Archon: Gemini RAG + Qdrant/Meilisearch, reranking, entity graph'],
+    ['AI agents', 'Agentic AI at the core of MARKO'], ['Multi-agents', 'codex-crew: a multi-agent Codex orchestrator'], ['MCP · WebMCP', 'MCP for the Figma-to-code flow; WebMCP in SafeShare'],
+    ['Document AI · OCR', 'MARKO: Document AI, OCR and data extraction'], ['Generative AI', 'Led generative AI adoption at LWA: +35% team productivity'],
+    ['Vectors', 'Qdrant, pgvector, ChromaDB: vector search for RAG'], ['Prompt engineering', 'MARKO: generative AI, LLM/RAG, prompt engineering'], ['Machine learning', 'NumerusX: AI trading agents (research), SHAP/LIME']],
   groupes: [
-    ['Front', 'Vue/Nuxt architecture for Hermès, Chanel, Ardian', ['Vue · Nuxt', 'React · Next', 'TypeScript', 'Animation · UI/UX', 'Vite · Webpack']],
-    ['Back', 'The MARKO API: FastAPI and PostgreSQL', ['Python · FastAPI', 'PHP · Symfony', 'Node.js', 'PostgreSQL · Redis', 'API · Headless CMS']],
-    ['Lead', 'Tech lead of Digiplace: 150,000+ users (ENGIE)', ['Tech lead', 'Management · Mentoring', 'Agile · Roadmap', 'OWASP · WCAG']],
-    ['DevOps', '15+ projects moved to Docker (LWA)', ['Docker', 'CI/CD · GitLab', 'Azure · AWS', 'Traefik · Grafana']]]
+    ['Front', 'Vue/Nuxt architecture for Hermès, Chanel, Ardian', ['React · Next', 'Vue · Nuxt', 'TypeScript', 'three.js · Canvas', 'GSAP · D3']],
+    ['Back', 'The MARKO API: FastAPI and PostgreSQL', ['Python · FastAPI', 'Node.js · Go', 'PHP · Symfony', 'PostgreSQL · Redis', 'Celery · Socket.IO']],
+    ['Lead', 'Tech lead of Digiplace: 150,000+ users (ENGIE)', ['Tech lead · CTO', 'Management · Mentoring', 'Agile · ADR', 'Roadmap · Pre-sales', 'OWASP · WCAG']],
+    ['DevOps', '15+ projects moved to Docker (LWA)', ['Docker · Traefik', 'CI/CD · GitHub Actions', 'Azure · AWS · Vercel', 'Grafana · Sentry']]]
 } : {
   nom: 'Mathieu Woroniecki', role: 'Responsable technique senior & architecte IA',
   ia: ['IA', 'CTO de MARKO, un SaaS B2B AI-native pour l’immobilier'],
-  noeuds: [['LLM', 'HUman (areweai.dev) : et si nous étions le plus grand LLM ?'], ['RAG', 'LLM et RAG dans le cycle de dev : +35 % de productivité'],
-    ['Agents IA', 'Agentic AI au cœur de MARKO'], ['IA générative', 'Initiateur de l’adoption de l’IA générative chez LWA'], ['Document AI', 'Document AI et extraction de données chez MARKO'],
-    ['Prompt engineering', 'MARKO : IA générative, LLM/RAG, prompt engineering'], ['MCP', 'MCP pour accélérer le flux Figma → code'],
-    ['Qdrant', 'Qdrant : une base vectorielle pour le RAG'], ['Automatisation', 'Workflow automation chez MARKO']],
+  noeuds: [['LLM', 'Gemini, Mistral, Claude, OpenAI, DeepSeek, Ollama'], ['RAG hybride', 'Archon : RAG Gemini + Qdrant/Meilisearch, reranking, graphe d’entités'],
+    ['Agents IA', 'Agentic AI au cœur de MARKO'], ['Multi-agents', 'codex-crew : un orchestrateur multi-agents Codex'], ['MCP · WebMCP', 'MCP pour le flux Figma → code ; WebMCP dans SafeShare'],
+    ['Document AI · OCR', 'MARKO : Document AI, OCR et extraction de données'], ['IA générative', 'Adoption de l’IA générative chez LWA : +35 % de productivité'],
+    ['Vecteurs', 'Qdrant, pgvector, ChromaDB : la recherche vectorielle du RAG'], ['Prompt engineering', 'MARKO : IA générative, LLM/RAG, prompt engineering'], ['Machine learning', 'NumerusX : agents IA de trading (recherche), SHAP/LIME']],
   groupes: [
-    ['Front', 'Architecture Vue/Nuxt pour Hermès, Chanel, Ardian', ['Vue · Nuxt', 'React · Next', 'TypeScript', 'Animation · UI/UX', 'Vite · Webpack']],
-    ['Back', 'L’API de MARKO : FastAPI et PostgreSQL', ['Python · FastAPI', 'PHP · Symfony', 'Node.js', 'PostgreSQL · Redis', 'API · Headless CMS']],
-    ['Pilotage', 'Tech lead de Digiplace : 150 000+ collaborateurs (ENGIE)', ['Tech lead', 'Management · Mentorat', 'Agile · Roadmap', 'OWASP · RGAA']],
-    ['DevOps', '15+ projets passés sous Docker (LWA)', ['Docker', 'CI/CD · GitLab', 'Azure · AWS', 'Traefik · Grafana']]]
+    ['Front', 'Architecture Vue/Nuxt pour Hermès, Chanel, Ardian', ['React · Next', 'Vue · Nuxt', 'TypeScript', 'three.js · Canvas', 'GSAP · D3']],
+    ['Back', 'L’API de MARKO : FastAPI et PostgreSQL', ['Python · FastAPI', 'Node.js · Go', 'PHP · Symfony', 'PostgreSQL · Redis', 'Celery · Socket.IO']],
+    ['Pilotage', 'Tech lead de Digiplace : 150 000+ collaborateurs (ENGIE)', ['Tech lead · CTO', 'Management · Mentorat', 'Agile · ADR', 'Roadmap · Avant-vente', 'OWASP · RGAA']],
+    ['DevOps', '15+ projets passés sous Docker (LWA)', ['Docker · Traefik', 'CI/CD · GitHub Actions', 'Azure · AWS · Vercel', 'Grafana · Sentry']]]
 };
 
 /* ——— le contour des lettres : on écrit le mot en blanc sur une petite toile, puis on suit le bord de l'encre (les carrés qui marchent) ——— */
@@ -161,7 +162,7 @@ function pose(W, H, D, L, px, force) {
   if (L) {
     // grand écran : l'IA au centre ; Front et Back à gauche, Pilotage et DevOps à droite (sous la planète des chats)
     planete = [W - W * 0.035 - r, O.HAUT() + r * 1.25 + 20];
-    const hIA = hauteur(9, 2, ptIA, true, lhI); if (y + hIA > yb && !force) return null;
+    const hIA = hauteur(nomsIA.length, 2, ptIA, true, lhI); if (y + hIA > yb && !force) return null;
     const G = D.groupes.map(([t, pr, l]) => ({ t, pr, l, w: Math.max(col(l) + pad * 2, largeur(t, police(ptC)) + pad * 2), h: hauteur(l.length, 1, ptC, false) }));
     const wG = Math.max(...G.map(g => g.w)), marge = W * 0.035, gap = px * 1.2;
     if (marge + wG + gap + wIA / 2 > W / 2 && !force) return null;
@@ -178,7 +179,7 @@ function pose(W, H, D, L, px, force) {
     // téléphone : la carte de l'IA et la planète à sa droite ; puis les quatre autres, deux par deux
     const wmax = W - 24 - r * 2 - 8; cols = 2 * cIA + pad * 2.6 <= wmax ? 2 : 1;
     wIA = Math.min(wmax, Math.max(cols * cIA + pad * (cols === 2 ? 2.6 : 2), largeur(D.ia[0], police(ptIA, true)) + pad * 2));
-    const sous = wSous <= wIA - pad * 2 ? D.ia[1] : null, hIA = hauteur(9, cols, ptIA, !!sous);
+    const sous = wSous <= wIA - pad * 2 ? D.ia[1] : null, hIA = hauteur(nomsIA.length, cols, ptIA, !!sous);
     const C = carte({ ia: true, x0: 12 + wIA / 2, y0: y + hIA / 2, w: wIA, h: hIA, seed: 1 });
     placeCarte(C, nomsIA, cols, D.ia[0], ptIA, true, sous).forEach((m, i) => { m.preuve = preuve(D.noeuds[i][1], true); });
     planete = [W - r - 10, y + r * 1.2];
