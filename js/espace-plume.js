@@ -159,6 +159,9 @@ let pret = false, onFini = null;
 const tps = () => M ? Wd.t - M.t0 : 0;
 const ecrit = m => M && tps() >= m.t0;
 const fini = m => M && tps() >= m.t1;
+// chaque preuve d'IA lue en entier : toutes → une découverte (le haut fait « Recruteur curieux »)
+const lusIA = new Set();
+function luIA(p) { if (lusIA.has(p.txt)) return; lusIA.add(p.txt); if (M.preuves.filter(q => q.zone === 'ia').every(q => lusIA.has(q.txt)) && window.Dex && Dex.vu) Dex.vu('competences'); }
 // un point d'un mot (coordonnées du mot) vers l'écran, et l'inverse
 const vers = (m, lx, ly) => { const co = Math.cos(m.a), si = Math.sin(m.a), x = lx - m.cx, y = ly - m.cy; return [m.hx + m.dx + m.cx + co * x - si * y, m.hy + m.dy + m.cy + si * x + co * y]; };
 const depuis = (m, X0, Y0) => { const co = Math.cos(-m.a), si = Math.sin(-m.a), x = X0 - (m.hx + m.dx + m.cx), y = Y0 - (m.hy + m.dy + m.cy); return [m.cx + co * x - si * y, m.cy + si * x + co * y]; };
@@ -215,7 +218,7 @@ X.pas.push((dt, cats) => {
   M.mots.forEach(m => { const on = m === sous || (m.pin && Wd.t < m.pin); m.survol += ((on ? 1 : 0) - m.survol) * Math.min(1, dt * 8); if (on && m.preuve && fini(m)) zones[m.preuve.zone] = m.preuve; });
   // les preuves : une par endroit ; la nouvelle attend que le stylo ait gommé l'ancienne
   M.preuves.forEach(p => { const voulu = zones[p.zone] === p, autre = M.preuves.some(q => q !== p && q.zone === p.zone && q.u > 0);
-    if (voulu && !autre) { if (!p.C) prepare(p); p.u = Math.min(1, p.u + dt * p.px * 240 / p.L); }
+    if (voulu && !autre) { if (!p.C) prepare(p); p.u = Math.min(1, p.u + dt * p.px * 240 / p.L); if (p.u >= 1 && p.zone === 'ia') luIA(p); }
     else if (p.u > 0) p.u = Math.max(0, p.u - dt * p.px * 520 / p.L); });
   // les chats qui passent : ils bousculent les mots (et rebondissent un peu)
   cats.forEach(c => { const S = c.sp; if (!S || c.held || !(S.m === 'derive' || S.m === 'nage')) return; const [x, y] = centreDe(c), r = rayon(c) * 0.8;

@@ -76,6 +76,37 @@ const D = {
   cosmique: A => `<ellipse cx="60" cy="64" rx="34" ry="8" transform="rotate(-12 60 64)"/>` + minou(60, 60, 22, A) + `<path d="M28 68 Q60 80 92 60" transform="rotate(-12 60 64)" stroke-width="2.2"/>` + eclat(30, 34, 5, 'none') + eclat(90, 36, 4, 'none') + eclat(84, 88, 3, 'none'),
   // le passager clandestin : un petit chat dans son casque d'astronaute, qui flotte
   apesanteur: A => `<circle cx="60" cy="58" r="24" ${PAPIER}/>` + minou(60, 62, 13, A) + `<path d="M44 44 Q48 38 54 37" stroke-width="1.6"/><ellipse cx="60" cy="82" rx="16" ry="4"/><path d="M72 37 L78 26"/><circle cx="79" cy="24" r="2.2" fill="currentColor" stroke="none"/>` + eclat(30, 76, 4, 'none') + eclat(92, 50, 3, 'none'),
+  // l'espace (28/09) : même trait, des étoiles-éclats autour
+  // décollage : la spirale du trou noir, un petit chat aspiré dedans
+  decollage: A => `<path d="M60 58 m0 -3 a3 3 0 1 1 -3 3 a6 6 0 0 1 9 -6 a10 10 0 0 1 4 15 a15 15 0 0 1 -22 2 a20 20 0 0 1 4 -28 a25 25 0 0 1 32 6" stroke-width="2"/>`
+    + `<g transform="rotate(-30 84 40)">${minou(84, 40, 8)}</g>` + eclat(32, 84, 4, 'none') + eclat(34, 34, 3, 'none'),
+  // fontaine à chats : un petit rond blanc qui recrache un chat, des rayons
+  troublanc: A => `<circle cx="46" cy="72" r="7"/><circle cx="46" cy="72" r="13" stroke-dasharray="3 4" stroke-width="1.6"/><path d="M54 64 L60 58 M42 60 L40 54 M58 76 l6 2" stroke-width="1.6"/>`
+    + `<g transform="rotate(20 72 44)">${minou(72, 44, 12)}</g>` + eclat(88, 72, 4, 'none'),
+  // tarzan : une liane qui ondule, un chat pendu par les pattes de devant
+  tarzan: A => `<path d="M26 40 Q44 30 60 40 Q76 50 94 38" stroke-width="2.6"/><path d="M58 40 v8 M64 42 v8" stroke-width="2"/>` + minou(61, 60, 12) + `<path d="M61 72 q-2 8 4 14" stroke-width="1.8"/>` + eclat(34, 76, 4, 'none'),
+  // un petit pas : une empreinte de patte sur un sol de lune (des cratères), le casque au-dessus
+  astronaute: A => `<path d="M26 80 Q60 70 94 80" stroke-width="2"/><ellipse cx="40" cy="84" rx="5" ry="2"/><ellipse cx="80" cy="86" rx="4" ry="1.6"/>` + patte(60, 80, 8)
+    + `<circle cx="60" cy="46" r="15" ${PAPIER}/>` + minou(60, 49, 8) + `<path d="M50 38 Q52 34 56 33" stroke-width="1.4"/><path d="M69 34 L73 27"/><circle cx="74" cy="25" r="1.8" fill="currentColor" stroke="none"/>`,
+  // la fronde : une planète, une orbite en pointillés, un chat qui en repart en flèche
+  fronde: A => `<circle cx="52" cy="64" r="12"/><path d="M40 60 q12 -4 24 0" stroke-width="1.2"/><path d="M52 44 A20 20 0 1 0 72 64" stroke-dasharray="3 4" stroke-width="1.6"/>`
+    + `<path d="M52 44 Q66 36 74 40" stroke-width="1.8"/><path d="M76 30 l-10 -2 M78 38 l-12 2" stroke-width="1.4"/>` + `<g transform="rotate(-20 84 38)">${minou(84, 38, 8)}</g>`,
+  // le petit prince : un chat assis sur une toute petite planète, une étoile
+  petitprince: A => `<circle cx="60" cy="80" r="18"/><path d="M46 88 q6 -3 12 0 M64 78 q5 -2 9 1" stroke-width="1.2"/>` + minou(60, 52, 11) + `<path d="M52 62 Q50 66 54 62 M68 62 Q70 66 66 62" stroke-width="1.6"/>` + etoile(88, 34, 5, 'none') + eclat(32, 40, 4, 'none'),
+  // zoo spatial : une forme fermée tracée à main levée, un chat dedans qui fait la moue
+  zoo: A => `<path d="M34 48 Q30 30 52 32 Q74 26 86 40 Q94 60 84 78 Q64 90 42 82 Q28 72 34 48Z" stroke-width="2.6"/>` + tete(60, 60, 13) + yeux(60, 60, 13) + `<path d="M56 67 q4 -2 8 0" stroke-width="1.6"/>` + eclat(92, 26, 3, 'none'),
+  // architecte : la même forme, ouverte (deux petits crans), et le bout de mur qui s'envole
+  architecte: A => `<path d="M72 30 Q86 38 88 56 Q88 78 64 84 Q40 88 32 66 Q28 44 46 32" stroke-width="2.6"/><path d="M46 32 l-3 -5 M72 30 l3 -5" stroke-width="1.8"/>`
+    + `<path d="M50 20 Q58 16 66 20" transform="rotate(-18 58 18)" stroke-width="2.4"/>` + minou(60, 62, 11) + `<path d="M58 12 l2 -4 M64 14 l4 -3" stroke-width="1.4"/>`,
+  // recruteur curieux : « IA » écrit à la main au milieu d'une petite constellation
+  recruteur: A => `<text x="60" y="64" text-anchor="middle" font-size="24" style="font-family:var(--hand),serif" fill="currentColor" stroke="none">IA</text>`
+    + [[34, 38], [86, 36], [30, 76], [88, 78], [60, 30]].map(([x, y]) => `<path d="M60 56 L${x} ${y}" stroke-dasharray="2 4" stroke-width="1.2"/>` + eclat(x, y, 4, 'none')).join('') + patte(76, 84, 6),
+  // astronome : une lunette, et au bout une planète-chat, un anneau
+  astronome: A => `<path d="M30 86 L62 56" stroke-width="7"/><path d="M36 92 L44 78 L52 92" stroke-width="1.8"/>` + `<ellipse cx="80" cy="38" rx="20" ry="5" transform="rotate(-15 80 38)"/>` + minou(80, 38, 11) + eclat(40, 34, 4, 'none') + eclat(92, 70, 3, 'none'),
+  // nyan sidéral : un chat en vol, sa traînée en marches d'escalier, des étoiles
+  nyanespace: A => [0, 6, 12].map(d => `<path d="M24 ${50 + d} h8 v-3 h8 v3 h8 v-3 h8" stroke-width="2"/>`).join('') + `<g transform="translate(6 0)">${minou(70, 58, 12)}</g>` + `<path d="M64 72 l-3 5 M82 72 l3 5" stroke-width="1.6"/>` + eclat(90, 34, 4, 'none') + eclat(36, 84, 3, 'none'),
+  // coupé en deux : une liane coupée net, les ciseaux ouverts, « snip »
+  ciseaux: A => `<path d="M24 64 Q36 56 50 62" stroke-width="2.6"/><path d="M70 58 Q84 52 96 60" stroke-width="2.6"/><circle cx="54" cy="84" r="6"/><circle cx="72" cy="84" r="6"/><path d="M57 79 L70 40 M69 79 L56 40" stroke-width="2"/>` + eclat(60, 60, 5, 'none'),
   foule: A => [[7, 44, [34, 47, 60, 73, 86]], [8.5, 60, [40, 53.5, 67, 80.5]], [10, 77, [44, 60, 76]]].map(([r, y, X]) => X.map((x, i) => minou(x, y, r, (i + y) % 3 === 0 ? A : null)).join('')).join(''),
   chaine: A => `<g transform="translate(2 5) rotate(12 48 86)">${caisse(38, 70, 22, 16)}${caisse(40, 54, 20, 16)}${caisse(42, 38, 17, 16)}${minou(51, 31, 7)}</g>`
     + `<path d="M81 26 L70 50 L78 50 L68 74 L91 44 L82 44 L88 26Z" fill="${A}"/>` + vague(60, 92, 82, 4, EAU) + goutte(66, 72, 4) + goutte(88, 70, 3),

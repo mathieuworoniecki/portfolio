@@ -4,7 +4,12 @@
      une forme close un objet : il a le poids de sa surface ; les chats le poussent, le tapent, rebondissent dessus ; dessinée autour d'eux, une cage
      une forme avec une entrée (qui tourne presque en rond) : un abri ; les chats y entrent par l'ouverture s'ils arrivent à s'y tenir
                      (secoué, qui file ou qui tourne vite : ils ratent, ou ils sont éjectés), et s'y roulent en boule
-   Tout rebondit sur les bords ; on peut attraper un dessin et le lancer ; quatorze au plus, le plus vieux s'efface en poussière d'étoiles.
+   Tout rebondit sur les bords ; on peut attraper un dessin (par son trait) et le lancer ; quatorze au plus, le plus vieux s'efface en poussière d'étoiles.
+   (28/09, Mathieu : « les chats ne sont pas bien dedans, et je ne peux plus faire de porte une fois une zone faite »)
+     dedans reste dedans : chaque chat se souvient de quel côté de chaque forme close il est ; même lancé très vite, il ne traverse plus le trait
+                     (trop grand pour sa cage, il se tasse) ; on peut toujours l'attraper, lui, et le sortir à la main
+     un coup de trait à travers le mur d'une forme close y découpe une porte : la forme devient un abri, le bout de mur découpé part en liane ;
+                     à travers une liane ou un abri, il les coupe en deux ; on peut dessiner à l'intérieur d'une forme (on l'attrape par son trait)
    Les planètes (js/espace-planetes.js) les poussent aussi : la liste est outils.corps. */
 window.EspaceDessin = (() => {
 if (!window.TrouNoir || !TrouNoir.outils) return null;
@@ -17,8 +22,9 @@ const long = P => { let L = 0; for (let i = 1; i < P.length; i++) L += Math.hypo
 // moins de points (Ramer-Douglas-Peucker), puis un peu arrondi (Chaikin) : le trait reste celui qu'on a tracé, en plus net
 function rdp(P, e) {
   if (P.length < 3) return P.slice();
-  const [a, b] = [P[0], P[P.length - 1]], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1;
-  let im = 0, dm = 0; for (let i = 1; i < P.length - 1; i++) { const d = Math.abs((P[i][0] - a[0]) * dy - (P[i][1] - a[1]) * dx) / L; if (d > dm) { dm = d; im = i; } }
+  const [a, b] = [P[0], P[P.length - 1]], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy);
+  // (une forme bien fermée : les deux bouts au même endroit ; la distance est alors celle à ce point, sinon tout s'écrase en un trait)
+  let im = 0, dm = 0; for (let i = 1; i < P.length - 1; i++) { const d = L < 2 ? Math.hypot(P[i][0] - a[0], P[i][1] - a[1]) : Math.abs((P[i][0] - a[0]) * dy - (P[i][1] - a[1]) * dx) / L; if (d > dm) { dm = d; im = i; } }
   if (dm <= e) return [a, b];
   const g = rdp(P.slice(0, im + 1), e), h = rdp(P.slice(im), e); return g.slice(0, -1).concat(h);
 }
@@ -50,8 +56,12 @@ function nait(P0) {
   const s0 = Wd.s0, A = Math.abs(aire(P)), m = k === 'forme' ? Math.max(0.15, A / (Math.PI * s0 * s0 * 0.25)) : Math.max(0.12, long(P) / (s0 * (k === 'abri' ? 2.4 : 3.2)));
   const loc = P.map(p => [p[0] - cx, p[1] - cy]), R = Math.max(...loc.map(p => Math.hypot(p[0], p[1]))), I = m * loc.reduce((q, p) => q + p[0] * p[0] + p[1] * p[1], 0) / loc.length + 1;
   const b = { id: ++nid, k, loc, P: loc.map(p => [0, 0]), x: cx, y: cy, a: 0, vx: rnd(-8, 8), vy: rnd(-8, 8), w: rnd(-0.08, 0.08), m, I, R, t0: performance.now() / 1000, fin: 0, dans: [], ferme: k !== 'trait',
-    place: k === 'abri' ? Math.max(1, Math.floor(A / (Math.PI * Math.pow(s0 * 0.38, 2)))) : 0 };
+    place: k === 'abri' ? Math.max(1, Math.floor(A / (Math.PI * Math.pow(s0 * 0.38, 2)))) : 0, rin: Math.sqrt(A / Math.PI) * 0.8 };
   monde(b); corps.push(b);
+  // dessinée autour de chats : une cage (ils le remarquent)
+  if (k === 'forme') { const pris = Wd.cats.filter(c => c.sp && c.sp.m !== 'crache' && dedans(b.P, ...centreDe(c)));
+    pris.forEach((c, i) => K.later(0.2 + i * 0.3, () => say(c, pick(['coincé !', 'hé !', 'une cage ?', 'laissez-moi sortir', 'mrrr']))));
+    if (pris.length) vu('cage'); }
   // trop de dessins : le plus vieux s'efface (ce qui s'y tenait flotte à nouveau)
   const vivants = corps.filter(o => !o.fin); if (vivants.length > MAX) efface(vivants[0]);
   // un chat le remarque
@@ -78,7 +88,7 @@ let trace = null;
 X.trace = {
   debut(x, y) { trace = [[x, y]]; },
   suite(x, y) { if (!trace) return; const l = trace[trace.length - 1]; if (Math.hypot(x - l[0], y - l[1]) >= 3) trace.push([x, y]); },
-  fin() { const P = trace; trace = null; if (!P) return false; return !!nait(P); }
+  fin() { const P = trace; trace = null; if (!P) return false; return coupe(P) || !!nait(P); }
 };
 
 /* ——— la physique, à chaque image (le temps du monde) ——— */
@@ -122,7 +132,7 @@ X.pas.push((dt, cats) => {
       let [cx, cy] = centreDe(c); if (Math.hypot(cx - b.x, cy - b.y) > b.R + r + 4) return;
       for (let i = 0; i < segs(b); i++) {
         const a = b.P[i], z = b.P[(i + 1) % b.P.length], [px, py] = proche(a[0], a[1], z[0], z[1], cx, cy), dx = cx - px, dy = cy - py, d = Math.hypot(dx, dy);
-        const lim = r * 0.85 + TRAIT / 2; if (d >= lim || d < 1e-3) continue;
+        const lim = (S.dans && S.dans[b.id] && S.dans[b.id][0] ? Math.min(r * 0.85, b.rin) : r * 0.85) + TRAIT / 2; if (d >= lim || d < 1e-3) continue;
         const nx = dx / d, ny = dy / d, over = lim - d, tot = mc + b.m;
         c.x += nx * over * b.m / tot; c.y += ny * over * b.m / tot; b.x -= nx * over * mc / tot; b.y -= ny * over * mc / tot;
         const [bvx, bvy] = vitesse(b, px, py), vn = (S.vx - bvx) * nx + (S.vy - bvy) * ny;
@@ -173,6 +183,7 @@ function accroche(c, b) {
   Object.assign(S, { m: 'liane', corps: b, u: bi + bt, sens: Math.random() < 0.5 ? 1 : -1, fin: Wd.t + rnd(6, 16), vx: 0, vy: 0, pas: 0 });
   S.ancre = () => S.corps && !S.corps.fin ? pt(S.corps, S.u) : null;
   if (Math.random() < 0.6) say(c, pick(['accroché !', 'hop', 'je tiens !', 'wiii']));
+  if (b.k === 'trait') vu('liane');
 }
 // un point du trait à l'abscisse u (le segment i, puis la fraction)
 function pt(b, u) { const n = segs(b), i = clamp(Math.floor(u), 0, n - 1), t = clamp(u - i, 0, 1), a = b.P[i], z = b.P[(i + 1) % b.P.length]; return [a[0] + (z[0] - a[0]) * t, a[1] + (z[1] - a[1]) * t]; }
@@ -216,7 +227,7 @@ function entreAbri(c, b) {
   b.dans.push(c);
   Object.assign(S, { m: 'abri', corps: b, loc, fin: Wd.t + rnd(8, 22), anim: pick(['dodo', 'pain', 'donut', 'ronron'].filter(a => K.ANIMS[a])), vx: 0, vy: 0 });
   // il arrive avec son élan : l'abri l'encaisse
-  say(c, pick(['chez moi', 'rrrr', 'on est bien', '♥', 'zzz']));
+  say(c, pick(['chez moi', 'rrrr', 'on est bien', '♥', 'zzz'])); vu('abriespace');
 }
 X.mode.abri = (c, dt) => {
   const S = c.sp, b = S.corps; if (!b || b.fin) { libere(c, 80); return; }
@@ -242,9 +253,109 @@ X.grab.push((x, y) => {
   for (let j = corps.length - 1; j >= 0; j--) { const b = corps[j]; if (b.fin || Math.hypot(x - b.x, y - b.y) > b.R + 16) continue;
     for (let i = 0; i < segs(b); i++) { const a = b.P[i], z = b.P[(i + 1) % b.P.length], [px, py] = proche(a[0], a[1], z[0], z[1], x, y);
       if (Math.hypot(px - x, py - y) < 13) { const [lx, ly] = versLocal(b, x, y); return { mod: MOD, b, lx, ly }; } }
-    if (b.k === 'forme' && dedans(b.P, x, y)) { const [lx, ly] = versLocal(b, x, y); return { mod: MOD, b, lx, ly }; } }
+    // (dedans, on dessine : seule une toute petite forme s'attrape par son milieu)
+    if (b.k === 'forme' && b.R < Wd.s0 * 0.5 && dedans(b.P, x, y)) { const [lx, ly] = versLocal(b, x, y); return { mod: MOD, b, lx, ly }; } }
   return null;
 });
+
+/* ——— dedans reste dedans : chaque chat se souvient de son côté de chaque forme close (S.dans[id] = [dedans ?, x, y locaux]) ———
+   Ce qui le déplace ailleurs (lancé, poussé, aspiré par le curseur…) ne le fait plus passer à travers le trait : il y est remis, et il rebondit.
+   Seuls la main (on l'attrape et on le sort), une liane, un abri, une planète et le grand départ le font changer de côté. */
+const LIBRES = ['liane', 'abri', 'nyan', 'orbite', 'planete', 'aspire', 'mot'];
+const vu = id => { if (window.Dex && Dex.vu) Dex.vu(id); };
+O.enCage = c => { const D = c.sp && c.sp.dans; if (!D) return false; for (const id in D) if (D[id][0] && corps.some(b => b.id == id && b.k === 'forme' && !b.fin)) return true; return false; };
+X.apres.push((dt, cats) => {
+  const F = corps.filter(b => b.k === 'forme' && !b.fin);
+  cats.forEach(c => {
+    const S = c.sp; if (!S) return; const D = S.dans || (S.dans = {});
+    for (const id in D) if (!F.some(b => b.id == id)) delete D[id];
+    if (S.m === 'crache' || !F.length) { tasse(c, null); return; }
+    const libre = c.held || LIBRES.includes(S.m); let cage = null;
+    F.forEach(b => {
+      const [cx, cy] = centreDe(c), ins = dedans(b.P, cx, cy), av = D[b.id];
+      if (!av || libre || ins === av[0]) {
+        if (av && av[0] && !ins && c.held && Math.random() < 0.7) say(c, pick(['libre !', 'merci !', 'ouf']));
+        D[b.id] = [ins, ...versLocal(b, cx, cy)];
+      } else remet(c, b, av);
+      if (D[b.id][0]) cage = b;
+    });
+    tasse(c, cage);
+  });
+});
+function remet(c, b, av) {
+  const S = c.sp, inw = av[0], [cx, cy] = centreDe(c), r = rayon(c);
+  let bd = 1e9, B = null;
+  for (let i = 0; i < segs(b); i++) { const a = b.P[i], z = b.P[(i + 1) % b.P.length], q = proche(a[0], a[1], z[0], z[1], cx, cy), d = Math.hypot(q[0] - cx, q[1] - cy); if (d < bd) { bd = d; B = [q[0], q[1], a, z]; } }
+  const [px, py, a, z] = B; let nx = a[1] - z[1], ny = z[0] - a[0]; const n = Math.hypot(nx, ny) || 1; nx /= n; ny /= n;
+  if (dedans(b.P, px + nx * 2, py + ny * 2) !== inw) { nx = -nx; ny = -ny; }
+  const m = (inw ? Math.min(r * 0.85, b.rin) : r * 0.85) + TRAIT / 2;
+  let tx = px + nx * m, ty = py + ny * m;
+  // (une forme biscornue : là, ce serait encore du mauvais côté ; il revient à la dernière place où il était bien)
+  if (dedans(b.P, tx, ty) !== inw) [tx, ty] = versMonde(b, av[1], av[2]);
+  c.x += tx - cx; c.y += ty - cy;
+  // il rebondit sur le trait, et le pousse (le choc se partage selon les masses)
+  const mc = Math.pow(r / (Wd.s0 * 0.4), 2), [bvx, bvy] = vitesse(b, px, py), vn = ((S.vx || 0) - bvx) * nx + ((S.vy || 0) - bvy) * ny;
+  if (vn < 0) { const j = -1.7 * vn / (1 / mc + 1 / b.m); S.vx += j * nx / mc; S.vy += j * ny / mc; if (!b.tenu) pousse(b, px, py, -j * nx, -j * ny); S.w = (S.w || 0) + rnd(-3, 3);
+    if (-vn > 140) { S.bonk = Wd.t; Wd.fx.push({ k: 'txt', text: pick(['bonk', 'boing', 'poc']), x: px, y: py - 10, t0: Wd.t, life: 0.8, rot: rnd(-0.2, 0.2), size: 14 }); } }
+  // agrippé au curseur, de l'autre côté du trait : il lâche prise
+  if (S.m === 'agrippe') { S.m = 'derive'; S.lache = Wd.t; S.next = Wd.t + rnd(2, 4); S.anim = 'chute'; }
+  if (inw && Wd.t - (S.cri ?? -9) > 5 && Math.random() < 0.5) { S.cri = Wd.t; say(c, pick(['coincé !', 'laissez-moi sortir !', 'mrrr', 'une porte ?', 'hé !'])); }
+}
+// trop grand pour sa cage : il se tasse (et reprend sa taille dehors)
+function tasse(c, b) {
+  const S = c.sp;
+  if (b) { if (S.sN == null) S.sN = S.s; const r0 = rayon(c) * S.sN / Math.max(c.s, 1e-3); S.s = S.sN * clamp(b.rin / (r0 * 0.9), 0.5, 1); }
+  else if (S.sN != null) { S.s = S.sN; S.sN = null; }
+}
+
+/* ——— les ciseaux : un trait qui croise un dessin le découpe ——— */
+function croise(a, b, c, d) {   // [t sur ab, u sur cd] ou null
+  const r1 = b[0] - a[0], r2 = b[1] - a[1], s1 = d[0] - c[0], s2 = d[1] - c[1], den = r1 * s2 - r2 * s1; if (Math.abs(den) < 1e-9) return null;
+  const t = ((c[0] - a[0]) * s2 - (c[1] - a[1]) * s1) / den, u = ((c[0] - a[0]) * r2 - (c[1] - a[1]) * r1) / den;
+  return t >= 0 && t <= 1 && u >= 0 && u <= 1 ? [t, u] : null;
+}
+function coupe(P) {
+  const L = long(P); if (L < 12) return false;
+  // le premier dessin croisé, dans l'ordre du trait (une liane ne se coupe que d'un coup sec, pas en dessinant une autre liane)
+  let best = null;
+  for (let j = 0; j < P.length - 1; j++) { corps.forEach(b => { if (b.fin || b.tenu || (b.k === 'trait' && L > Wd.s0 * 2.5)) return;
+      for (let i = 0; i < segs(b); i++) { const x = croise(P[j], P[j + 1], b.P[i], b.P[(i + 1) % b.P.length]); if (x && (!best || j + x[0] < best.j)) best = { j: j + x[0], b, i, t: x[1] }; } });
+    if (best) break; }
+  if (!best) return false;
+  const { b, i, t } = best, a = b.P[i], z = b.P[(i + 1) % b.P.length], q = [a[0] + (z[0] - a[0]) * t, a[1] + (z[1] - a[1]) * t];
+  Wd.fx.push({ k: 'txt', text: pick(['clac !', 'tchak', 'snip']), x: q[0], y: q[1] - 14, t0: Wd.t, life: 0.9, rot: rnd(-0.2, 0.2), size: 17 });
+  if (b.k === 'forme') ouvre(b, i, t); else casse(b, i, t, q);
+  return true;
+}
+// une porte dans une forme close : elle devient un abri, ouvert là ; le bout de mur découpé part en liane
+function ouvre(b, i, t) {
+  const n = b.loc.length, cum = [0]; for (let k = 1; k <= n; k++) cum.push(cum[k - 1] + Math.hypot(b.loc[k % n][0] - b.loc[k - 1][0], b.loc[k % n][1] - b.loc[k - 1][1]));
+  const Lt = cum[n], s = cum[i] + t * (cum[i + 1] - cum[i]), w = Math.min(Wd.s0 * 0.95, Lt * 0.3);
+  const at = u => { u = ((u % Lt) + Lt) % Lt; let k = 0; while (k < n - 1 && cum[k + 1] < u) k++; const f = (u - cum[k]) / ((cum[k + 1] - cum[k]) || 1), p = b.loc[k], q = b.loc[(k + 1) % n]; return [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f]; };
+  const arc = (u0, u1) => { const du = u1 - u0; u0 = ((u0 % Lt) + Lt) % Lt; u1 = u0 + du; const L = [at(u0)]; b.loc.map((p, k) => { let u = cum[k]; while (u <= u0) u += Lt; return [u, p]; }).filter(e => e[0] < u1).sort((x, y) => x[0] - y[0]).forEach(e => L.push(e[1].slice())); L.push(at(u1)); return L; };
+  const mur = arc(s + w / 2, s - w / 2 + Lt), bout = arc(s - w / 2, s + w / 2).map(p => versMonde(b, p[0], p[1]));
+  const avant = Wd.cats.filter(c => c.sp && c.sp.dans && c.sp.dans[b.id] && c.sp.dans[b.id][0]);
+  b.k = 'abri'; b.loc = mur; b.P = mur.map(() => [0, 0]); b.dans = [];
+  const A = Math.abs(aire(mur)); b.place = Math.max(1, Math.floor(A / (Math.PI * Math.pow(Wd.s0 * 0.38, 2))));
+  b.R = Math.max(...mur.map(p => Math.hypot(p[0], p[1]))); b.I = b.m * mur.reduce((q, p) => q + p[0] * p[0] + p[1] * p[1], 0) / mur.length + 1; monde(b);
+  // le bout de mur : il saute dehors, un peu tourné
+  const p = porte(b), l = nait(bout); if (l) { l.vx = b.vx + p.nx * 110; l.vy = b.vy + p.ny * 110; l.w = rnd(-1.5, 1.5); }
+  pousse(b, p.x, p.y, -p.nx * 60 * b.m, -p.ny * 60 * b.m);
+  // ceux qui étaient enfermés : certains filent par la porte, les autres s'y installent (c'est devenu chez eux)
+  avant.forEach((c, k) => { delete c.sp.dans[b.id]; if (Math.random() < 0.55) { const S = c.sp; S.m = 'nage'; S.cible = { x: p.x + p.nx * Wd.s0 * 1.6, y: p.y + p.ny * Wd.s0 * 1.6 }; S.fin = Wd.t + 3; K.later(0.2 + k * 0.3, () => say(c, pick(['libre !', 'une porte !', 'enfin !', 'merci !']))); }
+    else K.later(0.3 + k * 0.3, () => say(c, pick(['on est bien là', 'je reste', 'chez moi']))); });
+  vu('porte');
+}
+// une liane ou un abri coupés en deux : les deux bouts s'écartent ; ce qui s'y tenait lâche
+function casse(b, i, t, q) {
+  const W = b.P.map(p => p.slice()), g = 7, dir = [b.P[i + 1][0] - b.P[i][0], b.P[i + 1][1] - b.P[i][1]], n = Math.hypot(dir[0], dir[1]) || 1, ux = dir[0] / n, uy = dir[1] / n;
+  const A = W.slice(0, i + 1).concat([[q[0] - ux * g, q[1] - uy * g]]), B = [[q[0] + ux * g, q[1] + uy * g]].concat(W.slice(i + 1));
+  lacheTout(b); corps.splice(corps.indexOf(b), 1);
+  [[A, -1], [B, 1]].forEach(([Q, sg]) => { const o = long(Q) >= 26 ? nait(Q) : null;
+    if (o) { o.vx = b.vx + sg * ux * 70; o.vy = b.vy + sg * uy * 70; o.w = b.w + rnd(-1, 1); }
+    else Q.forEach(p => Wd.fx.push({ k: 'txt', text: '·', x: p[0], y: p[1], t0: Wd.t, life: 0.7, rot: 0, size: 14 })); });
+  vu('coupe');
+}
 
 /* ——— le dessin : le même trait que les chats (blanc, rond) ; une forme close est un peu pleine, l'entrée d'un abri a deux petits crans ——— */
 function chemin(ctx, P, ferme) { ctx.beginPath(); P.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); if (ferme) ctx.closePath(); }

@@ -15,7 +15,7 @@ function arrive() {
   C = { x: g < 0 ? -r : W + r, y: rnd(0.25, 0.6) * H, vx: -g * rnd(35, 60) * Wd.s0 / 150, vy: rnd(-12, 12), rot: rnd(-0.5, 0.5), w: rnd(-0.6, 0.6), r, porte: null, vise: null, t0: Wd.t };
 }
 function met(c) {
-  if (!C || C.porte) return; C.porte = c; C.vise = null; C.fin = Wd.t + rnd(18, 32); c.sp.m = 'derive'; c.sp.next = Wd.t + rnd(1, 3);
+  if (!C || C.porte) return; C.porte = c; C.vise = null; C.fin = Wd.t + rnd(18, 32); c.sp.m = 'derive'; c.sp.next = Wd.t + rnd(1, 3); if (window.Dex && Dex.vu) Dex.vu('astronaute');
   say(c, pick(en() ? ['astronaut!', 'ready for launch', 'one small step…'] : ['astronaute !', 'paré au décollage', 'un petit pas pour un chat…', 'houston ?']));
 }
 function enleve(vx, vy) {

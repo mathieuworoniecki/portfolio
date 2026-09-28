@@ -48,7 +48,7 @@ X.pas.push((dt, cats) => {
   // la gravité (28/09, Mathieu : « les deux ont de la gravité : si les chats sont proches, ils sont attirés, puis repartent quand ils ont fait une révolution »)
   // un chat qui dérive près d'une planète est happé : il tombe en orbite, fait son tour (autour de la planète des chats ; le long de la Terre, un grand arc
   // en rase-mottes), puis la fronde le relance plus vite qu'il n'est venu. Parfois, autour de la planète des chats, il finit par s'y poser.
-  cats.forEach(c => { const S = c.sp; if (!S || c.held || S.m !== 'derive' || P.aspire || Wd.t - (S.orbT ?? -99) < 9 || Wd.t - (S.lache ?? -99) < 2) return;
+  cats.forEach(c => { const S = c.sp; if (!S || c.held || S.m !== 'derive' || P.aspire || Wd.t - (S.orbT ?? -99) < 9 || Wd.t - (S.lache ?? -99) < 2 || (O.enCage && O.enCage(c))) return;
     const [x, y] = centreDe(c), r = rayon(c), dx = x - Cp.x, dy = y - Cp.y, d = Math.hypot(dx, dy);
     if (d < Cp.r * 3 && d > Cp.r + r && Math.random() < dt * 3) return orbite(c, 'chat', Cp.x, Cp.y, d, Math.atan2(dy, dx));
     const T = P.terre, de = Math.hypot(x - T.cx, y - T.cy), a = Math.atan2(y - T.cy, x - T.cx), half = Math.asin(clamp(O.W / 2 / T.R, 0, 1));
@@ -85,7 +85,7 @@ X.mode.orbite = (c, dt) => {
   if (S.tour >= S.fin) {
     // la fin du tour : autour de la planète des chats, il s'y pose parfois ; sinon la fronde : lancé le long de sa trajectoire, plus vite
     if (chat && Math.random() < 0.3) { pose(c, S.a); return; }
-    const vt = v * S.d * 1.4 + 60; S.m = 'derive'; S.orbT = Wd.t; S.lache = Wd.t; S.next = Wd.t + rnd(2, 4); S.anim = pick(O.DERIVE);
+    const vt = v * S.d * 1.4 + 60; if (window.Dex && Dex.vu) Dex.vu('fronde'); S.m = 'derive'; S.orbT = Wd.t; S.lache = Wd.t; S.next = Wd.t + rnd(2, 4); S.anim = pick(O.DERIVE);
     S.vx = -Math.sin(S.a) * S.sens * vt + Math.cos(S.a) * 40; S.vy = Math.cos(S.a) * S.sens * vt + Math.sin(S.a) * 40; S.w = rnd(-3, 3); c.spin = 0;
     if (Math.random() < 0.6) say(c, pick(en() ? ['wheee!', 'bye!', 'again!'] : ['wiiiii !', 'encore !', 'à plus !', 'youhou']));
   }
@@ -95,7 +95,7 @@ X.mode.orbite = (c, dt) => {
 function pose(c, ang) { const S = c.sp;
   // (pas deux chats au même endroit de la planète : il se pose à côté de ceux qui y sont déjà)
   const gap = rayon(c) * 1.3 / P.chat.r, autres = Wd.cats.filter(o => o !== c && o.sp && o.sp.m === 'planete').map(o => o.sp.ang), loin = a => autres.every(b => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))) > gap);
-  if (!loin(ang)) { const k = [1, -1, 2, -2, 3, -3, 4, -4].map(i => ang + i * gap).find(loin); if (k == null) { S.vx = Math.cos(ang) * 120; S.vy = Math.sin(ang) * 120; return; } ang = k; } Object.assign(S, { m: 'planete', ang, fin: Wd.t + rnd(6, 14), anim: pick(['assis', 'pain', 'toilette', 'debout', 'dodo'].filter(a => ANIMS[a])), vx: 0, vy: 0, marche: Math.random() < 0.4 ? sgn(rnd(-1, 1)) * rnd(0.15, 0.3) : 0 }); if (Math.random() < 0.6) say(c, pick(['chez moi', 'ma planète', 'on est bien', '♥'])); }
+  if (!loin(ang)) { const k = [1, -1, 2, -2, 3, -3, 4, -4].map(i => ang + i * gap).find(loin); if (k == null) { S.vx = Math.cos(ang) * 120; S.vy = Math.sin(ang) * 120; return; } ang = k; } Object.assign(S, { m: 'planete', ang, fin: Wd.t + rnd(6, 14), anim: pick(['assis', 'pain', 'toilette', 'debout', 'dodo'].filter(a => ANIMS[a])), vx: 0, vy: 0, marche: Math.random() < 0.4 ? sgn(rnd(-1, 1)) * rnd(0.15, 0.3) : 0 }); if (Math.random() < 0.6) say(c, pick(['chez moi', 'ma planète', 'on est bien', '♥'])); if (window.Dex && Dex.vu) Dex.vu('petitprince'); }
 X.mode.planete = (c, dt) => {
   const S = c.sp, Cp = P && P.chat; if (!Cp || P.aspire) { S.m = 'derive'; return; }
   S.ang += S.marche * dt; c.anim = S.marche ? 'pas' : S.anim;
@@ -128,7 +128,7 @@ X.mode.aspire = (c, dt) => {
 function aspire(dt) {
   const A = P.aspire, tous = Wd.cats.every(c => !c.sp || c.sp.dedans);
   // tous dedans : la planète grandit et son disque s'ouvre sur la pièce (js/trounoir.js, la sortie : elle recrache tout de l'autre côté)
-  if ((tous || Wd.t - A.t0 > 4.5) && !A.fait) { A.fait = true; const Cp = P.chat; O.sortie({ x: Cp.x, y: Cp.y, dessine: (ctx, z, now) => { A.zoom = Math.max(0.001, z); } }); }
+  if ((tous || Wd.t - A.t0 > 4.5) && !A.fait) { A.fait = true; if (window.Dex && Dex.vu) Dex.vu('retourplanete'); const Cp = P.chat; O.sortie({ x: Cp.x, y: Cp.y, dessine: (ctx, z, now) => { A.zoom = Math.max(0.001, z); } }); }
 }
 
 /* ——— attraper : la planète des chats (un clic la lance), la Terre (elle frémit) ——— */

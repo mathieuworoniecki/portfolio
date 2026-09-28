@@ -231,7 +231,7 @@ const E = { crache: -1, ondes: [], pops: [], doigt: null, boucle: 0 };
      envie(c)             un chat à la dérive se demande quoi faire : vrai si le module l'occupe
      trace                le doigt dans le vide : { debut(x, y), suite(x, y), fin() → vrai si c'était un dessin }
      entre(), retour()    on arrive dans l'espace, on en repart */
-const X = { pas: [], pose: [], fond: [], devant: [], grab: [], mode: {}, envie: [], entre: [], retour: [], trace: null };
+const X = { pas: [], pose: [], fond: [], devant: [], grab: [], mode: {}, envie: [], entre: [], retour: [], apres: [], trace: null };
 // on arrive dans l'espace (après le trou, ou directement par la barre du bas)
 function entre() {
   if (T) fin();
@@ -242,6 +242,7 @@ function entre() {
   Wd.props.forEach(it => { it.root.visible = false; });
   const id = ++E.boucle; requestAnimationFrame(() => boucleEspace(id));
   X.entre.forEach(f => f());
+  if (window.Dex && Dex.vu) Dex.vu('decollage');
   // un visiteur rare emporté par le trou noir : une découverte (et son haut fait, js/hautsfaits.js)
   const R = Wd.cats.filter(c => c.rare && !c.gone);
   if (window.Dex && Dex.vu && R.length) { if (R.some(c => c.rare === 'geant')) Dex.vu('geantespace'); Dex.vu('rareespace'); }
@@ -295,6 +296,8 @@ function espace(dt) {
     if (!c.held && c.sp.m !== 'crache' && c.sp.m !== 'nyan') { const [bx, by] = centreDe(c), r = rayon(c) * 0.9;
       const ox = bx - r < 0 ? -(bx - r) : bx + r > W ? W - (bx + r) : 0, oy = by - r < HAUT() ? HAUT() - (by - r) : by + r > BAS() ? BAS() - (by + r) : 0;
       if (ox || oy) { c.x += ox; c.y += oy; if (X.mode[c.sp.m] && Math.abs(ox) + Math.abs(oy) > r * 0.6) { c.sp.m = 'derive'; c.sp.ancre = null; c.sp.corps = null; c.sp.vx = ox * 3; c.sp.vy = oy * 3; } } } });
+  // (après tout le reste : ce qui doit avoir le dernier mot sur la place d'un chat, les murs des dessins)
+  X.apres.forEach(f => f(dt, cats));
 }
 function flotte(c, dt, Q, acc) {
   const S = c.sp, k = sc(c); S.t += dt; c.at += dt;
@@ -361,7 +364,7 @@ function agrippe(c, Q, acc) {
   // (Mathieu, 28/09 : « deux chats se superposent » : chacun sa place autour du curseur, en éventail, à une largeur de chat l'un de l'autre)
   const S = c.sp, pris = acc.map(o => o.sp.slot), n = [0, 1, 2, 3, 4, 5].find(i => !pris.includes(i)) ?? acc.length, k = Math.ceil(n / 2), sd = n % 2 ? 1 : -1, r = Math.max(rayon(c), Wd.s0 * 0.22);
   S.m = 'agrippe'; S.slot = n; S.ox = sd * k * r * 2.3; S.oy = k * r * 0.5; S.fin = Wd.t + rnd(6, 14); S.vx = S.vy = 0;
-  acc.push(c); say(c, pick(['hop !', 'attrapé !', 'je te tiens', 'mia !']));
+  acc.push(c); say(c, pick(['hop !', 'attrapé !', 'je te tiens', 'mia !'])); if (window.Dex && Dex.vu) Dex.vu('agrippe');
 }
 function lache(c, Q) {
   const S = c.sp; S.m = 'derive'; S.lache = Wd.t; S.next = Wd.t + rnd(2, 4);
@@ -467,7 +470,7 @@ function pop(x, y) {
   if (Wd.trou || RV || Wd.cats.filter(c => !c.gone).length >= K.MAXC) return;
   const c = K.addCat({ x }), a = rnd(0, TAU), v = rnd(140, 260) * Wd.s0 / 150; prepare(c); blanc(c); c.x = x; c.y = y; c.face = Math.cos(a) < 0 ? -1 : 1; c.stay = 1e9;
   c.sp = { vx: Math.cos(a) * v, vy: Math.sin(a) * v, w: rnd(-5, 5), m: 'crache', t: 0, dl: 0.18, o: [x, y], g: 0, s: Wd.s0 * 0.72 * clamp(c.b.s, 0.6, 1.5) / c.b.s, anim: 'chute', next: 0, bonk: -9, cal: -9, lache: -9 };
-  E.pops.push({ x, y, t0: performance.now() / 1000 });
+  E.pops.push({ x, y, t0: performance.now() / 1000 }); if (window.Dex && Dex.vu) Dex.vu('troublanc');
 }
 // une onde dans le vide : elle repousse ce qui est autour
 function onde(x, y) {

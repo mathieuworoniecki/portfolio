@@ -72,7 +72,7 @@ if (K.SCEN) K.SCEN.push(() => { if (Wd.mode !== 'large' && Math.random() < 0.5) 
 if (window.TrouNoir && TrouNoir.outils) {
   const O = TrouNoir.outils, { X, centreDe, rayon } = O;
   const part = (c, passes) => { const S = c.sp; Object.assign(S, { m: 'nyan', dir: S.vx ? sgn(S.vx) : (Math.random() < 0.5 ? 1 : -1), y0: centreDe(c)[1], passes: passes || (Math.random() < 0.5 ? 1 : 2), P: S.P || [], nt: 0 });
-    if (S.y0 < O.HAUT() + 60) S.y0 = O.HAUT() + 60; if (S.y0 > O.BAS() - 60) S.y0 = O.BAS() - 60; say(c, pick(['nyan !', 'nyaaan ✨', 'nya-nya-nyan ♪'])); };
+    if (S.y0 < O.HAUT() + 60) S.y0 = O.HAUT() + 60; if (S.y0 > O.BAS() - 60) S.y0 = O.BAS() - 60; say(c, pick(['nyan !', 'nyaaan ✨', 'nya-nya-nyan ♪'])); if (window.Dex && Dex.vu) Dex.vu('nyanespace'); };
   X.mode.nyan = (c, dt) => {
     const S = c.sp, s = rayon(c) / 0.8, v = O.W / 3.2; c.anim = ANIMS.nage ? 'nage' : 'chute'; c.face = S.dir; S.nt += dt;
     const [x, y] = centreDe(c), ty = S.y0 + Math.sin(S.nt * 7) * s * 0.12;

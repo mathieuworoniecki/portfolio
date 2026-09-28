@@ -142,6 +142,23 @@ fam('moments', 'Les grands moments', 'Big moments', [
   ['rareespace', 'Visiteur en apesanteur', 'Weightless visitor', 'Un visiteur rare est là… et on entre dans l’univers.', 'A rare visitor is here… and you enter the universe.'],
   ['geantespace', 'Le géant dans l’espace', 'Giant in space', 'Le chat géant, le trou noir, et après ?', 'The giant cat, the black hole, and then?'],
 ]);
+// l'espace, l'écran 2 (28/09, Mathieu : « des hauts faits sur l'espace, et des spécifiques »)
+fam('espace', 'L’espace', 'Space', [
+  ['decollage', 'Le décollage', 'Lift-off', 'Entrer dans l’univers, par le trou noir.', 'Enter the universe, through the black hole.'],
+  ['troublanc', 'Le petit trou blanc', 'The little white hole', 'Là-haut aussi, un clic dans le vide.', 'Up there too, a click on empty space.'],
+  ['agrippe', 'Accroché', 'Hanging on', 'Le curseur, tout près d’un chat qui flotte.', 'The cursor, close to a floating cat.'],
+  ['fronde', 'La fronde', 'The slingshot', 'Trop près d’une planète, on fait un tour… et on repart plus vite.', 'Too close to a planet, you go around… and leave faster.'],
+  ['petitprince', 'Le Petit Prince', 'The Little Prince', 'Un chat qui se pose sur sa planète.', 'A cat landing on its planet.'],
+  ['astronaute', 'L’astronaute', 'The astronaut', 'Quelque chose flotte, un chat le veut.', 'Something floats by, a cat wants it.'],
+  ['liane', 'La liane', 'The vine', 'Dessine une ligne dans le vide.', 'Draw a line in the void.'],
+  ['abriespace', 'Une maison dans les étoiles', 'A house among the stars', 'Dessine presque un rond, laisse une entrée.', 'Draw almost a circle, leave a way in.'],
+  ['cage', 'La cage', 'The cage', 'Dessine tout autour d’un chat, bien fermé.', 'Draw all around a cat, closed tight.'],
+  ['porte', 'La porte', 'The door', 'Un coup de trait à travers un mur.', 'A stroke right through a wall.'],
+  ['coupe', 'Coupé en deux', 'Cut in two', 'Un coup de trait sec à travers une liane.', 'A quick stroke across a vine.'],
+  ['nyanespace', 'Nyan dans les étoiles', 'Nyan among the stars', 'Un arc-en-ciel qui traverse l’espace.', 'A rainbow crossing space.'],
+  ['competences', 'Toutes les compétences IA', 'Every AI skill', 'Chaque nom autour de « IA », et ce qu’il y a derrière.', 'Every name around “AI”, and what’s behind it.'],
+  ['retourplanete', 'Retour par la planète', 'Home through the planet', 'La planète des chats ramène à la maison.', 'The cat planet takes you home.'],
+]);
 const TOUS = FAM.flatMap(f => f.L), PAR = Object.fromEntries(TOUS.map(d => [d.id, d]));
 TOUS.forEach(d => { if (d.id.startsWith('race-')) d.ok = caractere(d.id.slice(5)); });
 
