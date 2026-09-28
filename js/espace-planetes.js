@@ -1,8 +1,8 @@
-/* Dans l'espace (l'écran 2) : une fois la présentation écrite (js/espace-plume.js), deux planètes se dessinent, au stylo.
+/* Dans l'espace (l'écran 2) : dès l'arrivée, pendant que les compétences s'écrivent (js/espace-plume.js), deux planètes se dessinent, au stylo.
    - La Terre, en bas : une tranche, toute la largeur de l'écran, comme une atmosphère toute proche ; ses continents tournent doucement.
      C'est l'écran suivant (plus tard) ; pour l'instant, elle est solide : chats, dessins et lettres rebondissent dessus.
    - La planète des chats, plus loin : une tête de chat ronde (oreilles, moustaches, yeux qui suivent le curseur), un anneau de laine.
-     Survolée : un texte tourne autour d'elle et des choses poussent dessus (un arbre à chat, un carton, une maison, un drapeau-poisson…) ;
+     Survolée : des choses poussent dessus (28/09, Mathieu : « la planète chat ne doit pas avoir de texte » : plus de texte qui tourne) (un arbre à chat, un carton, une maison, un drapeau-poisson…) ;
      elle ronronne. Elle attire un peu les chats qui passent près ; certains s'y posent, comme le Petit Prince.
      Un clic : tous les chats y tombent, attirés, en rapetissant ; puis elle grossit, grossit… et on est revenu à l'écran 1. */
 window.EspacePlanetes = (() => {
@@ -16,11 +16,11 @@ let P = null;   // { t0 (le début du dessin), terre: {cx, cy, R, top}, chat: {x
 function place() {
   const W = O.W, H = O.H, bas = O.BAS(), h = clamp(H * 0.13, 60, 130), R = Math.max(W * 1.15, (W * W / 4) / (2 * h) + h / 2);   // (sur un téléphone : une tranche, pas une boule)
   const r = clamp(Math.min(W, H) * 0.09, 38, 90), large = W >= 760;
-  // (la planète des chats : sous la présentation écrite, au-dessus de la Terre)
-  const top = bas - h + 18, haut = window.EspacePlume ? EspacePlume.bas : 0, y = haut ? clamp((haut + top) / 2, haut + r * 1.5, top - r * 1.4) : large ? H * 0.3 : H * 0.28;
-  return { terre: { cx: W / 2, cy: bas - h + R + 18, R, top }, chat: { x: large ? W * 0.74 : W * 0.66, y, r } };
+  // (la planète des chats : à la place que lui laissent les constellations des compétences, js/espace-plume.js)
+  const top = bas - h + 18, pl = window.EspacePlume && EspacePlume.planete;
+  return { terre: { cx: W / 2, cy: bas - h + R + 18, R, top }, chat: pl ? { x: pl[0], y: pl[1], r } : { x: large ? W * 0.9 : W * 0.8, y: large ? H * 0.2 : H * 0.22, r } };
 }
-function naissance() { if (P) return; P = Object.assign(place(), { t0: Wd.t, survol: 0, pousse: 0, aspire: null, seed: Math.random() * 99 }); }
+function naissance() { if (P) return; P = Object.assign(place(), { W: O.W, H: O.H, t0: Wd.t, survol: 0, pousse: 0, aspire: null, seed: Math.random() * 99 }); }
 // (28/09, Mathieu : « fais apparaître la Terre et la planète des chats plus vite ») : elles se dessinent dès l'arrivée, pendant que la présentation s'écrit
 let entreT = null;
 X.entre.push(() => { P = null; entreT = Wd.t; if (reduit) naissance(); });
@@ -30,8 +30,10 @@ const trace = (dl, d) => P ? c01((Wd.t - P.t0 - dl) / d) : 0;
 
 /* ——— la physique : la Terre est solide, la planète des chats attire ——— */
 X.pas.push((dt, cats) => {
-  if (!P && entreT != null && Wd.t - entreT > 1.2) naissance();
+  if (!P && entreT != null && Wd.t - entreT > 1.2 && (!window.EspacePlume || EspacePlume.M || Wd.t - entreT > 4)) naissance();
   if (!P) return;
+  // l'écran a changé de taille : elles reprennent leur place (après les constellations, qui se recomposent avant)
+  if (P.W !== O.W || P.H !== O.H) Object.assign(P, place(), { W: O.W, H: O.H });
   const T = P.terre, Cp = P.chat, t = trace(0, 1.5);
   if (t > 0.5) {
     // la Terre : rien ne passe au travers (les chats, les dessins, les lettres rebondissent)
@@ -243,7 +245,6 @@ function planete(ctx, now) {
   // ce qui pousse dessus quand on la survole
   if (P.pousse > 0 && z < 0.3) constructions(ctx, x, y, r, now);
   // le texte qui tourne autour
-  if (P.survol > 0.02 && z < 0.3) couronne(ctx, x, y, r, now);
   ctx.restore();
 }
 // la lune : un petit poisson qui nage en rond autour de la planète
@@ -272,14 +273,6 @@ function constructions(ctx, x, y, r, now) {
     else if (k === 'fusee') { ctx.moveTo(0, -u * 2); ctx.quadraticCurveTo(u * 0.5, -u * 1.3, u * 0.35, -u * 0.3); ctx.lineTo(-u * 0.35, -u * 0.3); ctx.quadraticCurveTo(-u * 0.5, -u * 1.3, 0, -u * 2); ctx.moveTo(-u * 0.35, -u * 0.5); ctx.lineTo(-u * 0.6, 0); ctx.moveTo(u * 0.35, -u * 0.5); ctx.lineTo(u * 0.6, 0); }
     ctx.stroke(); ctx.restore();
   });
-}
-// le texte qui tourne autour d'elle
-function couronne(ctx, x, y, r, now) {
-  const txt = (en() ? 'CAT PLANET · CLICK TO GO HOME · ' : 'PLANÈTE DES CHATS · CLIQUE POUR RENTRER · ').repeat(1), R = r * 1.55 + 10, n = txt.length, step = TAU / n;
-  ctx.save(); ctx.globalAlpha = P.survol; ctx.fillStyle = `rgb(${BL})`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = `600 ${clamp(r * 0.2, 10, 15)}px ${getComputedStyle(document.documentElement).getPropertyValue('--display').trim() || 'sans-serif'}`;
-  for (let i = 0; i < n; i++) { const a = -now * 0.35 + i * step, lift = Math.sin(now * 3 + i * 0.5) * 2 * P.survol; ctx.save(); ctx.translate(x + Math.cos(a) * (R + lift), y + Math.sin(a) * (R + lift)); ctx.rotate(a + Math.PI / 2); ctx.fillText(txt[i], 0, 0); ctx.restore(); }
-  ctx.restore();
 }
 X.fond.unshift((ctx, now) => { if (!P) return; terre(ctx, now); if (trace(0.8, 0.1) > 0 && !(P.aspire && P.aspire.zoom > 0)) planete(ctx, now); });
 // (le zoom final passe devant tout : la planète grossit jusqu'à remplir l'écran)

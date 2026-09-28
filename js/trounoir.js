@@ -28,23 +28,41 @@ function taille() {
 }
 const centre = () => [W / 2, H * 0.47];
 
-/* ——— les étoiles : des petits points et des croix au stylo, qui scintillent ——— */
-let ETO = [];
+/* ——— les étoiles : des petits points et des croix au stylo, qui scintillent et brillent ———
+   (28/09, Mathieu : « les étoiles doivent briller ») : chacune a son halo (une lueur dessinée une fois, posée à chaque image),
+   les grosses ont leurs branches qui s'allongent quand elles scintillent ; de temps en temps, une étoile filante traverse le ciel */
+let ETO = [], FIL = null;
+const LUEUR = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(250,250,244,0.95)'); g.addColorStop(0.18, 'rgba(250,250,244,0.45)'); g.addColorStop(0.5, 'rgba(236,240,255,0.12)'); g.addColorStop(1, 'rgba(236,240,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64); return c; })();
+// une étoile qui brille : le halo, le cœur, et (si br) ses quatre branches
+function brille(x0, px, py, R, k, br, t, ph) {
+  x0.globalAlpha = k; x0.drawImage(LUEUR, px - R * 3, py - R * 3, R * 6, R * 6);
+  if (!br) return;
+  const L = R * (2.4 + 1.2 * Math.max(0, Math.sin(t * 1.7 + ph))), l = L * 0.45; x0.strokeStyle = '#F4F4EE'; x0.lineWidth = Math.max(0.8, R * 0.22); x0.globalAlpha = k * 0.9;
+  x0.beginPath(); x0.moveTo(px - L, py); x0.lineTo(px + L, py); x0.moveTo(px, py - L); x0.lineTo(px, py + L);
+  x0.moveTo(px - l * 0.5, py - l * 0.5); x0.lineTo(px + l * 0.5, py + l * 0.5); x0.moveTo(px + l * 0.5, py - l * 0.5); x0.lineTo(px - l * 0.5, py + l * 0.5); x0.stroke();
+}
 function etoiles() {
   const n = Math.round(clamp(W * H / 6500, 60, 320)); ETO = [];
-  for (let i = 0; i < n; i++) ETO.push({ x: Math.random(), y: Math.random(), r: Math.random() < 0.08 ? rnd(2.5, 4.5) : rnd(0.5, 1.4), ph: rnd(0, TAU), v: rnd(0.6, 2.2), p: rnd(0.2, 1) });
+  for (let i = 0; i < n; i++) ETO.push({ x: Math.random(), y: Math.random(), r: Math.random() < 0.08 ? rnd(2.5, 4.5) : rnd(0.5, 1.4), ph: rnd(0, TAU), v: rnd(0.6, 2.2), p: rnd(0.2, 1), h: Math.random() < 0.35 });
 }
 function cielEtoile(a, t) {
   if (ETO.length === 0 || ETO.W !== W || ETO.H !== H) { etoiles(); ETO.W = W; ETO.H = H; }
   const P = Wd.ptr || { x: W / 2, y: H / 2, on: false }, px = P.on ? (P.x - W / 2) / W : 0, py = P.on ? (P.y - H / 2) / H : 0;
   ctx.save(); ctx.lineCap = 'round';
   for (const s of ETO) {
-    const tw = 0.55 + 0.45 * Math.sin(t * s.v + s.ph), x = s.x * W - px * 14 * s.p, y = s.y * H - py * 10 * s.p;
-    ctx.globalAlpha = a * tw * (0.35 + 0.65 * s.p);
-    if (s.r > 2) { ctx.strokeStyle = '#F4F4EE'; ctx.lineWidth = 1.3; const r = s.r * (0.7 + 0.3 * tw);
-      ctx.beginPath(); ctx.moveTo(x - r, y); ctx.lineTo(x + r, y); ctx.moveTo(x, y - r); ctx.lineTo(x, y + r); ctx.stroke(); }
-    else { ctx.fillStyle = '#F4F4EE'; ctx.beginPath(); ctx.arc(x, y, s.r, 0, TAU); ctx.fill(); }
+    const tw = 0.55 + 0.45 * Math.sin(t * s.v + s.ph), x = s.x * W - px * 14 * s.p, y = s.y * H - py * 10 * s.p, k = a * tw * (0.35 + 0.65 * s.p);
+    if (s.r > 2) brille(ctx, x, y, s.r * 1.4, k, true, t, s.ph);
+    else if (s.h) brille(ctx, x, y, s.r * 2.2, k * 0.8, false, t, s.ph);
+    ctx.globalAlpha = k; ctx.fillStyle = '#F4F4EE'; ctx.beginPath(); ctx.arc(x, y, s.r > 2 ? s.r * 0.45 : s.r, 0, TAU); ctx.fill();
   }
+  // l'étoile filante : une tête qui brille, une traîne qui la suit ; elle part d'un bord haut, en biais
+  if (!FIL && Math.random() < 0.004 && !reduit) { const g = Math.random() < 0.5 ? -1 : 1; FIL = { x: rnd(0.2, 0.8) * W, y: rnd(0.05, 0.35) * H, vx: g * rnd(0.7, 1.1) * W, vy: rnd(0.25, 0.45) * W, t0: t, d: rnd(0.7, 1.1) }; }
+  if (FIL) { const u = (t - FIL.t0) / FIL.d; if (u > 1) FIL = null; else {
+    const hx = FIL.x + FIL.vx * u * FIL.d, hy = FIL.y + FIL.vy * u * FIL.d, q = Math.min(u, 0.18) * FIL.d, tx = hx - FIL.vx * q, ty = hy - FIL.vy * q, k = a * Math.sin(Math.PI * u);
+    const g = ctx.createLinearGradient(tx, ty, hx, hy); g.addColorStop(0, 'rgba(244,244,238,0)'); g.addColorStop(1, 'rgba(244,244,238,0.9)');
+    ctx.globalAlpha = k; ctx.strokeStyle = g; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy); ctx.stroke(); brille(ctx, hx, hy, 3.2, k, true, t, 0); } }
   ctx.restore();
 }
 function fondNoir(a) {
@@ -203,7 +221,7 @@ function teinte(c, k) {
 }
 const blanc = c => teinte(c, 1), encre = c => teinte(c, 0);
 const rgb = s => String(s).split(',').map(Number), melange = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',');
-const E = { crache: -1, ondes: [], doigt: null, boucle: 0 };
+const E = { crache: -1, ondes: [], pops: [], doigt: null, boucle: 0 };
 /* les modules de l'espace (js/espace-*.js : le dessin, la présentation au stylo, les planètes) se branchent ici :
      pas(dt, chats)       après les chats, à chaque image (forces, chocs avec leurs objets)
      pose(c)              après la pose d'un chat (où il regarde…)
@@ -220,7 +238,7 @@ function entre() {
   if (Wd.espace) return;
   if (!theme0 || (window.THEME && THEME.color !== 'espace')) noir();
   Wd.espace = true; root.classList.add('espace'); taille();
-  E.crache = Wd.t; E.flash = performance.now() / 1000; E.ondes.length = 0;
+  E.crache = Wd.t; E.flash = performance.now() / 1000; E.ondes.length = 0; E.pops.length = 0;
   Wd.props.forEach(it => { it.root.visible = false; });
   const id = ++E.boucle; requestAnimationFrame(() => boucleEspace(id));
   X.entre.forEach(f => f());
@@ -274,7 +292,7 @@ function flotte(c, dt, Q, acc) {
   const S = c.sp, k = sc(c); S.t += dt; c.at += dt;
   if (S.m === 'crache') {
     if (S.t < S.dl) { c.s = 0.001; return; }
-    if (!S.sorti) { S.sorti = true; const [cx, cy] = centre(); c.x = cx; c.y = cy; E.ondes.push({ x: cx, y: cy, t0: performance.now() / 1000, r: Wd.s0 * 1.2, a: 0.7 }); if (Math.random() < 0.6) apres(0.4, () => say(c, pick(['wiii !', 'mia ?', 'ooh', 'où…', '!', 'c\'est où ?']))); }
+    if (!S.sorti) { S.sorti = true; const [cx, cy] = S.o || centre(); c.x = cx; c.y = cy; E.ondes.push({ x: cx, y: cy, t0: performance.now() / 1000, r: Wd.s0 * 1.2, a: 0.7 }); if (Math.random() < 0.6) apres(0.4, () => say(c, pick(['wiii !', 'mia ?', 'ooh', 'où…', '!', 'c\'est où ?']))); }
     S.g = sm((S.t - S.dl) / 0.6); c.s = S.s * Math.max(0.02, S.g);
     if (S.g >= 1) { S.m = 'derive'; S.next = Wd.t + rnd(1.5, 4); S.anim = pick(DERIVE); }
   } else c.s += (S.s - c.s) * Math.min(1, dt * 3);
@@ -427,7 +445,7 @@ function drag(c, x, y) {
 }
 function release(c, vx, vy) {
   if (c.mod) return c.mod.release(c, vx, vy);
-  if (c.doigt) { const D = E.doigt; E.doigt = null; const fait = D && X.trace ? X.trace.fin() : false; if (!fait && (!D || !D.loin)) onde(D ? D.x : Wd.gx, D ? D.y : Wd.gy); return; }
+  if (c.doigt) { const D = E.doigt; E.doigt = null; const fait = D && X.trace ? X.trace.fin() : false; if (!fait && (!D || !D.loin)) { const x = D ? D.x : Wd.gx, y = D ? D.y : Wd.gy; onde(x, y); pop(x, y); } return; }
   if (!c.sp) return;
   if (!c.held) { c.sp.w += rnd(6, 10) * (Math.random() < 0.5 ? -1 : 1); c.sp.anim = 'chute'; c.sp.bonk = Wd.t - 1; say(c, pick(['wiii !', '♥', 'encore !', 'mrrr'])); return; }
   c.held = false; const S = c.sp; S.m = 'derive'; S.lache = Wd.t; S.next = Wd.t + rnd(3, 6); S.anim = 'chute';
@@ -435,6 +453,14 @@ function release(c, vx, vy) {
   if (Math.hypot(S.vx, S.vy) > 900) say(c, pick(['wiiiii !', 'aaaah', 'miaaa !']));
 }
 function click(x, y) { const c = K.catAt(x, y); if (c && c.sp) { release(c, 0, 0); return true; } onde(x, y); return true; }
+// (28/09, Mathieu : « on doit pouvoir faire poper plus de chats, comme sur l'autre écran ») : un clic dans le vide ouvre un petit trou blanc,
+// qui recrache un chat de plus (le même que sur l'écran 1 : pas plus que la pièce n'en tient)
+function pop(x, y) {
+  if (Wd.trou || RV || Wd.cats.filter(c => !c.gone).length >= K.MAXC) return;
+  const c = K.addCat({ x }), a = rnd(0, TAU), v = rnd(140, 260) * Wd.s0 / 150; prepare(c); blanc(c); c.x = x; c.y = y; c.face = Math.cos(a) < 0 ? -1 : 1; c.stay = 1e9;
+  c.sp = { vx: Math.cos(a) * v, vy: Math.sin(a) * v, w: rnd(-5, 5), m: 'crache', t: 0, dl: 0.18, o: [x, y], g: 0, s: Wd.s0 * 0.72 * clamp(c.b.s, 0.6, 1.5) / c.b.s, anim: 'chute', next: 0, bonk: -9, cal: -9, lache: -9 };
+  E.pops.push({ x, y, t0: performance.now() / 1000 });
+}
 // une onde dans le vide : elle repousse ce qui est autour
 function onde(x, y) {
   E.ondes.push({ x, y, t0: performance.now() / 1000, r: Wd.s0 * 3, a: 1 });
@@ -462,6 +488,12 @@ function boucleEspace(id) {
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r * 1.2, 0, TAU); ctx.fill(); ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(0, 0, r * 1.6, 0, TAU); ctx.stroke();
     ctx.restore();
   }
+  // les petits trous blancs d'un clic : ils s'ouvrent en un point, recrachent un chat, et se referment en un point
+  E.pops = E.pops.filter(o => now - o.t0 < 0.75);
+  E.pops.forEach(o => { const u = (now - o.t0) / 0.75, k = Math.sin(Math.PI * Math.min(1, u)), r = Wd.s0 * 0.16 * k + 1.5;
+    ctx.save(); ctx.translate(o.x, o.y); ctx.strokeStyle = '#F4F4EE'; ctx.lineCap = 'round'; ctx.lineWidth = 1.4;
+    for (let i = 0; i < 8; i++) { const a = i * TAU / 8 + u * 2; ctx.beginPath(); ctx.moveTo(Math.cos(a) * r * 1.3, Math.sin(a) * r * 1.3); ctx.lineTo(Math.cos(a) * r * (2 + (i % 2) * 0.6), Math.sin(a) * r * (2 + (i % 2) * 0.6)); ctx.stroke(); }
+    brille(ctx, 0, 0, r * 0.9, 1, false, now, 0); ctx.globalAlpha = 1; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke(); ctx.restore(); });
   // les ondes : des cercles au stylo qui s'élargissent et s'effacent
   E.ondes = E.ondes.filter(o => now - o.t0 < 0.9);
   E.ondes.forEach(o => { const t = (now - o.t0) / 0.9; ctx.save(); ctx.strokeStyle = '#F4F4EE'; ctx.globalAlpha = o.a * (1 - t);
@@ -553,6 +585,6 @@ function boucleSortie(id) {
 
 Wd.ail = { on: () => !!(Wd.trou || Wd.espace || RV), step: dt => (Wd.trou ? aspiration(dt) : RV ? sortant(dt) : espace(dt)), draw() {}, click: (x, y) => RV ? true : click(x, y), grab: (x, y) => RV ? null : grab(x, y), drag, release };
 // pour les modules de l'espace
-const outils = { X, E, K, sortie, melange, rgb, centre, centreDe, rayon, apres, onde, lache, say, BLANC, HAUT, BAS, DERIVE, get W() { return W; }, get H() { return H; }, get ctx() { return ctx; } };
+const outils = { X, E, K, brille, sortie, melange, rgb, centre, centreDe, rayon, apres, onde, lache, say, BLANC, HAUT, BAS, DERIVE, get W() { return W; }, get H() { return H; }, get ctx() { return ctx; } };
 return { aspire, entre, retour, outils, get espace() { return !!Wd.espace; }, get actif() { return !!(Wd.trou || Wd.espace || RV); }, get trou() { return !!T; }, get depuis() { return performance.now() / 1000 - finSortie; } };
 })();
