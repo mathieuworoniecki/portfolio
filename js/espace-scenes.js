@@ -148,16 +148,21 @@ function lui(x, y, r, o = {}) {
   const mx = x + r * 0.45, my = by + bh * 0.45; ctx.beginPath(); ctx.moveTo(mx - r * 0.28, my + r * 0.12); ctx.lineTo(mx - r * 0.1, my - r * 0.1); ctx.lineTo(mx, my); ctx.lineTo(mx + r * 0.08, my - r * 0.06); ctx.lineTo(mx + r * 0.26, my + r * 0.12); ctx.stroke();
   // le cou, la tête : un visage long ; les cheveux en épis par-dessus
   cerne(() => { ctx.beginPath(); ctx.rect(x - r * 0.22, by - r * 0.35, r * 0.44, r * 0.45); }, w * 0.8, a);
+  // (vague 8, l'audit : « ton dessin dans l'espace est raide ») : comme le logo (Mathieu, 29/09 : « je fais peur ») : des oreilles,
+  // des épis bien nets, des sourcils ronds, un grand sourire
+  [-1, 1].forEach(sd => cerne(() => { ctx.beginPath(); ctx.ellipse(x + sd * r * 0.68, hy + r * 0.12, r * 0.14, r * 0.2, 0, 0, TAU); }, w * 0.8, a));
   cerne(() => { ctx.beginPath(); ctx.ellipse(x, hy, r * 0.7, r * 0.98, 0, 0, TAU); }, w, a);
-  cerne(() => { ctx.beginPath(); const n = 7; for (let i = 0; i <= n; i++) { const t = Math.PI + 0.25 + i / n * (Math.PI - 0.5), R = i % 2 ? 1.1 + 0.05 * Math.sin(i * 3.7) : 0.98, j = i % 2 ? 0.12 * Math.sin(i * 2.1) : 0; ctx.lineTo(x + Math.cos(t + j) * r * 0.72 * R, hy - r * 0.18 + Math.sin(t + j) * r * 0.95 * R); }
+  cerne(() => { ctx.beginPath(); const n = 9; for (let i = 0; i <= n; i++) { const t = Math.PI + 0.25 + i / n * (Math.PI - 0.5), R = i % 2 ? 1.24 + 0.06 * Math.sin(i * 3.7) : 0.96, j = i % 2 ? 0.12 * Math.sin(i * 2.1) : 0; ctx.lineTo(x + Math.cos(t + j) * r * 0.72 * R, hy - r * 0.18 + Math.sin(t + j) * r * 0.95 * R); }
     for (let i = 8; i >= 0; i--) { const t = Math.PI + 0.25 + i / 8 * (Math.PI - 0.5); ctx.lineTo(x + Math.cos(t) * r * 0.7, hy - r * 0.05 + Math.sin(t) * r * 0.72); } ctx.closePath(); }, w, a);
   // les yeux : deux grands ovales noirs, deux reflets (ils clignent)
   const cl = Math.sin((o.now || 0) * 1.1 + 1) > 0.985 ? 0.12 : 1;
   [-1, 1].forEach(s => { const ex = x + s * r * 0.28, ey = hy + r * 0.08; ctx.globalAlpha = a; ctx.fillStyle = ENC; ctx.beginPath(); ctx.ellipse(ex, ey, r * 0.12, r * 0.17 * cl, 0, 0, TAU); ctx.fill();
-    if (cl > 0.5) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex - r * 0.04, ey - r * 0.06, r * 0.045, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(ex + r * 0.04, ey + r * 0.06, r * 0.022, 0, TAU); ctx.fill(); } });
+    if (cl > 0.5) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex - r * 0.04, ey - r * 0.06, r * 0.045, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(ex + r * 0.04, ey + r * 0.06, r * 0.022, 0, TAU); ctx.fill(); }
+    ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.7; ctx.beginPath(); ctx.arc(ex, ey - r * 0.12, r * 0.15, Math.PI * 1.2, Math.PI * 1.8); ctx.stroke(); });
   // la moustache en guidon (les pointes relevées), le sourire dessous
   ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.95; ctx.beginPath(); [-1, 1].forEach(s => { ctx.moveTo(x, hy + r * 0.42); ctx.quadraticCurveTo(x + s * r * 0.2, hy + r * 0.56, x + s * r * 0.38, hy + r * 0.42); ctx.quadraticCurveTo(x + s * r * 0.46, hy + r * 0.34, x + s * r * 0.4, hy + r * 0.28); }); ctx.stroke();
-  ctx.lineWidth = G.lw * w * 0.6; ctx.beginPath(); ctx.moveTo(x - r * 0.12, hy + r * 0.64); ctx.quadraticCurveTo(x, hy + r * 0.72, x + r * 0.12, hy + r * 0.64); ctx.stroke();
+  ctx.lineWidth = G.lw * w * 0.6; ctx.fillStyle = ENC; ctx.beginPath(); ctx.moveTo(x - r * 0.24, hy + r * 0.6); ctx.quadraticCurveTo(x, hy + r * 0.66, x + r * 0.24, hy + r * 0.6); ctx.quadraticCurveTo(x + r * 0.16, hy + r * 0.86, x, hy + r * 0.86); ctx.quadraticCurveTo(x - r * 0.16, hy + r * 0.86, x - r * 0.24, hy + r * 0.6); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(x, hy + r * 0.66, r * 0.14, r * 0.035, 0, 0, TAU); ctx.fill();
   // le bras qui tamponne : de l'épaule à la main, le tampon (sa poignée ronde, son bloc) ; au repos, levé ; abattu : sur la cible
   const ep = [x + g * bw * 0.8, by + r * 0.35], repos = [x + g * bw * 1.35, by - r * 0.7], ci = o.cible || repos, st = r * 0.55, main = [lerp(repos[0], ci[0], tp), lerp(repos[1], ci[1] - st * 1.1, tp)];
   cerne(() => { ctx.beginPath(); ctx.moveTo(...ep); ctx.quadraticCurveTo(lerp(ep[0], main[0], 0.5) + g * r * 0.3, lerp(ep[1], main[1], 0.5) + r * 0.3, main[0], main[1]); }, w * 1.9, a, null);
