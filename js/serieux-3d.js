@@ -469,6 +469,8 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
   for (let k = 0; k < NF; k++) { const e = new T.Group(), w = 0.62 - k * 0.012, d = 0.42 - k * 0.008; e.position.y = k * 0.1; prod.add(e); solide(e, new T.BoxGeometry(w, 0.09, d).translate(0, 0.045, 0), k === NF - 1 ? L[4].a : L[4].l);
     const f2 = []; for (let j = 0; j < 5; j++) { const x = -w / 2 + (j + 0.75) * w / 5.5; f2.push([x, 0.025, d / 2 + 0.003], [x, 0.065, d / 2 + 0.003]); FEN.push([x, k * 0.1 + 0.045, d / 2 + 0.006, k]); } e.add(traits(f2, L[4].s)); ET.push(e); }
   const allume = points(FEN.length, L[4].pa); prod.add(allume.p);
+  const DR = []; for (let i = 0; i < 8; i++) { const g = new T.Group(); prod.add(g); solide(g, new T.OctahedronGeometry(0.05), i % 4 ? L[4].l : L[4].a, 1); DR.push(g); }   // la flotte d'agents tourne autour du chantier
+  const cables = segments(8, L[4].d); prod.add(cables.l);
   const NE = 140, ess = points(NE, L[4].pa); R.add(ess.p); const EP = Array.from({ length: NE }, () => ({ x: (rnd() - 0.5) * 3.6, y: (rnd() - 0.3) * 2.4, o: rnd(), v: 0.3 + rnd() * 0.35 }));
 
   /* 5 · le portique : les livraisons passent sur un tapis à travers l'anneau ; ce qui n'est pas bon est éjecté dans le bac ; ce qui passe s'empile, et je valide */
@@ -548,6 +550,8 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
     /* 4 : le produit, étage par étage, nourri par le mur */
     const k4 = S >= 4 ? k(4) : 0; prod.visible = f[4] > 0.01;
     ET.forEach((e, i) => { const q = sm(k4 * (NF + 1) - i); e.visible = q > 0.02; e.scale.set(1, Math.max(0.02, q), 1); });
+    { const haut = Math.min(NF, k4 * (NF + 1)) * 0.1; DR.forEach((g, i) => { const a = t * (0.6 + (i % 3) * 0.15) + i * TAU / 8, r = 0.55 + (i % 2) * 0.15, y = haut * (0.35 + (i % 4) * 0.2) + 0.1 + Math.sin(t * 2 + i) * 0.03;
+      g.position.set(Math.cos(a) * r, y, Math.sin(a) * r); g.rotation.y = t * 2; cables.pos.set(f[4] > 0.05 ? [g.position.x, y, g.position.z, Math.cos(a) * 0.2, haut, Math.sin(a) * 0.15] : [0, -99, 0, 0, -99, 0], i * 6); }); cables.a.needsUpdate = true; }
     FEN.forEach(([x, y, z, et], i) => { const bati = sm(k4 * (NF + 1) - et) > 0.95, on = bati && Math.sin(i * 12.9898 + Math.floor(t * 1.3 + i * 0.37) * 78.233) > 0.1; allume.pos.set(on ? [x, y, z] : [0, -99, 0], i * 3); }); allume.a.needsUpdate = true;
     EP.forEach((p, i) => { if (f[4] < 0.05) { ess.pos.set([0, -99, 0], i * 3); return; } const u2 = (t * p.v * 0.45 + p.o) % 1, m = 1 - u2, b = prod.position;
       ess.pos.set([p.x * m + b.x * u2, p.y * m * m + 1.2 * 2 * m * u2 + (b.y + 0.2 + k4 * 1.1) * u2 * u2, -0.4 * m + b.z * u2], i * 3); });
