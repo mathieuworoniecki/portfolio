@@ -239,13 +239,20 @@ S.terminaux = (() => {
         const Q = [[x - W0 / 2, y - H0 / 2], [x + W0 / 2, y - H0 / 2], [x + W0 / 2, y + H0 / 2], [x - W0 / 2, y + H0 / 2]].map(([u, v]) => p3(u, v, zl, lac, tan, k));
         const z = (Q[0][2] + Q[2][2]) / 2, m = [(Q[0][0] + Q[2][0]) / 2, (Q[0][1] + Q[2][1]) / 2];
         if (m[0] < G.gauche - 80 || m[0] > G.droite + 80 || m[1] < -80 || m[1] > G.bas + 60) continue;
-        L.push({ Q, z: z + lv * 9, id, lv, pop: c01((cr - d) / 0.8), B: lv > 0.01 ? [[x - W0 / 2, y - H0 / 2], [x + W0 / 2, y - H0 / 2], [x + W0 / 2, y + H0 / 2], [x - W0 / 2, y + H0 / 2]].map(([u, v]) => p3(u, v, 0, lac, tan, k)) : null });
+        const Qb = [[x - W0 / 2, y - H0 / 2], [x + W0 / 2, y - H0 / 2], [x + W0 / 2, y + H0 / 2], [x - W0 / 2, y + H0 / 2]].map(([u, v]) => p3(u, v, zl - 0.09, lac, tan, k));
+        L.push({ Q, Qb, z: z + lv * 9, id, lv, pop: c01((cr - d) / 0.8), B: lv > 0.01 ? [[x - W0 / 2, y - H0 / 2], [x + W0 / 2, y - H0 / 2], [x + W0 / 2, y + H0 / 2], [x - W0 / 2, y + H0 / 2]].map(([u, v]) => p3(u, v, 0, lac, tan, k)) : null });
       }
       L.sort((a, b) => a.z - b.z);
-      L.forEach(({ Q, z, id, pop, lv, B }) => {
+      L.forEach(({ Q, Qb, z, id, pop, lv, B }) => {
         const al = lv > 0.01 ? 1 : (0.35 + 0.65 * c01((z + 2.2) / 3.2)) * pop, at = (u, v) => [lerp(lerp(Q[0][0], Q[1][0], u), lerp(Q[3][0], Q[2][0], u), v), lerp(lerp(Q[0][1], Q[1][1], u), lerp(Q[3][1], Q[2][1], u), v)];
         if (B) { trait(B, true, 0.5, 0.35); B.forEach((b, j) => trait([b, Q[j]], false, 0.5, 0.5 * lv)); }
+        // (vague 4 : « des rectangles plats ») : chaque terminal est une dalle épaisse : sa face arrière, ses quatre arêtes, puis la vitre
+        trait(Qb, true, 0.6, al * 0.7, true); Qb.forEach((b, j) => trait([b, Q[j]], false, 0.6, al * 0.7));
         trait(Q, true, lv > 0.01 ? 1.2 : 0.8, al, true); trait([at(0, 0.18), at(1, 0.18)], false, 0.5, al * 0.8);
+        // son agent : un petit chat-robot dans le coin qui tape ; celui du terminal soulevé sort la tête par-dessus et tape pour de bon
+        const lw = Math.hypot(Q[1][0] - Q[0][0], Q[1][1] - Q[0][1]);
+        if (lv > 0.3) { const hq = at(0.78, 0), r = lw * 0.075; chabot(hq[0], hq[1] - r * 0.5, r, { now, ph: id, lac: -0.4, casque: false, travaille: true, bras: [0.3 + Math.sin(now * 14) * 0.5, 0.3 - Math.sin(now * 14) * 0.5], a: lv }); }
+        else if (al > 0.5 && lw > 50 && id % 2 === 0) { const hq = at(0.84, 0.6), r = lw * 0.08; chabot(hq[0], hq[1], r, { now, ph: id, casque: false, lac: -0.3, travaille: true, a: al, bras: [0.2 + Math.sin(now * 11 + id) * 0.4, 0.2 - Math.sin(now * 11 + id) * 0.4] }); }
         [0.06, 0.11, 0.16].forEach(u => { const p = at(u, 0.09); rond(p[0], p[1], 1.2, 0.5, al, true); });
         // les lignes qui s'écrivent : une invite, puis la commande ; le curseur clignote ; parfois l'agent coche sa tâche
         const cyc = lv > 0.01 ? c01(ul * 1.3) * 3 : (now * 0.5 + bruit(id) * 3) % 3;
