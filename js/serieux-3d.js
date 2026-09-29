@@ -430,7 +430,10 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
 
   /* 4 · le produit monte au centre, nourri par tout le mur de terminaux */
   const prod = new T.Group(); prod.position.set(0, -0.55, 0.75); R.add(prod); const ET = [];
-  for (let k = 0; k < 8; k++) { const e = new T.Group(); e.position.y = k * 0.09; prod.add(e); solide(e, new T.BoxGeometry(0.46 - k * 0.02, 0.08, 0.34 - k * 0.015).translate(0, 0.04, 0), k === 7 ? L[4].a : L[4].l); ET.push(e); }
+  const NF = 12, FEN = [];   // le produit : un immeuble qui monte étage par étage ; chaque paquet de travail qui arrive allume une fenêtre
+  for (let k = 0; k < NF; k++) { const e = new T.Group(), w = 0.62 - k * 0.012, d = 0.42 - k * 0.008; e.position.y = k * 0.1; prod.add(e); solide(e, new T.BoxGeometry(w, 0.09, d).translate(0, 0.045, 0), k === NF - 1 ? L[4].a : L[4].l);
+    const f2 = []; for (let j = 0; j < 5; j++) { const x = -w / 2 + (j + 0.75) * w / 5.5; f2.push([x, 0.025, d / 2 + 0.003], [x, 0.065, d / 2 + 0.003]); FEN.push([x, k * 0.1 + 0.045, d / 2 + 0.006, k]); } e.add(traits(f2, L[4].s)); ET.push(e); }
+  const allume = points(FEN.length, L[4].pa); prod.add(allume.p);
   const NE = 140, ess = points(NE, L[4].pa); R.add(ess.p); const EP = Array.from({ length: NE }, () => ({ x: (rnd() - 0.5) * 3.6, y: (rnd() - 0.3) * 2.4, o: rnd(), v: 0.3 + rnd() * 0.35 }));
 
   /* 5 · le portique : les livraisons passent sur un tapis à travers l'anneau ; ce qui n'est pas bon est éjecté dans le bac ; ce qui passe s'empile, et je valide */
@@ -494,9 +497,10 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
     sillages.a.needsUpdate = true; { const w = CO.find(c => c.v === 1), xg = -1.4 + 2.9 * tc * 1.1, k = c01((xg - 1.2) / 0.9); eclat.position.set(1.2, 0.02, w.z); eclat.scale.setScalar(0.2 + k * 5); eclat.visible = k > 0 && k < 1; }
     /* 4 : le produit, étage par étage, nourri par le mur */
     const k4 = S >= 4 ? k(4) : 0; prod.visible = f[4] > 0.01;
-    ET.forEach((e, i) => { const q = sm(k4 * 9 - i); e.visible = q > 0.02; e.scale.set(1, Math.max(0.02, q), 1); });
+    ET.forEach((e, i) => { const q = sm(k4 * (NF + 1) - i); e.visible = q > 0.02; e.scale.set(1, Math.max(0.02, q), 1); });
+    FEN.forEach(([x, y, z, et], i) => { const bati = sm(k4 * (NF + 1) - et) > 0.95, on = bati && Math.sin(i * 12.9898 + Math.floor(t * 1.3 + i * 0.37) * 78.233) > 0.1; allume.pos.set(on ? [x, y, z] : [0, -99, 0], i * 3); }); allume.a.needsUpdate = true;
     EP.forEach((p, i) => { if (f[4] < 0.05) { ess.pos.set([0, -99, 0], i * 3); return; } const u2 = (t * p.v * 0.45 + p.o) % 1, m = 1 - u2, b = prod.position;
-      ess.pos.set([p.x * m + b.x * u2, p.y * m * m + 1.2 * 2 * m * u2 + (b.y + 0.3 + k4 * 0.7) * u2 * u2, -0.4 * m + b.z * u2], i * 3); });
+      ess.pos.set([p.x * m + b.x * u2, p.y * m * m + 1.2 * 2 * m * u2 + (b.y + 0.2 + k4 * 1.1) * u2 * u2, -0.4 * m + b.z * u2], i * 3); });
     ess.a.needsUpdate = true;
     /* 5 : le tapis avance ; l'anneau lit chaque colis ; le mauvais saute dans le bac, le bon rejoint la pile ; je coche */
     port.visible = juge.visible = f[5] > 0.01; let passe = 0, mauvais = 0;
