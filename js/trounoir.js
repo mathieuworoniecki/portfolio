@@ -562,14 +562,19 @@ function sortant(dt) {
   const u = (performance.now() / 1000 - RV.t0) / DS;
   RV.items.forEach(m => {
     const e = 1 - ease((u - m.dl) / 0.42), f = Math.pow(1 - e, 1.15), r = m.r0 * f, a = m.a0 - (e * 2.2 + e * e * 5);
-    const x = RV.cx + Math.cos(a) * r, y = RV.cy + Math.sin(a) * r * (1 - 0.18 * e);
+    // (vague 6, l'audit : « le retour des objets est un peu mécanique ») : chacun décrit un bond au-dessus de sa place, un peu plus gros
+    // au sommet, et atterrit pour de vrai : poussière, un mot, il tangue (les lourds font trembler la pièce)
+    const pr = 1 - e, bond = Math.sin(Math.PI * Math.min(1, pr * 1.15)) * m.s * (m.chat ? 0.5 : K.LOURD[m.o.kind] ? 0.45 : 0.9) * (pr > 0 ? 1 : 0);
+    const x = RV.cx + Math.cos(a) * r, y = RV.cy + Math.sin(a) * r * (1 - 0.18 * e) - bond;
     const o = m.o, rot = e * e * m.rot, pas = u < m.dl;
+    if (!m.chat && !m.pose && !pas && pr >= 0.999) { m.pose = true; const sol = K.floorAt(o.d); K.dust(m.x, sol, m.s * 0.4, 0.8); o.wob = Wd.t; o.wobA = K.LOURD[o.kind] ? 0.9 : 0.5;
+      if (K.LOURD[o.kind]) Wd.shake = { t0: Wd.t, a: 2.5 }; if (Math.random() < 0.45) Wd.fx.push({ k: 'txt', text: pick(K.LOURD[o.kind] ? ['BOUM', 'boum'] : ['toc', 'ploc', 'pop', 'tac']), x: m.x, y: sol - m.s * 0.6, t0: Wd.t, life: 1, rot: rnd(-0.2, 0.2), size: 16 }); }
     if (m.chat) {
       const c = o; c.at += dt; c.anim = e > 0.05 ? 'chute' : 'sursaut' in ANIMS ? 'sursaut' : 'assis'; teinte(c, sm((e - 0.1) / 0.6));
       c.s = Math.max(0.001, m.s * f); c.spin = rot; c.x = x; c.y = y; c.z = K.zOf(c.d);
       (ANIMS[c.anim] || ANIMS.assis)(c, c.tgt, c.at); Chat.step(c, dt, { a: Wd.a * (pas ? 0 : 1) });
     } else {
-      o.x = x; o.y = y; o.s = Math.max(0.001, m.s * f); o.tilt = m.tilt + rot; o.a = pas ? 0 : Wd.a; o.fade = o.fadeT = 1; Univers.place(o);
+      o.x = x; o.y = y; o.s = Math.max(0.001, m.s * f * (1 + 0.12 * Math.sin(Math.PI * pr))); o.tilt = m.tilt + rot; o.a = pas ? 0 : Wd.a; o.fade = o.fadeT = 1; Univers.place(o);
     }
   });
   if (u >= 1.08) finit();
