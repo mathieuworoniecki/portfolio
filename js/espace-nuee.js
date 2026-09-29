@@ -254,6 +254,9 @@ FORMES.pilotage = (a, now) => {
 /* ——— le titre en étoiles (29/09, 06:24, Mathieu : « comment le rendre vraiment incroyable ? ») ———
    au début de chaque scène, la nuée écrit son titre en grand, au milieu de l'écran ; une lueur le parcourt ; puis il se défait et devient la scène */
 let TXT = { cle: '', pts: [] };
+const PLUME = { d: 0.15, v: 1.25 };   // la plume part à 0,15 s et écrit tout le titre en 1,25 s
+const plumeU = tl => c01((tl - PLUME.d) / PLUME.v);
+const plumeXY = (pts, u) => { const lg = pts.lg, n = lg.length, li = Math.min(n - 1, Math.floor(u * n)), g = lg[li], f = u * n - li; return [g.x0 + (g.x1 - g.x0) * c01(f), g.y]; };
 const LETTRES = '"Space Grotesk","Barlow",system-ui,sans-serif';
 function titre(txt, W, H, y1, y2) {
   // (vague 6) le titre ne passe plus derrière la planète des chats : il tient entre le bord gauche et elle (sur grand écran, elle est en haut à droite)
@@ -269,16 +272,31 @@ function titre(txt, W, H, y1, y2) {
   L.forEach((l, i) => x.fillText(l, (xl + Wt / 2) * k, y0 + i * lh));
   const d = x.getImageData(0, 0, w, hh).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 128) n++;
   const pas = Math.max(1, Math.sqrt(n / (N * 0.95))), pts = [];
-  for (let yy = 0; yy < hh; yy += pas) for (let xx = 0; xx < w; xx += pas) if (d[(Math.floor(yy) * w + Math.floor(xx)) * 4 + 3] > 128) pts.push([xx / k, yy / k]);
+  // (vague 10) les lignes du titre, pour la plume-comète qui l'écrit de gauche à droite : chaque étoile sait à quel instant (u, de 0 à 1) la plume passe sur elle
+  const lg = L.map((l, i) => { const lw = x.measureText(l).width / k, xc = xl + Wt / 2; return { y: (y0 + i * lh) / k, x0: xc - lw / 2, x1: xc + lw / 2 }; });
+  for (let yy = 0; yy < hh; yy += pas) for (let xx = 0; xx < w; xx += pas) if (d[(Math.floor(yy) * w + Math.floor(xx)) * 4 + 3] > 128) {
+    const X0 = xx / k, Y0 = yy / k, li = Math.max(0, Math.min(L.length - 1, Math.round((yy - y0) / lh))), g = lg[li];
+    pts.push([X0, Y0, (li + c01((X0 - g.x0) / Math.max(1, g.x1 - g.x0))) / L.length]); }
   for (let i = pts.length - 1; i > 0; i--) { const j = Math.floor(h(i * 3.7 + 0.5) * (i + 1)); const t = pts[i]; pts[i] = pts[j]; pts[j] = t; }
-  TXT = { cle, pts }; return pts;
+  pts.lg = lg; pts.px = px / k; TXT = { cle, pts }; return pts;
 }
 let NID = 0, sauter = false;   // (sauter : pour les captures, js de test : pas de transformation)
 // les étoiles sur les lettres (écran) ; une lueur passe de gauche à droite ; elles frémissent
-const ecrit = (pts, tl, W, now) => { const M = pts.length, bal = (tl - 0.6) / 1.2 * W * 1.3 - W * 0.15;
+// (vague 10) plus de lueur qui balaie : la lueur, c'est la plume ; les étoiles qu'elle vient de poser brillent un instant, puis se posent
+const ecrit = (pts, tl, W, now) => { const M = pts.length;
   return (r, o) => { const q = pts[r.i % M], dup = r.i >= M; o.p2 = 1; o.f = 1;
     o.x = q[0] + Math.sin(now * 2.1 + r.a * TAU) * 0.8 + (dup ? r.gx * 1.5 : 0); o.y = q[1] + Math.cos(now * 1.7 + r.b * TAU) * 0.8 + (dup ? r.gy * 1.5 : 0);
-    const l = Math.exp(-Math.pow((q[0] - bal) / 60, 2)); o.s = 0.9 + l * 0.9; o.a = (dup ? 0.45 : 1.3) + l * 0.8; }; };
+    const e = tl - PLUME.d - q[2] * PLUME.v, l = e > 0 ? Math.exp(-e * 5) : 0; o.s = 0.9 + l * 0.6; o.a = (dup ? 0.45 : 1.3) + l * 0.5; }; };
+// la plume-comète : une tête blanche, une queue d'étincelles qui retombent derrière elle ; elle file sur chaque ligne, saute à la suivante, puis s'éteint en fin de titre
+function plume(ctx, pts, tl, now, br) {
+  const u = plumeU(tl); if (tl < PLUME.d || u >= 1 && tl > PLUME.d + PLUME.v + 0.25) return;
+  const [x, y] = plumeXY(pts, Math.min(u, 0.999)), px = pts.px || 40, fin = u >= 1 ? 1 - c01((tl - PLUME.d - PLUME.v) / 0.25) : 1, yy = y + Math.sin(now * 23) * px * 0.18;
+  ctx.globalAlpha = 0.5 * fin; ctx.lineWidth = 1.2;
+  for (let i = 1; i <= 14; i++) { const uu = u - i * 0.012; if (uu < 0) break; const [sx, sy] = plumeXY(pts, uu), dy = i * i * 0.35 + Math.sin(i * 1.7 + now * 9) * px * 0.2, rr = br * (2.6 - i * 0.14) * 2.2;
+    ctx.globalAlpha = (1 - i / 15) * 0.8 * fin; ctx.drawImage(LUEUR, sx - rr, sy + dy - rr, rr * 2, rr * 2); }
+  const R0 = br * 11 * (0.9 + 0.1 * Math.sin(now * 31)); ctx.globalAlpha = fin; ctx.drawImage(LUEUR, x - R0, yy - R0, R0 * 2, R0 * 2);
+  ctx.globalAlpha = 0.9 * fin; ctx.lineWidth = 1.4; ctx.beginPath(); for (let k = 0; k < 4; k++) { const a = k * Math.PI / 4 + now * 2; ctx.moveTo(x - Math.cos(a) * R0 * 0.9, yy - Math.sin(a) * R0 * 0.9); ctx.lineTo(x + Math.cos(a) * R0 * 0.9, yy + Math.sin(a) * R0 * 0.9); } ctx.stroke();
+}
 
 /* ——— l'image ——— */
 const o = { x: 0, y: 0, z: 0, s: 1, a: 1, t: 0, tx: 0, ty: 0, tz: 0, p2: 0, f: 1 };
@@ -305,8 +323,11 @@ X.fond.push((ctx, now) => {
     else if (o.a > 0) { const q = V(o.x, o.y, o.z); if (q[3] > 0) { x = q[0]; y = q[1]; fz = q[3]; s = br * o.s * Math.min(2.2, Math.pow(fz, 0.8)); al = o.a * c01(0.3 + fz * 0.8);
       if (o.t) { const q2 = V(o.tx, o.ty, o.tz); if (q2[3] > 0) tl = [q2[0], q2[1]]; } } }
     // la transformation : chaque étoile part de là où elle était, à son heure, et tourne un peu autour du centre en chemin
-    const e = reduit ? 1 : eio((dt - r.d * etale) / duree);
-    if (e < 1) { const x0 = F[j], y0 = F[j + 1], lx = lerp(x0, x, e) - mx, ly = lerp(y0, y, e) - my, b = Math.sin(Math.PI * e), an = b * (0.5 + r.a * 0.7) * rot, gr = 1 + b * 0.18 * r.b;
+    const qq = pts && pts.length ? pts[r.i % pts.length] : null, e = reduit ? 1 : qq ? eio((dt - PLUME.d - qq[2] * PLUME.v + 0.3) / 0.4) : eio((dt - r.d * etale) / duree);
+    if (e < 1 && qq) {   // (vague 10) l'étoile attend la plume, file vers sa pointe, puis tombe sur sa lettre
+      const [cx2, cy2] = plumeXY(pts, qq[2]), v = 1 - e, x0 = F[j], y0 = F[j + 1];
+      x = v * v * x0 + 2 * v * e * cx2 + e * e * x; y = v * v * y0 + 2 * v * e * (cy2 - (pts.px || 40) * 0.6) + e * e * y; s = lerp(F[j + 2], s, e); al = lerp(F[j + 3] * 0.8, al, e); tl = null; }
+    else if (e < 1) { const x0 = F[j], y0 = F[j + 1], lx = lerp(x0, x, e) - mx, ly = lerp(y0, y, e) - my, b = Math.sin(Math.PI * e), an = b * (0.5 + r.a * 0.7) * rot, gr = 1 + b * 0.18 * r.b;
       x = mx + (lx * Math.cos(an) - ly * Math.sin(an)) * gr; y = my + (lx * Math.sin(an) + ly * Math.cos(an)) * gr; s = lerp(F[j + 2], s, e); al = lerp(F[j + 3], al, e); tl = null; }
     // (le doigt ou la souris : les étoiles s'écartent sur son passage, et tout le ciel penche un peu vers lui, les proches plus que les lointaines)
     if (pt) { const dx = x - pt.x, dy = y - pt.y, d2 = dx * dx + dy * dy; if (d2 < RP * RP) { const dd = Math.sqrt(d2) || 1, q = 1 - dd / RP; x += dx / dd * q * q * RP * 0.5; y += dy / dd * q * q * RP * 0.5; al *= 1 + q * 0.8; }
@@ -322,6 +343,7 @@ X.fond.push((ctx, now) => {
     if (tl) { ctx.globalAlpha = Math.min(1, k * 0.55); ctx.lineWidth = Math.max(0.6, s * 0.9); ctx.beginPath(); ctx.moveTo(tl[0], tl[1]); ctx.lineTo(x, y); ctx.stroke(); }
     const rr = s * (2.6 + 1.4 * calme) * (k > 1 ? 1 + (k - 1) * 0.8 : 1); ctx.globalAlpha = Math.min(1, k); ctx.drawImage(LUEUR, x - rr, y - rr, rr * 2, rr * 2);
   }
+  if (pts && pts.lg && !reduit) plume(ctx, pts, dt, now, br);
   ctx.restore(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
 });
 return { FORMES, E, get N() { return N; }, get P() { return P; }, fige() { T0 = -1e9; sauter = true; } };
