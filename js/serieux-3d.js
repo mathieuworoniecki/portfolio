@@ -584,7 +584,7 @@ function impact() {
 
 /* ——— 03 Parcours : une piste de circuit, un composant par poste ; le défilement fait avancer le signal jusqu'à MARKO ——— */
 function circuit(postes) {
-  const o = objet('circuit', { s: 0.9, pl: { x: 0.3, y: 0.0, s: 1.6 }, plT: { y: 0.24, s: 1.6 } }); let t0 = null;
+  const o = objet('circuit', { s: 0.9, pl: { x: 0.25, y: 0.0, s: 1.5 }, plT: { y: 0.24, s: 1.6 } }); let t0 = null;
   const ES = 1.5, n = postes.length, pan = piece(o, [0, 0, 0], [0, 0, 0], { fond: true }), P = new T.Group(); pan.g.add(P);
   const X = postes.map((_, i) => i * ES);
   /* la piste : une ligne qui serpente d'un composant à l'autre, avec des vias */
