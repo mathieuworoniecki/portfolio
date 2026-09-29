@@ -346,8 +346,15 @@ html:not(.locked) #gate:not(.open){display:none}
   background:var(--bp-hi);color:rgb(var(--ink));border:2px solid rgb(var(--ink));border-radius:14px 10px 16px 12px;box-shadow:3px 3px 0 rgba(var(--ink),.18);
   font:400 1.05rem/1.2 var(--hand);opacity:0;pointer-events:none;transform:translateY(20px)}
 .dex-toast b{font-weight:700}.dex-toast i{font:500 .7rem/1 var(--mono);font-style:normal;opacity:.7;white-space:nowrap}
-.dex-toast.go{animation:dex-toast 2.3s cubic-bezier(.3,1.6,.5,1) forwards}
-@keyframes dex-toast{0%{opacity:0;transform:translateY(20px) rotate(-3deg)}14%{opacity:1;transform:translateY(0) rotate(1deg)}80%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-8px)}}
+.dex-toast.go{animation:dex-toast .45s cubic-bezier(.3,1.6,.5,1) forwards}
+@keyframes dex-toast{0%{opacity:0;transform:translateY(20px) rotate(-3deg)}40%{opacity:1}100%{opacity:1;transform:none}}
+/* (vague 10) le mot s'écrit à la main, de gauche à droite ; à la fin, la carte se plie (elle s'écrase en un point) et devient un avion de papier */
+.dex-toast.go span{animation:dex-ecrit .8s steps(18) .25s both}
+@keyframes dex-ecrit{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+.dex-toast.plie{animation:dex-plie .26s cubic-bezier(.5,0,.8,.3) forwards}
+@keyframes dex-plie{0%{opacity:1;transform:none}45%{opacity:1;transform:scale(1,.12) rotate(-4deg)}100%{opacity:1;transform:scale(.04,.12) rotate(-12deg)}}
+.dex-avion{position:fixed;left:0;top:0;z-index:35;width:30px;height:22px;margin:-11px 0 0 -15px;pointer-events:none}
+.dex-avion svg{width:100%;height:100%;fill:var(--bp-hi);stroke:rgb(var(--ink));stroke-width:2.4;stroke-linejoin:round}
 .dex{position:fixed;inset:0;z-index:40;display:grid;place-items:center;padding:16px;background:rgba(var(--ink),.25)}
 .dex[hidden]{display:none}
 .dex-page{position:relative;width:min(760px,100%);max-height:min(86dvh,900px);overflow:auto;overscroll-behavior:contain;padding:18px 20px 14px;
@@ -434,7 +441,7 @@ html:not(.locked) #gate:not(.open){display:none}
 .hf-grille li i{font:500 .62rem/1 var(--mono);font-style:normal;opacity:.55}
 .hf-grille li.ok{background:none!important;border-color:rgb(var(--ink))!important}
 @media (prefers-reduced-motion:reduce){.hf-show.go,.hf-show.go .hf-rayons,.hf-show.go .hf-badge,.hf-show.part{animation-duration:.01s;animation-fill-mode:both}}
-@media (prefers-reduced-motion:reduce){.dex-toast.go{animation:dex-fade 2.3s linear forwards;transform:none}}
+@media (prefers-reduced-motion:reduce){.dex-toast.go{animation:dex-fade 2.3s linear forwards;transform:none}.dex-toast.go span,.dex-toast.plie{animation:none}}
 
 /* ——— le trou noir, puis l'espace (l'écran 2, js/trounoir.js) ——— */
 /* (le thème qui change pendant le trou noir : les couleurs glissent, js/trounoir.js glisse()) */

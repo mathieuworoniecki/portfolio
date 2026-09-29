@@ -178,8 +178,26 @@ const toast = document.createElement('div'); toast.className = 'dex-toast'; toas
 function suivante() {
   if (montre || !file.length) return; montre = true; const d = file.shift();
   toast.innerHTML = `<b>${T('Découverte !', 'Discovery!')}</b> <span>${d.t}</span> <i>${n()} / ${TOUS.length}</i>`;
-  toast.classList.remove('go'); void toast.offsetWidth; toast.classList.add('go');
-  setTimeout(() => { montre = false; suivante(); }, 2400);
+  toast.classList.remove('go', 'plie'); toast.style.visibility = ''; void toast.offsetWidth; toast.classList.add('go');
+  // (vague 10, l'audit : « le carnet ») : la carte ne s'efface plus. Le mot s'écrit à la main ; puis elle se plie en avion de papier
+  // qui file en looping jusqu'au bouton du carnet ; le bouton l'avale et rebondit
+  setTimeout(() => { toast.classList.add('plie'); setTimeout(() => { avion(); toast.style.visibility = 'hidden'; toast.classList.remove('go', 'plie'); montre = false; setTimeout(suivante, 250); }, 260); }, 2000);
+}
+const AVION = '<svg viewBox="0 0 40 28" aria-hidden="true"><path d="M2 14 L38 2 L22 26 L17 17 Z M17 17 L38 2"/></svg>';
+function avion() {
+  const r0 = toast.getBoundingClientRect(), r1 = btn && btn.getBoundingClientRect(); if (!r0.width || !r1 || !r1.width || r1.right < 0 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const a = document.createElement('i'); a.className = 'dex-avion'; a.innerHTML = AVION; document.body.appendChild(a);
+  const x0 = r0.left + r0.width / 2, y0 = r0.top + r0.height / 2, x1 = r1.left + r1.width / 2, y1 = r1.top + r1.height / 2, D = 1100, t0 = performance.now();
+  // un looping au milieu du trajet : le chemin est une courbe, plus un cercle qui s'ouvre et se referme
+  const R = Math.min(60, Math.hypot(x1 - x0, y1 - y0) * 0.3 + 30); let px = x0, py = y0;
+  const pas = now => { const u = Math.min(1, (now - t0) / D), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2, b = 1 - e;
+    const cx = (x0 + x1) / 2 + 40, cy = Math.min(y0, y1) - 90, l = Math.max(0, Math.min(1, (u - 0.3) / 0.4)), ang = l * Math.PI * 2;
+    const x = b * b * x0 + 2 * b * e * cx + e * e * x1 + (l > 0 && l < 1 ? Math.sin(ang) * R : 0), y = b * b * y0 + 2 * b * e * cy + e * e * y1 + (l > 0 && l < 1 ? (1 - Math.cos(ang)) * -R : 0);
+    const dir = Math.atan2(y - py, x - px); px = x; py = y;
+    a.style.transform = `translate(${x}px,${y}px) rotate(${dir}rad) scale(${1 - 0.4 * e})`;
+    if (u < 1) requestAnimationFrame(pas);
+    else { a.remove(); btn.classList.remove('hf-avale'); void btn.offsetWidth; btn.classList.add('hf-avale'); setTimeout(() => btn.classList.remove('hf-avale'), 700); } };
+  requestAnimationFrame(pas);
 }
 function vu(id) {
   const d = PAR[id]; if (!d || vus[id]) return false; vus[id] = Date.now(); garde(); file.push(d); suivante(); compte();
