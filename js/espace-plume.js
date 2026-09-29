@@ -287,7 +287,7 @@ const ES = () => window.EspaceScenes && EspaceScenes.S;
 const clesDe = C => C.cs.cles().map(([x, y]) => [M.lay.G.cx + x * M.lay.G.s, M.lay.G.cy + y * M.lay.G.s, 1, 0]);
 let pret = false, onFini = null, fin1 = false;
 function scene(i) {
-  const lay = M.lay, S = lay.SC[i], cs = ES() && ES()[S.d], f = cs ? { p: cs.cles().map(() => [0, 0, 0, 1.3]), e: [], flux: [], rot: () => [0, 0, 0] } : DESSINS[S.d](), W = lay.W, hb = hautTerre();
+  const lay = M.lay, S = lay.SC[i], cs = ES() && ES()[S.d], f = cs ? { p: window.EspaceNuee ? [] : cs.cles().map(() => [0, 0, 0, 1.3]), e: [], flux: [], rot: () => [0, 0, 0] } : DESSINS[S.d](), W = lay.W, hb = hautTerre();
   // (d'où vient chaque étoile : un endroit du ciel, au hasard ; les plus proches arrivent les premières)
   const et = f.p.map((p, j) => ({ ox: rnd(0.02, 0.98) * W, oy: rnd(O.HAUT() + 4, hb - 30), dl: 0.55 * bruit(j * 1.7 + i * 13), ph: rnd(0, TAU) }));
   return { i, S, f, cs, et, t0: Wd.t, cap: lay.caps[i], tenue: tenue(lay.caps[i]), Q: null, reagi: false };
