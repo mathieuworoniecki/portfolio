@@ -248,14 +248,14 @@ let M = null;
 const ROMAIN = ['I', 'II'], MONO = '"IBM Plex Mono",ui-monospace,monospace';
 const espace = (ctx, v) => { if ('letterSpacing' in ctx) ctx.letterSpacing = v; };
 function sousTitre(S, L, wmax, num, N, chap) {
-  const intro = num === 0, pE = L ? 12.5 : 11, pT = intro ? (L ? 34 : 24) : (L ? 28 : 21), pP = L ? 17.5 : 15, pO = L ? 14 : 12.5, is = pT * 0.55, g = pT * 0.4;
+  const intro = num === 0, pE = L ? 13 : 11.5, pT = intro ? (L ? 36 : 25) : (L ? 31 : 22), pP = L ? 19.5 : 16, pO = L ? 15 : 13, is = pT * 0.55, g = pT * 0.4;
   const fE = `500 ${pE}px ${MONO}`, fT = police(pT, 'fort'), fP = police(pP), fO = police(pO), R = [];
   const eti = (ROMAIN[S.ch] + ' · ' + chap + (intro ? '' : `  —  ${String(num).padStart(2, '0')} / ${String(N - 1).padStart(2, '0')}`)).toUpperCase();
-  espace(tx, '0.18em'); R.push({ txt: eti, font: fE, w: largeur(eti, fE), y: pE, a: 0.62, dl: 0, esp: '0.18em' }); espace(tx, '0px');
+  espace(tx, '0.18em'); R.push({ txt: eti, font: fE, w: largeur(eti, fE), y: pE, a: 0.78, dl: 0, esp: '0.18em' }); espace(tx, '0px');
   let y = pE + pT * 0.5; const tl = lignes(S.t, fT, wmax - is * 2 - g), wT = Math.max(...tl.map(l => largeur(l, fT)));
   tl.forEach((l, i) => { const w = largeur(l, fT); R.push({ txt: l, font: fT, w, y: y + pT * 0.95, a: 1, dl: 0.2 + i * 0.3, t: 1 }); y += pT * 1.2; }); y += pT * 0.15;
-  lignes(S.x, fP, wmax).forEach((l, i) => { R.push({ txt: l, font: fP, w: largeur(l, fP), y: y + pP * 1.05, a: 0.96, dl: 0.5 + i * 0.25 }); y += pP * 1.45; });
-  if (S.o) { y += pO * 0.35; lignes(S.o, fO, wmax).forEach((l, i) => { R.push({ txt: l, font: fO, w: largeur(l, fO), y: y + pO * 1.05, a: 0.66, dl: 0.9 + i * 0.25 }); y += pO * 1.5; }); }
+  lignes(S.x, fP, wmax).forEach((l, i) => { R.push({ txt: l, font: fP, w: largeur(l, fP), y: y + pP * 1.05, a: 1, dl: 0.5 + i * 0.25 }); y += pP * 1.45; });
+  if (S.o) { y += pO * 0.35; lignes(S.o, fO, wmax).forEach((l, i) => { R.push({ txt: l, font: fO, w: largeur(l, fO), y: y + pO * 1.05, a: 0.82, dl: 0.9 + i * 0.25 }); y += pO * 1.5; }); }
   // (x : depuis le centre ; le titre laisse la place de son icône, à gauche)
   R.forEach(l => { l.x = l.t ? -(wT + is * 2 + g) / 2 + is * 2 + g + (wT - l.w) / 2 : -l.w / 2; });
   return { L: R, ic: { x: -(wT + is * 2 + g) / 2 + is, y: R.find(l => l.t).y - pT * 0.35, s: is }, w: Math.max(...R.map(l => l.w)) + is * 2 + g, h: y, k: S.ic };
@@ -416,8 +416,8 @@ X.fond.push((ctx, now) => {
     ctx.globalAlpha = l.a; ctx.font = l.font; espace(ctx, l.esp || '0px'); ctx.fillStyle = `rgb(${BL})`; ctx.fillText(l.txt, ox + l.x, oy + l.y); ctx.restore(); }); };
   if (cap) { M.bande = { x: L.W / 2 - cap.w / 2 - 12, y: L.yCap - cap.h - 12, w: cap.w + 24, h: cap.h + 24 };
     // le voile : la scène continue dessous, les mots restent lisibles
-    { const b = M.bande, cxv = b.x + b.w / 2, cyv = b.y + b.h / 2, rx = b.w * 0.62, ry = b.h * 0.9; ctx.save(); ctx.translate(cxv, cyv); ctx.scale(1, ry / rx);
-      const gv = ctx.createRadialGradient(0, 0, 0, 0, 0, rx); gv.addColorStop(0, 'rgba(9,11,16,0.86)'); gv.addColorStop(0.7, 'rgba(9,11,16,0.7)'); gv.addColorStop(1, 'rgba(9,11,16,0)');
+    { const b = M.bande, cxv = b.x + b.w / 2, cyv = b.y + b.h / 2, rx = b.w * 0.7, ry = b.h * 1.05; ctx.save(); ctx.translate(cxv, cyv); ctx.scale(1, ry / rx);
+      const gv = ctx.createRadialGradient(0, 0, 0, 0, 0, rx); gv.addColorStop(0, 'rgba(9,11,16,0.94)'); gv.addColorStop(0.72, 'rgba(9,11,16,0.86)'); gv.addColorStop(1, 'rgba(9,11,16,0)');
       ctx.globalAlpha = 1; ctx.fillStyle = gv; ctx.fillRect(-rx, -rx, rx * 2, rx * 2); ctx.restore(); ctx.fillStyle = ctx.strokeStyle = `rgb(${BL})`; }
     if (V && vu < 1) txt(V.cap, l => 1 - vu);
     else { txt(cap, l => reduit ? 1 : (tl - 0.5 - l.dl) * 900 / (l.w + 120));

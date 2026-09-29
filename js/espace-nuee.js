@@ -284,7 +284,7 @@ X.fond.push((ctx, now) => {
   const EP = window.EspacePlume, M = EP && EP.M; if (!M || !M.lay || !M.lay.G) { dern = null; return; }
   const L = M.lay, G = L.G, W = L.W, H = L.H; prepare(W, H);
   E.G = G; E.W = W; E.H = H; E.cx = W / 2; E.cy = G.cy; E.K = Math.min(W * 0.46, H * 0.5);
-  const C = M.sc, D = EP.DUREE || { A: 1.7 }, tl = C ? Wd.t - C.t0 : 0, pts = C && !reduit && tl < D.A - 0.35 ? titre(C.S.t, W, H, L.barre.bas + 16, G.bas - 6) : null;
+  const C = M.sc, D = EP.DUREE || { A: 1.7 }, tl = C ? Wd.t - C.t0 : 0, pts = C && !reduit && tl < D.A - 0.35 ? titre(C.S.t, W, H, L.barre.bas + 16, (M.bande ? M.bande.y : G.caps || G.bas) - 10) : null;
   if (C && !C.nid) C.nid = ++NID;
   const id = C ? C.nid * 2 + (pts ? 0 : 1) : 'intro';
   if (id !== dern) { F.set(P); T0 = sauter ? -1e9 : Wd.t; sauter = false; dern = id; rot = Math.random() < 0.5 ? -1 : 1; }
@@ -292,6 +292,9 @@ X.fond.push((ctx, now) => {
   const duree = pts ? 0.95 : 1.4, etale = pts ? 0.35 : 0.6;
   const ap = reduit ? 1 : c01((Wd.t - M.t0) / 2.5), bd = M.bande, haut = L.barre.bas + 8, br = L.L ? 1.6 : 1.3, mx = W / 2, my = G.cy, dt = Wd.t - T0;
   const pp = Wd.ptr, pt = !reduit && pp && pp.on && Wd.t - pp.moved < 4 ? pp : null, RP = L.L ? 130 : 95, pax = pt ? (pt.x - W / 2) / W : 0, pay = pt ? (pt.y - H / 2) / H : 0;
+  // (29/09, 13 h 27, Mathieu : « trop d'effets lumineux ; garde les effets pour les animations utiles ») : une fois le titre écrit et le dessin
+  // de la scène arrivé, la nuée se calme : plus pâle, plus petite, sans traînées ; elle reste un ciel, le dessin est le sujet
+  const dessinee = C && !pts && window.EspaceScenes && EspaceScenes.S && EspaceScenes.S[C.S.d], calme = dessinee ? 1 - 0.7 * c01((a - 0.3) / 1.4) : 1;
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.strokeStyle = 'rgb(236,240,255)';
   for (let i = 0; i < N; i++) {
     const r = R[i], j = i * 4; o.s = 1; o.a = 1; o.t = 0; o.p2 = 0; f(r, o);
@@ -310,11 +313,12 @@ X.fond.push((ctx, now) => {
     if (al <= 0.01 || x < -30 || x > W + 30 || y < -30 || y > H + 30) continue;
     // (discrètes derrière les sous-titres et la barre des chapitres ; elles scintillent)
     let k = al * ap * (0.8 + 0.2 * Math.sin(now * (1.2 + r.b * 2) + r.c * TAU));
-    if (bd && x > bd.x && x < bd.x + bd.w && y > bd.y && y < bd.y + bd.h) k *= 0.22;
+    if (bd && x > bd.x - 20 && x < bd.x + bd.w + 20 && y > bd.y - 20 && y < bd.y + bd.h + 20) k *= 0.06;
+    k *= calme; if (calme < 0.9) tl = null;
     if (y < haut) k *= 0.3;
     if (k > 1.6) k = 1.6;
     if (tl) { ctx.globalAlpha = Math.min(1, k * 0.55); ctx.lineWidth = Math.max(0.6, s * 0.9); ctx.beginPath(); ctx.moveTo(tl[0], tl[1]); ctx.lineTo(x, y); ctx.stroke(); }
-    const rr = s * 4 * (k > 1 ? 1 + (k - 1) * 0.8 : 1); ctx.globalAlpha = Math.min(1, k); ctx.drawImage(LUEUR, x - rr, y - rr, rr * 2, rr * 2);
+    const rr = s * (2.6 + 1.4 * calme) * (k > 1 ? 1 + (k - 1) * 0.8 : 1); ctx.globalAlpha = Math.min(1, k); ctx.drawImage(LUEUR, x - rr, y - rr, rr * 2, rr * 2);
   }
   ctx.restore(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
 });
