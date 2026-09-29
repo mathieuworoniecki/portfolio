@@ -417,6 +417,7 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
   piste.add(trait([[1.2, 0, -0.85], [1.2, 0, 0.85]], L[3].a)); piste.add(trait([[1.2, 0.18, -0.85], [1.2, 0.18, 0.85]], L[3].d));
   for (let i = 0; i < NL; i++) { const g = new T.Group(); piste.add(g); solide(g, new T.BoxGeometry(0.1, 0.08, 0.08).translate(0, 0.04, 0), i === 6 ? L[3].a : L[3].l); CO.push({ g, z: (i - (NL - 1) / 2) * 0.16, v: i === 6 ? 1 : 0.55 + rnd() * 0.35 }); }
   const sillages = segments(NL * 2, L[3].l); piste.add(sillages.l); const eclat = trait(cercleH(0.2, 48), L[3].a, true); piste.add(eclat);   // les traînées de vitesse, l'éclat du vainqueur
+  const BAR = CO.map((c, i) => { const g = new T.Group(); g.position.set(1.42, 0, c.z); piste.add(g); solide(g, new T.BoxGeometry(0.1, 1, 0.1).translate(0, 0.5, 0), i === 6 ? L[3].a : L[3].l); g.scale.y = 0.001; return g; });   // chaque arrivée dresse sa barre : le banc d'essai devient un classement
 
   /* 4 · le produit monte au centre, nourri par tout le mur de terminaux */
   const prod = new T.Group(); prod.position.set(0, -0.55, 0.75); R.add(prod); const ET = [];
@@ -480,6 +481,7 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
     piste.visible = f[3] > 0.01; const tc = (t * 0.28) % 1;
     CO.forEach((c, i) => { const x = -1.4 + Math.min(2.7, 2.9 * tc * c.v * 1.1), va = x < 1.3 ? c.v : 0; c.g.position.set(x, 0, c.z); c.g.scale.y = x > 1.2 && c.v === 1 ? 1.6 : 1;
       for (let j = 0; j < 2; j++) { const dy = 0.02 + j * 0.04, l = va * (0.35 + 0.25 * Math.sin(t * 20 + i + j)); sillages.pos.set([x - 0.06 - l, dy, c.z + (j - 0.5) * 0.03, x - 0.06, dy, c.z + (j - 0.5) * 0.03], (i * 2 + j) * 6); } });
+    CO.forEach((c, i) => { const arr = 2.9 * tc * c.v * 1.1 >= 2.6, cible = arr ? 0.12 + 0.75 * Math.pow(c.v, 3) : 0.001; BAR[i].scale.y = Math.max(0.001, lerp(BAR[i].scale.y, cible, arr ? 0.12 : 0.4)); BAR[i].visible = f[3] > 0.01; });
     sillages.a.needsUpdate = true; { const w = CO.find(c => c.v === 1), xg = -1.4 + 2.9 * tc * 1.1, k = c01((xg - 1.2) / 0.9); eclat.position.set(1.2, 0.02, w.z); eclat.scale.setScalar(0.2 + k * 5); eclat.visible = k > 0 && k < 1; }
     /* 4 : le produit, étage par étage, nourri par le mur */
     const k4 = S >= 4 ? k(4) : 0; prod.visible = f[4] > 0.01;
@@ -558,7 +560,7 @@ function impact() {
 
 /* ——— 03 Parcours : une piste de circuit, un composant par poste ; le défilement fait avancer le signal jusqu'à MARKO ——— */
 function circuit(postes) {
-  const o = objet('circuit', { s: 0.9, pl: { x: 0.27, y: 0.02, s: 1.45 }, plT: { y: 0.24, s: 1.6 } }); let t0 = null;
+  const o = objet('circuit', { s: 0.9, pl: { x: 0.3, y: 0.0, s: 1.6 }, plT: { y: 0.24, s: 1.6 } }); let t0 = null;
   const ES = 1.5, n = postes.length, pan = piece(o, [0, 0, 0], [0, 0, 0], { fond: true }), P = new T.Group(); pan.g.add(P);
   const X = postes.map((_, i) => i * ES);
   /* la piste : une ligne qui serpente d'un composant à l'autre, avec des vias */
@@ -567,6 +569,9 @@ function circuit(postes) {
   const signal = new T.Group(); P.add(signal); boule(o, signal, 0.045, o.m.a);
   const NQ = 14, queue = points(NQ, o.m.pa); P.add(queue.p); const hist = [];   // la comète : le signal laisse une traîne
   const pilier = trait([[0, 0, 0], [0, 1.1, 0]], o.m.d); P.add(pilier);
+  /* « chaque poste a ajouté une couche » : derrière la piste, une pile de plaques qui gagne un étage à chaque poste */
+  const pile = new T.Group(); P.add(pile); const PL = postes.map((_, i) => { const g = new T.Group(); g.position.y = i * 0.06; pile.add(g); solide(g, plaque(0.19, 0.19, 0.03, 0.04), i === postes.length - 1 ? o.m.a : o.m.l, 30); g.userData.y0 = g.position.y; return g; });
+  pile.add(trait([[0, -0.02, 0.3], [0, -0.02, 0.62]], o.m.s));
   const K = postes.map((p, i) => { const m = matieres(); MATS.push(m); const g = new T.Group(); g.position.x = X[i]; P.add(g); const c = { m, g, f: 0.3, hot: 0, parts: [] };
     const socle = trait(cercleH(0.34, 48), m.s, true); g.add(socle);
     COMPOSANT[p.c](c, m, o); c.L = pieces(g, [socle]); c.b = 0;
@@ -580,12 +585,13 @@ function circuit(postes) {
     P.position.x = -x; const zS = (() => { const j = Math.min(n - 2, Math.floor(x / ES)), u2 = x / ES - j, z = j % 2 ? 0.45 : -0.45; const d = Math.min(u2, 1 - u2) * ES; return z * c01((d - 0.35) / 0.2); })();   // le signal suit la piste, coudes compris
     signal.position.set(x, 0.05, S >= n - 1 ? 0 : zS); solP.uniforms.cx.value = x; solP.uniforms.r.value = 3;
     if (hist.length && hist[0].distanceTo(signal.position) > 0.3) hist.length = 0; hist.unshift(signal.position.clone()); if (hist.length > NQ * 2) hist.pop(); for (let i = 0; i < NQ; i++) { const h = hist[Math.min(hist.length - 1, i * 2)]; queue.pos.set([h.x, h.y, h.z], i * 3); } queue.a.needsUpdate = true;
+    pile.position.set(x - 0.55, 0, -0.75); PL.forEach((g, i) => { const e = c01(pas + 1 - i); g.visible = e > 0.02; g.position.y = g.userData.y0 + (1 - sm(e)) * 0.9; g.rotation.y = (1 - sm(e)) * 1.2; });
     pilier.position.set(X[S], 0, 0); pilier.scale.y = 0.4 + 0.6 * sm(1 - Math.abs(u - 0.35) * 2);
     const ip = Math.min(pts.length, 1 + Math.round((x / ES) * 5)), d0 = Math.max(0, ip - 5); luL.geometry.setDrawRange(d0, ip - d0);   // seule la dernière longueur reste allumée
-    K.forEach((c, i) => { const on = i === S ? 1 : 0, d = Math.abs(X[i] - x); c.hot = lerp(c.hot, on, 0.12); c.f = lerp(c.f, on ? 1 : i < S ? 0.45 : 0.22, 0.1); chaud(c.m, c.hot * 0.6);
-      opac(c.m, o.op * c.f * (1 - sm((d - 0.9) / 1.0))); c.e.on = on === 1; c.e.op = c.f * (1 - sm((d - 0.6) / 0.7));
+    K.forEach((c, i) => { const on = i === S ? 1 : 0, d = Math.abs(X[i] - x); c.hot = lerp(c.hot, on, 0.12); c.f = lerp(c.f, on ? 1 : i < S ? 0.3 : 0.18, 0.1); chaud(c.m, c.hot * 0.6);
+      opac(c.m, o.op * c.f * (1 - sm((d - 0.6) / 0.6))); c.e.on = on === 1; c.e.op = c.f * (1 - sm((d - 0.6) / 0.7));
       c.b = lerp(c.b, i <= S ? 1 : 0, 1 - Math.exp(-ec * (i === S ? 2.2 : 5))); construit(c.L, c.b, 1.4);   // le poste se construit quand le signal arrive
-      c.g.position.y = on ? Math.sin(t * 1.5) * 0.02 : 0; c.g.scale.setScalar(0.85 + 0.35 * c.hot); if (c.tick) c.tick(t, c.hot); });
+      c.g.position.y = on ? Math.sin(t * 1.5) * 0.02 : 0; c.g.scale.setScalar(0.8 + 0.5 * c.hot); if (c.tick) c.tick(t, c.hot); });
   };
   o.rot = t => [0.34, -0.42 + Math.sin(t * 0.2) * 0.1];
 }
@@ -609,13 +615,13 @@ const COMPOSANT = {
   entonnoir(c, m, o) {   /* AXA : le tunnel de conversion, +25 % */
     const g = new T.Group(); c.g.add(g); const pr = [[0.04, 0.02], [0.05, 0.12], [0.24, 0.34], [0.26, 0.36]].map(p => new T.Vector2(p[0], p[1]));
     solide(g, new T.LatheGeometry(pr, 24), m.l, 40); g.add(trait(cercleH(0.26, 48, 0, 0.36, 0), m.l, true));
-    const gouttes = points(12, o.m.pa); g.add(gouttes.p); c.tick = t => { for (let i = 0; i < 12; i++) { const k = (t * 0.5 + i / 12) % 1, r = lerp(0.2, 0.03, k) * (i % 2 ? 1 : -1); gouttes.pos.set([Math.cos(i) * r, lerp(0.42, 0.0, k), Math.sin(i) * r], i * 3); } gouttes.a.needsUpdate = true; };
+    const gouttes = points(12, m.pa); g.add(gouttes.p); c.tick = t => { for (let i = 0; i < 12; i++) { const k = (t * 0.5 + i / 12) % 1, r = lerp(0.2, 0.03, k) * (i % 2 ? 1 : -1); gouttes.pos.set([Math.cos(i) * r, lerp(0.42, 0.0, k), Math.sin(i) * r], i * 3); } gouttes.a.needsUpdate = true; };
   },
   monde(c, m, o) {   /* Sodexo : 25 pays */
     const g = new T.Group(); g.position.y = 0.24; c.g.add(g); boule(o, g, 0.22, m.l);
     for (let k = 0; k < 3; k++) { const l = trait(cercle(0.22, 48), m.s, true); l.rotation.y = k / 3 * Math.PI; g.add(l); }
     const pins = []; for (let j = 0; j < 25; j++) { const y = 1 - 2 * (j + 0.5) / 25, r = Math.sqrt(1 - y * y), a = j * 2.39996; pins.push([Math.cos(a) * r * 0.225, y * 0.225, Math.sin(a) * r * 0.225]); }
-    const pg = new T.BufferGeometry().setFromPoints(pins.map(p => V(...p))); const pp = new T.Points(pg, o.m.pa); pp.renderOrder = 2; g.add(pp);
+    const pg = new T.BufferGeometry().setFromPoints(pins.map(p => V(...p))); const pp = new T.Points(pg, m.pa); pp.renderOrder = 2; g.add(pp);
     c.tick = t => { g.rotation.y = t * 0.5; };
   },
   tour(c, m) {   /* ENGIE : la plateforme (150 000+), son bouclier (OWASP), 99,99 % */
@@ -687,13 +693,40 @@ function immeuble() {   // MARKO : un parc d'immeubles ; l'anneau IA descend lir
   };
   o.rot = t => [0.34, -0.6 + Math.sin(t * 0.2) * 0.22];
 }
-function fleur() {   // HUman : chaque graine à 137,5° de la précédente ; elles poussent avec le défilement
+function fleur() {   // HUman : une seule nuée de particules raconte le livre, d'un mot dans un modèle à la fleur, l'atome, l'univers et le cerveau
   const o = objet('fleur', { s: 0.95 });
-  const N = 1100, nu = nuage(N), pc = piece(o, [0, 0, 0], [0, 0, 0], { fond: true }); pc.g.add(nu.p);
-  for (let i = 0; i < N; i++) { const r = 0.034 * Math.sqrt(i), a = i * 137.5 * Math.PI / 180; nu.P.set([Math.cos(a) * r, -r * r * 0.25, Math.sin(a) * r], i * 3); nu.H[i] = i < 21 ? 1 : 0; }
-  const tige = piece(o, [0, -2, 0]); tige.g.add(trait([[0, -0.2, 0], [0.05, -0.8, 0.02], [0, -1.3, 0]], o.m.l));
-  o.tick = (t, v) => { const k = 0.25 + 0.75 * sm(v.loc * 1.6); for (let i = 0; i < N; i++) nu.A[i] = i < N * k ? 1 : 0; nu.maj(); nu.m.uniforms.op.value = o.op; nu.m.uniforms.sz.value = 2.2 * PR; pc.g.rotation.y = t * 0.12; };
-  o.rot = t => [0.75, 0];
+  const N = 1500, nu = nuage(N), pc = piece(o, [0, 0, 0], [0, 0, 0], { fond: true }); pc.g.add(nu.p);
+  const R = Array.from({ length: N }, () => [rnd(), rnd(), rnd()]), F = [];
+  const mk = () => ({ p: new Float32Array(N * 3), h: new Float32Array(N) });
+  /* un mot dans un modèle : une phrase découpée en jetons (des cadres), l'un d'eux s'allume */
+  { const f = mk(), W = [0.34, 0.22, 0.4, 0.18, 0.3, 0.26], tot = W.reduce((a, b) => a + b, 0) + 0.06 * (W.length - 1); let x = -tot / 2; const B = W.map(w => { const b = [x, w]; x += w + 0.06; return b; });
+    for (let i = 0; i < N; i++) { const j = i % W.length, [x0, w] = B[j], u = R[i][0] * 2 * (w + 0.18), hh = 0.18; let px, py;
+      if (u < w) { px = x0 + u; py = hh / 2; } else if (u < w + hh) { px = x0 + w; py = hh / 2 - (u - w); } else if (u < 2 * w + hh) { px = x0 + w - (u - w - hh); py = -hh / 2; } else { px = x0; py = -hh / 2 + (u - 2 * w - hh); }
+      f.p.set([px, py + 0.1, (R[i][1] - 0.5) * 0.02], i * 3); f.h[i] = j === 2 ? 1 : 0; } F.push(f); }
+  /* la fleur : chaque graine à 137,5° de la précédente */
+  { const f = mk(); for (let i = 0; i < N; i++) { const r = 0.03 * Math.sqrt(i), a = i * 137.5 * Math.PI / 180; f.p.set([Math.cos(a) * r, 0.25 - r * r * 0.3, Math.sin(a) * r], i * 3); f.h[i] = i < 21 ? 1 : 0; } F.push(f); }
+  /* l'atome : un noyau, trois orbites */
+  { const f = mk(), E = [new T.Euler(1.2, 0, 0), new T.Euler(1.2, 1.05, 0), new T.Euler(1.2, -1.05, 0)];
+    for (let i = 0; i < N; i++) { if (i < N * 0.18) { const u = R[i][0] * TAU, cz = R[i][1] * 2 - 1, r = 0.14 * Math.cbrt(R[i][2]), s = Math.sqrt(1 - cz * cz); f.p.set([Math.cos(u) * s * r, cz * r + 0.1, Math.sin(u) * s * r], i * 3); f.h[i] = 1; continue; }
+      const a = R[i][0] * TAU; vv.set(Math.cos(a) * 0.95, Math.sin(a) * 0.38, 0).applyEuler(E[i % 3]); f.p.set([vv.x, vv.y + 0.1, vv.z], i * 3); } F.push(f); }
+  /* l'univers : une galaxie à deux bras */
+  { const f = mk(); for (let i = 0; i < N; i++) { const bras = i % 2, r = Math.pow(R[i][0], 0.7) * 1.15, a = r * 4.2 + bras * Math.PI + (R[i][1] - 0.5) * 0.5 / (0.3 + r);
+    f.p.set([Math.cos(a) * r, 0.1 + (R[i][2] - 0.5) * 0.06 * (1.2 - r), Math.sin(a) * r], i * 3); f.h[i] = r < 0.12 ? 1 : 0; } F.push(f); }
+  /* le cerveau : deux lobes plissés */
+  { const f = mk(); for (let i = 0; i < N; i++) { const s = i % 2 ? 1 : -1, u = R[i][0] * TAU, v = Math.acos(R[i][1] * 2 - 1), pl = 1 + 0.07 * Math.sin(u * 7 + v * 9) * Math.sin(v * 5);
+    const x = s * (0.36 + 0.34 * Math.sin(v) * Math.abs(Math.cos(u)) * pl), y = 0.18 + 0.48 * Math.cos(v) * pl, z = 0.72 * Math.sin(v) * Math.sin(u) * pl; f.p.set([x, y, z], i * 3); f.h[i] = R[i][2] > 0.985 ? 1 : 0; } F.push(f); }
+  const tige = piece(o, [0, -2, 0]); tige.g.add(trait([[0, -0.2, 0], [0.05, -0.8, 0.02], [0, -1.3, 0]], o.m.s));
+  const ROT = [0.1, 0.75, 0.45, 0.9, 0.2];
+  let rx = 0.3;
+  o.tick = (t, v) => {
+    const DUR = 4.2, T0 = t / DUR, s = Math.floor(T0) % F.length, u = T0 % 1, A = F[s], B = F[(s + 1) % F.length], m = c01((u - 0.62) / 0.38);
+    for (let i = 0; i < N; i++) { const k = sm((m - R[i][2] * 0.4) / 0.6), i3 = i * 3;
+      nu.P[i3] = lerp(A.p[i3], B.p[i3], k); nu.P[i3 + 1] = lerp(A.p[i3 + 1], B.p[i3 + 1], k) + Math.sin(k * Math.PI) * (R[i][0] - 0.5) * 0.5; nu.P[i3 + 2] = lerp(A.p[i3 + 2], B.p[i3 + 2], k);
+      nu.H[i] = lerp(A.h[i], B.h[i], k); nu.A[i] = 1; }
+    nu.maj(); nu.m.uniforms.op.value = o.op; nu.m.uniforms.sz.value = 2.4 * PR;
+    rx = lerp(ROT[s], ROT[(s + 1) % F.length], sm(m)); pc.g.rotation.y = t * 0.15; tige.g.visible = s === 1 && m < 0.3;
+  };
+  o.rot = t => [rx, 0];
 }
 function globe() {   // Digiplace : le globe, des liaisons entre les sites
   const o = objet('globe', { s: 0.98 });
@@ -891,30 +924,42 @@ function reseau() {   // NumOSINT : une question entre, l'orchestrateur la confi
   };
   o.rot = t => [0.4, -0.35 + Math.sin(t * 0.15) * 0.25];
 }
-function caviarde() {   // SafeShare : la page, les données sensibles repérées puis masquées ; tout reste dans le navigateur
+function caviarde() {   // SafeShare : on dépose le document, le repérage passe, les masques se posent, l'agent IA les ajuste sans voir les valeurs, la copie aplatie sort ; tout reste dans le navigateur
   const o = objet('caviarde', { s: 0.95 });
-  const nav = piece(o, [0, 0, -2]); { const w = 0.95, h = 1.25; nav.g.add(trait([[-w, -h, -0.05], [w, -h, -0.05], [w, h, -0.05], [-w, h, -0.05]], o.m.s, true)); nav.g.add(trait([[-w, h - 0.14, -0.05], [w, h - 0.14, -0.05]], o.m.s));
-    [0, 1, 2].forEach(i => nav.g.add(trait(cercle(0.025, 12).map(p => [p[0] - w + 0.1 + i * 0.08, p[1] + h - 0.07, -0.05]), o.m.s, true))); }
-  const page = piece(o, [0, 0, 1.5]); solide(page.g, new T.BoxGeometry(1.3, 1.7, 0.02).translate(0, -0.1, 0), o.m.l);
+  const w = 0.95, h = 1.25, nav = piece(o, [0, 0, -2]);
+  nav.g.add(trait([[-w, -h, -0.05], [w, -h, -0.05], [w, h, -0.05], [-w, h, -0.05]], o.m.l, true)); nav.g.add(trait([[-w, h - 0.14, -0.05], [w, h - 0.14, -0.05]], o.m.s));
+  [0, 1, 2].forEach(i => nav.g.add(trait(cercle(0.025, 12).map(p => [p[0] - w + 0.1 + i * 0.08, p[1] + h - 0.07, -0.05]), o.m.s, true)));
+  const page = piece(o, [0, 0, 1.5]), pg = new T.Group(); page.g.add(pg); solide(pg, new T.BoxGeometry(1.3, 1.7, 0.02).translate(0, -0.1, 0), o.m.l);
   const L = [], M = [], sens = [1, 4, 6, 9];
-  for (let i = 0; i < 11; i++) { const y = 0.6 - i * 0.13, w = i === 0 ? 0.6 : 1.0 - (i % 4) * 0.12; L.push([-0.52, y, 0.012], [-0.52 + w, y, 0.012]);
-    if (sens.includes(i)) { const x0 = -0.52 + w * 0.35, x1 = -0.52 + w * 0.8, p = piece(o, [(i % 2 ? 1.6 : -1.6), 0.4, 1.2]), g = new T.Group(); g.position.set((x0 + x1) / 2, y, 0.02); p.g.add(g);
+  for (let i = 0; i < 11; i++) { const y = 0.6 - i * 0.13, ww = i === 0 ? 0.6 : 1.0 - (i % 4) * 0.12; L.push([-0.52, y, 0.012], [-0.52 + ww, y, 0.012]);
+    if (sens.includes(i)) { const x0 = -0.52 + ww * 0.35, x1 = -0.52 + ww * 0.8, g = new T.Group(); g.position.set((x0 + x1) / 2, y, 0.02); pg.add(g);
       const mk = new T.Mesh(new T.PlaneGeometry(x1 - x0, 0.085), new T.MeshBasicMaterial({ color: ACCENT, transparent: true, opacity: 0.9, depthWrite: false })); mk.renderOrder = 2; g.add(mk);
-      const cad = trait([[-(x1 - x0) / 2 - 0.02, -0.06, 0.004], [(x1 - x0) / 2 + 0.02, -0.06, 0.004], [(x1 - x0) / 2 + 0.02, 0.06, 0.004], [-(x1 - x0) / 2 - 0.02, 0.06, 0.004]], o.m.d, true); g.add(cad); M.push({ g, mk, cad, w: x1 - x0 }); } }
-  page.g.add(traits(L, o.m.s));
-  const scan = trait([[-0.66, 0, 0.03], [0.66, 0, 0.03]], o.m.a); page.g.add(scan);
-  const cad = piece(o, [1.8, -1, 0.5]), c = new T.Group(); c.position.set(0.85, -0.85, 0.1); cad.g.add(c); solide(c, new T.BoxGeometry(0.2, 0.16, 0.06), o.m.l);
+      const cad = trait([[-(x1 - x0) / 2 - 0.02, -0.06, 0.004], [(x1 - x0) / 2 + 0.02, -0.06, 0.004], [(x1 - x0) / 2 + 0.02, 0.06, 0.004], [-(x1 - x0) / 2 - 0.02, 0.06, 0.004]], o.m.a, true); g.add(cad); M.push({ g, mk, cad, w: x1 - x0, y }); } }
+  pg.add(traits(L, o.m.s));
+  const scan = trait([[-0.66, 0, 0.03], [0.66, 0, 0.03]], o.m.a); pg.add(scan);
+  /* l'agent IA, hors du document : ses fils s'arrêtent au bord des masques */
+  const ag = piece(o, [2, 1, 0]), agent = new T.Group(); agent.position.set(1.35, 0.55, 0.3); ag.g.add(agent); solide(agent, new T.OctahedronGeometry(0.1), o.m.l, 1); agent.add(trait(cercleH(0.17, 32), o.m.s, true));
+  const fils = segments(4, o.m.d); o.g.add(fils.l);
+  /* la copie aplatie qui sort, et le cadenas : rien ne quitte le navigateur */
+  const cp = piece(o, [2, -1, 0]), copie = new T.Group(); cp.g.add(copie); copie.add(trait([[-0.45, -0.6, 0], [0.45, -0.6, 0], [0.45, 0.6, 0], [-0.45, 0.6, 0]], o.m.l, true));
+  { const s2 = []; for (let i = 0; i < 8; i++) { const y = 0.45 - i * 0.13; s2.push([-0.35, y, 0.01], [0.3 - (i % 3) * 0.1, y, 0.01]); } copie.add(traits(s2, o.m.s)); [1, 3, 5].forEach(i => { const y = 0.45 - i * 0.13; copie.add(traits([[-0.1, y, 0.012], [0.15, y, 0.012], [-0.1, y + 0.02, 0.012], [0.15, y + 0.02, 0.012], [-0.1, y - 0.02, 0.012], [0.15, y - 0.02, 0.012]], o.m.a)); }); }
+  const cad = piece(o, [1.8, -1, 0.5]), c = new T.Group(); c.position.set(0.85, -0.95, 0.1); cad.g.add(c); solide(c, new T.BoxGeometry(0.2, 0.16, 0.06), o.m.l);
   c.add(trait(cercle(0.065, 24).filter(p => p[1] >= 0).map(p => [p[0], p[1] + 0.08, 0]), o.m.l));
   o.tick = (t, v) => {
-    const k = sm(v.loc * 1.6), yS = lerp(0.72, -0.8, (t * 0.35) % 1); scan.position.y = yS;
-    M.forEach((m, i) => { const on = c01(k * 5 - i); m.mk.scale.x = Math.max(0.001, on); m.mk.position.x = -m.w / 2 * (1 - on); m.mk.material.opacity = 0.85 * o.op; m.cad.visible = on < 1; });
+    const u = (t * 0.1) % 1;
+    const tombe = sm(u / 0.1); pg.position.set(0, (1 - tombe) * 1.4, (1 - tombe) * 0.4); pg.rotation.z = (1 - tombe) * 0.25;
+    const ks = c01((u - 0.12) / 0.3), yS = lerp(0.72, -0.8, ks); scan.visible = ks > 0 && ks < 1; scan.position.y = yS;
+    M.forEach((m, i) => { const vu = ks >= 1 || yS < m.y, pose = c01((u - 0.45 - i * 0.03) / 0.08), ret = u > 0.97;
+      m.cad.visible = vu && pose < 1 && !ret; m.mk.visible = pose > 0 && !ret; m.mk.scale.x = Math.max(0.001, pose); m.mk.position.x = -m.w / 2 * (1 - pose); m.mk.material.opacity = 0.85 * o.op;
+      const f = c01((u - 0.6 - i * 0.03) / 0.06) * (1 - c01((u - 0.78) / 0.04)), mp = V(m.g.position.x + m.w / 2 + 0.03, m.y + pg.position.y, 0.03);
+      fils.pos.set(f > 0 ? [agent.position.x, agent.position.y, agent.position.z, lerp(agent.position.x, mp.x, f), lerp(agent.position.y, mp.y, f), lerp(agent.position.z, mp.z, f)] : [0, -99, 0, 0, -99, 0], i * 6);
+      if (f > 0.9) m.g.scale.x = 1 + 0.12 * Math.sin((u - 0.6) * 80) * (1 - c01((u - 0.74) / 0.04)); else m.g.scale.x = 1; });
+    fils.a.needsUpdate = true; fils.l.computeLineDistances(); agent.rotation.y = t * 1.2; agent.position.y = 0.55 + Math.sin(t * 1.5) * 0.05;
+    const e = sm((u - 0.8) / 0.14); copie.visible = u > 0.8; copie.position.set(lerp(0, 1.45, e), lerp(-0.1, -0.35, e), lerp(0.05, 0.4, e)); copie.rotation.y = -e * 0.4;
+    c.scale.setScalar(1 + (u > 0.8 && u < 0.86 ? 0.2 * Math.sin((u - 0.8) / 0.06 * Math.PI) : 0));
   };
   o.rot = t => [0.18 + Math.sin(t * 0.3) * 0.05, -0.4 + Math.sin(t * 0.22) * 0.2];
 }
-
-/* La preuve : MARKO en chiffres, tirés de l'historique Git (d.marko : un nombre de commits par jour, puis par heure).
-   0 · une ville de colonnes, un jour chacune, qui monte dans l'ordre du temps · 1 · juillet s'allume, le 23 juillet (451 commits) dépasse tout
-   2 · une horloge de 24 h : des commits à toutes les heures · 3 · deux tours, le produit et ses tests · 4 · un anneau de 100 crans : 95 % moi et mes agents */
 function preuve(M) {
   const o = objet('preuve', { s: 0.9, pl: { x: 0.245, y: 0.04, s: 0.92 }, plT: { y: 0.25, s: 1.0 } }); let t0 = null;
   const L = [0, 1, 2, 3, 4].map(() => { const m = matieres(); MATS.push(m); return m; }), f = [0, 0, 0, 0, 0];
