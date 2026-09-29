@@ -132,7 +132,7 @@ function lui(x, y, r, o = {}) {
   // le cou, la tête : un visage long ; les cheveux en épis par-dessus
   cerne(() => { ctx.beginPath(); ctx.rect(x - r * 0.22, by - r * 0.35, r * 0.44, r * 0.45); }, w * 0.8, a);
   cerne(() => { ctx.beginPath(); ctx.ellipse(x, hy, r * 0.7, r * 0.98, 0, 0, TAU); }, w, a);
-  cerne(() => { ctx.beginPath(); const n = 7; for (let i = 0; i <= n; i++) { const t = Math.PI + 0.25 + i / n * (Math.PI - 0.5), R = i % 2 ? 1.14 + 0.08 * Math.sin(i * 3.7) : 0.97, j = i % 2 ? 0.12 * Math.sin(i * 2.1) : 0; ctx.lineTo(x + Math.cos(t + j) * r * 0.72 * R, hy - r * 0.18 + Math.sin(t + j) * r * 0.95 * R); }
+  cerne(() => { ctx.beginPath(); const n = 7; for (let i = 0; i <= n; i++) { const t = Math.PI + 0.25 + i / n * (Math.PI - 0.5), R = i % 2 ? 1.1 + 0.05 * Math.sin(i * 3.7) : 0.98, j = i % 2 ? 0.12 * Math.sin(i * 2.1) : 0; ctx.lineTo(x + Math.cos(t + j) * r * 0.72 * R, hy - r * 0.18 + Math.sin(t + j) * r * 0.95 * R); }
     for (let i = 8; i >= 0; i--) { const t = Math.PI + 0.25 + i / 8 * (Math.PI - 0.5); ctx.lineTo(x + Math.cos(t) * r * 0.7, hy - r * 0.05 + Math.sin(t) * r * 0.72); } ctx.closePath(); }, w, a);
   // les yeux : deux grands ovales noirs, deux reflets (ils clignent)
   const cl = Math.sin((o.now || 0) * 1.1 + 1) > 0.985 ? 0.12 : 1;
@@ -438,7 +438,7 @@ S.gardefous = (() => {
       [-0.2, 0.2].forEach(z => trait([V(x0, yT, z), V(xS + 0.1, yT, z)], false, 0.9, prof(z)));
       for (let j = 0; j < 26; j++) { const x = x0 + ((j * 0.13 + a * vit) % (xS + 0.1 - x0)); trait([V(x, yT, -0.2), V(x, yT, 0.2)], false, 0.35, 0.4); }
       const carte = (x, y, z, al, rt = 0) => { const R = (u, w) => [x + u * Math.cos(rt) - w * Math.sin(rt), z + u * Math.sin(rt) + w * Math.cos(rt)], Q = [[-0.09, -0.13], [0.09, -0.13], [0.09, 0.13], [-0.09, 0.13]].map(([u, w]) => { const [px, pz] = R(u, w); return V(px, y, pz); });
-        trait(Q, true, 0.8, al, true); [[-0.06, 0.05], [0.02, 0.05]].forEach(([u1, u2], l) => { const [a1, b1] = R(-0.05, -0.06 + l * 0.08), [a2, b2] = R(u2 + 0.02, -0.06 + l * 0.08); trait([V(a1, y, b1), V(a2, y, b2)], false, 0.5, al); }); return Q; };
+        cerne(() => { ctx.beginPath(); Q.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); }, 0.6, al); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; [[-0.06, 0.05], [0.02, 0.05]].forEach(([u1, u2], l) => { const [a1, b1] = R(-0.05, -0.06 + l * 0.08), [a2, b2] = R(u2 + 0.02, -0.06 + l * 0.08), A = V(a1, y, b1), B = V(a2, y, b2); ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke(); }); return Q; };
       // la pile des fusionnés, derrière l'humain
       const xP = xS + 0.35, zP = -0.55, nb = Math.floor(a / T) + 1; let pile = 0;
       for (let q = 0; q < nb; q++) { const t = a - q * T, rate = bruit(q * 13.3) < 0.3 ? 1 + Math.floor(bruit(q * 5.1) * 3) : 0; if (!rate && t > (xS - 0.05 - x0) / vit + 1.4) pile++; }
@@ -452,9 +452,9 @@ S.gardefous = (() => {
         const ts = (x - xa) / vit; if (ts < 0.6) { carte(xa, yT - 0.015, 0, 1); tampon = Math.max(tampon, ts < 0.25 ? sm(ts / 0.25) : 1 - sm((ts - 0.3) / 0.3)); if (ts > 0.2) { const c = V(xa, yT - 0.1, 0); coche(c[0], c[1], k * 0.05, (ts - 0.2) / 0.25, 1.1); } continue; }
         const m = sm((ts - 0.6) / 0.8); if (m >= 1) continue; carte(lerp(xa, xP, m), lerp(yT, yT - Math.min(14, pile) * 0.03, m) - Math.sin(Math.PI * m) * 0.3, lerp(0, zP, m), 1); }
       // les portiques : l'arche, son nom, son faisceau qui balaie
-      xs.forEach((g, i) => { const A = [V(g, yT, -0.3), V(g, yT - 0.5, -0.3), V(g, yT - 0.5, 0.3), V(g, yT, 0.3)]; trait(A, false, 1.1, 1); trait([V(g - 0.04, yT - 0.5, -0.3), V(g - 0.04, yT - 0.5, 0.3)], false, 0.5, 0.6);
+      xs.forEach((g, i) => { bloc(V, g - 0.03, g + 0.03, yT, yT - 0.5, -0.34, -0.27, 1, 0.7); bloc(V, g - 0.035, g + 0.035, yT - 0.46, yT - 0.55, -0.34, 0.34, 1, 0.7); bloc(V, g - 0.03, g + 0.03, yT, yT - 0.5, 0.27, 0.34, 1, 0.7);
         const v = (now * 1.3 + i * 0.3) % 1, y = yT - 0.46 + v * 0.44; trait([V(g, y, -0.28), V(g, y, 0.28)], false, 0.8, 0.9); brille(V(g, y, 0.28)[0], V(g, y, 0.28)[1], 2.2, 0.8, false, now, i);
-        const L = V(g, yT - 0.64, 0); mot(lab[i], L[0], L[1], Math.max(10, k * 0.07), 0.9); });
+        const L = V(g, yT - 0.72, -0.34); mot(lab[i], L[0], L[1], Math.max(10, k * 0.07), 0.9); });
       // l'humain : il regarde, hoche la tête, tamponne
       const hp = V(xS + 0.34, yT, -0.28), rr = k * 0.15 * hp[3], hoche = Math.max(0, Math.sin(now * 2.2)) ** 6, ci = V(xS - 0.05, yT - 0.02, 0);
       lui(hp[0], hp[1] - rr * 2.5, rr, { now, hoche, tp: tampon, cible: ci, cote: -1 }); mot(lab[3], hp[0], hp[1] + k * 0.06, Math.max(10, k * 0.07), 0.85);

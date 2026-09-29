@@ -101,6 +101,11 @@ function suivant() {
   scene.hidden = false; scene.classList.remove('go', 'part'); void scene.offsetWidth; scene.classList.add('go');
   // quelques confettis qui partent du badge
   const G = window.Scenarios && Scenarios.gerbe; if (G && Wd.W) setTimeout(() => { const r = scene.getBoundingClientRect(); if (r.width) G(r.left + 44, r.top + 46, 14, 300); }, 450);
+  // (29/09, l'audit : le déblocage était une carte, pas un moment) : dans la pièce, un chat l'a vu. Il se dresse, lève la tête vers le coin
+  // et le fête ; un autre le rejoint parfois (la carte, elle, ne gêne toujours rien)
+  if (!Wd.espace && !Wd.trou && !Wd.fuite) { const L = Wd.cats.filter(c => !c.gone && !c.temp && !c.fall && !c.held && !c.perch && K.free4(c)).sort(() => Math.random() - 0.5).slice(0, h.rang >= 2 ? 2 : 1);
+    L.forEach((c, i) => setTimeout(() => { if (c.gone || c.held || !K.free4(c)) return; K.interrupt(c); c.face = c.x < Wd.W * 0.8 ? 1 : -1;
+      c.q = [K.pose('miaule', 0.9, { fx: c => K.say(c, T(['bravo !', 'ouais !', 'trop fort !', 'miaou !'][Math.floor(Math.random() * 4)], ['bravo!', 'yes!', 'wow!', 'meow!'][Math.floor(Math.random() * 4)])) }), K.hop(() => K.groundAt(c.x, c.d), { h: K.sc(c) * 0.9 }), K.pose('assis', 1.2)]; }, 350 + i * 500)); }
   clearTimeout(finT); finT = setTimeout(ferme, 5000);
 }
 function ferme() { clearTimeout(finT); scene.classList.add('part'); setTimeout(() => { scene.classList.remove('go', 'part'); scene.hidden = true; joue = false; setTimeout(suivant, 300); }, 380); }

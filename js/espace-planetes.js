@@ -176,6 +176,21 @@ function terre(ctx, now) {
     for (let i = 0; i < 5; i++) { const x = ((i * O.W * 0.33 + off * 1.6) % (O.W * 1.5)) - O.W * 0.25, y = T.top + 8 + (i % 2) * 22 + Math.pow((x - T.cx) / T.R, 2) * T.R * 0.5;
       ctx.beginPath(); for (let k = 0; k <= 10; k++) { const px = x + k * 7, py = y + Math.sin(k * 1.2 + i) * 2.5; k ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.stroke(); }
     ctx.restore(); }
+  // (29/09, l'audit : « la Terre, correcte mais passive ») : elle vit. Des villes s'allument le long de l'horizon (la nuit de ce côté) ;
+  // un satellite de papier passe au-dessus de l'atmosphère, ses panneaux ; de temps en temps, une petite fusée décolle et monte en arc
+  if (tc > 0.5) { const yA = x => T.cy - Math.sqrt(Math.max(0, T.R * T.R - (x - T.cx) ** 2));
+    for (let i = 0; i < 26; i++) { const u = (i * 0.618 + P.seed * 0.1) % 1, x = O.W * (0.03 + u * 0.94), y = yA(x) + 6 + (i % 4) * 5, on = Math.sin(now * (0.7 + (i % 5) * 0.23) + i * 2.1) > -0.3;
+      if (on) O.brille(ctx, x, y, 1.1 + (i % 3) * 0.35, 0.75 * tc, false, now, i + 40); }
+    const sa = ((now * 0.035 + P.seed * 0.1) % 1.4) - 0.2, sx = O.W * sa, sy = yA(sx) - 34 - Math.sin(sa * Math.PI) * 26, ang = Math.atan2(yA(sx + 1) - yA(sx), 1);
+    if (sa > -0.1 && sa < 1.1) { ctx.save(); ctx.translate(sx, sy); ctx.rotate(ang + Math.sin(now * 0.8) * 0.1); ctx.globalAlpha = tc;
+      const papier = (f) => { ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 4.5; f(); ctx.stroke(); ctx.fillStyle = 'rgb(250,248,242)'; f(); ctx.fill(); ctx.strokeStyle = 'rgb(34,36,40)'; ctx.lineWidth = 1.6; f(); ctx.stroke(); };
+      [-1, 1].forEach(g => papier(() => { ctx.beginPath(); ctx.rect(g > 0 ? 7 : -25, -4, 18, 8); }));
+      ctx.strokeStyle = 'rgb(34,36,40)'; ctx.lineWidth = 1; [-19, -13, 13, 19].forEach(x => { ctx.beginPath(); ctx.moveTo(x, -4); ctx.lineTo(x, 4); ctx.stroke(); });
+      papier(() => { ctx.beginPath(); ctx.rect(-7, -6, 14, 12); }); ctx.beginPath(); ctx.moveTo(0, -6); ctx.lineTo(0, -12); ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 1.4; ctx.stroke(); ctx.restore(); O.brille(ctx, sx, sy - 12, 1.6, tc, Math.sin(now * 4) > 0.6, now, 99); }
+    const fu = (now % 23) / 5; if (fu < 1) { const x0 = O.W * (0.2 + ((Math.floor(now / 23) * 0.37) % 0.6)), y0 = yA(x0), e = fu * fu, x = x0 + e * O.W * 0.12, y = y0 - e * O.H * 0.28, ang = Math.atan2(-O.H * 0.28, O.W * 0.12);
+      for (let j = 1; j < 9; j++) { const v = Math.max(0, fu - j * 0.035), ex = x0 + v * v * O.W * 0.12, ey = y0 - v * v * O.H * 0.28; ctx.globalAlpha = (1 - j / 9) * 0.6 * tc; ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(ex + Math.sin(j * 2.3) * 2, ey, 2 + j * 0.8, 0, TAU); ctx.stroke(); }
+      ctx.save(); ctx.translate(x, y); ctx.rotate(ang + Math.PI / 2); ctx.globalAlpha = tc; ctx.beginPath(); ctx.moveTo(0, -9); ctx.quadraticCurveTo(5, -3, 4, 6); ctx.lineTo(-4, 6); ctx.quadraticCurveTo(-5, -3, 0, -9); ctx.closePath();
+      ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 4; ctx.stroke(); ctx.fillStyle = 'rgb(250,248,242)'; ctx.fill(); ctx.strokeStyle = 'rgb(34,36,40)'; ctx.lineWidth = 1.4; ctx.stroke(); ctx.restore(); O.brille(ctx, x - Math.cos(ang) * 9, y - Math.sin(ang) * 9, 2.2, tc, true, now, 98); } }
   ctx.restore();
 }
 // la planète des chats : une tête de chat ronde, qui nous regarde
