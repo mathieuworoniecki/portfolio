@@ -875,6 +875,7 @@ function drawFx(S) {
     else if (f.k === 'rouleaux') rouleaux(f, t - f.t0, fade, K);
     else if (f.k === 'vague') vaguePoussiere(f, u, K);
     else if (f.k === 'cri') ondeCri(f, t);
+    else if (f.k === 'patte') empreinte(f, u);
     else if (f.k === 'bagarre') fightCloud(f, u, fade, K);
     else if (f.k === 'heart') heart(f.x, f.y - u * 26, f.r * K, fade);
   });
@@ -928,6 +929,12 @@ function vaguePoussiere(f, u, K) {
       Chalk.stroke(P, 1 - 0.5 * u, { w: 1.4, a: 0.55 * (1 - u) * Wd.a, seed: f.seed + i * 3 + sd, tip: false }); } }
 }
 // le MIAOU du géant (js/rares.js) : cinq ondes sonores au trait, qui ondulent et traversent tout l'écran ; elles sortent par les bords (rien ne s'efface)
+// une empreinte de la horde : le coussinet et quatre doigts, à plat sur le plancher (écrasés par la perspective) ; à la fin elle rétrécit jusqu'à rien
+function empreinte(f, u) {
+  const k = u < 0.85 ? 1 : 1 - (u - 0.85) / 0.15, r = f.r * k; if (r < 0.6) return; const a = 0.55 * Wd.a;
+  Chalk.circle(f.x, f.y, r, r * 0.5, 1, { w: 1.3, a, seed: f.seed });
+  for (let i = 0; i < 4; i++) { const an = (i - 1.5) * 0.45; Chalk.circle(f.x + f.face * Math.cos(an) * r * 1.5, f.y + Math.sin(an) * r * 0.75, r * 0.32, r * 0.18, 1, { w: 1.1, a, seed: f.seed + i + 1 }); }
+}
 function ondeCri(f, t) {
   const D = Math.hypot(Wd.W, Wd.H) * 1.25;
   for (let i = 0; i < 5; i++) { const tt = t - f.t0 - i * 0.11, R = tt * f.v; if (tt < 0 || R > D) continue;
@@ -1015,6 +1022,11 @@ function rue() {
     if (!R.lettres && Wd.t - R.t0 > 0.8 && window.Vie && Vie.LETTERS) { R.lettres = true; const Ls = Vie.LETTERS(), en = Ls ? Ls.filter(l => !l.st && l.a > 0.9 && (l.x1 - l.x0) > 6) : [];
       en.forEach(l => { l.wob = Wd.t + rnd(0, 0.3); l.wobA = 1.6; });
       en.sort(() => Math.random() - 0.5).slice(0, Wd.mode === 'large' ? 2 : 1).forEach((l, i) => later(0.4 + i * 0.5, () => { if (!l.st) Vie.tumble(l, R.dir * Wd.s0 * rnd(0.5, 1.2), -Wd.s0 * rnd(0.2, 0.6), R.dir * rnd(3, 7)); })); }
+    // (vague 35 de l'audit : « la horde manque d'originalité ») : elle laisse ses traces : des empreintes de coussinets au trait,
+    // en rangs serrés sur tout le plancher, qui rétrécissent une à une (rien ne s'efface)
+    let nP = 0; for (const f of Wd.fx) if (f.k === 'patte') nP++;
+    L.forEach(c => { if (c.fall || nP > 220 || Wd.t < (c.pasT || 0)) return; c.pasT = Wd.t + rnd(0.14, 0.22); c.pasC = -(c.pasC || 1); nP++;
+      Wd.fx.push({ k: 'patte', x: c.x - c.face * sc(c) * rnd(0.1, 0.5), y: floorAt(c.d) + c.pasC * sc(c) * 0.05, r: sc(c) * 0.075, face: c.face, t0: Wd.t, life: rnd(8, 11), seed: Math.floor(Math.random() * 99) }); });
     const c = pick(L);
     if (Wd.t > R.dit) { R.dit = Wd.t + rnd(0.5, 0.9); Wd.fx.push({ k: 'txt', text: pick(['VROOOM', 'tagada tagada', 'BRRRM', 'place !', 'ZOOOM', 'mia mia mia']), x: c.x, y: c.y - sc(c) * 1.3, t0: Wd.t, life: 1.1, rot: rnd(-0.2, 0.2), size: rnd(20, 30) }); } }
 }
