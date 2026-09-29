@@ -965,6 +965,9 @@ function caviarde() {   // SafeShare : on dépose le document, le repérage pass
   { const s2 = []; for (let i = 0; i < 8; i++) { const y = 0.45 - i * 0.13; s2.push([-0.35, y, 0.01], [0.3 - (i % 3) * 0.1, y, 0.01]); } copie.add(traits(s2, o.m.s)); [1, 3, 5].forEach(i => { const y = 0.45 - i * 0.13; copie.add(traits([[-0.1, y, 0.012], [0.15, y, 0.012], [-0.1, y + 0.02, 0.012], [0.15, y + 0.02, 0.012], [-0.1, y - 0.02, 0.012], [0.15, y - 0.02, 0.012]], o.m.a)); }); }
   const cad = piece(o, [1.8, -1, 0.5]), c = new T.Group(); c.position.set(0.85, -0.95, 0.1); cad.g.add(c); solide(c, new T.BoxGeometry(0.2, 0.16, 0.06), o.m.l);
   c.add(trait(cercle(0.065, 24).filter(p => p[1] >= 0).map(p => [p[0], p[1] + 0.08, 0]), o.m.l));
+  /* les valeurs sensibles : sous chaque masque, elles se défont en poussière qui rebondit contre le cadre du navigateur ; rien ne sort */
+  const NV = 72, pv = points(NV, o.m.pa); nav.g.add(pv.p); const PV = Array.from({ length: NV }, () => ({ x: 0, y: -99, z: 0, vx: 0, vy: 0, vz: 0, on: 0 })); let tp = null;
+  sol(o, -h - 0.02, 2.2, 0.25, nav.g);
   o.tick = (t, v) => {
     const u = (t * 0.1) % 1;
     const tombe = sm(u / 0.1); pg.position.set(0, (1 - tombe) * 1.4, (1 - tombe) * 0.4); pg.rotation.z = (1 - tombe) * 0.25;
@@ -974,6 +977,14 @@ function caviarde() {   // SafeShare : on dépose le document, le repérage pass
       const f = c01((u - 0.6 - i * 0.03) / 0.06) * (1 - c01((u - 0.78) / 0.04)), mp = V(m.g.position.x + m.w / 2 + 0.03, m.y + pg.position.y, 0.03);
       fils.pos.set(f > 0 ? [agent.position.x, agent.position.y, agent.position.z, lerp(agent.position.x, mp.x, f), lerp(agent.position.y, mp.y, f), lerp(agent.position.z, mp.z, f)] : [0, -99, 0, 0, -99, 0], i * 6);
       if (f > 0.9) m.g.scale.x = 1 + 0.12 * Math.sin((u - 0.6) * 80) * (1 - c01((u - 0.74) / 0.04)); else m.g.scale.x = 1; });
+    { const dt = tp === null ? 0 : Math.min(0.05, t - tp); tp = t;
+      PV.forEach((q, i) => { const m = M[i % M.length], pose = c01((u - 0.45 - (i % M.length) * 0.03) / 0.08);
+        if (u < 0.44 || u > 0.985) { q.on = 0; pv.pos.set([0, -99, 0], i * 3); return; }
+        if (!q.on && pose > 0.3) { q.on = 1; q.x = m.g.position.x + (rnd() - 0.5) * m.w; q.y = m.y + pg.position.y; q.z = 0.05; const a = rnd() * TAU, sp = 0.35 + rnd() * 0.5; q.vx = Math.cos(a) * sp; q.vy = Math.sin(a) * sp + 0.2; q.vz = (rnd() - 0.3) * 0.3; }
+        if (!q.on) { pv.pos.set([0, -99, 0], i * 3); return; }
+        q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt;
+        if (Math.abs(q.x) > w - 0.04) { q.vx = -q.vx; q.x = Math.sign(q.x) * (w - 0.04); } if (q.y > h - 0.18 || q.y < -h + 0.04) { q.vy = -q.vy; q.y = Math.max(-h + 0.04, Math.min(h - 0.18, q.y)); } if (q.z < -0.04 || q.z > 0.35) q.vz = -q.vz;
+        pv.pos.set([q.x, q.y, q.z], i * 3); }); pv.a.needsUpdate = true; }
     fils.a.needsUpdate = true; fils.l.computeLineDistances(); agent.rotation.y = t * 1.2; agent.position.y = 0.55 + Math.sin(t * 1.5) * 0.05;
     const e = sm((u - 0.8) / 0.14); copie.visible = u > 0.8; copie.position.set(lerp(0, 1.45, e), lerp(-0.1, -0.35, e), lerp(0.05, 0.4, e)); copie.rotation.y = -e * 0.4;
     c.scale.setScalar(1 + (u > 0.8 && u < 0.86 ? 0.2 * Math.sin((u - 0.8) / 0.06 * Math.PI) : 0));
