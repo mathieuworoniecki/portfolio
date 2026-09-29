@@ -758,7 +758,7 @@ S.front = (() => {
 S.back = (() => ({
   cles: () => [[-0.62, -0.5], [-0.62, 0.5], [0.85, -0.45], [0.85, 0.45]],
   dessin(a, now) {
-    const [k, lx] = large(1.5, 2.1), V = cam(0.42, -0.5, k * 0.92, 0, -0.26), xA = -lx * 0.55, xW = lx * 0.05, xD = lx * 0.68, zs = [-0.45, 0, 0.45], yS = 0.3;
+    sousLaBarre(); const [k, lx] = large(1.5, 2.1), V = cam(0.42, -0.5, k * 0.92, 0, -0.26), xA = -lx * 0.55, xW = lx * 0.05, xD = lx * 0.68, zs = [-0.45, 0, 0.45], yS = 0.3;
     // les murs entre les bases
     [-0.225, 0.225].forEach(z => { const Q = [V(xD - 0.32, yS, z), V(xD + 0.32, yS, z), V(xD + 0.32, yS - 0.42, z), V(xD - 0.32, yS - 0.42, z)]; trait(Q, true, 0.7, 0.6);
       for (let j = 1; j < 4; j++) trait([V(xD - 0.32, yS - j * 0.105, z), V(xD + 0.32, yS - j * 0.105, z)], false, 0.35, 0.4); });
@@ -774,14 +774,16 @@ S.back = (() => ({
       const nv = Math.floor((a * 1.2 + i * 1.7) % 5); ctx.globalAlpha = 0.7; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.45; for (let j = 1; j <= 3; j++) { const C = cylindre.av || null; const L = anneau(V, r, yS - j * hh / 4, 28, xD, z), D = L.filter(p => p[2] >= V(xD, yS - j * hh / 4, z)[2] - 1e-3); if (j <= nv) { ctx.beginPath(); D.forEach((p, q) => q ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke(); } }
       const t = V(xD, yS - hh - 0.14, z); mot(['A', 'B', 'C'][i], t[0], t[1], Math.max(10, k * 0.08), 0.9); });
     // les requêtes : elles arrivent, sont triées, traitées, rangées
-    for (let q = 0; q < 18; q++) { const t = (now * 0.3 + q / 18) % 1, cl = Math.floor(bruit(q * 3.3) * 3), z = zs[cl], z0 = (bruit(q * 9.1) - 0.5) * 1.6; let p;
-      if (t < 0.25) p = V(lerp(-lx * 1.15, xA - 0.12, t / 0.25), yS - 0.1, lerp(z0 * 0.5, z, sm(t / 0.25))); else if (t < 0.6) p = V(lerp(xA + 0.14, xW - 0.14, (t - 0.25) / 0.35), yS - 0.03, z); else if (t < 0.7) p = V(xW, yS - 0.1 - Math.sin((t - 0.6) / 0.1 * Math.PI) * 0.08, z); else { const u = (t - 0.7) / 0.3; p = V(lerp(xW + 0.14, xD, u), yS - 0.05 - u * 0.36 - Math.sin(Math.PI * u) * 0.25, z); }
+    // (vague 15 de l'audit : « la file reste une ligne à gauche ») : les requêtes arrivent de tout le ciel, par dizaines, et convergent en essaim vers la passerelle
+    for (let q = 0; q < 42; q++) { const t = (now * 0.3 + q / 42) % 1, cl = Math.floor(bruit(q * 3.3) * 3), z = zs[cl], z0 = (bruit(q * 9.1) - 0.5) * 1.6; let p;
+      if (t < 0.25) { const e = sm(t / 0.25), x0 = (bruit(q * 4.7) * 2 - 1) * lx * 1.45, y0 = yS - 0.35 - bruit(q * 2.2) * 1.1; p = V(lerp(x0, xA - 0.12, e), lerp(y0, yS - 0.1, e) - Math.sin(Math.PI * e) * 0.15, lerp(z0 * 1.4, z, e)); } else if (t < 0.6) p = V(lerp(xA + 0.14, xW - 0.14, (t - 0.25) / 0.35), yS - 0.03, z); else if (t < 0.7) p = V(xW, yS - 0.1 - Math.sin((t - 0.6) / 0.1 * Math.PI) * 0.08, z); else { const u = (t - 0.7) / 0.3; p = V(lerp(xW + 0.14, xD, u), yS - 0.05 - u * 0.36 - Math.sin(Math.PI * u) * 0.25, z); }
       // (vague 8, l'audit : « des enveloppes qui flottent, grises ») : opaques ; en file vers la passerelle ; l'engrenage les ouvre : elles
       // ressortent en fiches de données (des lignes) et plongent dans leur base, qui fait « +1 »
       const s = k * 0.045 * p[3], al = Math.max(0.85, prof(p[2]));
       if (t < 0.65) { cerne(() => { ctx.beginPath(); ctx.rect(p[0] - s, p[1] - s * 0.7, s * 2, s * 1.4); }, 0.6, al); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath(); ctx.moveTo(p[0] - s, p[1] - s * 0.7); ctx.lineTo(p[0], p[1]); ctx.lineTo(p[0] + s, p[1] - s * 0.7); ctx.stroke(); }
       else { cerne(() => { ctx.beginPath(); ctx.rect(p[0] - s * 0.75, p[1] - s, s * 1.5, s * 2); }, 0.6, al); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath(); for (let j = 0; j < 3; j++) { ctx.moveTo(p[0] - s * 0.45, p[1] - s * 0.5 + j * s * 0.45); ctx.lineTo(p[0] + s * (j === 2 ? 0.1 : 0.45), p[1] - s * 0.5 + j * s * 0.45); } ctx.stroke(); }
       if (t > 0.94) { const m = V(xD + 0.12, yS - 0.5, z); mot('+1', m[0], m[1] - (t - 0.94) * k * 1.2, Math.max(10, k * 0.07), 1 - (t - 0.94) / 0.06); } }
+    ctx.restore();
   }
 }))();
 
