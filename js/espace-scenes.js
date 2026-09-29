@@ -508,12 +508,31 @@ S.bench = (() => {
 S.flotte = (() => {
   const E = Array.from({ length: 30 }, (_, i) => ({ r: 0.55 + bruit(i) * 0.9, v: (0.45 + bruit(i * 3) * 0.7) * (i % 3 ? 1 : -1), ph: bruit(i * 7) * TAU, h: -0.8 + bruit(i * 5) * 1.55, i }));
   const NE = 11, EH = 0.088, B0 = 0.84, LW = 0.22;
+  const QU = Array.from({ length: 26 }, (_, i) => { const t = i * 2.39996 + 0.3, r = 1.0 + bruit(i * 4.1) * 1.25; return { x: Math.cos(t) * r, z: Math.sin(t) * r, w: 0.06 + bruit(i * 2.3) * 0.07, h: 0.14 + bruit(i * 6.7) * 0.42, v: 0.6 + bruit(i * 1.3) * 0.8, i }; });
+  function quartier(V, k, a, now, c, Cy) {
+    const hx = ((G.droite - G.gauche) / 2 * 0.97) / (k * 0.8 * 2.25), Vx = (x, y, z) => { const p = V(x, y, z); p[0] = G.cx + (p[0] - G.cx) * hx; return p; };
+    sousLaBarre(); ctx.beginPath(); ctx.rect(-1e4, G.haut - 4, 2e4, (G.caps || G.bas) - G.haut + 4); ctx.clip();
+    const tas = 1 - sm((c - Cy + 0.6) / 0.6);
+    QU.map(q => ({ q, z: Vx(q.x, B0, q.z)[2] })).sort((A, B) => A.z - B.z).forEach(({ q }) => {
+      const mont = sm((c - 0.3 - bruit(q.i * 9.1) * 3) / (4 / q.v)) * tas, hh = q.h * mont; if (hh < 0.01) { const p = Vx(q.x, B0, q.z); rond(p[0], p[1], 1.2, 0.4, 0.5, true); return; }
+      const F = bloc(Vx, q.x - q.w, q.x + q.w, B0, B0 - hh, q.z - q.w, q.z + q.w, prof(Vx(q.x, B0, q.z)[2], 0.9), 0.6);
+      // les fenêtres, par étages
+      const et = Math.floor(hh / 0.05); for (let j = 0; j < et; j++) { const p = Vx(q.x, B0 - 0.035 - j * 0.05, q.z + q.w); if (bruit(q.i * 13 + j + Math.floor(now * 0.6 + q.i)) > 0.55) { ctx.globalAlpha = 1; ctx.fillStyle = '#ffe9a8'; ctx.fillRect(p[0] - 1.5, p[1] - 2, 3, 4); } }
+      // le chantier en cours : un chat-robot sur le toit, qui pose ; fini : une petite coche
+      const T = Vx(q.x, B0 - hh, q.z); if (mont < 0.98) { const r = Math.max(4, k * 0.03 * T[3]); chabot(T[0], T[1] - r * 1.2, r, { now, ph: q.i, a: 0.9, lac: 0.4, casque: false, travaille: true }); }
+      else coche(T[0], T[1] - 7, Math.max(4, k * 0.025), 1, 0.9);
+    });
+    ctx.restore();
+  }
   return {
     cles: () => [[-0.24, 0.86], [0.24, 0.86], [-0.24, -0.5], [0.24, -0.5]],
     dessin(a, now) {
       const [k, lx] = large(1.3, 1.9), V = cam(0.5 + a * 0.12, -0.3, k * 0.8, 0, G.sw < 500 ? -0.55 : -0.36), Cy = NE * 0.55 + 4.5, c = a % Cy;
       const tas = 1 - sm((c - Cy + 0.6) / 0.6), n = Math.min(NE, Math.floor(c / 0.55) + 1), f = c01((c % 0.55) / 0.35), top = B0 - (n - 1 + (n < NE ? f : 1)) * EH * tas;
       trait([[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, z]) => V(x * 0.62, B0, z * 0.62)), true, 0.7, 0.5);
+      // (vague 29, l'audit : « la flotte ») : autour de la tour, tout un quartier se bâtit en même temps, sur toute la largeur du ciel :
+      // les chantiers parallèles du workflow multi-agents ; chacun monte à son rythme, un petit chat-robot sur son toit, ses fenêtres s'allument
+      quartier(V, k, a, now, c, Cy);
       // l'essaim : chacun son orbite ; de temps en temps, l'un plonge vers le sommet avec son bloc
       const Rm = Math.min(1.6, lx * 0.8), Q = E.map(q => { const t = now * q.v + q.ph, dv = (now * 0.9 + q.i * 0.37) % 4.5, porte = dv < 1.1, e = porte ? Math.sin(Math.PI * dv / 1.1) : 0, r = q.r * Rm / 1.45 * (1 - e * 0.85), y = lerp(q.h, top - 0.1, e);
         return { p: V(Math.cos(t) * r, y, Math.sin(t) * r), pp: V(Math.cos(t - 0.14 * Math.sign(q.v)) * r, y, Math.sin(t - 0.14 * Math.sign(q.v)) * r), porte: porte && e > 0.05, i: q.i }; });
