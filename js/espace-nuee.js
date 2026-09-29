@@ -251,27 +251,61 @@ FORMES.pilotage = (a, now) => {
     o.t = 1; o.tx = o.x; o.ty = o.y; o.tz = z - 0.25; } };
 };
 
+/* ——— le titre en étoiles (29/09, 06:24, Mathieu : « comment le rendre vraiment incroyable ? ») ———
+   au début de chaque scène, la nuée écrit son titre en grand, au milieu de l'écran ; une lueur le parcourt ; puis il se défait et devient la scène */
+let TXT = { cle: '', pts: [] };
+const LETTRES = '"Space Grotesk","Barlow",system-ui,sans-serif';
+function titre(txt, W, H, y1, y2) {
+  const cy = (y1 + y2) / 2, cle = txt + '|' + W + 'x' + H + '|' + N; if (TXT.cle === cle) return TXT.pts;
+  const k = 0.5, w = Math.round(W * k), hh = Math.round(H * k), cv = document.createElement('canvas'); cv.width = w; cv.height = hh;
+  const x = cv.getContext('2d', { willReadFrequently: true }), mots = txt.split(' ');
+  let px = Math.min(H * 0.15, W < 700 ? 60 : 108) * k, L = [];
+  for (;;) { x.font = `700 ${px}px ${LETTRES}`; L = []; let cur = '';
+    mots.forEach(m => { const t = cur ? cur + ' ' + m : m; if (cur && x.measureText(t).width > w * 0.86) { L.push(cur); cur = m; } else cur = t; }); L.push(cur);
+    if ((L.length <= 3 && L.every(l => x.measureText(l).width <= w * 0.9) && L.length * px * 1.15 <= (y2 - y1) * k) || px < 12) break; px *= 0.92; }
+  x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle'; const lh = px * 1.15, y0 = cy * k - (L.length - 1) * lh / 2;
+  L.forEach((l, i) => x.fillText(l, w / 2, y0 + i * lh));
+  const d = x.getImageData(0, 0, w, hh).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 128) n++;
+  const pas = Math.max(1, Math.sqrt(n / (N * 0.95))), pts = [];
+  for (let yy = 0; yy < hh; yy += pas) for (let xx = 0; xx < w; xx += pas) if (d[(Math.floor(yy) * w + Math.floor(xx)) * 4 + 3] > 128) pts.push([xx / k, yy / k]);
+  for (let i = pts.length - 1; i > 0; i--) { const j = Math.floor(h(i * 3.7 + 0.5) * (i + 1)); const t = pts[i]; pts[i] = pts[j]; pts[j] = t; }
+  TXT = { cle, pts }; return pts;
+}
+let NID = 0, sauter = false;   // (sauter : pour les captures, js de test : pas de transformation)
+// les étoiles sur les lettres (écran) ; une lueur passe de gauche à droite ; elles frémissent
+const ecrit = (pts, tl, W, now) => { const M = pts.length, bal = (tl - 0.6) / 1.2 * W * 1.3 - W * 0.15;
+  return (r, o) => { const q = pts[r.i % M], dup = r.i >= M; o.p2 = 1; o.f = 1;
+    o.x = q[0] + Math.sin(now * 2.1 + r.a * TAU) * 0.8 + (dup ? r.gx * 1.5 : 0); o.y = q[1] + Math.cos(now * 1.7 + r.b * TAU) * 0.8 + (dup ? r.gy * 1.5 : 0);
+    const l = Math.exp(-Math.pow((q[0] - bal) / 60, 2)); o.s = 0.9 + l * 0.9; o.a = (dup ? 0.45 : 1.3) + l * 0.8; }; };
+
 /* ——— l'image ——— */
 const o = { x: 0, y: 0, z: 0, s: 1, a: 1, t: 0, tx: 0, ty: 0, tz: 0, p2: 0, f: 1 };
 X.fond.push((ctx, now) => {
   const EP = window.EspacePlume, M = EP && EP.M; if (!M || !M.lay || !M.lay.G) { dern = null; return; }
   const L = M.lay, G = L.G, W = L.W, H = L.H; prepare(W, H);
   E.G = G; E.W = W; E.H = H; E.cx = W / 2; E.cy = G.cy; E.K = Math.min(W * 0.46, H * 0.5);
-  const C = M.sc, id = C || M;
-  if (id !== dern) { F.set(P); T0 = Wd.t; dern = id; rot = Math.random() < 0.5 ? -1 : 1; }
-  const a = C ? Wd.t - C.t0 - 1.5 : Wd.t - M.t0, fo = (C && FORMES[C.S.d]) || FORMES.galaxie, { V, f } = fo(reduit ? 3 : a, reduit ? 0 : now, E);
+  const C = M.sc, D = EP.DUREE || { A: 1.7 }, tl = C ? Wd.t - C.t0 : 0, pts = C && !reduit && tl < D.A - 0.35 ? titre(C.S.t, W, H, L.barre.bas + 16, G.bas - 6) : null;
+  if (C && !C.nid) C.nid = ++NID;
+  const id = C ? C.nid * 2 + (pts ? 0 : 1) : 'intro';
+  if (id !== dern) { F.set(P); T0 = sauter ? -1e9 : Wd.t; sauter = false; dern = id; rot = Math.random() < 0.5 ? -1 : 1; }
+  const a = C ? tl - D.A + 0.2 : Wd.t - M.t0, fo = (C && FORMES[C.S.d]) || FORMES.galaxie, { V, f } = pts && pts.length ? { V: null, f: ecrit(pts, tl, W, now) } : fo(reduit ? 3 : a, reduit ? 0 : now, E);
+  const duree = pts ? 0.95 : 1.4, etale = pts ? 0.35 : 0.6;
   const ap = reduit ? 1 : c01((Wd.t - M.t0) / 2.5), bd = M.bande, haut = L.barre.bas + 8, br = L.L ? 1.6 : 1.3, mx = W / 2, my = G.cy, dt = Wd.t - T0;
+  const pp = Wd.ptr, pt = !reduit && pp && pp.on && Wd.t - pp.moved < 4 ? pp : null, RP = L.L ? 130 : 95, pax = pt ? (pt.x - W / 2) / W : 0, pay = pt ? (pt.y - H / 2) / H : 0;
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.strokeStyle = 'rgb(236,240,255)';
   for (let i = 0; i < N; i++) {
     const r = R[i], j = i * 4; o.s = 1; o.a = 1; o.t = 0; o.p2 = 0; f(r, o);
     let x = P[j], y = P[j + 1], s = 0, al = 0, fz = 1, tl = null;
-    if (o.a > 0 && o.p2) { x = o.x; y = o.y; fz = o.f; s = br * o.s * Math.min(2.2, Math.pow(fz, 0.8)); al = o.a * c01(0.3 + fz * 0.8); }
+    if (o.a > 0 && (o.p2 || !V)) { x = o.x; y = o.y; fz = o.f; s = br * o.s * Math.min(2.2, Math.pow(fz, 0.8)); al = o.a * c01(0.3 + fz * 0.8); }
     else if (o.a > 0) { const q = V(o.x, o.y, o.z); if (q[3] > 0) { x = q[0]; y = q[1]; fz = q[3]; s = br * o.s * Math.min(2.2, Math.pow(fz, 0.8)); al = o.a * c01(0.3 + fz * 0.8);
       if (o.t) { const q2 = V(o.tx, o.ty, o.tz); if (q2[3] > 0) tl = [q2[0], q2[1]]; } } }
     // la transformation : chaque étoile part de là où elle était, à son heure, et tourne un peu autour du centre en chemin
-    const e = reduit ? 1 : eio((dt - r.d * 0.6) / 1.4);
+    const e = reduit ? 1 : eio((dt - r.d * etale) / duree);
     if (e < 1) { const x0 = F[j], y0 = F[j + 1], lx = lerp(x0, x, e) - mx, ly = lerp(y0, y, e) - my, b = Math.sin(Math.PI * e), an = b * (0.5 + r.a * 0.7) * rot, gr = 1 + b * 0.18 * r.b;
       x = mx + (lx * Math.cos(an) - ly * Math.sin(an)) * gr; y = my + (lx * Math.sin(an) + ly * Math.cos(an)) * gr; s = lerp(F[j + 2], s, e); al = lerp(F[j + 3], al, e); tl = null; }
+    // (le doigt ou la souris : les étoiles s'écartent sur son passage, et tout le ciel penche un peu vers lui, les proches plus que les lointaines)
+    if (pt) { const dx = x - pt.x, dy = y - pt.y, d2 = dx * dx + dy * dy; if (d2 < RP * RP) { const dd = Math.sqrt(d2) || 1, q = 1 - dd / RP; x += dx / dd * q * q * RP * 0.5; y += dy / dd * q * q * RP * 0.5; al *= 1 + q * 0.8; }
+      x -= pax * Math.min(2, fz) * 18; y -= pay * Math.min(2, fz) * 12; }
     P[j] = x; P[j + 1] = y; P[j + 2] = s; P[j + 3] = al;
     if (al <= 0.01 || x < -30 || x > W + 30 || y < -30 || y > H + 30) continue;
     // (discrètes derrière les sous-titres et la barre des chapitres ; elles scintillent)
@@ -284,5 +318,5 @@ X.fond.push((ctx, now) => {
   }
   ctx.restore(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
 });
-return { FORMES, E, get N() { return N; }, get P() { return P; }, fige() { T0 = -1e9; const M = window.EspacePlume && EspacePlume.M; if (M) dern = M.sc || M; } };
+return { FORMES, E, get N() { return N; }, get P() { return P; }, fige() { T0 = -1e9; sauter = true; } };
 })();

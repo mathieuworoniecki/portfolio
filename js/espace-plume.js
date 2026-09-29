@@ -280,7 +280,8 @@ function compose() {
 }
 
 /* ——— la séance : une scène à la fois ——— */
-const DUREE = reduit ? { A: 0.01, B: 0.01, C: 0.01 } : { A: 1.7, B: 1.7, C: 0.9 };
+// (29/09, 06:24 : A laisse le temps à la nuée d'écrire le titre de la scène en étoiles, js/espace-nuee.js, avant que le dessin apparaisse)
+const DUREE = reduit ? { A: 0.01, B: 0.01, C: 0.01 } : { A: 2.6, B: 1.7, C: 0.9 };
 const tenue = cap => (reduit ? 4 : 0) + clamp(5 + cap.L.reduce((n, l) => n + l.txt.length, 0) / 26, 8.5, 12);
 const ES = () => window.EspaceScenes && EspaceScenes.S;
 // les points où se posent les étoiles d'une scène dessinée, à l'écran
@@ -513,5 +514,5 @@ X.devant.push((ctx, now) => {
   ctx.restore(); ctx.globalAlpha = 1;
 });
 
-return { get M() { return M; }, pas, pointe: () => null, get planete() { return M && M.lay.planete; }, set onFini(f) { onFini = f; }, get fini() { return !!(M && M.fin); }, aller };
+return { get M() { return M; }, DUREE, pas, pointe: () => null, get planete() { return M && M.lay.planete; }, set onFini(f) { onFini = f; }, get fini() { return !!(M && M.fin); }, aller };
 })();
