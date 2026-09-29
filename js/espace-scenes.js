@@ -456,7 +456,7 @@ S.gardefous = (() => {
   return {
     cles: () => [[-0.95, -0.2], [-0.35, -0.2], [0.25, -0.2], [1.2, -0.3]],
     dessin(a, now) {
-      const [k, lx] = large(1.55, 2.1), V = cam(-0.3, -0.42, k * 1.1, -0.08, -0.04), yT = 0.3, x0 = -lx, xS = lx * 0.5, xs = [-lx * 0.62, -lx * 0.28, lx * 0.06], lab = LAB(), vit = 0.36, T = 1.0;
+      const [k, lx] = large(1.55, 2.1), V = cam(-0.3, -0.42, k * 1.02, -0.08, -0.14), yT = 0.3, x0 = -lx, xS = lx * 0.5, xs = [-lx * 0.62, -lx * 0.28, lx * 0.06], lab = LAB(), vit = 0.36, T = 1.0;
       [-0.2, 0.2].forEach(z => trait([V(x0, yT, z), V(xS + 0.1, yT, z)], false, 0.9, prof(z)));
       for (let j = 0; j < 26; j++) { const x = x0 + ((j * 0.13 + a * vit) % (xS + 0.1 - x0)); trait([V(x, yT, -0.2), V(x, yT, 0.2)], false, 0.35, 0.4); }
       const carte = (x, y, z, al, rt = 0) => { const R = (u, w) => [x + u * Math.cos(rt) - w * Math.sin(rt), z + u * Math.sin(rt) + w * Math.cos(rt)], Q = [[-0.09, -0.13], [0.09, -0.13], [0.09, 0.13], [-0.09, 0.13]].map(([u, w]) => { const [px, pz] = R(u, w); return V(px, y, pz); });
@@ -476,7 +476,15 @@ S.gardefous = (() => {
       // les portiques : l'arche, son nom, son faisceau qui balaie
       xs.forEach((g, i) => { bloc(V, g - 0.03, g + 0.03, yT, yT - 0.5, -0.34, -0.27, 1, 0.7); bloc(V, g - 0.035, g + 0.035, yT - 0.46, yT - 0.55, -0.34, 0.34, 1, 0.7); bloc(V, g - 0.03, g + 0.03, yT, yT - 0.5, 0.27, 0.34, 1, 0.7);
         const v = (now * 1.3 + i * 0.3) % 1, y = yT - 0.46 + v * 0.44; trait([V(g, y, -0.28), V(g, y, 0.28)], false, 0.8, 0.9); brille(V(g, y, 0.28)[0], V(g, y, 0.28)[1], 2.2, 0.8, false, now, i);
-        const L = V(g, yT - 0.72, -0.34); mot(lab[i], L[0], L[1], Math.max(10, k * 0.07), 0.9); });
+        // (vague 4 : « des portiques tous pareils ») : chacun son gardien, sur son linteau
+        const top = V(g, yT - 0.55, 0), tf = top[3];
+        if (i === 0) [-0.2, 0, 0.2].forEach((z, j) => { const p = V(g, yT - 0.58, z), on = Math.floor(now * 3) % 3 === j; cerne(() => { ctx.beginPath(); ctx.arc(p[0], p[1], k * 0.028 * tf, 0, TAU); }, 0.6, 1, on ? '#ffe9a8' : PAP); if (on) brille(p[0], p[1], 3, 1, true, now, j); });
+        else if (i === 1) { const r = k * 0.1 * tf, x = top[0], y = top[1] - r * 1.9, lac = Math.sin(now * 1.4) * 0.8; chabot(x, y, r, { now, ph: 5, lac, casque: false, bras: [-0.6, 0.9] });
+          const lx = x + r * 1.2 + lac * r * 0.3, ly = y + r * 1.1; cerne(() => { ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + r * 0.5, ly + r * 0.6); }, 1.2, 1, null); cerne(() => { ctx.beginPath(); ctx.arc(lx, ly, r * 0.38, 0, TAU); }, 0.8, 1, 'rgba(200,225,255,0.55)'); }
+        else { const t = now * 1.6, m0 = V(g, yT - 0.55, 0), m1 = V(g, yT - 0.68, 0), r = k * 0.09 * tf; cerne(() => { ctx.beginPath(); ctx.moveTo(m0[0], m0[1]); ctx.lineTo(m1[0], m1[1]); }, 1.1, 1, null);
+          cerne(() => { ctx.beginPath(); ctx.ellipse(m1[0], m1[1], r * Math.abs(Math.cos(t)) + 1, r, 0, 0, TAU); }, 0.8, 1); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.5; ctx.beginPath(); ctx.moveTo(m1[0], m1[1]); ctx.lineTo(m1[0] + Math.sin(t) * r * 1.4, m1[1] - r * 0.2); ctx.stroke();
+          style(0.5, 0.35); ctx.beginPath(); ctx.moveTo(m1[0], m1[1]); ctx.lineTo(m1[0] + Math.sin(t) * k * 0.6, m1[1] + k * 0.25); ctx.stroke(); }
+        const L = V(g, yT - (i === 2 ? 0.84 : i === 1 ? 1.0 : 0.76), -0.34); mot(lab[i], L[0], L[1], Math.max(10, k * 0.07), 0.9); });
       // l'humain : il regarde, hoche la tête, tamponne
       const hp = V(xS + 0.34, yT, -0.28), rr = k * 0.15 * hp[3], hoche = Math.max(0, Math.sin(now * 2.2)) ** 6, ci = V(xS - 0.05, yT - 0.02, 0);
       lui(hp[0], hp[1] - rr * 2.5, rr, { now, hoche, tp: tampon, cible: ci, cote: -1 }); mot(lab[3], hp[0], hp[1] + k * 0.06, Math.max(10, k * 0.07), 0.85);
