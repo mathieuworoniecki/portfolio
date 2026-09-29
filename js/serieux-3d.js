@@ -315,15 +315,19 @@ function chaine() {
   /* 2 · les champs extraits : des blocs qui quittent les lignes du document et se rangent */
   const blocs = lignes.slice(1).map((l, i) => { const g = new T.Group(); P.add(g); solide(g, new T.BoxGeometry(0.075, 0.075, 0.075), ST[1].m.l); return { g, a: V(X[0] + l[0][0] + 0.08, 0.06, l[0][2]), b: V(X[1] + (i % 2 ? 0.07 : -0.07), 0.05 + Math.floor(i / 2) * 0.085, (i % 2) * 0 - 0.02 + Math.floor(i / 2) * 0.0) }; });
   /* 3 · le modèle et ses sources : un espace de vecteurs ; la requête allume les plus proches */
-  const esp = new T.Group(); esp.position.set(0, 0.62, 0); ST[2].g.add(esp);
-  const NV = 140, vec = [], vp = new Float32Array(NV * 3); for (let i = 0; i < NV; i++) { const u = rnd() * TAU, c = rnd() * 2 - 1, r = 0.34 * Math.cbrt(rnd()), s = Math.sqrt(1 - c * c); vec.push(V(Math.cos(u) * s * r, c * r, Math.sin(u) * s * r)); vp.set([vec[i].x, vec[i].y, vec[i].z], i * 3); }
+  const esp = new T.Group(); esp.position.set(0, 0.4, -0.05); ST[2].g.add(esp);
+  const NV = 240, vec = [], vp = new Float32Array(NV * 3); for (let i = 0; i < NV; i++) { const u = rnd() * TAU, c = rnd() * 2 - 1, r = 0.36 * Math.cbrt(rnd()), s = Math.sqrt(1 - c * c); vec.push(V(Math.cos(u) * s * r, c * r, Math.sin(u) * s * r)); vp.set([vec[i].x, vec[i].y, vec[i].z], i * 3); }
   const vg = new T.BufferGeometry(); vg.setAttribute('position', new T.BufferAttribute(vp, 3)); const vpts = new T.Points(vg, ST[2].m.p); vpts.renderOrder = 2; esp.add(vpts);
   const cible = V(0.12, 0.05, 0.08), proches = vec.map((v, i) => [v.distanceTo(cible), i]).sort((a, b) => a[0] - b[0]).slice(0, 6).map(a => vec[a[1]]);
   const pp = new T.BufferGeometry().setFromPoints(proches); const ppts = new T.Points(pp, ST[2].m.pa); ppts.renderOrder = 3; esp.add(ppts);
   const liensR = traits(proches.flatMap(p => [p.toArray(), cible.toArray()]), ST[2].m.a); esp.add(liensR);
   const llm = new T.Group(); llm.position.copy(cible); esp.add(llm); solide(llm, new T.OctahedronGeometry(0.06), ST[2].m.a, 1);
-  const requete = trait([[0, -0.55, 0], [0.12, 0.05, 0.08]], ST[2].m.d); esp.add(requete);
-  esp.add(trait([[0, -0.62, 0], [0, -0.36, 0]], ST[2].m.s));
+  const requete = trait([[0, -0.33, 0], [0.12, 0.05, 0.08]], ST[2].m.d); esp.add(requete);
+  esp.add(trait([[0, -0.4, 0], [0, -0.36, 0]], ST[2].m.s));
+  /* la réponse sort du modèle, posée devant ; chacune de ses phrases porte un renvoi, relié au passage qu'elle cite */
+  const rep = new T.Group(); rep.position.set(0.02, 0.1, 0.22); rep.rotation.x = 0.35; ST[2].g.add(rep); solide(rep, new T.BoxGeometry(0.34, 0.012, 0.18), ST[2].m.l);
+  const RL = [0, 1, 2].map(i => { const z = -0.05 + i * 0.05, l = trait([[-0.14, 0.008, z], [0.06 - i * 0.03, 0.008, z]], ST[2].m.s); rep.add(l); const c = trait(cercleH(0.012, 10, 0.1, 0.008, z), ST[2].m.a, true); rep.add(c); return { l, c, z }; });
+  const cites = segments(3, ST[2].m.a);   // ajoutées après la mise à l'échelle (leurs points sont calculés dans le repère de la station)
   /* 4 · les agents : planifier, agir, vérifier ; trois tâches cochées l'une après l'autre */
   const ag = new T.Group(); ag.position.y = 0.3; ST[3].g.add(ag);
   ag.add(trait(cercleH(0.26, 64), ST[3].m.l, true));
@@ -338,7 +342,7 @@ function chaine() {
   /* le contenu de chaque station, en grand : c'est lui qu'on regarde, pas le socle */
   const GR = 1.7; ST.forEach(s => s.g.children.slice(s.n0).forEach(ch => { ch.position.multiplyScalar(GR); ch.scale.multiplyScalar(GR); }));
   blocs.forEach((b, i) => { b.g.scale.setScalar(GR); b.b.set(X[1] + ((i % 3) - 1) * 0.1 * GR, (0.045 + Math.floor(i / 3) * 0.09) * GR, 0); b.a.set(X[0] + (b.a.x - X[0]) * GR, b.a.y * GR, b.a.z * GR); });
-  ST.forEach(s => { s.L = pieces(s.g, s.g.children.slice(0, s.n0)); }); let t0 = null;   // chaque station se monte quand on l'approche
+  ST.forEach(s => { s.L = pieces(s.g, s.g.children.slice(0, s.n0)); }); ST[2].g.add(cites.l); let t0 = null;   // chaque station se monte quand on l'approche
   o.tick = (t, v) => {
     const pas = v.pas === undefined ? 5 : v.pas, S = Math.min(4, Math.floor(pas)), u = pas >= 5 ? 1 : pas - S;
     const ec = t0 === null ? 0.05 : Math.min(0.2, Math.max(0, t - t0)); t0 = t;
@@ -351,7 +355,10 @@ function chaine() {
     const k = i => pas >= 5 ? 1 : c01(pas - i);   // l'avancement de l'étape i
     /* 1 */ const k0 = k(0); portique.position.x = lerp(-0.26, 0.26, sm(k0)); lu.forEach((l, i) => { l.visible = k0 > (0.2 + i * 0.1); lg[i].visible = !l.visible; }); rayon.visible = k0 > 0.02 && k0 < 0.98;
     /* 2 */ const k1 = k(1); blocs.forEach((b, i) => { const q2 = sm((k1 - i * 0.1) / 0.45); b.g.position.lerpVectors(b.a, b.b, q2); b.g.position.y += Math.sin(q2 * Math.PI) * 0.25; b.g.visible = k1 > 0.001; });
-    /* 3 */ const k2 = k(2); requete.visible = k2 > 0.1; liensR.visible = ppts.visible = k2 > 0.45; llm.rotation.y = t * 1.5; llm.scale.setScalar(k2 > 0.6 ? 1 + 0.15 * Math.sin(t * 5) : 0.7); esp.rotation.y = t * 0.2;
+    /* 3 */ const k2 = k(2); requete.visible = k2 > 0.05; liensR.visible = ppts.visible = k2 > 0.2;
+    rep.visible = k2 > 0.28; RL.forEach((r, i) => { const on = k2 > 0.33 + i * 0.06; r.l.visible = on; r.c.visible = on;
+      let seg = [0, -99, 0, 0, -99, 0]; if (on && ST[2].f > 0.3) { const a = rep.localToWorld(V(0.1, 0.008, r.z)), b = esp.localToWorld(proches[i * 2].clone()); ST[2].g.worldToLocal(a); ST[2].g.worldToLocal(b); const w = c01((k2 - 0.33 - i * 0.06) / 0.1); seg = [a.x, a.y, a.z, lerp(a.x, b.x, w), lerp(a.y, b.y, w), lerp(a.z, b.z, w)]; }
+      cites.pos.set(seg, i * 6); }); cites.a.needsUpdate = true; llm.rotation.y = t * 1.5; llm.scale.setScalar(k2 > 0.6 ? 1 + 0.15 * Math.sin(t * 5) : 0.7); esp.rotation.y = t * 0.2;
     /* 4 */ const k3 = k(3); ag.rotation.y = -t * (0.4 + k3 * 1.2); noeuds.forEach((n, i) => { const a = i / 3 * TAU; n.position.set(Math.cos(a) * 0.26, 0, Math.sin(a) * 0.26); }); taches.forEach((ta, i) => { ta.c.visible = k3 > 0.25 + i * 0.25; }); fleches.visible = k3 > 0.05;
     /* 5 */ const k4 = k(4); rapports.forEach((r, i) => { r.visible = k4 > i * 0.18; }); for (let i = 0; i < 3; i++) { const q2 = k4 > 0.2 ? (t * 0.8 + i / 3) % 1 : -1, x = 0.3 + q2 * 0.35; sortie.pos.set(q2 < 0 ? [0, -9, 0, 0, -9, 0] : [x, 0.006, 0, x + 0.08, 0.006, 0], i * 6); } sortie.a.needsUpdate = true;
     /* la piste allumée derrière le jeton */
