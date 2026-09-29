@@ -59,14 +59,24 @@ H.pre.push(() => {
       if (e >= 1) { it.trou = null; it.fade = it.fadeT = 0; it.ventre = true; it.big = T.big; avales.push(it); word(pick(['gloup', 'ploc', 'bloup']), it.fx * Wd.W, floorAt(it.d) - s * 0.2, 17); }
     } else {
       // au retour : il jaillit du trou, retombe à sa place
-      const e = sm(u / 0.5);
+      // (29/09, vague 5) il jaillit bien plus haut, en faisant un tour complet sur lui-même, et retombe à sa place (il rebondit)
+      const e = sm(u / 0.75);
       if (u < 0.12) return;
-      it.fade = it.fadeT = 1; it.big = T.big * Math.max(0.05, e); it.tilt = T.sens * (1 - e) * 2;
+      it.fade = it.fadeT = 1; it.big = T.big * Math.max(0.05, Math.min(1, e * 1.6)); it.tilt = T.sens * (1 - e) * Math.PI * 2;
       if (e >= 1) { it.trou = null; it.big = T.big; it.tilt = 0; it.fall = true; it.lift = Math.max(it.lift, s * 0.6); it.vy = 0; it.away = Wd.t; }
-      else it.lift = Math.sin(e * Math.PI) * s * 0.9;
+      else it.lift = Math.sin(e * Math.PI) * s * (K.LOURD[it.kind] ? 1.3 : 2.2);
     }
   });
   for (let i = trous.length - 1; i >= 0; i--) if (Wd.t > trous[i].fin) trous.splice(i, 1);
+});
+// les fissures (au retour) : un trait en zigzag qui court dans le sol d'un trou au suivant, puis se referme derrière lui
+const fentes = [];
+function fente(x0, y0, x1, y1, dur) { const P = [], n = Math.max(4, Math.round(Math.hypot(x1 - x0, y1 - y0) / 26)); for (let i = 0; i <= n; i++) { const u = i / n, j = i && i < n ? rnd(-1, 1) * 9 : 0; P.push([x0 + (x1 - x0) * u + j * 0.4, y0 + (y1 - y0) * u + j]); } fentes.push({ P, t0: Wd.t, dur, fin: Wd.t + dur + 0.9 }); }
+H.draw.push(() => {
+  if (!fentes.length) return; const C = window.Chalk; if (!C) return;
+  for (let i = fentes.length - 1; i >= 0; i--) { const f = fentes[i], u = Wd.t - f.t0; if (Wd.t > f.fin) { fentes.splice(i, 1); continue; }
+    const pr = Math.min(1, u / f.dur), q = Math.max(0, (u - f.dur - 0.3) / 0.6), k = Math.floor(q * (f.P.length - 1)), P = f.P.slice(k);
+    if (P.length > 1) C.stroke(P, q > 0 ? 1 : pr, { w: 1.8, a: 0.85 * Wd.a, seed: 90 + i, tip: false, amp: 0.4 }); }
 });
 // les trous : au trait, comme le reste (un bord, et des cercles de plus en plus petits vers le fond)
 H.draw.push(S => {
@@ -81,9 +91,15 @@ H.draw.push(S => {
 
 // le retour du mode sérieux : les trous recrachent les objets, les chats reviennent
 function retour() {
-  if (!F || !F.ouvert) return; Wd.nextScen = Wd.t + rnd(20, 30); F = null; Wd.fuite = false;
+  if (!F || !F.ouvert) return; Wd.nextScen = Wd.t + rnd(20, 30); const o = F.o; F = null; Wd.fuite = false;
+  // (29/09, vague 5) les trous s'ouvrent en vague, depuis le bouton : une fissure court dans le sol d'un trou au suivant
   const L = avales.slice(); avales = [];
-  L.forEach((it, i) => later(0.3 + i * 0.1, () => {
+  const ox = o ? o.x : Wd.W / 2, oy = floorAt(0.5), pos = it => { const h = it.home && !it.home.on ? it.home : it; return [h.fx * Wd.W, floorAt(h.d)]; };
+  L.sort((a, b) => Math.abs(pos(a)[0] - ox) - Math.abs(pos(b)[0] - ox));
+  let prevG = [ox, oy], prevD = [ox, oy];
+  L.forEach((it, i) => { const p = pos(it), pr = p[0] < ox ? prevG : prevD; later(0.3 + i * 0.12 - 0.22, () => fente(pr[0], pr[1], p[0], p[1], 0.22)); if (p[0] < ox) prevG = p; else prevD = p; });
+  if (L.length) later(0.1, () => { Wd.shake = { t0: Wd.t, a: 3 }; word(en() ? 'crrrack!' : 'crrrac !', ox, oy - 30, 22); });
+  L.forEach((it, i) => later(0.3 + i * 0.12, () => {
     if (!Wd.props.includes(it)) return; it.ventre = false;
     if (it.home && !it.home.on) { it.fx = it.home.fx; it.d = it.home.d; it.dT = it.home.d; }
     it.tilt = 0; it.vx = it.vy = 0; it.fall = false;
@@ -93,10 +109,10 @@ function retour() {
   }));
   // (29/09, l'audit : au retour, la pièce restait vide de chats) : deux chats jaillissent des derniers trous avec les objets, en criant,
   // deux autres rentrent en courant par les côtés
-  const n = L.length, tr = [L[n - 1], L[Math.max(0, n - 3)]].filter(Boolean);
-  tr.forEach((it, i) => later(0.55 + (n - 1) * 0.1 + i * 0.35, () => { if (K.residents().length >= K.MAXC) return; const d = it.d ?? 0.3, c = K.addCat({ x: it.fx * Wd.W, d }), s = sc(c);
-    c.y = floorAt(d) - s * 0.3; c.fall = true; c.vy = -s * rnd(5.5, 7); c.vx = s * rnd(1, 2.4) * (i ? -1 : 1); c.face = sgn(c.vx) || 1; later(0.2, () => say(c, pick(en() ? ['woohoo!', 'I’m back!', 'hi!', 'hop!'] : ['youhou !', 'me revoilà !', 'coucou !', 'hop !']))); }));
-  [0, 1].forEach(i => later(1.4 + n * 0.1 + i * 0.7, () => { if (K.residents().length < K.MAXC) { const c = K.enter(); c.q.unshift(go(c.x + (c.x < Wd.W / 2 ? 1 : -1) * sc(c) * 3, { g: 'galop', v: 1.5 })); } }));
+  const n = L.length, tr = [...new Set([L[n - 1], L[n - 2], L[Math.max(0, n - 4)], L[Math.floor(n / 2)]])].filter(Boolean).slice(0, 4);
+  tr.forEach((it, i) => later(0.55 + (n - 1) * 0.12 + i * 0.3, () => { if (K.residents().length >= K.MAXC) return; const d = it.d ?? 0.3, c = K.addCat({ x: it.fx * Wd.W, d }), s = sc(c);
+    c.y = floorAt(d) - s * 0.3; c.fall = true; c.vy = -s * rnd(5.5, 7); c.vx = s * rnd(1, 2.4) * (i % 2 ? -1 : 1); c.face = sgn(c.vx) || 1; later(0.2, () => say(c, pick(en() ? ['woohoo!', 'I’m back!', 'hi!', 'hop!'] : ['youhou !', 'me revoilà !', 'coucou !', 'hop !']))); }));
+  [0, 1].forEach(i => later(1.4 + n * 0.12 + i * 0.7, () => { if (K.residents().length < K.MAXC) { const c = K.enter(); c.q.unshift(go(c.x + (c.x < Wd.W / 2 ? 1 : -1) * sc(c) * 3, { g: 'galop', v: 1.5 })); } }));
   Wd.nextIn = Wd.t + 6 + n * 0.1;
 }
 addEventListener('serieux:ferme', retour);
