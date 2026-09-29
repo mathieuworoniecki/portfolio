@@ -44,6 +44,8 @@ H.post.push(dt => {
 // un chat qui aime jouer va voir la canne plantée (la chasse fait le reste : js/vie.js)
 H.think.push((c, add) => {
   if (J.st !== 'posee' || c.temp || Wd.t < (c.chaseCool || 0)) return; const tip = K.bout(), s = sc(c);
+  // (deux joueurs à la fois, pas plus : sinon tous les chats bondissent au même endroit, en boucle)
+  if (Wd.cats.filter(o => o !== c && (o.task && o.task.k === 'chasse' || o.q.some(q => q.k === 'chasse'))).length >= 2) return;
   add(0.4 + c.ch.joue * 0.6, () => { const side = sgn(c.x - tip[0]) || 1;
     c.q.push(go(inView(tip[0] + side * s * 1.1), { d: clamp(J.d + rnd(-0.08, 0.1), 0, 0.5), face: -side }), pose('affut', rnd(0.6, 1.2), { face: -side }), { k: 'chasse', max: rnd(6, 12) }); });
 });

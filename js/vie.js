@@ -105,7 +105,7 @@ STEPS.chasse = (c, T, dt) => {
   c.aimF = T.aim || null; const [ax, ay] = T.aim ? T.aim() : aim(), s = sc(c), dx = ax - c.x, hy = floorAt(c.d) - ay, far = Math.abs(dx), pl = !T.aim && ptr.plume > Wd.t;
   const stale = T.aim ? !T.aim.alive() : !pl;   // la canne rangée : fini
   if (Wd.t - T.t0 > T.max || far > s * (pl ? 7 : 5) || hy > s * 4 || (stale && Wd.t - T.t0 > 1.2) || T.n > 5) {
-    c.chaseCool = Wd.t + rnd(4, 9); c.aimF = null; c.q.unshift(pose(T.n ? 'toilette' : 'assis', rnd(1, 2))); return true; }
+    c.chaseCool = Wd.t + rnd(10, 20); c.aimF = null; c.q.unshift(pose(T.n ? 'toilette' : 'assis', rnd(1.5, 3))); return true; }   // (puis il passe à autre chose un moment : il ne rejoue pas en boucle)
   c.face = sgn(dx) || c.face;
   // la main sur lui : il ne bouge plus (on va l'attraper, le caresser) ; il la regarde
   if (!pl && !T.aim && K.catAt(ptr.x, ptr.y) === c) { c.anim = 'assis'; T.w = 0; T.px = undefined; return false; }

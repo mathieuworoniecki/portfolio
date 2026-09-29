@@ -438,6 +438,13 @@ const STEPS = {
     // encore perché (sur le canapé, l'arbre) : il saute d'abord en bas, puis il marche (il était recollé au sol d'un coup)
     if (c.perch && c.y < floorAt(c.d) - 4) { const it = c.perch.it, x = inView(c.x + (sgn(dx) || c.face) * sc(c) * 0.6); c.q.unshift(hop(() => groundAt(x, Math.max(0, it.d - 0.15)), { h: sc(c) * 0.25 }), T); T.t = 0; return true; }
     c.anim = g; c.perch = null;
+    // (29/09, Mathieu : « ils font du sur-place, ils buguent en boucle avec les objets ») : coincé entre deux meubles (il change de rangée
+    // pour contourner l'un, et l'autre le renvoie), il n'avance plus vers sa cible. Au bout d'un moment sans progrès : il saute par-dessus,
+    // un bond vers sa cible (pas plus de deux corps et demi), puis il reprend sa marche de là
+    { const td = T.d ?? c.d, pr = Math.abs(tx - c.x) + Math.abs(td - c.d) * sc(c) * 4;
+      if (T.best === undefined || pr < T.best - sc(c) * 0.08) { T.best = pr; T.bt = Wd.t; }
+      else if (Wd.t - T.bt > 1.6) { const s = sc(c), hx = (tx > 0 && tx < Wd.W ? inView : x => x)(c.x + clamp(tx - c.x, -s * 2.5, s * 2.5)), hd = Math.abs(tx - hx) < 1 ? td : c.d + clamp(td - c.d, -0.5, 0.5);
+        T.best = undefined; T.at = 0; c.q.unshift(pose('affut', 0.35, { face: sgn(hx - c.x) || c.face }), hop(() => groundAt(hx, hd), { h: s * 0.7 }), T); return true; } }
     // (27/09, Mathieu : « revoir le déplacement entre les niveaux ; ils passent derrière le canapé, dans les meubles ») :
     // un gros meuble sur son chemin, à sa profondeur : il change d'abord de rangée (devant, sinon derrière), puis il avance
     const dv = dt * 0.9 * (g === 'galop' ? 1.6 : 1), td = T.d ?? c.d, ob = obstacle(c, c.x + sgn(dx) * Math.min(Math.abs(dx), v * dt + sc(c) * 0.25), tx, td);
