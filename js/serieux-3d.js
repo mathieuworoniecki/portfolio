@@ -447,7 +447,7 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
   const tours2 = segments(3, L[2].l); R.add(tours2.l); let t2 = null;   // trois crans : une, deux, trois fois
 
   /* 3 · le banc d'essai : dix couloirs, dix outils qui courent ; un seul franchit la ligne en tête */
-  const piste = new T.Group(); piste.position.set(-0.22, -0.35, 0.2); piste.rotation.y = -0.2; piste.scale.setScalar(0.82); R.add(piste); const NL = 10, CO = [];
+  const piste = new T.Group(); piste.position.set(-0.2, -0.4, 0.2); piste.rotation.y = 0.05; piste.scale.setScalar(0.86); R.add(piste); const NL = 10, CO = [];
   for (let i = 0; i < NL; i++) { const z = (i - (NL - 1) / 2) * 0.16; piste.add(trait([[-1.5, 0, z - 0.08], [1.5, 0, z - 0.08]], L[3].s)); }
   piste.add(trait([[1.2, 0, -0.85], [1.2, 0, 0.85]], L[3].a)); piste.add(trait([[1.2, 0.18, -0.85], [1.2, 0.18, 0.85]], L[3].d));
   for (let i = 0; i < NL; i++) { const g = new T.Group(); piste.add(g); solide(g, new T.BoxGeometry(0.1, 0.08, 0.08).translate(0, 0.04, 0), i === 6 ? L[3].a : L[3].l); CO.push({ g, z: (i - (NL - 1) / 2) * 0.16, v: i === 6 ? 1 : 0.55 + rnd() * 0.35 }); }
