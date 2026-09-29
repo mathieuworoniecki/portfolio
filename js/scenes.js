@@ -51,7 +51,7 @@ function brouille(el, sens) {
   requestAnimationFrame(pas);
 }
 function morphButton(el, prog, seed, clock) {
-  if (!el || prog <= 0.001) return;
+  if (!el || prog <= 0.001 || el.style.visibility === 'hidden') return;   // (tombé dans son trou : js/fuite.js)
   const r = el.getBoundingClientRect(); if (!r.width) return; const ctx = C.ctx; if (!ctx) return;
   const on = el.matches(':hover') || el.matches(':focus-visible');
   if (on !== !!el.onP) { el.onP = on; brouille(el, on ? 1 : -1); }
@@ -102,7 +102,7 @@ const salut = Object.assign({
     else if (S.clock - reste < 0.5) glowButton(stayBtn, 1 - sm((S.clock - reste) / 0.45), 1200, S.clock);
     // l'invitation, écrite à la main sous les boutons, tant que rien n'a jailli
     const hb = reste === null && (CH ? !CH.clicks : !Pops.list.length) && enterBtn;
-    if (hb) { const r = hb.getBoundingClientRect(), r2 = stayBtn ? stayBtn.getBoundingClientRect() : r, bot = Math.max(r.bottom, r2.bottom), cx = (Math.min(r.left, r2.left) + Math.max(r.right, r2.right)) / 2; C.text(L('salut.hint'), cx, bot + 24 * S.K, S.reduced ? 1 : c01((vu(S) - 3.4) / 1.2), { size: 19, align: 'center', a: 0.55 }); }
+    if (hb && !(stayBtn && stayBtn.style.visibility === 'hidden')) { const r = hb.getBoundingClientRect(), r2 = stayBtn ? stayBtn.getBoundingClientRect() : r, bot = Math.max(r.bottom, r2.bottom), cx = (Math.min(r.left, r2.left) + Math.max(r.right, r2.right)) / 2; C.text(L('salut.hint'), cx, bot + 24 * S.K, S.reduced ? 1 : c01((vu(S) - 3.4) / 1.2), { size: 19, align: 'center', a: 0.55 }); }
     if (CH) CH.draw(S, ctx); else Pops.draw(S, ctx);
   },
   click(x, y, S) { return CH ? CH.click(x, y, S) : Pops.spawn(x, y, S); }

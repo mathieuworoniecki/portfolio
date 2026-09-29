@@ -29,7 +29,7 @@ function ctaLoop(r, prog, seed, extra) {
 }
 // un bouton de scène : son cadre se trace (prog), un second trait et quelques points qui tournent au survol
 function button(el, prog, seed, clock) {
-  if (!el || prog <= 0.001) return;
+  if (!el || prog <= 0.001 || el.style.visibility === 'hidden') return;   // (tombé dans son trou : js/fuite.js)
   const r = el.getBoundingClientRect(); if (!r.width) return;
   el.hov = (el.hov || 0) + (((el.matches(':hover') || el.matches(':focus-visible')) ? 1 : 0) - (el.hov || 0)) * 0.15;
   sketchBox(r, prog, seed);
