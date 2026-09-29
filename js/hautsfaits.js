@@ -101,9 +101,14 @@ function suivant() {
   const G = window.Scenarios && Scenarios.gerbe; if (G && Wd.W) setTimeout(() => { const r = scene.getBoundingClientRect(); if (r.width) G(r.left + 44, r.top + 46, 14, 300); }, 450);
   // (29/09, l'audit : le déblocage était une carte, pas un moment) : dans la pièce, un chat l'a vu. Il se dresse, lève la tête vers le coin
   // et le fête ; un autre le rejoint parfois (la carte, elle, ne gêne toujours rien)
-  if (!Wd.espace && !Wd.trou && !Wd.fuite) { const L = Wd.cats.filter(c => !c.gone && !c.temp && !c.fall && !c.held && !c.perch && K.free4(c)).sort(() => Math.random() - 0.5).slice(0, h.rang >= 2 ? 2 : 1);
+  if (!Wd.espace && !Wd.trou && !Wd.fuite) { const L = Wd.cats.filter(c => !c.gone && !c.temp && !c.fall && !c.held && !c.perch && K.free4(c)).sort(() => Math.random() - 0.5).slice(0, h.rang === 'or' || h.rang === 'secret' ? 2 : 1);
     L.forEach((c, i) => setTimeout(() => { if (c.gone || c.held || !K.free4(c)) return; K.interrupt(c); c.face = c.x < Wd.W * 0.8 ? 1 : -1;
       c.q = [K.pose('miaule', 0.9, { fx: c => K.say(c, T(['bravo !', 'ouais !', 'trop fort !', 'miaou !'][Math.floor(Math.random() * 4)], ['bravo!', 'yes!', 'wow!', 'meow!'][Math.floor(Math.random() * 4)])) }), K.hop(() => K.groundAt(c.x, c.d), { h: K.sc(c) * 0.9 }), K.pose('assis', 1.2)]; }, 350 + i * 500)); }
+  // (vague 37 de l'audit : « le déblocage reste dans son coin ») : à partir du rang moyen, toute la pièce fait la ola : de gauche à droite,
+  // chaque chat libre bondit à son tour, les pattes en l'air, et la vague court d'un bord à l'autre de l'écran
+  if (h.rang !== 'bronze' && !Wd.espace && !Wd.trou && !Wd.fuite) { const O = Wd.cats.filter(c => !c.gone && !c.temp && !c.rare && !c.fall && !c.held && !c.perch && K.free4(c)).sort((a, b) => a.x - b.x);
+    if (O.length >= 3) { setTimeout(() => Wd.fx.push({ k: 'txt', text: T('OLA !', 'OLÉ!'), x: Wd.W * 0.5, y: Wd.floor - K.sOf(0.3) * 2.6, t0: Wd.t, life: 1.6, rot: -0.06, size: 40 }), 1500);
+      O.forEach((c, i) => setTimeout(() => { if (c.gone || c.held || c.fall || !K.free4(c)) return; K.interrupt(c); c.q = [K.hop(() => K.groundAt(c.x, c.d), { h: K.sc(c) * 0.8, dur: 0.45 }), K.pose('assis', 0.8)]; }, 1400 + (c.x / Wd.W) * 1400 + i * 20)); } }
   clearTimeout(finT); finT = setTimeout(ferme, 5000);
 }
 function ferme() { clearTimeout(finT); if (scene.classList.contains('part')) return; vole(); scene.classList.add('part'); setTimeout(() => { scene.classList.remove('go', 'part'); scene.hidden = true; joue = false; setTimeout(suivant, 300); }, 380); }
