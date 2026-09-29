@@ -184,7 +184,7 @@ S.equipe = (() => {
   return {
     cles: () => [[0, 0.1], [0, -0.35], [-0.9, -0.5], [0.9, -0.5], [-1.2, 0.1], [1.2, 0.1]],
     dessin(a, now) {
-      const [k] = large(1.6, 2), V = cam(Math.sin(now * 0.15) * 0.05, -0.42, k * 0.82, 0, -0.34), c = Math.min(a + 0.3, 9.2);   // (07:49, Mathieu : « le premier élément se rejoue deux fois » : l'histoire se joue une fois, puis reste sur ×10)
+      const [k] = large(1.6, 2), V = cam(Math.sin(now * 0.15) * 0.05, -0.42, k * 0.8, 0, -0.5), c = Math.min(a + 0.3, 9.2);   // (07:49, Mathieu : « le premier élément se rejoue deux fois » : l'histoire se joue une fois, puis reste sur ×10)
       // (29/09, 09:57, Mathieu : « des objets 3D pas assez élaborés ») : la foule n'est plus faite de ronds : des chats-robots de papier, et lui, dessiné comme les chats
       const bot = (q, kk, o) => { const r = G.s * kk * 0.19; if (q[1] < G.haut + r * 2.2) return; chabot(q[0], q[1] - r * 1.75, r, Object.assign({ casque: r > 9 }, o)); };
       const pied = V(0, 0.84, 0.7), km = 1.25 * pied[3] * k / G.s, coeur = [pied[0], pied[1] - G.s * km * 0.62];
@@ -193,7 +193,7 @@ S.equipe = (() => {
       [0, 1, 2, 3].forEach(r => { const z = -0.3 - r * 0.62 + 0.2, lx = 0.95 + r * 0.7; trait([V(-lx, 0.84, z), V(lx, 0.84, z)], false, 0.5, prof(z, 0.3 * c01((c - 0.6) / 0.8))); });
       DOS.forEach(f => {
         const t1 = 0.7 + f.o * 1.9, t2 = 6.1 + (1 - f.o) * 1.5; if (c < t1) return;
-        const p = V(f.x, 0.84, f.z), kk = 0.5 * p[3] * k / G.s, al = 0.45 + 0.55 * (1 - f.r / 4);
+        const p = V(f.x, 0.84, f.z), kk = 0.5 * p[3] * k / G.s, al = 1;   // (13 h 27 : opaques ; en transparence, les rangs se mélangeaient en gris)
         if (c < t1 + 0.55) { const e = sm((c - t1) / 0.55), pop = 1 + 0.35 * Math.sin(Math.PI * e);
           vol.push(() => { const q = [lerp(coeur[0], p[0], e), lerp(coeur[1], p[1], e) - Math.sin(Math.PI * e) * G.s * 0.5]; bot(q, lerp(0.12, kk, e) * pop, { now, ph: f.i, bras: [1.4, 1.4] });
             if (e > 0.8) eclat(q[0], q[1] - G.s * kk * 0.7, G.s * 0.05, (e - 0.8) / 0.2, 6, f.i); });
@@ -652,7 +652,7 @@ S.front = (() => {
       if (c > 1.8 && c < 4.4) cerne(() => { ctx.beginPath(); ctx.moveTo(cu[0], cu[1]); ctx.lineTo(cu[0], cu[1] + k * 0.13); ctx.lineTo(cu[0] + k * 0.035, cu[1] + k * 0.095); ctx.lineTo(cu[0] + k * 0.06, cu[1] + k * 0.14); ctx.lineTo(cu[0] + k * 0.08, cu[1] + k * 0.13); ctx.lineTo(cu[0] + k * 0.055, cu[1] + k * 0.085); ctx.lineTo(cu[0] + k * 0.095, cu[1] + k * 0.085); ctx.closePath(); }, 0.8, 1);
       if (clic > 0 && clic < 0.6) { style(0.8, 1 - clic / 0.6); ctx.beginPath(); ctx.arc(cu[0], cu[1], k * 0.25 * clic / 0.6, 0, TAU); ctx.stroke(); }
       const ec = clic > 0.2 ? Math.sin(Math.PI * c01((clic - 0.2) / 3.2)) : 0;
-      if (ec > 0.01) { const s = 0.12 + ec * 0.3, Cm = cam(now * 1.1, now * 0.7, k), o = Pk(0, -0.05 - ec * 0.12);
+      if (ec > 0.01) { const s = 0.1 + ec * 0.17, Cm = cam(now * 0.6, now * 0.4, k), o = Pk(0, -0.05 - ec * 0.12);
         const Vc = (u, v, d) => { const q = Cm(u * s, v * s, d * s); return [q[0] + o[0] - G.cx, q[1] + o[1] - G.cy, q[2], q[3]]; }, F = prisme(Vc, [[-1, -1], [1, -1], [1, 1], [-1, 1]], 2, 1, 1); encre('</>', F, 1, 0.3);
         [[-1, -1, -1], [1, 1, 1], [1, -1, 1], [-1, 1, -1]].forEach(([x, y, z], i) => { const q = Vc(x, y, z); brille(q[0], q[1], 2, ec, false, now, i); }); }
       const nom = NOMS()[u < 0.5 ? A : B], al = u > 0 ? Math.abs(u - 0.5) * 2 : 1, L = Pk(0, h + 0.12); if (c > 4) mot(nom, L[0], L[1], Math.max(10, k * 0.07), al * 0.85);
