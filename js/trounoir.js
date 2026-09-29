@@ -154,7 +154,13 @@ function dessineTrou(u) {
   }
   // le trou : il s'ouvre, respire, avale ; à la fin il se referme en un point
   const R0 = Math.min(W, H) * 0.075, ouvre = sm(u / 0.12), ferme = 1 - sm((u - 0.9) / 0.1), rh = R0 * ouvre * ferme * (1 + 0.5 * sm((u - 0.1) / 0.6)) * (1 + 0.06 * Math.sin(u * 30));
+  // (vague 26, l'audit : « le meilleur moment du site » doit aller plus loin) : la page ne fait pas que s'enrouler, elle se déchire ;
+  // des lambeaux se détachent juste avant que leur anneau parte, et filent en vrille, plus vite que la page, vers le trou
+  lambeaux(u);
   if (rh > 0.5) {
+    const clair0 = sm((u - 0.3) / 0.4), col0 = melange(T.ink, [244, 244, 238], clair0);
+    // le disque d'accrétion au stylo : sa moitié arrière passe derrière le trou, et la lumière courbée la fait réapparaître en arc au-dessus
+    disque(cx, cy, rh, u, col0, false); lentille(cx, cy, rh, u, col0);
     // le halo et les bras de la spirale (des traits de stylo qui tournent) : sombres sur le papier, clairs sur l'espace
     const clair = sm((u - 0.3) / 0.4), col = melange(T.ink, [244, 244, 238], clair), rot = u * DUREE * 5;
     ctx.save(); ctx.translate(cx, cy); ctx.lineCap = 'round';
@@ -167,10 +173,55 @@ function dessineTrou(u) {
     ctx.beginPath(); ctx.arc(0, 0, rh * 1.18, 0, TAU); ctx.strokeStyle = `rgba(${col},0.8)`; ctx.lineWidth = 2.6; ctx.stroke();
     ctx.beginPath(); ctx.arc(0, 0, rh, 0, TAU); ctx.fillStyle = '#000'; ctx.fill();
     ctx.restore();
+    disque(cx, cy, rh, u, col0, true);
   }
   // le point de lumière, juste avant de recracher
   // (il naît au cœur du trou qui se referme : le disque noir rétrécit autour de lui, il ne s'allume pas d'un coup)
   if (u > 0.9) { const k = sm((u - 0.9) / 0.1); ctx.save(); ctx.fillStyle = '#F4F4EE'; ctx.beginPath(); ctx.arc(cx, cy, Math.min(rh * 0.8, 1 + k * 5) + k * 2, 0, TAU); ctx.fill(); ctx.restore(); }
+}
+// le disque : des traits courts sur des orbites plates, plus rapides près du trou (Kepler), plus clairs du côté qui vient vers nous
+function disque(cx, cy, rh, u, col, devant) {
+  if (!T.DQ) T.DQ = Array.from({ length: W < 760 ? 150 : 260 }, () => ({ r: 1.35 + 3.6 * Math.pow(Math.random(), 1.5), a: rnd(0, TAU), l: rnd(0.12, 0.45), w: rnd(0.8, 2.4), v: rnd(0.8, 1.2) }));
+  const pousse = sm((u - 0.06) / 0.3); if (pousse <= 0) return;
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(-0.12); ctx.lineCap = 'round'; ctx.strokeStyle = `rgb(${col})`;
+  for (const q of T.DQ) {
+    const r = rh * (1 + (q.r - 1) * pousse), a = q.a + u * DUREE * q.v * 7 / Math.pow(q.r, 1.5);
+    if ((Math.sin(a) > 0) !== devant) continue;
+    ctx.globalAlpha = 0.25 + 0.6 * (0.5 + 0.5 * Math.cos(a)) * (1.2 - q.r / 5); ctx.lineWidth = q.w;
+    ctx.beginPath(); for (let k = 0; k <= 5; k++) { const b = a - q.l * k / 5; const px = Math.cos(b) * r, py = Math.sin(b) * r * 0.2; k ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.stroke();
+  }
+  ctx.restore();
+}
+// la lentille : l'arrière du disque, courbé par la gravité, fait un arc par-dessus le trou (et un plus fin par-dessous)
+function lentille(cx, cy, rh, u, col) {
+  const k = sm((u - 0.12) / 0.3); if (k <= 0) return;
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(-0.12); ctx.lineCap = 'round'; ctx.strokeStyle = `rgb(${col})`;
+  for (let i = 0; i < 7; i++) { const r = rh * (1.22 + i * 0.13 * k);
+    ctx.setLineDash([rh * (0.3 + 0.2 * Math.sin(i * 2.1)), rh * (0.08 + 0.04 * i)]); ctx.lineDashOffset = -u * DUREE * rh * (3 - i * 0.25);
+    ctx.globalAlpha = k * (0.95 - i * 0.09); ctx.lineWidth = 2.8 - i * 0.28;
+    ctx.beginPath(); ctx.ellipse(0, -rh * 0.05, r, r * 0.92, 0, Math.PI * 1.04, Math.PI * 1.96); ctx.stroke();
+    if (i < 3) { ctx.globalAlpha = k * (0.5 - i * 0.12); ctx.beginPath(); ctx.ellipse(0, rh * 0.03, r * 0.96, r * 0.8, 0, Math.PI * 0.1, Math.PI * 0.9); ctx.stroke(); } }
+  ctx.setLineDash([]); ctx.restore();
+}
+// les lambeaux : des morceaux de la photo, aux bords déchirés
+function lambeaux(u) {
+  const { cx, cy, R, snap } = T;
+  if (!T.LB) { T.LB = []; const n = W < 760 ? 22 : 40;
+    for (let i = 0; i < n; i++) { const x0 = rnd(0.04, 0.96) * W, y0 = rnd(0.06, 0.94) * H, r0 = Math.hypot(x0 - cx, y0 - cy), s = rnd(16, 44) * Math.min(1.3, Math.max(0.7, W / 1200));
+      if (r0 < R * 0.12) continue; const m = r0 / R;
+      T.LB.push({ x0, y0, r0, a0: Math.atan2(y0 - cy, x0 - cx), s, ud: 0.05 + m * 0.5 - rnd(0.02, 0.06), sp: rnd(4, 11) * (Math.random() < 0.5 ? -1 : 1), fl: rnd(3, 9), bord: (() => { const p1 = rnd(0, TAU), p2 = rnd(0, TAU), a2 = rnd(0.15, 0.35); return Array.from({ length: 26 }, (_, j) => { const b = j / 26 * TAU; return [b, 0.8 + a2 * Math.sin(2 * b + p1) + 0.12 * Math.sin(3 * b + p2) + rnd(-0.07, 0.07)]; }); })() }); } }
+  for (const L of T.LB) {
+    const e = easeIn((u - L.ud) / 0.32); if (e <= 0 || e >= 0.995) continue;
+    const r = L.r0 * Math.pow(1 - e, 1.25), a = L.a0 + e * 3 + e * e * 6, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r * 0.82, f = Math.max(0.05, Math.pow(1 - e, 0.7));
+    // il se retourne en tombant (une feuille qui vrille) : de dos, c'est du papier blanc ; son ombre le décolle de la page
+    const fl = Math.cos(e * L.fl), fx = Math.sign(fl || 1) * Math.max(0.08, Math.abs(fl));
+    ctx.save(); ctx.translate(x, y); ctx.rotate(L.sp * e * e); ctx.scale(f * fx, f);
+    ctx.beginPath(); L.bord.forEach(([b, k], j) => { const px = Math.cos(b) * L.s * k, py = Math.sin(b) * L.s * k; j ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }); ctx.closePath();
+    ctx.save(); ctx.translate(L.s * 0.12, L.s * 0.16); ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fill(); ctx.restore();
+    ctx.save(); ctx.clip(); if (fl > 0) ctx.drawImage(snap, cx - R - L.x0, cy - R - L.y0, 2 * R, 2 * R); else { ctx.fillStyle = '#ECEDE9'; ctx.fill(); } ctx.restore();
+    ctx.lineJoin = 'round'; ctx.strokeStyle = `rgba(${melange(T.ink, [244, 244, 238], sm((u - 0.3) / 0.4))},0.9)`; ctx.lineWidth = 1.4 / f; ctx.stroke();
+    ctx.restore();
+  }
 }
 // le menu, le cadre : ils tournent vers le trou, eux aussi (en CSS : ils sont en HTML)
 function tourneCouches(u) {
