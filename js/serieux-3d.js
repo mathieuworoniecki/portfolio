@@ -904,6 +904,12 @@ function archive() {   // Archon : la pile avale, chaque document passe sous le 
   const AR = [[0, 1], [0, 2], [0, 3], [0, 4], [1, 5], [2, 6], [3, 7], [4, 7], [1, 3], [2, 4], [5, 8], [3, 8], [6, 9], [4, 9], [1, 10], [0, 10], [2, 11], [0, 11], [8, 7], [9, 7]];
   const E = []; AR.forEach(([a, b]) => E.push(NP[a], NP[b])); const lien = traits(E, o.m.d); gr.g.add(lien);
   const vif = segments(AR.length, o.m.a); gr.g.add(vif.l);   // les liens qui viennent de naître s'allument
+  /* derrière, les milliers d'autres documents : une constellation d'entités qui se relient peu à peu, sur toute la largeur */
+  const NB = 360, cst = new T.Group(); cst.position.set(0, 1.0, -1.1); gr.g.add(cst); const BP = [];
+  for (let i = 0; i < NB; i++) { const u = rnd() * TAU, c = rnd() * 2 - 1, r = Math.cbrt(rnd()), sq = Math.sqrt(1 - c * c); BP.push([Math.cos(u) * sq * r * 3.4, c * r * 1.05, Math.sin(u) * sq * r * 1.3]); }
+  const bp = new T.BufferGeometry(); bp.setAttribute('position', new T.Float32BufferAttribute(BP.flat(), 3)); const CM = new T.PointsMaterial({ color: ENCRE.clone(), size: 2.2, sizeAttenuation: false, transparent: true, depthWrite: false }), bpts = new T.Points(bp, CM); bpts.renderOrder = 2; cst.add(bpts);
+  const BL = []; BP.forEach((p, i) => { let m = -1, dm = 9; for (let j = 0; j < i; j++) { const q = BP[j], d = Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]); if (d < dm) { dm = d; m = j; } } if (m >= 0 && dm < 0.6) BL.push(p, BP[m]); });
+  const blien = traits(BL, o.m.s); cst.add(blien);
   const monte = points(12, o.m.pa); o.g.add(monte.p);
   let lu = -1, ne = 0;
   o.tick = (t, v) => {
@@ -927,6 +933,7 @@ function archive() {   // Archon : la pile avale, chaque document passe sous le 
     AR.forEach(([a, b], j) => { const neuf = ok[j] && (b === vis - 1 || a === vis - 1), e = neuf ? sm(u * 2) : 0;
       vif.pos.set(neuf ? [...NP[a], NP[a][0] + (NP[b][0] - NP[a][0]) * e, NP[a][1] + (NP[b][1] - NP[a][1]) * e, NP[a][2] + (NP[b][2] - NP[a][2]) * e] : [0, -9, 0, 0, -9, 0], j * 6); });
     vif.a.needsUpdate = true;
+    const nb = BL.length / 2, g2 = Math.floor(((t * 0.05) % 1.25) * nb); blien.geometry.setDrawRange(0, Math.min(nb, g2) * 2); cst.rotation.y = t * 0.03; CM.opacity = o.op * 0.55;   // la constellation se tisse, puis recommence
   };
   o.rot = t => [0.3, -0.5 + Math.sin(t * 0.2) * 0.18];
 }
