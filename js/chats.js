@@ -1003,17 +1003,37 @@ function towerFrame(dt) {
     T.w += dt * (0.05 + up * (T.grand ? 0.09 : 0.14)); const bs = Wd.P.bassin, x0 = xOf(T.boxes[0]), dir = T.dir || (T.dir = bs && !bs.held && Math.abs(xOf(bs) - x0) < Wd.W * 0.35 && Math.random() < 0.7 ? sgn(xOf(bs) - x0) : Math.random() < 0.5 ? -1 : 1);   // (27/09 : le bassin à côté l'attire : tout le monde à l'eau)
     T.boxes.forEach((b, i) => { if (b.on && i) b.tilt = Math.sin(T.t * 5 + i * 0.6) * T.w * 0.03 * i + dir * T.w * 0.02 * i; });
     if (T.grand && T.w > 0.6 && Wd.t > (T.gr || 0)) { T.gr = Wd.t + 0.7; Wd.shake = { t0: Wd.t, a: 2 }; const b = T.boxes[T.boxes.length - 1]; Wd.fx.push({ k: 'txt', text: pick(['criiic', 'ça penche…', 'oh oh', 'crrraaac']), x: xOf(b) + dir * 40, y: b.y - sOf(b.d) * 0.4, t0: Wd.t, life: 1, rot: dir * 0.2, size: 20 }); }
-    if (T.w > 1 || T.t > 22) {
+    // (vague 6, l'audit : « l'écroulement manque de spectacle ») : la grande tour ne tombe pas d'un bloc. Un moment suspendu : elle se courbe
+    // loin au-dessus du vide, tout se fige, « oh non. »… puis elle se défait de haut en bas, caisse après caisse, les chats perchés sont éjectés
+    if (T.grand && T.w > 1 && !T.suspens) { T.suspens = Wd.t; const b = T.boxes[T.boxes.length - 1];
+      Wd.fx.push({ k: 'txt', text: pick(['oh non.', '…', 'euh…']), x: xOf(b) + dir * 30, y: b.y - sOf(b.d) * 0.9, t0: Wd.t, life: 1, rot: 0, size: 22 });
+      Wd.cats.forEach(k => { if (k.perch && k.perch.it.tower === T && Math.random() < 0.6) say(k, pick(['!', '!!', 'oups'])); }); }
+    if (T.suspens) T.boxes.forEach((b, i) => { if (b.on && i) b.tilt = dir * (0.05 + Math.min(1, (Wd.t - T.suspens) / 0.7) * 0.07) * i; });
+    if ((T.w > 1 && (!T.grand || Wd.t - T.suspens > 0.75)) || T.t > 22) {
       T.phase = 'chute'; T.t = 0;
-      const G = T.grand ? 1.7 : 1;
-      T.boxes.forEach((b, i) => { if (!i) return; const s = sOf(b.d); b.deTour = Wd.t; drop(b, dir * s * (0.5 + i * 0.35) * rnd(0.7, 1.3) * G * (T.grand ? rnd(0.3, 1.2) : 1), s * rnd(0.2, 1) * G, -dir * rnd(1.5, 4.5) * G); b.dT = clamp(T.d + rnd(-0.35, 0.35) * G, 0, 1);
-        if (T.grand) later(0.2 + i * 0.08, () => { if (Wd.props.includes(b)) dust(xOf(b), b.y, s * 0.6, 1); }); });
+      const G = T.grand ? 1.7 : 1, n = T.boxes.length;
+      T.boxes.forEach((b, i) => { if (!i) return; const s = sOf(b.d), part = () => { if (!Wd.props.includes(b)) return; b.deTour = Wd.t;
+        // les chats perchés sur cette caisse : éjectés en l'air, en vrille
+        Wd.cats.forEach(k => { if (!k.perch || k.perch.it !== b) return; interrupt(k); k.perch = null; k.fall = true; k.vx = dir * sOf(k.d) * rnd(2.5, 5.5); k.vy = -sOf(k.d) * rnd(2.5, 4.5); k.spin = dir * rnd(4, 8); if (Math.random() < 0.7) say(k, pick(['WAAAH', 'miaaaou !', 'au secours !', 'yiiik'])); });
+        drop(b, dir * s * (0.5 + i * 0.35) * rnd(0.7, 1.3) * G * (T.grand ? rnd(0.3, 1.2) : 1), s * rnd(0.2, 1) * G, -dir * rnd(1.5, 4.5) * G); b.dT = clamp(T.d + rnd(-0.35, 0.35) * G, 0, 1);
+        if (T.grand) later(0.2, () => { if (Wd.props.includes(b)) dust(xOf(b), b.y, s * 0.6, 1); }); };
+        if (T.grand) later((n - 1 - i) * 0.1, part); else part(); });
       const b = T.boxes[T.boxes.length - 1]; dust(xOf(b), b.y, sOf(b.d) * 0.8, 1);
       Wd.shake = { t0: Wd.t, a: T.grand ? 14 : 7 };
       if (T.grand) Wd.fx.push({ k: 'txt', text: 'PATATRAS !', x: clamp(xOf(T.boxes[0]) + dir * 60, 150, Wd.W - 150), y: floorAt(T.d) - sOf(T.d) * 2.6, t0: Wd.t, life: 2.2, rot: -0.12 * dir, size: 52 });
       if (window.Rares && Rares.panique) Rares.panique(xOf(T.boxes[0]));   // (la panique, comme pour le géant : js/rares.js)
       Wd.fx.push({ k: 'txt', text: 'boum !', x: xOf(T.boxes[0]), y: floorAt(T.d) - sOf(T.d) * 1.6, t0: Wd.t, life: 1.6, rot: -0.1, size: 26 });
     }
+  } else if (T.phase === 'chute' && T.t <= 10) {
+    // à l'impact, une caisse de la grande tour fait BAM, et parfois s'ouvre : un chat caché dedans en jaillit (« coucou ! ») et détale
+    if (T.grand) T.boxes.forEach(b => { if (b.deTour && b.wasFall && !b.fall && !b.impact && Wd.props.includes(b)) { b.impact = true; const s = sOf(b.d);
+      dust(xOf(b), floorAt(b.d), s * 0.5, 0.9); Wd.shake = { t0: Wd.t, a: 3 };
+      Wd.fx.push({ k: 'txt', text: pick(['BAM', 'boum', 'CRAC', 'pouf', 'bonk']), x: xOf(b) + rnd(-20, 20), y: b.y - s * 0.5, t0: Wd.t, life: 0.9, rot: rnd(-0.3, 0.3), size: 20 });
+      if ((T.caches || 0) < 2 && Math.random() < 0.4 && residents().length < MAXC + 3) { T.caches = (T.caches || 0) + 1; const f = Math.random() < 0.5 ? -1 : 1, k = addCat({ temp: true, d: b.d, face: f });
+        k.x = xOf(b); k.y = b.y - s * 0.3; k.fall = true; k.vx = f * s * rnd(1, 2.5); k.vy = -s * rnd(3.5, 5); k.spin = f * 6.28;
+        later(0.4, () => say(k, pick(['coucou !', 'on m’a oublié ?', 'surprise !', 'j’étais dedans !'])));
+        k.q = [pose('assis', 0.8), go(f > 0 ? Wd.W + sc(k) * 2 : -sc(k) * 2, { g: 'galop', v: 1.2 }), fn(k => { k.gone = true; })]; if (window.Dex) Dex.vu('surprise'); } }
+      b.wasFall = b.fall; });
   } else if (T.phase === 'chute' && T.t > 10) {
     // (vague 3 de l'audit : les caisses ne s'effacent plus) : l'équipe du ménage débarque au galop et les pousse hors de l'écran
     T.phase = 'fin'; T.t = 0; const L = T.boxes.filter(b => Wd.props.includes(b)); L.forEach(b => { b.balaiOK = true; });

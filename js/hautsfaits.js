@@ -108,7 +108,26 @@ function suivant() {
       c.q = [K.pose('miaule', 0.9, { fx: c => K.say(c, T(['bravo !', 'ouais !', 'trop fort !', 'miaou !'][Math.floor(Math.random() * 4)], ['bravo!', 'yes!', 'wow!', 'meow!'][Math.floor(Math.random() * 4)])) }), K.hop(() => K.groundAt(c.x, c.d), { h: K.sc(c) * 0.9 }), K.pose('assis', 1.2)]; }, 350 + i * 500)); }
   clearTimeout(finT); finT = setTimeout(ferme, 5000);
 }
-function ferme() { clearTimeout(finT); scene.classList.add('part'); setTimeout(() => { scene.classList.remove('go', 'part'); scene.hidden = true; joue = false; setTimeout(suivant, 300); }, 380); }
+function ferme() { clearTimeout(finT); if (scene.classList.contains('part')) return; vole(); scene.classList.add('part'); setTimeout(() => { scene.classList.remove('go', 'part'); scene.hidden = true; joue = false; setTimeout(suivant, 300); }, 380); }
+// (vague 6, l'audit : « le déblocage ne va nulle part ») : rien ne s'efface. Le badge quitte la carte, file en arc jusqu'au bouton des hauts faits
+// en tournant et en rapetissant, semant des étincelles ; le bouton l'avale, rebondit, et son compteur saute. La carte, elle, glisse hors de l'écran.
+function vole() {
+  const b = scene.querySelector('.hf-badge'), r0 = b && b.getBoundingClientRect(), r1 = btn && btn.getBoundingClientRect();
+  if (!r0 || !r0.width || !r1 || !r1.width || r1.right < 0 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const v = b.cloneNode(true); v.classList.add('hf-vol'); v.style.cssText = `position:fixed;left:0;top:0;width:${r0.width}px;height:${r0.height}px;z-index:36;pointer-events:none;color:${getComputedStyle(scene).color}`;
+  v.style.setProperty('--c', scene.style.getPropertyValue('--c')); document.body.appendChild(v); b.style.visibility = 'hidden';
+  const x0 = r0.left + r0.width / 2, y0 = r0.top + r0.height / 2, x1 = r1.left + r1.width / 2, y1 = r1.top + r1.height / 2;
+  const cx = (x0 + x1) / 2, cy = Math.min(y0, y1) - Math.min(260, Math.abs(x1 - x0) * 0.35) - 40, k1 = r1.width * 0.8 / r0.width, D = 900, t0 = performance.now();
+  let pe = 0;
+  const pas = now => { const u = Math.min(1, (now - t0) / D), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2, a = 1 - e;
+    const x = a * a * x0 + 2 * a * e * cx + e * e * x1, y = a * a * y0 + 2 * a * e * cy + e * e * y1, sc = (1 + Math.sin(u * Math.PI) * 0.25) * (1 + (k1 - 1) * e);
+    v.style.transform = `translate(${x - r0.width / 2}px,${y - r0.height / 2}px) scale(${sc}) rotate(${e * 720}deg)`;
+    if (now - pe > 40 && u < 0.95) { pe = now; const f = document.createElement('i'); f.className = 'hf-etin'; f.style.left = x + 'px'; f.style.top = y + 'px'; document.body.appendChild(f); setTimeout(() => f.remove(), 700); }
+    if (u < 1) requestAnimationFrame(pas);
+    else { v.remove(); btn.classList.remove('hf-avale'); void btn.offsetWidth; btn.classList.add('hf-avale'); setTimeout(() => btn.classList.remove('hf-avale'), 700);
+      const G = window.Scenarios && Scenarios.gerbe; if (G && Wd.W) G(x1, y1, 10, 180); } };
+  requestAnimationFrame(pas);
+}
 scene.addEventListener('click', e => { e.stopPropagation(); ferme(); ouvre(); });
 ['pointerdown', 'wheel', 'touchstart'].forEach(t => scene.addEventListener(t, e => e.stopPropagation(), { passive: t !== 'pointerdown' }));
 
