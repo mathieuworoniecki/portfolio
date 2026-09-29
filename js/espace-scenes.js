@@ -716,14 +716,26 @@ S.devops = (() => ({
     ST.forEach((t, i) => { const p = at(t), [tx, tz] = nor(t), G3 = (u, v, d) => V(p[0] - tz * u + tx * d, p[1] + v, p[2] + tx * u + tz * d);
       const vif = conts.some(u => Math.abs(Math.atan2(Math.sin(u - t), Math.cos(u - t))) < 0.12);
       [[-0.15, -0.12], [0.12, 0.15]].forEach(([u0, u1]) => prisme(G3, [[u0, 0], [u1, 0], [u1, -0.24], [u0, -0.24]], 0.04, 1, 0.7)); prisme(G3, [[-0.16, -0.22], [0.16, -0.22], [0.16, -0.28], [-0.16, -0.28]], 0.05, 1, 0.7);
-      if (vif) { const q = G3(0, -0.25, 0); brille(q[0], q[1], 4, 1, true, now, i); }
+      // (vague 7, l'audit : « des portiques plats, qui ne font rien ») : chaque portique agit sur ce qui passe dessous.
+      // build : une presse descend et tamponne la boîte ; test : une coche jaillit ; déploie : la boîte file dans un petit nuage de papier ; surveille : un œil la suit
+      const pr = conts.reduce((m, u) => Math.min(m, Math.abs(Math.atan2(Math.sin(u - t), Math.cos(u - t)))), 9), e = Math.max(0, 1 - pr / 0.25);
+      if (i === 0) { const y = -0.2 + Math.sin(e * Math.PI / 2) * 0.1; prisme(G3, [[-0.02, -0.28], [0.02, -0.28], [0.02, y - 0.02], [-0.02, y - 0.02]], 0.03, 1, 0.6); prisme(G3, [[-0.08, y - 0.02], [0.08, y - 0.02], [0.08, y + 0.01], [-0.08, y + 0.01]], 0.08, 1, 0.7);
+        if (e > 0.85) { const q = G3(0, -0.02, 0); mot('tchac', q[0] + k * 0.12, q[1] - k * 0.05, Math.max(10, k * 0.055), e); } }
+      else if (i === 1 && e > 0.2) { const q = G3(0, -0.36 - e * 0.08, 0), r = k * 0.045 * q[3] * (0.6 + e * 0.4);
+        cerne(() => { ctx.beginPath(); ctx.moveTo(q[0] - r, q[1]); ctx.lineTo(q[0] - r * 0.25, q[1] + r * 0.75); ctx.lineTo(q[0] + r * 1.1, q[1] - r * 0.9); }, 1.8, e, null); }
+      else if (i === 2) { const q = G3(0, -0.34, 0), r = k * 0.05 * q[3] * (1 + e * 0.35);
+        cerne(() => { ctx.beginPath(); ctx.arc(q[0] - r * 0.7, q[1], r * 0.55, Math.PI * 0.5, Math.PI * 1.5); ctx.arc(q[0], q[1] - r * 0.35, r * 0.75, Math.PI, 0); ctx.arc(q[0] + r * 0.75, q[1], r * 0.5, Math.PI * 1.5, Math.PI * 0.5); ctx.closePath(); }, 1, 1);
+        if (e > 0.3) mot('↑', q[0], q[1] + r * 0.2, Math.max(10, k * 0.06), e); }
+      else if (i === 3) { const q = G3(0, -0.36, 0), r = k * 0.05 * q[3], near = conts.map(u => [u, Math.atan2(Math.sin(u - t), Math.cos(u - t))]).sort((a, b) => Math.abs(a[1]) - Math.abs(b[1]))[0], lo = clamp(-near[1] * 2, -1, 1);
+        cerne(() => { ctx.beginPath(); ctx.moveTo(q[0] - r * 1.2, q[1]); ctx.quadraticCurveTo(q[0], q[1] - r * 0.95, q[0] + r * 1.2, q[1]); ctx.quadraticCurveTo(q[0], q[1] + r * 0.95, q[0] - r * 1.2, q[1]); ctx.closePath(); }, 1, 1);
+        ctx.fillStyle = ENC; ctx.beginPath(); ctx.arc(q[0] + lo * r * 0.45, q[1], r * 0.32, 0, TAU); ctx.fill(); ctx.fillStyle = PAP; ctx.beginPath(); ctx.arc(q[0] + lo * r * 0.45 - r * 0.1, q[1] - r * 0.1, r * 0.09, 0, TAU); ctx.fill(); }
       });
     // les conteneurs : de vraies petites boîtes, orientées dans le sens de la marche
     conts.map((t, q) => ({ t, q, p: at(t) })).sort((p, q) => p.p[2] - q.p[2]).forEach(({ t, q, p }) => { const [tx, tz] = nor(t), c = (u, w, y) => V(p[0] + tx * u - tz * w, p[1] + y, p[2] + tz * u + tx * w);
       prisme((u, v, d) => c(u, d, v), [[-0.08, 0], [0.08, 0], [0.08, -0.09], [-0.08, -0.09]], 0.1, prof(c(0, 0, 0)[2], 1), 0.6);
       if (q === 0) { const h = c(0, 0, -0.09), r = k * 0.05 * h[3]; chabot(h[0], h[1] - r * 1.7, r, { now, v: 1, lac: 0.5, bras: [1.3, 1.3] }); } });
     // le monitoring : un écran, son pouls qui défile
-    ST.forEach((t, i) => { const p = at(t), m = V(p[0], p[1] - 0.42, p[2]); mot(lab[i], m[0], m[1], Math.max(11, k * 0.08), 1); });
+    ST.forEach((t, i) => { const p = at(t), m = V(p[0], p[1] - 0.47, p[2]); mot(lab[i], m[0], m[1], Math.max(11, k * 0.08), 1); });
     const mw = Math.min(0.9, lx * 0.5) * k, mh = 0.2 * k, mc = [G.cx, G.cy - k * 0.72]; ecran(mc[0] - mw / 2, mc[1] - mh / 2, mw, mh, k * 0.06, 5);
     const M = []; for (let i = 0; i <= 70; i++) { const u = i / 70, t = u * 3.5 - now * 0.8, f = t - Math.floor(t), b = f > 0.4 && f < 0.5 ? Math.sin((f - 0.4) / 0.1 * TAU) * 0.35 : 0; M.push([mc[0] - mw * 0.45 + u * mw * 0.9, mc[1] - b * mh]); } trait(M, false, 0.8, 1);
   }
