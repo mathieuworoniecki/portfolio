@@ -1048,20 +1048,28 @@ function preuve(M) {
   const aiguille = trait([[0, 0.01, 0], [0.98, 0.01, 0]], L[2].a); hor.add(aiguille);
   const NET = 60, etin = points(NET, L[2].pa); hor.add(etin.p);   // chaque barre que l'aiguille franchit lâche des commits, au prorata de son heure
   /* 3 — deux tours : le produit (1,2 M de lignes), ses tests (0,9 M) ; une dalle = 100 000 lignes */
-  const tours = new T.Group(); tours.position.y = -0.5; R.add(tours); const DAL = [];
-  [[-0.38, 12, L[3].l], [0.38, 9, L[3].a]].forEach(([x, n, m], j) => { for (let k = 0; k < n; k++) { const g = new T.Group(); g.position.set(x, k * 0.085, 0); tours.add(g); solide(g, new T.BoxGeometry(0.46, 0.07, 0.46).translate(0, 0.035, 0), m); DAL.push({ g, k, j }); } });
-  tours.add(trait([[-0.75, 0, 0.4], [0.75, 0, 0.4]], L[3].s));
+  const tours = new T.Group(); tours.position.y = -0.62; tours.scale.setScalar(1.3); R.add(tours); const DAL = [];
+  const HD = 0.1;   // une dalle : 0,085 d'épaisseur, 0,1 de pas ; sur ses faces, des lignes de code indentées
+  [[-0.4, 12, L[3].l], [0.4, 9, L[3].a]].forEach(([x, n, m], j) => { for (let k = 0; k < n; k++) { const g = new T.Group(); g.position.set(x, k * HD, 0); tours.add(g); solide(g, new T.BoxGeometry(0.5, 0.085, 0.5).translate(0, 0.0425, 0), m);
+    const lg = []; for (let r = 0; r < 4; r++) { const y = 0.017 + r * 0.017, ind = [0, 1, 2, 1, 0, 2, 3][(k * 3 + r + j) % 7] * 0.05, w = 0.1 + ((k * 7 + r * 5 + j * 3) % 5) * 0.045;
+      lg.push([-0.22 + ind, y, 0.252], [-0.22 + ind + w, y, 0.252], [0.252 * (j ? 1 : -1), y, 0.22 - ind], [0.252 * (j ? 1 : -1), y, 0.22 - ind - w]); }
+    g.add(traits(lg, L[3].s)); DAL.push({ g, k, j }); } });
+  const NFL = 90, flux = segments(NFL, L[3].l), FL = Array.from({ length: NFL }, () => ({ o: rnd(), a: rnd() * TAU, w: 0.04 + rnd() * 0.08, j: rnd() < 0.57 ? 0 : 1 })); tours.add(flux.l);   // les lignes montent en spirale et se tassent en dalle
+  tours.add(trait([[-0.8, 0, 0.42], [0.8, 0, 0.42]], L[3].s));
   const liens = segments(9, L[3].d); tours.add(liens.l);   // chaque étage de tests est relié à l'étage de code qu'il couvre
-  const grue = new T.Group(); tours.add(grue); grue.add(trait([[-0.38, 0, 0], [-0.38, 0.35, 0], [0.38, 0.35, 0], [0.38, 0, 0]], L[3].s)); const cable = segments(2, L[3].l); grue.add(cable.l);
-  /* 4 — l'anneau : 100 crans, 95 pour moi et mes agents */
-  const ann = new T.Group(); ann.position.y = -0.1; R.add(ann); const CR = [];
-  for (let k = 0; k < 100; k++) { const a = k / 100 * TAU - Math.PI / 2, g = new T.Group(); g.position.set(Math.cos(a) * 0.85, 0, Math.sin(a) * 0.85); g.rotation.y = -a; ann.add(g);
-    solide(g, new T.BoxGeometry(0.03, 0.14, 0.02).translate(0, 0.07, 0), k < 95 ? L[4].a : L[4].l); g.scale.y = 0.001; CR.push(g); }
-  ann.add(trait(cercleH(0.72, 96), L[4].s, true)); { const c = new T.Group(); c.position.y = 0.05; ann.add(c); boule(o, c, 0.12, L[4].a); }
+  const grue = new T.Group(); tours.add(grue); grue.add(trait([[-0.4, 0, 0], [-0.4, 0.35, 0], [0.4, 0.35, 0], [0.4, 0, 0]], L[3].s)); const cable = segments(2, L[3].l); grue.add(cable.l);
+  /* 4 — la galaxie des commits : 1 205 étoiles (une pour dix commits) ; 95 % sortent du centre, de moi et de mes six agents, chacun lance son bras ; 5 % arrivent de l'extérieur, du second développeur */
+  const ann = new T.Group(); ann.position.y = -0.1; R.add(ann); { const c = new T.Group(); c.position.y = 0.05; ann.add(c); boule(o, c, 0.1, L[4].a); }
   const AG = []; for (let i = 0; i < 6; i++) { const g = new T.Group(); ann.add(g); solide(g, new T.OctahedronGeometry(0.045), L[4].l, 1); AG.push(g); }   // mes agents, en orbite autour de moi
-  const tirs = segments(8, L[4].a); ann.add(tirs.l);   // chaque cran posé part du centre (moi et mes agents) ; les 5 derniers viennent de l'extérieur
+  const NG = 1145, NX = 60, GM = new T.PointsMaterial({ color: ACCENT.clone(), size: 2.6, sizeAttenuation: false, transparent: true, depthWrite: false }), gal = points(NG, GM), ext = points(NX, L[4].p); ann.add(gal.p); ann.add(ext.p);
+  const GP = Array.from({ length: NG }, (_, i) => { const r = 0.22 + 0.93 * Math.pow(rnd(), 0.8); return { bras: i % 6, r, a: (i % 6) / 6 * TAU + r * 2.6 + (rnd() - 0.5) * 0.8 * (1.25 - r), y: (rnd() - 0.5) * 0.09 * (1.25 - r), o: i / NG * 0.94 + rnd() * 0.06, tw: rnd() * TAU }; });
+  const XP = Array.from({ length: NX }, () => ({ r: 0.85 + rnd() * 0.3, a: rnd() * TAU, y: (rnd() - 0.5) * 0.04, o: 0.05 + rnd() * 0.9 }));
+  const autre = new T.Group(); autre.position.set(1.55, 0.05, 0.35); ann.add(autre); boule(o, autre, 0.06, L[4].l);   // le second développeur, dehors
+  const jauge = trait(Array.from({ length: 96 }, (_, i) => { const a = i / 100 * TAU - Math.PI / 2; return [Math.cos(a) * 1.28, 0, Math.sin(a) * 1.28]; }), L[4].a), jauge5 = trait(Array.from({ length: 6 }, (_, i) => { const a = (95 + i) / 100 * TAU - Math.PI / 2; return [Math.cos(a) * 1.28, 0, Math.sin(a) * 1.28]; }), L[4].l);
+  ann.add(jauge); ann.add(jauge5); ann.add(trait(cercleH(1.34, 128), L[4].s, true));
+  ann.add(traits([0, 95].map(n => { const a = n / 100 * TAU - Math.PI / 2; return [[Math.cos(a) * 1.24, 0, Math.sin(a) * 1.24], [Math.cos(a) * 1.4, 0, Math.sin(a) * 1.4]]; }).flat(), L[4].l));
   /* la caméra de chaque étape : [rx, ry, zoom] */
-  const VUE = [[0.42, -0.5, 0.95], [0.32, -0.3, 1.0], [0.95, 0.2, 1.05], [0.3, -0.6, 1.05], [1.05, 0, 1.05], [0.5, -0.4, 0.95]];
+  const VUE = [[0.42, -0.5, 0.95], [0.32, -0.3, 1.0], [0.95, 0.2, 1.05], [0.14, -0.55, 1.0], [0.72, 0, 0.92], [0.5, -0.4, 0.95]];
   const cam = { rx: 0.4, ry: -0.5, z: 1 };
   o.rot = t => [cam.rx, cam.ry + Math.sin(t * 0.15) * 0.05];
   o.tick = (t, v) => {
@@ -1083,18 +1091,26 @@ function preuve(M) {
       etin.pos.set(vu ? [Math.cos(aa) * r, b.g.scale.y + u * 0.7, Math.sin(aa) * r] : [0, -99, 0], i * 3); } etin.a.needsUpdate = true;
     /* 3 : les tours, dalle par dalle */
     const k3 = S >= 3 ? k(3) : 0, H3 = [0, 0];
-    DAL.forEach(d => { const e = c01(k3 * 14 - d.k * 0.9 - d.j * 0.5), y0 = d.k * 0.085; d.g.visible = e > 0.02; if (e >= 1) H3[d.j] = Math.max(H3[d.j], d.k + 1);
+    DAL.forEach(d => { const e = c01(k3 * 14 - d.k * 0.9 - d.j * 0.5), y0 = d.k * HD; d.g.visible = e > 0.02; if (e >= 1) H3[d.j] = Math.max(H3[d.j], d.k + 1);
       const ch = e < 0.7 ? 1 - sm(e / 0.7) : Math.abs(Math.sin((e - 0.7) / 0.3 * Math.PI)) * 0.05 * (1 - e) / 0.3;   // la dalle tombe, rebondit, se pose
       d.g.position.y = y0 + ch * 1.1; d.g.rotation.y = (1 - sm(e)) * (d.j ? -0.8 : 0.8); });
-    for (let n = 0; n < 9; n++) { const on = n < Math.min(H3[0], H3[1]) && f[3] > 0.05, y = n * 0.085 + 0.035, a = (t * 1.5 + n * 0.3) % 1; liens.pos.set(on ? [-0.15, y, 0.1, lerp(-0.15, 0.15, a < 0.5 ? a * 2 : 1), y, 0.1] : [0, -99, 0, 0, -99, 0], n * 6); } liens.a.needsUpdate = true;
-    { const top = Math.max(H3[0], H3[1]) * 0.085; grue.position.y = top + 0.2; cable.pos.set([-0.38, 0.35, 0, -0.38, 0.35 - 0.2 - 0.3 * ((t * 0.7) % 1), 0, 0.38, 0.35, 0, 0.38, 0.35 - 0.2 - 0.3 * ((t * 0.7 + 0.5) % 1), 0], 0); cable.a.needsUpdate = true; grue.visible = f[3] > 0.05 && k3 < 0.999; }
-    /* 4 : l'anneau, cran par cran */
-    const k4 = S >= 4 ? k(4) : 0; let nt = 0;
-    CR.forEach((g, i) => { const b = k4 * 3 - i / 100 * 1.6, e = sm(b); g.scale.y = Math.max(0.001, e * (i < 95 ? 1 + 0.15 * Math.sin(t * 3 + i * 0.3) : 0.6));
-      if (b > -0.25 && b < 0 && nt < 8 && f[4] > 0.05) { const w = 1 + b / 0.25, a = i / 100 * TAU - Math.PI / 2, P = [Math.cos(a) * 0.85, 0.07, Math.sin(a) * 0.85], O = i < 95 ? [0, 0.05, 0] : [Math.cos(a) * 1.6, 0.07, Math.sin(a) * 1.6];
-        tirs.pos.set([lerp(O[0], P[0], Math.max(0, w - 0.25)), lerp(O[1], P[1], w), lerp(O[2], P[2], Math.max(0, w - 0.25)), lerp(O[0], P[0], w), lerp(O[1], P[1], w), lerp(O[2], P[2], w)], nt * 6); nt++; } });
-    for (; nt < 8; nt++) tirs.pos.set([0, -99, 0, 0, -99, 0], nt * 6); tirs.a.needsUpdate = true;
+    for (let n = 0; n < 9; n++) { const on = n < Math.min(H3[0], H3[1]) && f[3] > 0.05, y = n * HD + 0.04, a = (t * 1.5 + n * 0.3) % 1; liens.pos.set(on ? [-0.15, y, 0.1, lerp(-0.15, 0.15, a < 0.5 ? a * 2 : 1), y, 0.1] : [0, -99, 0, 0, -99, 0], n * 6); } liens.a.needsUpdate = true;
+    FL.forEach((l, i) => { const top = [H3[0], H3[1]][l.j] * HD + 0.05, x = l.j ? 0.4 : -0.4, u = (t * 0.35 + l.o) % 1, r = 0.7 - u * 0.36, a = l.a + u * 5, y = -0.05 + u * (top + 0.1);
+      const vu = f[3] > 0.05 && [H3[0] < 12, H3[1] < 9][l.j]; flux.pos.set(vu ? [x + Math.cos(a) * r, y, Math.sin(a) * r, x + Math.cos(a + l.w / r) * r, y, Math.sin(a + l.w / r) * r] : [0, -99, 0, 0, -99, 0], i * 6); }); flux.a.needsUpdate = true;
+    { const top = Math.max(H3[0], H3[1]) * HD; grue.position.y = top + 0.2; cable.pos.set([-0.4, 0.35, 0, -0.4, 0.35 - 0.2 - 0.3 * ((t * 0.7) % 1), 0, 0.4, 0.35, 0, 0.4, 0.35 - 0.2 - 0.3 * ((t * 0.7 + 0.5) % 1), 0], 0); cable.a.needsUpdate = true; grue.visible = f[3] > 0.05 && k3 < 0.999; }
+    /* 4 : la galaxie se remplit dans l'ordre des commits ; chaque étoile part de l'agent qui l'a faite et glisse le long de son bras */
+    const k4 = S >= 4 ? k(4) : 0, av = k4 * 1.25;
     AG.forEach((g, i) => { const a = t * 0.9 + i * TAU / 6; g.position.set(Math.cos(a) * 0.3, 0.05 + Math.sin(t * 2 + i) * 0.04, Math.sin(a) * 0.3); g.rotation.y = t * 2; });
+    GM.opacity = L[4].pa.opacity;
+    if (f[4] > 0.01) {
+      GP.forEach((p, i) => { const e = c01((av - p.o) / 0.1); if (e <= 0) { gal.pos.set([0, -99, 0], i * 3); return; }
+        const u = sm(e), ag = AG[p.bras].position, a = p.a - (1 - u) * 1.4, r = lerp(0.3, p.r, u), y = p.y + Math.sin(t * 1.3 + p.tw) * 0.012;
+        gal.pos.set([lerp(ag.x, Math.cos(a) * r, u), lerp(ag.y, y, u), lerp(ag.z, Math.sin(a) * r, u)], i * 3); });
+      XP.forEach((p, i) => { const e = c01((av - p.o) / 0.1); if (e <= 0) { ext.pos.set([0, -99, 0], i * 3); return; }
+        const u = sm(e), A = autre.position, x = Math.cos(p.a) * p.r, z = Math.sin(p.a) * p.r; ext.pos.set([lerp(A.x, x, u), lerp(A.y, p.y, u) + Math.sin(u * Math.PI) * 0.2, lerp(A.z, z, u)], i * 3); });
+      gal.a.needsUpdate = true; ext.a.needsUpdate = true;
+    }
+    jauge.geometry.setDrawRange(0, Math.round(96 * c01(av))); jauge5.geometry.setDrawRange(0, av > 0.95 ? Math.round(6 * c01((av - 0.95) / 0.05)) : 0);
     ann.rotation.y = t * 0.12;
   };
 }
