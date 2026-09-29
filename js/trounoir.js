@@ -669,6 +669,14 @@ function boucleSortie(id) {
     ctx.save(); ctx.globalCompositeOperation = 'destination-out'; ctx.beginPath(); ctx.arc(RV.cx, RV.cy, rr, 0, TAU); ctx.fill(); ctx.restore();
     ctx.save(); ctx.strokeStyle = `rgb(${ink})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(RV.cx, RV.cy, rr, 0, TAU); ctx.stroke(); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(RV.cx, RV.cy, rr * 0.94 + 2, 0, TAU); ctx.stroke(); ctx.restore();
   }
+  // (vague 30, l'audit : « le retour ») : l'espace ne s'efface pas autour du passage, il se casse : à mesure que le bord avance, des éclats
+  // du ciel noir (chacun avec son étoile) s'en détachent et sont projetés vers les bords de l'écran en tournoyant
+  if (!reduit) { if (!RV.ec) RV.ec = Array.from({ length: W < 760 ? 26 : 44 }, () => ({ a: rnd(0, TAU), z0: rnd(0.04, 0.75), s: rnd(10, 30) * Math.min(1.4, Math.max(0.7, W / 1100)), sp: rnd(-9, 9), v: rnd(0.5, 1.1), P: Array.from({ length: 7 }, (_, j) => [j / 7 * TAU + rnd(-0.25, 0.25), rnd(0.55, 1.05)]) }));
+    const Rm = RV.R * 1.02;
+    RV.ec.forEach(q => { if (z < q.z0) return; const d = (u - q.z0 * 0.62) * DS, r = 4 + q.z0 * Rm + d * q.v * Math.hypot(W, H) * 0.55, x = RV.cx + Math.cos(q.a) * r, y = RV.cy + Math.sin(q.a) * r;
+      if (x < -60 || x > W + 60 || y < -60 || y > H + 60) return; const sc2 = 1 + d * 0.8;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(q.sp * d); ctx.scale(sc2 * Math.cos(d * 4 + q.a), sc2); ctx.beginPath(); q.P.forEach(([b, k], j) => { const px = Math.cos(b) * q.s * k, py = Math.sin(b) * q.s * k; j ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }); ctx.closePath();
+      ctx.fillStyle = '#0b0d12'; ctx.fill(); ctx.strokeStyle = '#F4F4EE'; ctx.lineWidth = 1.3 / sc2; ctx.lineJoin = 'round'; ctx.stroke(); brille(ctx, 0, 0, 1.6, 0.9, q.s > 22, now, q.a); ctx.restore(); }); }
   X.devant.forEach(f => f(ctx, now));
   requestAnimationFrame(() => boucleSortie(id));
 }
