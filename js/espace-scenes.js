@@ -986,8 +986,21 @@ S.pilotage = (() => {
         if (o.sorte === 'etoile') { E.jal++; E.mots.push({ t: '+1', x: o.x, z: zb + 1, t0: now }); } else { E.bonk = now; E.mots.push({ t: pick2(['bonk', 'boum', 'ouille'], o.n), x: o.x, z: zb + 1, t0: now }); } });
       E.obs = E.obs.filter(o => o.z > 0.8 && !(o.fini && now - o.fini > 0.5));
       // dessin, du fond vers nous
+      // (vague 27, l'audit : « le bus ») : des portiques d'autoroute enjambent la route, un panneau par étape de la feuille de route
+      // (les mots du sous-titre) ; ils arrivent de l'horizon et passent au-dessus du bus
+      const PQ = en() ? ['Tech lead', 'Management', 'Mentoring', 'Augmented dev', 'Agile', 'ADR', 'Pre-sales'] : ['Tech lead', 'Management', 'Mentorat', 'Dév. augmenté', 'Agile', 'ADR', 'Avant-vente'];
+      const portique = () => { const per = 4.6, n = Math.floor(now / per), z = 44 - (now / per - n) * per * V; if (z < 1.2 || z > 44) return null; return { z, txt: PQ[n % PQ.length] }; }, pq = portique();
+      const dessinePortique = ({ z, txt }) => { ctx.save(); ctx.beginPath(); ctx.rect(G.gauche - 60, G.haut + 4, G.droite - G.gauche + 120, G.caps - G.haut - 4); ctx.clip();
+        const al = c01((44 - z) / 5), H2 = 2.3, g0 = Pp(-2.3, 0, z), g1 = Pp(-2.3, H2, z), d0 = Pp(2.3, 0, z), d1 = Pp(2.3, H2, z), pa = Pp(-1.35, H2 + 0.1, z), pb = Pp(1.35, H2 - 0.6, z);
+        cerne(() => { ctx.beginPath(); ctx.moveTo(g0[0], g0[1]); ctx.lineTo(g1[0], g1[1]); ctx.lineTo(d1[0], d1[1]); ctx.lineTo(d0[0], d0[1]); }, Math.max(0.4, 1.1 * c01(8 / z)), al, null);
+        cerne(() => { ctx.beginPath(); ctx.rect(pa[0], pa[1], pb[0] - pa[0], pb[1] - pa[1]); }, 0.9, al);
+        const hh = pb[1] - pa[1]; if (hh > 6) { ctx.strokeStyle = ENC; ctx.lineWidth = Math.max(0.5, G.lw * 0.35); ctx.strokeRect(pa[0] + hh * 0.08, pa[1] + hh * 0.08, pb[0] - pa[0] - hh * 0.16, hh * 0.84);
+          ctx.save(); ctx.globalAlpha = al; ctx.fillStyle = ENC; let fp = Math.round(hh * 0.42); ctx.font = `700 ${fp}px "Space Grotesk",system-ui,sans-serif`; const mw = (pb[0] - pa[0]) * 0.86, tw = ctx.measureText(txt).width; if (tw > mw) { fp = Math.floor(fp * mw / tw); ctx.font = `700 ${fp}px "Space Grotesk",system-ui,sans-serif`; } ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, (pa[0] + pb[0]) / 2, (pa[1] + pb[1]) / 2 + hh * 0.03); ctx.restore(); }
+        ctx.restore(); };
+      if (pq && pq.z > zb + 0.5) dessinePortique(pq);
       E.obs.filter(o => o.z > zb + 1).sort((p, q) => q.z - p.z).forEach(o => obstacle(o, Pp, now, D));
       bus(Pp, E.bx, zb, roulis, now, E.bonk, a, camX);
+      if (pq && pq.z <= zb + 0.5) dessinePortique(pq);
       E.obs.filter(o => o.z <= zb + 1).sort((p, q) => q.z - p.z).forEach(o => obstacle(o, Pp, now, D));
       E.mots = E.mots.filter(m => now - m.t0 < 0.9); E.mots.forEach(m => { const u = (now - m.t0) / 0.9, p = Pp(m.x, 1.3 + u * 0.6, m.z); mot(m.t, p[0], p[1], Math.max(14, D * 0.08), 1 - u); });
       // le compteur des jalons ; la consigne (la souris prend le volant)
