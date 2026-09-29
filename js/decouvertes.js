@@ -157,6 +157,7 @@ fam('espace', 'L’espace', 'Space', [
   ['astronaute', 'L’astronaute', 'The astronaut', 'Quelque chose flotte, un chat le veut.', 'Something floats by, a cat wants it.'],
   ['nyanespace', 'Nyan dans les étoiles', 'Nyan among the stars', 'Un arc-en-ciel qui traverse l’espace.', 'A rainbow crossing space.'],
   ['cinema', 'La séance', 'Showtime', 'Assis sur la Terre, le nez vers les étoiles.', 'Sitting on the Earth, nose up to the stars.'],
+  ['croquette-espace', 'Croquette de l’espace', 'Space snack', 'Les croquettes aussi passent par le trou noir. Un chat en attrape une au vol.', 'The kibbles go through the black hole too. A cat snaps one mid-float.'],
   ['train', 'Le petit train', 'The little train', 'Pendant la séance, les chats nagent à la queue leu leu au ras de la Terre.', 'During the show, the cats swim nose-to-tail just above the Earth.'],
   ['competences', 'Toutes les compétences IA', 'Every AI skill', 'La présentation des étoiles, jusqu’au bout.', 'The star show, to the end.'],
   ['retourplanete', 'Retour par la planète', 'Home through the planet', 'La planète des chats ramène à la maison.', 'The cat planet takes you home.'],
