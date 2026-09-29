@@ -117,7 +117,7 @@ STEPS.peintMonte = (c, T, dt) => {
     return false;
   }
   if (T.phase === 1) {   // la montée
-    c.anim = 'grimpe'; const v = (P.H + s) / 1.2; c.y -= v * dt; L.ry = c.y - s * 1.25;
+    c.anim = 'grimpe'; const v = (P.H + s) / 2.4;   // (29/09, Mathieu : « d'un coup plein de bleu » : la montée prend son temps) c.y -= v * dt; L.ry = c.y - s * 1.25;
     const y = Math.max(-8, L.ry); bande(L.x - L.rw / 2, L.x + L.rw / 2, y, T.bas + 1, L); T.bas = y; couvreRect(L.x - L.rw / 2, y, L.x + L.rw / 2, P.H);
     if (Math.random() < dt * 1.3) P.coul.push({ x: L.x + rnd(-0.45, 0.45) * L.rw, y: y + s * 0.2, l: 0, L: s * rnd(0.4, 1.1), w: rnd(3, 6), v: s * 1.4 });
     if (L.ry <= -8) { T.phase = 2; dit(c, pick(en() ? ['top!', 'done'] : ['en haut !', 'fini', 'et voilà'])); }
@@ -319,16 +319,22 @@ H.pre.push(dt => {
     P.boutons.forEach(b => { if (b.style.visibility === 'hidden') return; const r = b.getBoundingClientRect(); if (couvert(r.left + r.width / 2, r.top + r.height / 2)) { b.style.visibility = 'hidden'; } });
     // la grande salve : quand les grimpeurs sont en haut (ou qu'il est l'heure), tous les lanceurs, tout ce qui reste
     const hauts = P.ech.every(L => L.chat && L.chat.task && L.chat.task.k === 'peintMonte' && L.chat.task.phase === 2);
-    if (!P.salve && (hauts && u > 2 || u > 3.6)) {
+    if (!P.salve && (hauts && u > 2.5 || u > 5.5)) {
       P.salve = Wd.t; mot('SPLAAASH', P.W / 2, P.H * 0.3, P.W < 700 ? 38 : 60, { life: 1.3, blanc: true, rot: -0.06 });
       const L = Wd.cats.filter(c => c.role === 'lance' && Wd.cats.includes(c) && !c.gone), F = libres(); let k = 0;
       // chaque case libre qui n'est pas déjà sous une flaque prévue reçoit son seau
-      const vus = []; F.forEach(q => { const [x, y] = centre(q); if (vus.some(([a, b]) => Math.hypot(a - x, b - y) < P.R * 0.85)) return; vus.push([x, y]);
-        const c = L.length ? L[k++ % L.length] : null; later(k * 0.025, () => { if (!P || P.fait) return; if (c && Wd.cats.includes(c)) lance(c, q, true); else flaque(x, y, P.R * 1.1, true); }); });
+      // (29/09, Mathieu : « d'un coup plein de bleu arrive, tout n'est pas logique ») : la salve n'est plus un coup de tonnerre ; chaque seau part
+      // d'un lanceur qu'on voit, les uns après les autres, sur deux secondes et demie, et du bas vers le haut ; sans lanceur, c'est un chat qui passe
+      // qui le jette (jamais une flaque qui tombe de nulle part)
+      const vus = []; F.slice().sort((a, b) => centre(b)[1] - centre(a)[1]).forEach(q => { const [x, y] = centre(q); if (vus.some(([a, b]) => Math.hypot(a - x, b - y) < P.R * 0.85)) return; vus.push([x, y]); });
+      const pas = 2.5 / Math.max(1, vus.length); vus.forEach(([x, y], i) => { const q = F.find(f => { const [a, b] = centre(f); return a === x && b === y; }); later(i * pas, () => { if (!P || P.fait) return;
+        const Ls = Wd.cats.filter(c => c.role === 'lance' && !c.gone && c.x > 0 && c.x < P.W), c = Ls.length ? Ls[i % Ls.length] : L[i % Math.max(1, L.length)];
+        if (c && Wd.cats.includes(c)) lance(c, q, true); else flaque(x, y, P.R * 1.1, true); }); });
+      P.salveFin = Wd.t + 2.5 + 0.7;
     }
-    if (P.salve && Wd.t - P.salve > 0.35 && !P.seaux.some(B => !B.plouf) && !P.part) {
+    if (P.salve && Wd.t > (P.salveFin || 0) && !P.seaux.some(B => !B.plouf) && !P.part) {
       // plus rien en vol : les derniers trous sont bouchés d'un coup de pinceau, et tout le monde s'en va
-      libres().forEach(q => { const [x, y] = centre(q); flaque(x, y, P.R * 0.8, false); });
+      libres().forEach((q, i) => { const [x, y] = centre(q); later(i * 0.05, () => { if (P && !P.fait) flaque(x, y, P.R * 0.8, false); }); });
       xP.fillStyle = motif; P.boutons.forEach(b => b.style.visibility = 'hidden');
       depart();
     }
