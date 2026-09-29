@@ -9,10 +9,11 @@ const O = TrouNoir.outils, { X, K, centreDe, rayon, say } = O, { Wd, rnd, pick }
 const TAU = Math.PI * 2, reduit = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 const en = () => window.I18N && I18N.lang && I18N.lang !== 'fr';
 const L = [];   // { x, y, vx, vy, a (angle), w (rotation), r, forme }
+let avalees = 0;   // celles que la planète des chats a avalées : elle les rend au retour
 
 // à l'entrée : une gerbe, du centre (là où s'ouvre le trou blanc), un peu après les chats
 X.entre.push(() => {
-  L.length = 0; if (reduit) return;
+  L.length = 0; avalees = 0; if (reduit) return;
   const n = Wd.W < 700 ? 10 : 18, [cx, cy] = O.centre ? O.centre() : [O.W / 2, O.H / 2];
   for (let i = 0; i < n; i++) setTimeout(() => { if (!Wd.espace) return; const a = rnd(0, TAU), v = rnd(60, 220) * Wd.s0 / 150;
     L.push({ x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, a: rnd(0, TAU), w: rnd(-3, 3), r: Wd.s0 * rnd(0.055, 0.075), forme: i % 3, t0: Wd.t }); }, 900 + i * 60);
@@ -23,7 +24,7 @@ X.pas.push(dt => {
   for (let i = L.length - 1; i >= 0; i--) { const k = L[i];
     // (au bout d'un moment, la planète des chats les attire et les avale : elles ne traînent pas sur les sous-titres)
     const Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
-    if (Pc && Wd.t - k.t0 > 35) { const dx = Pc.x - k.x, dy = Pc.y - k.y, d = Math.hypot(dx, dy) || 1; k.vx += dx / d * 260 * dt; k.vy += dy / d * 260 * dt; if (d < Pc.r * 0.8) { L.splice(i, 1); continue; } }
+    if (Pc && Wd.t - k.t0 > 35) { const dx = Pc.x - k.x, dy = Pc.y - k.y, d = Math.hypot(dx, dy) || 1; k.vx += dx / d * 260 * dt; k.vy += dy / d * 260 * dt; if (d < Pc.r * 0.8) { L.splice(i, 1); avalees++; continue; } }
     k.x += k.vx * dt; k.y += k.vy * dt; k.a += k.w * dt; const f = Math.exp(-dt * 0.35); k.vx *= f; k.vy *= f;
     if (Wd.t - k.t0 <= 35 && (k.x < k.r || k.x > W - k.r)) { k.vx = -k.vx; k.x = Math.max(k.r, Math.min(W - k.r, k.x)); }
     if (Wd.t - k.t0 <= 35 && (k.y < haut + k.r || k.y > bas - k.r)) { k.vy = -k.vy; k.y = Math.max(haut + k.r, Math.min(bas - k.r, k.y)); }
@@ -51,6 +52,12 @@ X.fond.push(ctx => {
     ctx.fillStyle = 'rgba(244,244,238,0.8)'; ctx.beginPath(); ctx.arc(-r * 0.3, -r * 0.3, r * 0.18, 0, TAU); ctx.fill(); ctx.restore(); });
   ctx.restore();
 });
-X.retour.push(() => { L.length = 0; });
+// (vague 10, l'audit : « le retour par la planète chat ») : au retour dans la pièce, les croquettes restées là-haut (qui flottaient,
+// ou que la planète avait avalées) retombent en pluie avec tout le monde ; les chats se jettent dessus (le « crunch » de js/chats.js)
+X.retour.push(() => { const n = Math.min(24, L.length + avalees); L.length = 0; avalees = 0;
+  if (!n || reduit || !Array.isArray(Wd.kib)) return; const k = Wd.s0 / 160, x0 = Wd.W / 2, y0 = Wd.H * 0.42;
+  for (let i = 0; i < n; i++) Wd.kib.push({ x: x0 + rnd(-40, 40), y: y0, vx: rnd(-1, 1) * rnd(150, 700) * k, vy: -rnd(250, 700) * k, d: rnd(0, 0.5), t0: Wd.t + 0.25 + i * 0.03, rest: false, spin: Math.random() * 6 });
+  K.later(0.9, () => { const c = Wd.cats.find(c => !c.gone && !c.rare && !c.fall); if (c) say(c, pick(en() ? ['our kibbles!', 'they came back!'] : ['nos croquettes !', 'elles sont revenues !', 'la planète les rend !'])); });
+});
 return { L };
 })();
