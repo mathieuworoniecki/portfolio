@@ -142,6 +142,9 @@ function orchestre(d) {
     return { g, s, toit, n: ordre.indexOf(k) }; });
   const scan = trait([[-0.85, 0, -0.65], [0.85, 0, -0.65], [0.85, 0, 0.65], [-0.85, 0, 0.65]], o.m.d, true); o.g.add(scan);
   const flux = points(24, o.m.p); o.g.add(flux.p); const FX = Array.from({ length: 24 }, (_, i) => ({ j: i % 3, ph: rnd() * TAU, v: 0.6 + rnd() * 0.5 }));   // des données qui circulent sur les orbites
+  /* tout l'écran nourrit le cœur : un champ de jetons, loin autour, qui spirale lentement vers lui */
+  const NJ = 520, JM = new T.PointsMaterial({ color: ENCRE.clone(), size: 1.8, sizeAttenuation: false, transparent: true, depthWrite: false }), jetons = points(NJ, JM); o.g.add(jetons.p);
+  const JT = Array.from({ length: NJ }, () => { const u = rnd() * TAU, c = rnd() * 2 - 1; return { u, c, o: rnd(), v: 0.035 + rnd() * 0.03 }; });
   const rayons = segments(12, o.m.d); o.g.add(rayons.l); const liens = segments(10, o.m.a); o.g.add(liens.l);
   const E = d === window.SERIEUX_DONNEES_EN ? ['AI core', '10 agents in orbit', 'The product'] : ['Cœur IA', '10 agents en orbite', 'Le produit'];
   etiquette(o, coeur, [0.4, -0.1, 0], E[0], { cls: 'ia' }); etiquette(o, ORB[2].g, [ORB[2].r * 0.72, ORB[2].r * 0.69, 0], E[1]); etiquette(o, o.g, [0.78, SY + 0.35, 0.45], E[2]);
@@ -179,6 +182,9 @@ function orchestre(d) {
     liens.a.needsUpdate = true; rayons.a.needsUpdate = true; rayons.l.computeLineDistances();
     const sk = c01((T0 - 12 * PAS) / 1.2); scan.visible = sk > 0 && sk < 1; scan.position.y = SY + sk * 1.0;
     ORB.forEach(R0 => { R0.l.material = hDuo[1] > 0.5 ? o.m.l : o.m.s; });
+    JM.opacity = o.op * 0.6 * c01((ec - 0.8) / 1.5);
+    JT.forEach((j, i) => { const q2 = (t * j.v + j.o) % 1, r = 0.45 + 3.3 * (1 - q2) * (1 - q2), a = j.u + q2 * q2 * 5, sc = Math.sqrt(1 - j.c * j.c);
+      jetons.pos.set([Math.cos(a) * sc * r * 1.15, CY + j.c * r * 0.8, Math.sin(a) * sc * r], i * 3); }); jetons.a.needsUpdate = true;
     FX.forEach((f, i) => { const R0 = ORB[f.j]; vv.set(Math.cos(f.ph + t * f.v) * R0.r, Math.sin(f.ph + t * f.v) * R0.r, 0).applyEuler(R0.g.rotation); flux.pos.set(ec > 1.6 ? [vv.x, vv.y + CY, vv.z] : [0, -99, 0], i * 3); }); flux.a.needsUpdate = true;
   };
   o.rot = t => [0.52, -0.55 + Math.sin(t * 0.14) * 0.28];
