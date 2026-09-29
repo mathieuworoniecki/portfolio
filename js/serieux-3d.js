@@ -995,9 +995,13 @@ function reseau() {   // NumOSINT : une question entre, l'orchestrateur la confi
   }
   const fils = piece(o, [0, -2, 0]); fils.g.add(traits(segs, o.m.d));
   /* le web ouvert autour : des points qu'on va chercher */
-  const ext = []; for (let i = 0; i < 110; i++) { const u = rnd() * TAU, r = 1.7 + rnd() * 0.5; ext.push([Math.cos(u) * r, -0.3 + rnd() * 0.9, Math.sin(u) * r]); }
-  const nu = points(110, o.m.p); ext.forEach((p, i) => nu.pos.set(p, i * 3)); nu.a.needsUpdate = true; const cl = piece(o, [0, 0, -2.5]); cl.g.add(nu.p);
+  const NX = 380, ext = []; for (let i = 0; i < NX; i++) { const u = rnd() * TAU, r = 1.6 + Math.pow(rnd(), 0.7) * 2.2; ext.push([Math.cos(u) * r, -0.5 + rnd() * (1.2 + (r - 1.6) * 0.5), Math.sin(u) * r]); }   // le web ouvert, loin autour, jusqu'aux bords
+  const nu = points(NX, o.m.p); ext.forEach((p, i) => nu.pos.set(p, i * 3)); nu.a.needsUpdate = true; const cl = piece(o, [0, 0, -2.5]); cl.g.add(nu.p);
+  const dist = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]), WL = []; ext.forEach((p, i) => { let m = -1, dm = 9; for (let j = 0; j < i; j++) { const d = dist(p, ext[j]); if (d < dm) { dm = d; m = j; } } if (m >= 0 && dm < 0.55) WL.push(p, ext[m]); });
+  cl.g.add(traits(WL, o.m.s));   // les pages se citent entre elles
   const cib = S.map((g, i) => { const a = i / 8 * TAU; let best = 0, bd = 9; ext.forEach((p, j) => { const d = Math.hypot(p[0] - Math.cos(a) * 2, p[2] - Math.sin(a) * 2) + j * 1e-4; if (d < bd) { bd = d; best = j; } }); return ext[best]; });
+  const VOIS = cib.map(c => ext.map(p => [dist(p, c), p]).sort((x, y) => x[0] - y[0]).slice(1, 5).map(x => x[1]));   // l'outil rebondit de page en page
+  const crawl = segments(8 * 4, o.m.a); cl.g.add(crawl.l);
   /* le dossier : un tableau d'enquête au-dessus, où les résultats se rangent et se recoupent */
   const dos = piece(o, [0, 2.4, 0]); const DY = 1.05;
   dos.g.add(trait([[-0.75, DY - 0.35, 0], [0.75, DY - 0.35, 0], [0.75, DY + 0.35, 0], [-0.75, DY + 0.35, 0]], o.m.l, true));
@@ -1019,13 +1023,14 @@ function reseau() {   // NumOSINT : une question entre, l'orchestrateur la confi
       else if (w >= 0.42 && w < 0.52) { const e = sm((w - 0.42) / 0.1); q = [lerp(c[0], s.x, e), lerp(c[1], s.y, e), lerp(c[2], s.z, e)]; }
       else if (w >= 0.58 && w < 0.74) { const e = sm((w - 0.58) / 0.16), cs = CASE[i]; q = [lerp(s.x, cs[0], e), lerp(s.y, cs[1], e) + Math.sin(e * Math.PI) * 0.5, lerp(s.z, cs[2], e)]; }   // le résultat monte au dossier
       P(...(q || [0, -9, 0]), i);
+      VOIS[i].forEach((n, j) => { const e = c01((w - 0.4 - j * 0.015) / 0.05) * (1 - c01((w - 0.5) / 0.04)); crawl.pos.set(e > 0 ? [c[0], c[1], c[2], lerp(c[0], n[0], e), lerp(c[1], n[1], e), lerp(c[2], n[2], e)] : [0, -9, 0, 0, -9, 0], (i * 4 + j) * 6); });
       const trav = c01((w - 0.26) / 0.04) * (1 - c01((w - 0.56) / 0.04)); C[i].rotation.z = trav * 1.1;
       BAR[i].scale.x = Math.max(0.001, c01((w - 0.26) / 0.3)) * (w < 0.95 ? 1 : 0.001);
       S[i].position.y = (i % 2 ? 0.1 : -0.1) + trav * Math.sin(t * 9 + i) * 0.015;
       const f = CASE[i], on = w >= 0.74 && w < 0.98; const h = 0.07;   // la fiche rangée dans sa case
       cases.pos.set(on ? [f[0] - h, f[1], f[2], f[0] + h, f[1], f[2]] : [0, -9, 0, 0, -9, 0], i * 6);
     }
-    cases.a.needsUpdate = true; imp.a.needsUpdate = true;
+    cases.a.needsUpdate = true; imp.a.needsUpdate = true; crawl.a.needsUpdate = true;
     RECOUPE.forEach(([a, b], j) => { const e = c01((u - 0.8 - j * 0.02) / 0.1) * (u < 0.98 ? 1 : 0), A = CASE[a], B = CASE[b];
       croix.pos.set(e > 0 ? [...A, lerp(A[0], B[0], sm(e)), lerp(A[1], B[1], sm(e)), 0.01] : [0, -9, 0, 0, -9, 0], j * 6); });
     croix.a.needsUpdate = true;
