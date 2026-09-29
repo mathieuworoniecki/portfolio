@@ -29,7 +29,10 @@ function page(D, X) {
   const A = D.accueil, M = D.methode, P = D.preuve, C = D.contact;
   const mail = C.liens.find(l => l.href.startsWith('mailto:')), liens = C.liens.filter(l => l.href.startsWith('http'));
   const savoir = D.competences.flatMap(c => c.groupes.flatMap(g => g[1])).slice(0, 40);
-  const ld = { '@context': 'https://schema.org', '@type': 'Person', name: D.nom, jobTitle: A.titre, url: SITE + '/',
+  // la même personne que sur l'accueil (index.html, @id #mathieu) : Google et les IA relient les deux pages à une seule fiche
+  const IMG = SITE + '/media/partage/mathieu-woroniecki-1.png';
+  const ld = { '@context': 'https://schema.org', '@type': 'Person', '@id': SITE + '/#mathieu', name: D.nom, jobTitle: A.titre, url: SITE + '/', image: IMG,
+    mainEntityOfPage: { '@type': 'ProfilePage', '@id': `${SITE}/${X.fichier.replace('.html', '')}#page`, url: `${SITE}/${X.fichier.replace('.html', '')}`, inLanguage: X.lang },
     email: mail ? mail.v : undefined, sameAs: liens.map(l => l.href), address: { '@type': 'PostalAddress', addressLocality: 'Paris', addressCountry: 'FR' },
     worksFor: { '@type': 'Organization', name: 'MARKO', url: 'https://marko.fr' }, knowsAbout: savoir, knowsLanguage: X.lang === 'fr' ? ['fr', 'en'] : ['fr', 'en'] };
   const titre = `${D.nom} · ${A.titre}`;
@@ -44,7 +47,8 @@ function page(D, X) {
 <link rel="alternate" hreflang="fr" href="${SITE}/cv"><link rel="alternate" hreflang="en" href="${SITE}/cv-en">
 <meta property="og:type" content="profile"><meta property="og:title" content="${esc(titre)}"><meta property="og:description" content="${esc(X.desc)}">
 <meta property="og:url" content="${SITE}/${X.fichier.replace('.html', '')}"><meta property="profile:first_name" content="Mathieu"><meta property="profile:last_name" content="Woroniecki">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="${IMG}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${IMG}">
 <script type="application/ld+json">${JSON.stringify(ld)}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">

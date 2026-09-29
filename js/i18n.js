@@ -9,8 +9,8 @@ window.I18N = (() => {
 const D = {
 fr: {
   name: 'Français', dec: ',',
-  'meta.title': 'Mathieu — des trucs sur le web',
-  'meta.desc': 'Le portfolio de Mathieu, développeur web.',
+  'meta.title': 'Mathieu Woroniecki · Architecte IA & CTO à Paris',
+  'meta.desc': 'Mathieu Woroniecki, architecte IA et CTO de MARKO à Paris : IA générative, RAG, agents, architecture et direction technique. Son univers en 3D et son CV animé.',
   'gate.kick': 'Accès réservé', 'gate.label': 'Code d’accès', 'gate.ph': 'code', 'gate.go': 'Entrer', 'gate.bad': 'Ce n’est pas le bon code.',
   'lang': 'Langue', 'home': 'Mathieu, retour au début', 'grab': 'Glisser pour tourner',
   // la ligne du temps (js/film.js)
@@ -33,8 +33,8 @@ fr: {
 },
 en: {
   name: 'English', dec: '.',
-  'meta.title': 'Mathieu — stuff on the web',
-  'meta.desc': 'Mathieu’s portfolio, web developer.',
+  'meta.title': 'Mathieu Woroniecki · AI Architect & CTO in Paris',
+  'meta.desc': 'Mathieu Woroniecki, AI Architect and CTO of MARKO in Paris: generative AI, RAG, agents, architecture and technical leadership. His 3D world and animated CV.',
   'gate.kick': 'Private access', 'gate.label': 'Access code', 'gate.ph': 'code', 'gate.go': 'Enter', 'gate.bad': 'That’s not the right code.',
   'lang': 'Language', 'home': 'Mathieu, back to the start', 'grab': 'Drag to turn',
   'film.chapters': 'Chapters', 'film.chapter': 'Chapter {0}: {1}', 'film.play': 'Play', 'film.pause': 'Pause', 'film.replay': 'Replay',

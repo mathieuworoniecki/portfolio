@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://mathieu.blue/</loc></url>
-  <url><loc>https://mathieu.blue/cv</loc></url>
-  <url><loc>https://mathieu.blue/cv-en</loc></url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url><loc>https://mathieu.blue/</loc><lastmod>2026-09-29</lastmod></url>
+  <url><loc>https://mathieu.blue/cv</loc><lastmod>2026-09-29</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mathieu.blue/cv"/><xhtml:link rel="alternate" hreflang="en" href="https://mathieu.blue/cv-en"/></url>
+  <url><loc>https://mathieu.blue/cv-en</loc><lastmod>2026-09-29</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mathieu.blue/cv"/><xhtml:link rel="alternate" hreflang="en" href="https://mathieu.blue/cv-en"/></url>
 </urlset>

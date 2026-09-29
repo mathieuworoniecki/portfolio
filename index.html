@@ -6,16 +6,42 @@
 <script>(function(d){
 /* le thème retenu (js/theme.js) : ses couleurs et polices, posées avant tout affichage */
 try{var c=null;if(c)c.split(/;(?![^(]*\))/).forEach(function(p){var i=p.indexOf(':');if(i>0){var k=p.slice(0,i);if(k==='color-scheme')d.style.colorScheme=p.slice(i+1);else d.style.setProperty(k,p.slice(i+1))}});var s=localStorage.getItem('pf-style');if(s)d.dataset.style=s}catch(e){}})(document.documentElement)</script>
-<title data-i18n="meta.title">Mathieu — des trucs sur le web</title>
+<title data-i18n="meta.title">Mathieu Woroniecki · Architecte IA &amp; CTO à Paris</title>
 <link rel="icon" href="/acces/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/acces/apple-touch-icon.png">
-<meta name="description" data-i18n-attr="content:meta.desc" content="Le portfolio de Mathieu, développeur web.">
+<meta name="description" data-i18n-attr="content:meta.desc" content="Mathieu Woroniecki, architecte IA et CTO de MARKO à Paris : IA générative, RAG, agents, architecture et direction technique. Son univers en 3D et son CV animé.">
+<!-- le référencement (moteurs et réponses des IA) : une seule adresse pour l'accueil, et la fiche de Mathieu en données structurées.
+     Le même @id (#mathieu) est repris par /cv et /cv-en (tools/cv.cjs) : pour Google et les IA, c'est une seule et même personne.
+     Les avis Malt restent du texte visible (le CV) : Google refuse les étoiles qu'un site affiche sur lui-même. -->
+<link rel="canonical" href="https://mathieu.blue/">
+<meta name="author" content="Mathieu Woroniecki">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
 <meta name="theme-color" content="#C4C6C2">
 <!-- l'aperçu au partage (LinkedIn, messageries) ; le CV lisible par les moteurs est sur /cv et /cv-en (tools/cv.cjs) -->
 <meta property="og:type" content="website"><meta property="og:url" content="https://mathieu.blue/">
 <meta property="og:title" content="Mathieu Woroniecki · Architecte IA & CTO">
 <meta property="og:description" content="Mon univers (des chats, l'espace) et mon CV animé en 3D : IA générative, agents, architecture, direction technique.">
-<link rel="alternate" hreflang="fr" href="https://mathieu.blue/cv"><link rel="alternate" hreflang="en" href="https://mathieu.blue/cv-en">
+<meta property="og:site_name" content="Mathieu Woroniecki"><meta property="og:locale" content="fr_FR"><meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://mathieu.blue/media/partage/mathieu-woroniecki-1.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Mathieu Woroniecki, architecte IA et CTO, dessiné en un trait">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://mathieu.blue/media/partage/mathieu-woroniecki-1.png">
+<link rel="alternate" type="text/markdown" href="https://mathieu.blue/llms.txt" title="Mathieu Woroniecki, en bref pour les IA">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+ {"@type":"WebSite","@id":"https://mathieu.blue/#site","url":"https://mathieu.blue/","name":"Mathieu Woroniecki","inLanguage":["fr","en"],"author":{"@id":"https://mathieu.blue/#mathieu"}},
+ {"@type":"ProfilePage","@id":"https://mathieu.blue/#page","url":"https://mathieu.blue/","name":"Mathieu Woroniecki · Architecte IA & CTO","isPartOf":{"@id":"https://mathieu.blue/#site"},"mainEntity":{"@id":"https://mathieu.blue/#mathieu"},"primaryImageOfPage":"https://mathieu.blue/media/partage/mathieu-woroniecki-1.png"},
+ {"@type":"Person","@id":"https://mathieu.blue/#mathieu","name":"Mathieu Woroniecki","givenName":"Mathieu","familyName":"Woroniecki",
+  "jobTitle":"Architecte IA & CTO","description":"Architecte IA et CTO de MARKO, un SaaS B2B AI-native pour l'immobilier. Plus de dix ans de web, de l'intégration au poste de CTO : IA générative, RAG, agents, Document AI, architecture et direction technique.",
+  "url":"https://mathieu.blue/","image":"https://mathieu.blue/media/partage/mathieu-woroniecki-1.png","email":"mailto:numerus0@proton.me",
+  "address":{"@type":"PostalAddress","addressLocality":"Paris","addressCountry":"FR"},
+  "worksFor":{"@type":"Organization","name":"MARKO","url":"https://marko.fr"},
+  "alumniOf":[{"@type":"EducationalOrganization","name":"Institut F2I"},{"@type":"EducationalOrganization","name":"ITIC Paris"}],
+  "knowsAbout":["IA générative","LLM","RAG","Agents IA","Orchestration multi-agents","MCP","Document AI","OCR","Architecture logicielle","Direction technique (CTO)","Python","FastAPI","TypeScript","React","Next.js","Vue.js","Nuxt","three.js","PostgreSQL","pgvector","Docker","DevOps","Sécurité applicative"],
+  "knowsLanguage":["fr","en"],
+  "sameAs":["https://www.linkedin.com/in/mathieuworoniecki/","https://github.com/mathieuworoniecki"],
+  "mainEntityOfPage":{"@id":"https://mathieu.blue/#page"}}
+]}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,700&family=Barlow:wght@400;500&family=IBM+Plex+Mono:wght@400;500&family=Caveat:wght@500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Architects+Daughter&display=swap">

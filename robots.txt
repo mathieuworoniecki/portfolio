@@ -1,3 +1,6 @@
+# Tout le site est public : moteurs de recherche et moteurs de réponse des IA sont les bienvenus.
+# (Google-Extended ne touche pas aux réponses IA de Google Search ; les laisser tous passer garde le profil citable partout.)
 User-agent: *
 Allow: /
+
 Sitemap: https://mathieu.blue/sitemap.xml
