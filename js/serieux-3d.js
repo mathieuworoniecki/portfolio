@@ -309,6 +309,12 @@ function chaine() {
   const lignes = []; for (let i = 0; i < 7; i++) { const z = -0.19 + i * 0.058, w = i === 0 ? 0.2 : 0.3 - (i % 3) * 0.05; lignes.push([[-0.15, 0.008, z], [-0.15 + w, 0.008, z]]); }
   const lg = lignes.map(l => { const t = trait(l, ST[0].m.s); doc.add(t); return t; });
   const lu = lignes.map(l => { const t = trait(l, ST[0].m.a); t.visible = false; doc.add(t); return t; });
+  /* dessous, la pile des pièces du dossier ; au-dessus, la page numérisée : chaque ligne lue monte en points et s'y réécrit, propre ; la ligne 4, un scan abîmé, attend le moteur de secours */
+  [1, 2, 3].forEach(k => { const g = new T.Group(); g.position.set(k * 0.018, -k * 0.016, -k * 0.012); g.rotation.y = k * 0.05; doc.add(g); g.add(trait([[-0.2, 0, -0.26], [0.2, 0, -0.26], [0.2, 0, 0.26], [-0.2, 0, 0.26]], ST[0].m.s, true)); });
+  const HN = 0.42, num = lignes.map(l => { const t = trait(l.map(q => [q[0], q[1] + HN, q[2]]), ST[0].m.a); t.visible = false; doc.add(t); return t; });
+  doc.add(trait([[-0.2, HN, -0.26], [0.2, HN, -0.26], [0.2, HN, 0.26], [-0.2, HN, 0.26]], ST[0].m.d, true));
+  const abime = trait(lignes[4], ST[0].m.d); doc.add(abime); const secours = trait([[-0.2, 0.02, lignes[4][0][2]], [0.2, 0.02, lignes[4][0][2]]], ST[0].m.a); doc.add(secours);
+  const NM = 7 * 6, monte = points(NM, ST[0].m.pa); doc.add(monte.p);
   const portique = new T.Group(); ST[0].g.add(portique);
   portique.add(trait([[0, 0, -0.34], [0, 0.32, -0.34], [0, 0.32, 0.34], [0, 0, 0.34]], ST[0].m.l));
   const rayon = trait([[0, 0.3, -0.3], [0, 0.03, -0.3], [0, 0.03, 0.3], [0, 0.3, 0.3]], ST[0].m.a); portique.add(rayon);
@@ -353,7 +359,10 @@ function chaine() {
     ST.forEach((s, i) => { const on = pas >= i ? 1 : 0, d = Math.abs(X[i] + P.position.x) * zm, loin = 1 - sm((d - 0.75) / 0.55);
       s.f = lerp(s.f, on ? 1 : 0.28, 0.1); s.hot = lerp(s.hot, S === i && !fin ? 1 : 0, 0.12); chaud(s.m, s.hot); opac(s.m, o.op * s.f * loin); s.e.on = S === i && !fin; s.e.op = (fin ? 0.8 : Math.min(1, s.hot * 1.4)) * loin; });
     const k = i => pas >= 5 ? 1 : c01(pas - i);   // l'avancement de l'étape i
-    /* 1 */ const k0 = k(0); portique.position.x = lerp(-0.26, 0.26, sm(k0)); lu.forEach((l, i) => { l.visible = k0 > (0.2 + i * 0.1); lg[i].visible = !l.visible; }); rayon.visible = k0 > 0.02 && k0 < 0.98;
+    /* 1 */ const k0 = k(0), kp = c01(k0 / 0.7); portique.position.x = lerp(-0.26, 0.26, sm(kp)); rayon.visible = k0 > 0.02 && kp < 0.98;
+    const lue = i => i === 4 ? k0 > 0.9 : kp > (0.15 + i * 0.1);   // la ligne abîmée : le premier moteur la rate, le moteur de secours la reprend
+    lu.forEach((l, i) => { l.visible = lue(i); lg[i].visible = !l.visible && i !== 4; num[i].visible = lue(i) && ST[0].f > 0.3; }); abime.visible = !lue(4); secours.visible = k0 > 0.72 && k0 < 0.9 && (t * 6 % 1) > 0.3;
+    for (let j = 0; j < NM; j++) { const i = j % 7, l = lignes[i], u = (t * 0.7 + j / NM * 3.3) % 1, x = lerp(l[0][0], l[1][0], (j * 0.618) % 1); monte.pos.set(lue(i) && ST[0].f > 0.3 ? [x, 0.008 + u * HN, l[0][2]] : [0, -99, 0], j * 3); } monte.a.needsUpdate = true;
     /* 2 */ const k1 = k(1); blocs.forEach((b, i) => { const q2 = sm((k1 - i * 0.1) / 0.45); b.g.position.lerpVectors(b.a, b.b, q2); b.g.position.y += Math.sin(q2 * Math.PI) * 0.25; b.g.visible = k1 > 0.001; });
     /* 3 */ const k2 = k(2); requete.visible = k2 > 0.05; liensR.visible = ppts.visible = k2 > 0.2;
     rep.visible = k2 > 0.28; RL.forEach((r, i) => { const on = k2 > 0.33 + i * 0.06; r.l.visible = on; r.c.visible = on;
