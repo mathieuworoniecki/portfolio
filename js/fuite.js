@@ -21,6 +21,7 @@ const word = (text, x, y, size) => Wd.fx.push({ k: 'txt', text, x, y, t0: Wd.t, 
 let F = null;         // la sortie en cours : { t0, trous, o (d'où s'ouvre le mode sérieux), ouvert }
 let avales = [];      // les objets partis dans les trous (ils reviendront)
 const trous = [];     // { x, y, r, t0, ouvre, ferme, fin } : un trou dans le sol (dessiné au trait)
+const galeries = [];  // { x0, y0, x1, y1, t0, dur } : au retour, le chemin sous le plancher jusqu'à un trou
 
 function go0(btn) {
   if (F || !window.Serieux) return false;
@@ -228,7 +229,16 @@ H.pre.push(dt0 => {
 });
 // les trous : au trait, comme le reste (un bord, et des cercles de plus en plus petits vers le fond)
 H.draw.push(S => {
-  if (!trous.length) return; const C = window.Chalk; if (!C) return;
+  if (!trous.length && !galeries.length) return; const C = window.Chalk; if (!C) return;
+  for (let i = galeries.length - 1; i >= 0; i--) if (Wd.t > galeries[i].t0 + galeries[i].dur + 1.2) galeries.splice(i, 1);
+  galeries.forEach(Gl => { const u = (Wd.t - Gl.t0) / Gl.dur; if (u < 0) return; const e = Math.min(1, u), dp = Wd.s0 * 0.35, at = v => { const x = Gl.x0 + (Gl.x1 - Gl.x0) * v, yb = Gl.y0 + (Gl.y1 - Gl.y0) * v; return [x, yb + Math.sin(Math.PI * v) * dp + (1 - Math.abs(2 * v - 1)) * 0]; };
+    const al = (u < 1 ? 0.6 : 0.6 * Math.max(0, 1 - (u - 1) * Gl.dur / 1.2)) * Wd.a; if (al <= 0.01) return;
+    // les pointillés (le chemin déjà creusé)
+    for (let j = 0; j < 16; j++) { const v0 = j / 16, v1 = v0 + 0.5 / 16; if (v0 > e) break; C.stroke([at(v0), at(Math.min(v1, e))], 1, { w: 1.3, a: al, seed: Gl.seed * 7 + j, tip: false }); }
+    // la bosse qui file dans la galerie : un petit dôme, un peu de terre qui saute
+    if (u < 1) { const [bx, by] = at(e), r = Wd.s0 * 0.07, P = []; for (let a = 0; a <= 10; a++) { const t = Math.PI + a / 10 * Math.PI; P.push([bx + Math.cos(t) * r, by + Math.sin(t) * r * 0.8]); }
+      C.stroke(P, 1, { w: 1.8, a: 0.85 * Wd.a, seed: Gl.seed + 40, tip: false });
+      for (let q = 0; q < 3; q++) { const w = (Wd.t * 7 + q * 0.33 + Gl.seed) % 1; C.stroke([[bx + (q - 1) * r * 0.6, by - r * 0.8 - w * r * 1.2], [bx + (q - 1) * r * 0.75, by - r * 0.85 - w * r * 1.2]], 1, { w: 1.4, a: 0.7 * (1 - w) * Wd.a, seed: q, tip: false }); } } });
   trous.forEach((T, k) => {
     const u = Wd.t - T.t0, o = sm(u / T.ouvre), f = 1 - sm((u - T.ouvre - T.ferme) / 0.45), g = Math.min(o, f); if (g <= 0.01) return;
     const r = T.r * g, ry = r * 0.28;
@@ -250,6 +260,9 @@ function retour() {
   const L = avales.slice(); avales = [];
   const ox = o ? o.x : Wd.W / 2, oy = floorAt(0.5), pos = it => { const h = it.home && !it.home.on ? it.home : it; return [h.fx * Wd.W, floorAt(h.d)]; };
   L.sort((a, b) => Math.abs(pos(a)[0] - ox) - Math.abs(pos(b)[0] - ox));
+  // (vague 31, l'audit : « le retour du mode sérieux ») : tout revient par-dessous. Avant chaque trou, une galerie se creuse sous le plancher
+  // depuis le bouton, en pointillés ; une bosse y file (quelque chose arrive), et le trou s'ouvre juste quand elle y est
+  L.forEach((it, i) => { const [hx, hy] = pos(it); galeries.push({ x0: ox, y0: Wd.floor, x1: hx, y1: hy, t0: Wd.t + 0.3 + i * 0.12 - 0.55, dur: 0.55, seed: i }); });
   L.forEach((it, i) => later(0.3 + i * 0.12, () => {
     if (!Wd.props.includes(it)) return; it.ventre = false;
     if (it.home && !it.home.on) { it.fx = it.home.fx; it.d = it.home.d; it.dT = it.home.d; }
