@@ -609,7 +609,7 @@ function circuit(postes) {
     P.position.x = -x; const zS = (() => { const j = Math.min(n - 2, Math.floor(x / ES)), u2 = x / ES - j, z = j % 2 ? 0.45 : -0.45; const d = Math.min(u2, 1 - u2) * ES; return z * c01((d - 0.35) / 0.2); })();   // le signal suit la piste, coudes compris
     signal.position.set(x, 0.05, S >= n - 1 ? 0 : zS); solP.uniforms.cx.value = x; solP.uniforms.r.value = 3;
     if (hist.length && hist[0].distanceTo(signal.position) > 0.3) hist.length = 0; hist.unshift(signal.position.clone()); if (hist.length > NQ * 2) hist.pop(); for (let i = 0; i < NQ; i++) { const h = hist[Math.min(hist.length - 1, i * 2)]; queue.pos.set([h.x, h.y, h.z], i * 3); } queue.a.needsUpdate = true;
-    pile.position.set(x - 0.55, 0, -0.75); PL.forEach((g, i) => { const e = c01(pas + 1 - i); g.visible = e > 0.02; g.position.y = g.userData.y0 + (1 - sm(e)) * 0.9; g.rotation.y = (1 - sm(e)) * 1.2; });
+    pile.position.set(x - 0.55, 0, -0.75); PL.forEach((g, i) => { const e = c01((pas + 1 - i) * 3); g.visible = e > 0.02; g.position.y = g.userData.y0 + (1 - sm(e)) * 0.9; g.rotation.y = (1 - sm(e)) * 1.2; });
     pilier.position.set(X[S], 0, 0); pilier.scale.y = 0.4 + 0.6 * sm(1 - Math.abs(u - 0.35) * 2);
     const ip = Math.min(pts.length, 1 + Math.round((x / ES) * 5)), d0 = Math.max(0, ip - 5); luL.geometry.setDrawRange(d0, ip - d0);   // seule la dernière longueur reste allumée
     K.forEach((c, i) => { const on = i === S ? 1 : 0, d = Math.abs(X[i] - x); c.hot = lerp(c.hot, on, 0.12); c.f = lerp(c.f, on ? 1 : i < S ? 0.3 : 0.18, 0.1); chaud(c.m, c.hot * 0.6);
