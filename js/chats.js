@@ -919,6 +919,21 @@ function horde(grand) {
     k.q = [go(dir > 0 ? W + sc(k) * 2 + i * 10 : -sc(k) * 2 - i * 10, { g: 'galop', v: grand ? rnd(1.25, 1.6) : rnd(1, 1.15) }), fn(k => { k.gone = true; })]; k.balai = dir;   // la horde balaie le bazar au passage
     if (grand) k.rue = true;
   }
+  // (vague 3 de l'audit : « la horde manque d'originalité ») : le retour de bâton. Quelques secondes après, la horde repasse… dans l'autre sens,
+  // en hurlant : une souris GÉANTE la poursuit. La pièce tremble à chacun de ses pas
+  const retour = (n = 0) => {
+    // (elle attend que la horde soit sortie de l'écran)
+    if (Wd.cats.some(c => c.temp && c.rue && !c.gone && c.x > -sc(c) && c.x < Wd.W + sc(c))) { if (n < 30) later(0.8, () => retour(n + 1)); return; }
+    const d2 = rnd(0.1, 0.3), s2 = sOf(d2), from = dir > 0 ? 1 : -1;   // (elle arrive du côté où la horde est sortie)
+    const G = prop('souris', from > 0 ? 1.12 : -0.12, d2, { yaw: from > 0 ? Math.PI + 0.35 : -0.35 }); G.big = 9; G.run = { dir: -from, v: s2 * 1.15 }; G.zo = 210; G.geante = true;
+    for (let i = 0; i < 4; i++) { const k = addCat({ temp: true, d: clamp(d2 + rnd(-0.08, 0.3), 0, 1), face: -from }); k.x = G.fx * Wd.W - from * (s2 * 3.2 + i * sc(k) * rnd(0.5, 0.9));
+      k.q = [go(from > 0 ? -sc(k) * 2 - i * 10 : Wd.W + sc(k) * 2 + i * 10, { g: 'galop', v: rnd(1.5, 1.8) }), fn(k => { k.gone = true; })]; k.balai = -from; k.rue = true;
+      later(0.5 + i * 0.4, () => say(k, pick(['AAAAH', 'une souris géante !!', 'on se replie !', 'MAMAAAN', 'c’était pas prévu !']))); }
+    Wd.rue = { t0: Wd.t, fin: Wd.t + 6, dir: -from, dit: 0 };
+    later(0.8, () => Wd.fx.push({ k: 'txt', text: 'SQUIIIIK', x: from > 0 ? Wd.W * 0.75 : Wd.W * 0.25, y: floorAt(d2) - s2 * 3.4, t0: Wd.t, life: 1.8, rot: 0.1 * from, size: 48 }));
+    if (window.Dex && Dex.vu) Dex.vu('souris-geante');
+  };
+  if (grand) later(3, retour);
   if (grand) { Wd.rue = { t0: Wd.t, fin: Wd.t + 7, dir, dit: 0 }; later(0.3, () => Wd.fx.push({ k: 'txt', text: 'BADABOUM', x: dir > 0 ? W * 0.2 : W * 0.8, y: floorAt(0.3) - sOf(0.3) * 2.2, t0: Wd.t, life: 1.8, rot: -0.12 * dir, size: 40 })); }
   // les chats de la maison qui traînent : certains se joignent à la course
   Wd.cats.filter(k => !k.temp && free4(k) && Math.random() < 0.4).forEach(k => { interrupt(k); k.q = [pose('affut', rnd(0.3, 0.9), { face: dir }), go(dir > 0 ? W + sc(k) * 2 : -sc(k) * 2, { g: 'galop' }), fn(k => { k.gone = true; })]; });
@@ -937,6 +952,7 @@ function rue() {
 function runMice(dt) {
   Wd.props.filter(p => p.run).forEach(m => {
     m.fx += m.run.dir * m.run.v * dt / Wd.W; m.d = m.dT; Univers.scurry(m, Wd.t, 1);
+    if (m.geante && Wd.t > (m.pasT || 0)) { m.pasT = Wd.t + 0.32; Wd.shake = { t0: Wd.t, a: 4 }; dust(xOf(m), floorAt(m.d), sOf(m.d) * 0.8, 0.8); }
     if ((m.run.dir > 0 && m.fx > 1.1) || (m.run.dir < 0 && m.fx < -0.1)) unprop(m);
   });
 }
