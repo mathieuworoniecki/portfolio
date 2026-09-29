@@ -17,7 +17,7 @@ Ce site (mathieu.blue) est son portfolio : un univers interactif en 3D (des chat
 - Aujourd'hui : CTO de MARKO (depuis 02/2026) : architecture et développement du système IA complet (Generative AI, LLM / RAG, Agentic AI, Document AI), une base PostgreSQL par client.
 - Méthode : un développeur et ses agents livrent à la cadence d'une équipe de dix. Chez MARKO : 12 046 commits en huit mois, relevé Git du 28 septembre 2026.
 - Avant : lead developer et architecte Vue.js / Nuxt.js chez LWA (2024-2026), tech lead plateformes web chez ENGIE (2022-2024, 150 000+ collaborateurs), tech lead international chez Sodexo (2020-2021, 25 pays), développeur front-end chez AXA (2018-2020), lead developer et manager technique chez 1min30 (2016-2018).
-- Indépendant sur Malt (2018-2022) : consultant senior et CTO à temps partagé, 85+ projets livrés, noté 4,88 / 5 sur 85 avis.
+- Indépendant sur [Malt](https://www.malt.fr/profile/mathieubenhalima) (2018-2022) : consultant senior et CTO à temps partagé, 85+ projets livrés, noté 4,88 / 5 sur 85 avis.
 - Compétences : IA générative et LLM (Gemini, Mistral, Claude, OpenAI, modèles locaux), RAG hybride, agents et MCP, Document AI et OCR ; Python, FastAPI, TypeScript, React, Next.js, Vue, Nuxt, three.js ; PostgreSQL, Docker, CI/CD, observabilité, sécurité applicative.
 - Formation : Master chef de projet multimédia (Institut F2I), BTS SIO option développement (ITIC Paris).
 - Langues : français natif, anglais courant et technique.
@@ -37,3 +37,4 @@ Ce site (mathieu.blue) est son portfolio : un univers interactif en 3D (des chat
 - E-mail : numerus0@proton.me
 - [LinkedIn](https://www.linkedin.com/in/mathieuworoniecki/)
 - [GitHub](https://github.com/mathieuworoniecki)
+- [Malt](https://www.malt.fr/profile/mathieubenhalima) : profil freelance et avis clients

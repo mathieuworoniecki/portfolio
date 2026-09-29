@@ -96,7 +96,7 @@ p{margin:0 0 6px}
 @media print{html,body{background:#fff}body{font-size:10.5px;line-height:1.38}.feuille{max-width:none;margin:0;padding:0;box-shadow:none}.outils,.faits,.etape .d,.projet .d,.petit.source{display:none}
   .grille{gap:2px 22px}.poste{grid-template-columns:96px 1fr}.poste ul{margin-top:2px}p{margin-bottom:3px}h3{font-size:12px}.dates{font-size:9.5px}
   h1{font-size:30px}.role{font-size:14px}h2{margin:9px 0 4px;font-size:12px}.poste{padding:3px 0}.poste p,.poste ul,.groupe,.projet,.etape,.chapo{font-size:10.5px}.chiffre strong{font-size:17px}.chiffre span{font-size:9.5px}
-  .faits{font-size:9.5px}.coord{font-size:9.5px;line-height:1.5}.petit{font-size:10px}header{padding-bottom:10px}.comps{columns:2;column-gap:22px}.groupe-bloc{break-inside:avoid}.groupe{font-size:9.8px}a{text-decoration:none}}
+  .faits{font-size:9.5px}.coord{font-size:9.5px;line-height:1.3}.petit{font-size:10px}header{padding-bottom:10px}.comps{columns:2;column-gap:22px}.groupe-bloc{break-inside:avoid}.groupe{font-size:9.8px}a{text-decoration:none}}
 </style>
 </head>
 <body>

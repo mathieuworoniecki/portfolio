@@ -255,7 +255,8 @@ window.SERIEUX_DONNEES = {
     liens: [
       { k: 'Courriel', v: 'numerus0@proton.me', href: 'mailto:numerus0@proton.me' },
       { k: 'LinkedIn', v: 'linkedin.com/in/mathieuworoniecki', href: 'https://www.linkedin.com/in/mathieuworoniecki/' },
-      { k: 'GitHub', v: 'github.com/mathieuworoniecki', href: 'https://github.com/mathieuworoniecki' }
+      { k: 'GitHub', v: 'github.com/mathieuworoniecki', href: 'https://github.com/mathieuworoniecki' },
+      { k: 'Malt', v: 'malt.fr/profile/mathieubenhalima', href: 'https://www.malt.fr/profile/mathieubenhalima' }
     ]
   }
 };
