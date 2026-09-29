@@ -834,10 +834,29 @@ S.pilotage = (() => {
     for (let j = 0; j < 4; j++) { const z0 = 0.2 + j * 0.58, z1 = z0 + 0.45, W4 = [Q(cote * w, 0.55, z0), Q(cote * w, 0.55, z1), Q(cote * w, 0.86, z1), Q(cote * w, 0.86, z0)];
       trait(W4, true, 0.7, 1, false); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.8; ctx.beginPath(); W4.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.stroke();
       const m = Q(cote * w, 0.64, (z0 + z1) / 2), rr = Math.abs(W4[1][1] - W4[2][1]) * 0.42; if (j < 3 && rr > 3) chabot(m[0], m[1] - Math.abs(Math.sin(now * 3 + j)) * rr * 0.1, rr, { now, ph: j * 2, lac: cote * 0.6, casque: false, bras: [-1.4, -1.4], cligne: Math.sin(now * 1.3 + j * 2) > 0.97 }); }
-    // les roues (sous le flanc), elles tournent
-    [0.45, Lg - 0.45].forEach(z => { const c = Q(cote * w, 0.12, z), r = Math.abs(Q(cote * w, 0.34, z)[1] - c[1]);
-      cerne(() => { ctx.beginPath(); ctx.ellipse(c[0], c[1], r * 0.55, r, 0, 0, TAU); }, 0.9, 1, NUIT); style(0.6, 1); ctx.beginPath(); ctx.ellipse(c[0], c[1], r * 0.22, r * 0.4, 0, 0, TAU); ctx.stroke();
-      for (let k = 0; k < 3; k++) { const t = now * 14 + k * TAU / 3; ctx.beginPath(); ctx.moveTo(c[0] + Math.cos(t) * r * 0.2, c[1] + Math.sin(t) * r * 0.38); ctx.lineTo(c[0] + Math.cos(t) * r * 0.48, c[1] + Math.sin(t) * r * 0.88); ctx.stroke(); } });
+    // (vague 5, l'audit : « le flanc reste peu détaillé ») : une bande peinte sur toute la longueur, la porte à soufflet à l'avant (deux vantaux
+    // vitrés, les charnières, la marche), le rétroviseur ; des passages de roue en arc ; des roues rondes, avec leur pneu, leur jante et leurs écrous
+    const pl3 = (L, f) => { ctx.beginPath(); L.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); if (f) ctx.closePath(); };
+    ctx.globalAlpha = 1; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.7;
+    [0.4, 0.46].forEach(y => { pl3([Q(cote * w, y, 0.05), Q(cote * w, y, Lg - 0.05)]); ctx.stroke(); });
+    for (let z = 0.35; z < Lg - 0.9; z += 0.5) { const p = Q(cote * w, 0.43, z), r = Math.abs(Q(cote * w, 0.46, z)[1] - Q(cote * w, 0.4, z)[1]) * 0.35; if (r > 1) { ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, TAU); ctx.fillStyle = ENC; ctx.fill(); } }
+    { const z0 = Lg - 0.78, z1 = Lg - 0.22, zm = (z0 + z1) / 2, D = [Q(cote * w, 0.14, z0), Q(cote * w, 0.14, z1), Q(cote * w, 1.02, z1), Q(cote * w, 1.02, z0)];
+      ctx.fillStyle = PAP; pl3(D, true); ctx.fill(); ctx.lineWidth = G.lw * 0.9; ctx.stroke();
+      [[z0 + 0.04, zm - 0.02], [zm + 0.02, z1 - 0.04]].forEach(([a0, a1]) => { const Wd = [Q(cote * w, 0.5, a0), Q(cote * w, 0.5, a1), Q(cote * w, 0.95, a1), Q(cote * w, 0.95, a0)]; ctx.fillStyle = NUIT; pl3(Wd, true); ctx.fill(); ctx.lineWidth = G.lw * 0.6; ctx.stroke();
+        const g = [Q(cote * w, 0.2, a0), Q(cote * w, 0.2, a1), Q(cote * w, 0.44, a1), Q(cote * w, 0.44, a0)]; pl3(g, true); ctx.stroke(); });
+      pl3([Q(cote * w, 0.14, zm), Q(cote * w, 1.02, zm)]); ctx.lineWidth = G.lw * 0.9; ctx.stroke();
+      const st = [Q(cote * (w + 0.08), 0.1, z0), Q(cote * (w + 0.08), 0.1, z1), Q(cote * w, 0.1, z1), Q(cote * w, 0.1, z0)]; ctx.fillStyle = PAP; pl3(st, true); ctx.fill(); ctx.lineWidth = G.lw * 0.7; ctx.stroke(); }
+    { const a0 = Q(cote * w, 0.92, Lg - 0.05), a1 = Q(cote * (w + 0.22), 0.98, Lg + 0.05), rm = Math.abs(Q(cote * w, 0.12, Lg)[1] - Q(cote * w, 0.24, Lg)[1]);
+      ctx.lineWidth = G.lw * 0.8; pl3([a0, a1]); ctx.stroke(); cerne(() => { ctx.beginPath(); ctx.ellipse(a1[0], a1[1] + rm * 0.6, rm * 0.35, rm * 0.7, 0, 0, TAU); }, 0.7, 1); }
+    [0.45, Lg - 1.05].forEach(z => { const c = Q(cote * w, 0.12, z), r = Math.abs(Q(cote * w, 0.36, z)[1] - c[1]);
+      ctx.fillStyle = NUIT; ctx.beginPath(); ctx.ellipse(c[0], c[1], r * 0.72, r * 1.18, 0, Math.PI, TAU); ctx.fill(); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.8; ctx.stroke();
+      // la roue : le pneu (épais, noir, cerné de blanc), la jante de papier, le moyeu, cinq écrous qui tournent
+      cerne(() => { ctx.beginPath(); ctx.ellipse(c[0], c[1], r * 0.62, r, 0, 0, TAU); }, 0.9, 1, NUIT);
+      ctx.globalAlpha = 1; ctx.fillStyle = PAP; ctx.beginPath(); ctx.ellipse(c[0], c[1], r * 0.36, r * 0.6, 0, 0, TAU); ctx.fill(); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.7; ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(c[0], c[1], r * 0.13, r * 0.22, 0, 0, TAU); ctx.stroke();
+      for (let k = 0; k < 5; k++) { const t = now * 14 + k * TAU / 5; ctx.beginPath(); ctx.arc(c[0] + Math.cos(t) * r * 0.24, c[1] + Math.sin(t) * r * 0.4, Math.max(1, r * 0.045), 0, TAU); ctx.fillStyle = ENC; ctx.fill(); }
+      // les rainures du pneu, qui défilent
+      style(0.5, 0.8); for (let k = 0; k < 8; k++) { const t = now * 14 + k * TAU / 8, cx = Math.cos(t), sy = Math.sin(t); if (cx < -0.2) continue; ctx.beginPath(); ctx.moveTo(c[0] + cx * r * 0.44, c[1] + sy * r * 0.72); ctx.lineTo(c[0] + cx * r * 0.58, c[1] + sy * r * 0.94); ctx.stroke(); } });
     // le toit ; l'arrière (la grande vitre, l'équipe de dos, les feux)
     const T = [Q(-w, h, 0), Q(w, h, 0), Q(w, h, Lg), Q(-w, h, Lg)]; cerne(() => { ctx.beginPath(); T.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); }, 1, 1);
     // (vague 4 : « une boîte blanche ») : sur le toit, les bagages de l'équipe, en papier, sanglés ; une valise qui tressaute
