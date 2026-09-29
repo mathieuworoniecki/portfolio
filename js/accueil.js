@@ -37,7 +37,10 @@ function bienvenue() {
   // (vague 9, l'audit : la toute première image) : le chat ne tombe plus d'on ne sait où. Une plume le dessine d'abord dans l'air,
   // au-dessus du titre, d'un seul trait (la tête et ses oreilles, le corps, la queue, les yeux) ; le dessin prend vie et tombe sur le titre
   const top = r ? r.top + (L && L.length ? L[0].y0 : 0) : Wd.H * 0.3, s = Wd.s0 * 0.75, y0 = Math.max(s * 1.4, top - s * 1.5);
-  if (!reduit && y0 > s) { D = { x, y: y0, s, t0: Wd.t, P: croquis(x, y0, s) }; K.later(1.25, () => { D = null; naitre(x, y0 + s * 0.55); }); }
+  // (vague 35 de l'audit : « l'arrivée reste au-dessus du titre ») : la plume entre par le bord de l'écran et traverse toute la pièce en arabesques,
+  // son trait derrière elle, jusqu'au titre ; elle y dessine le chat ; quand il prend vie, le long trait est ravalé vers lui comme un fil qu'on rembobine
+  if (!reduit && y0 > s) { const P = croquis(x, y0, s); D = { x, y: y0, s, t0: Wd.t + ENVOL, P, F: arabesque(P[0], x < Wd.W / 2 ? 1 : -1, s) };
+    K.later(ENVOL + 1.25, () => { R = { F: D.F, t0: Wd.t }; D = null; naitre(x, y0 + s * 0.55); }); }
   else naitre(x, null);
 }
 const reduit = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -47,7 +50,19 @@ function naitre(x, y) {
   K.later(1.3, () => { if (Wd.cats.includes(k)) say(k, pick([L_('tuto.coucou'), '♥'])); });
 }
 // le croquis : une seule ligne continue (comme on dessine un chat sans lever la plume), puis les deux yeux
-let D = null;
+let D = null, R = null; const ENVOL = 0.9;
+// l'arabesque : du bord de l'écran (à l'opposé du chat, à mi-hauteur) jusqu'au début du croquis, trois boucles qui s'élargissent puis se resserrent
+function arabesque(fin, cote, s) {
+  const x0 = cote > 0 ? Wd.W + 40 : -40, y0 = Wd.H * 0.62, F = [], n = 90, Rb = Math.min(s * 1.5, Wd.H * 0.14);
+  for (let i = 0; i <= n; i++) { const t = i / n, e = t * t * (3 - 2 * t), bx = x0 + (fin[0] - x0) * e, by = y0 + (fin[1] - y0) * e - Math.sin(Math.PI * t) * Wd.H * 0.24,
+    b = Math.sin(Math.PI * t), ph = t * Math.PI * 2 * 3; F.push([bx + Math.sin(ph) * Rb * b * -cote, by - (1 - Math.cos(ph)) * Rb * 0.7 * b]); }
+  return F;
+}
+// la plume : un bec d'encre, penché dans le sens où elle va
+function plume(x, y, dx, dy, a) { const l = Math.hypot(dx, dy) || 1, ux = dx / l, uy = dy / l, px = -uy, py = ux, L = 34;
+  Chalk.stroke([[x, y], [x - ux * L + px * 7, y - uy * L + py * 7], [x - ux * L * 1.5, y - uy * L * 1.5], [x - ux * L + px * -7, y - uy * L - py * 7], [x, y]], 1, { w: 2.4, a, seed: 13, tip: false });
+  Chalk.stroke([[x - ux * 8, y - uy * 8], [x - ux * L * 0.8, y - uy * L * 0.8]], 1, { w: 1.6, a, seed: 14, tip: false });
+  Chalk.stroke([[x - ux * L * 1.5, y - uy * L * 1.5], [x - ux * L * 3.4 + px * 10, y - uy * L * 3.4 + py * 10]], 1, { w: 2.6, a, seed: 15, tip: false }); }
 function croquis(x, y, s) {
   const P = [], at = (u, v) => P.push([x + u * s, y + v * s]);
   // la queue, qui remonte en crochet ; le dos ; la tête avec ses deux oreilles ; le poitrail ; les pattes ; retour à la queue
@@ -60,8 +75,16 @@ function croquis(x, y, s) {
   return P;
 }
 H.draw.push(() => {
-  if (!D) return; const u = Math.min(1, (Wd.t - D.t0) / 1.0);
+  // le fil de l'arabesque, rembobiné vers le chat qui vient de naître
+  if (R) { const e = Math.min(1, (Wd.t - R.t0) / 0.6), k = Math.floor(e * e * (R.F.length - 1)); if (e >= 1) R = null; else if (R.F.length - k > 1) Chalk.stroke(R.F.slice(k), 1, { w: 2.2, a: 0.8 * Wd.a, seed: 16, tip: false }); }
+  if (!D) return;
+  if (Wd.t < D.t0) { const v = Math.max(0, 1 - (D.t0 - Wd.t) / ENVOL), F = D.F, i = Math.min(F.length - 2, Math.floor(v * (F.length - 1)));
+    if (v > 0) { Chalk.stroke(F, v, { w: 2.2, a: 0.8 * Wd.a, seed: 16, tip: true }); plume(F[i + 1][0], F[i + 1][1], F[i + 1][0] - F[i][0], F[i + 1][1] - F[i][1], 0.95 * Wd.a); }
+    return; }
+  Chalk.stroke(D.F, 1, { w: 2.2, a: 0.8 * Wd.a, seed: 16, tip: false });
+  const u = Math.min(1, (Wd.t - D.t0) / 1.0);
   Chalk.stroke(D.P, u, { w: 3, a: 0.95 * Wd.a, seed: 11, tip: u < 1 });
+  if (u < 0.85) { const P = D.P, i = Math.min(P.length - 2, Math.floor(u / 0.85 * (P.length - 1)) || 0); plume(P[i + 1][0], P[i + 1][1], P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1], 0.95 * Wd.a); }
   if (u > 0.85) [-1, 1].forEach(sd => Chalk.circle(D.x + (-0.18 + sd * 0.11) * D.s, D.y - 0.3 * D.s, D.s * 0.05, D.s * 0.075, (u - 0.85) / 0.15, { w: 3.4, a: 0.95 * Wd.a, seed: 12 + sd }));
 });
 const L_ = k => (window.L ? L(k) : k);
