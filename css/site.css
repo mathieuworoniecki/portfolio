@@ -413,3 +413,29 @@ html:not(.locked) #gate:not(.open){display:none}
 .trou .evts,.trou .sheet,.trou .dex-toast,.trou .evts-annonce{pointer-events:none!important}
 /* dans l'espace : ni la pièce, ni le menu des évènements, ni le cadre de la feuille, ni les bulles d'aide */
 .espace #piece,.espace #fil,.espace .evts,.espace .evts-annonce,.espace .tuto,.espace .dex-toast,.espace .sheet,.espace #caps{opacity:0!important;pointer-events:none!important;visibility:hidden}
+
+/* ——— (29/09, 07:32, Mathieu : « les boutons d'action : transparents, avec des couleurs au survol ; pareil pour les hauts faits, leurs fenêtres
+   et les autres éléments : ils ne sont pas dans le style — transparent, trait épais, grille ») ———
+   les pastilles, les bulles, les annonces : transparentes (la grille passe dessous), trait épais ; la couleur n'arrive qu'au survol.
+   Les fenêtres (carnet, hauts faits, listes) : une feuille quadrillée comme le plan, pour que le texte reste lisible par-dessus les chats. */
+:root{--quadrille:linear-gradient(rgba(var(--ink),.09) 1px,transparent 1px) 0 0/24px 24px,linear-gradient(90deg,rgba(var(--ink),.09) 1px,transparent 1px) 0 0/24px 24px,var(--bp-hi);
+  --halo:0 0 3px var(--bp-hi),0 0 6px var(--bp-hi),0 0 10px var(--bp-hi)}
+.evts button{background:transparent;border-width:2.6px;transition:transform .2s cubic-bezier(.3,1.6,.5,1),background-color .25s,box-shadow .2s}
+.evts-list button{box-shadow:none}
+.evts-list li:nth-child(6n+1){--c:#F2A7B8}.evts-list li:nth-child(6n+2){--c:#8EC5F0}.evts-list li:nth-child(6n+3){--c:#F5D06B}
+.evts-list li:nth-child(6n+4){--c:#9AD9A8}.evts-list li:nth-child(6n+5){--c:#C3A6EE}.evts-list li:nth-child(6n){--c:#F6B27A}
+@media (hover:hover){.evts-list button:hover{background:color-mix(in srgb,var(--c) 70%,transparent);box-shadow:0 0 0 4px color-mix(in srgb,var(--c) 45%,transparent)}}
+.evts-list button:focus-visible,.evts-list button:active{background:color-mix(in srgb,var(--c) 70%,transparent)}
+.dex-n{background:transparent;border-width:1.8px;text-shadow:var(--halo)}
+.tuto,.dex-toast,.hf-show{background:transparent;border-width:2.6px;box-shadow:none;text-shadow:var(--halo)}
+.tuto::after{background:transparent;border-right-width:2.6px;border-bottom-width:2.6px}
+.grab-hint{background:transparent;border:2px solid rgb(var(--ink));text-shadow:var(--halo)}
+.dex{background:rgba(var(--ink),.12);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.dex-page{background:var(--quadrille);border-width:3px;box-shadow:none}
+.dex-x{border-width:2.6px;transition:background-color .2s}.dex-x:hover{background:color-mix(in srgb,#F2A7B8 60%,transparent)}
+.dex-page li{border-width:2px;transition:background-color .2s}
+.dex-page li.ok{background:transparent;border-width:2.4px}
+@media (hover:hover){.dex-page li.ok:hover{background:color-mix(in srgb,#F5D06B 45%,transparent)}}
+.hf-rang{border-width:2px}
+.pick ul{background:var(--quadrille);border:2.5px solid rgb(var(--ink));box-shadow:none}
+.pick li button:hover,.pick li button:focus-visible{background:color-mix(in srgb,#8EC5F0 45%,transparent)}
