@@ -400,7 +400,7 @@ S.bench = (() => {
       const go = c01((c - 1.1) / 3.4), T0 = Math.PI / 2, fin = c > 4.6;
       const cour = NOMS.map((_, i) => { const d = go <= 0 ? 0 : Math.min(1, go * v[i] / Math.max(...v) * (i === g ? 1 : 0.97)), t = T0 + d * TAU * 1.5; return { i, t, d, p: piste(t, i) }; });
       if (!fin) cour.slice().sort((p, q) => p.p[2] - q.p[2]).forEach(({ i, t, d, p }) => {
-        const al = 1, dir = piste(t + 0.05, i), ang = Math.atan2(dir[1] - p[1], dir[0] - p[0]), r = k * 0.085 * p[3], roule = go > 0 && d < 1; void r;
+        const al = 1, dir = piste(t + 0.05, i), ang = Math.atan2(dir[1] - p[1], dir[0] - p[0]), r = k * 0.125 * p[3], roule = go > 0 && d < 1; void r;
         // la traînée : des étoiles derrière la fusée
         if (roule) for (let j = 1; j <= 7; j++) { const q = piste(t - j * 0.06, i); brille(q[0], q[1] - r * 0.4, 1.6 + (7 - j) * 0.25, al * (1 - j / 8), false, now, i * 9 + j); }
         // la fusée de papier : un fuseau, un aileron, la flamme qui bat

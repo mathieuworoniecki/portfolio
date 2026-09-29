@@ -14,7 +14,7 @@ let avalees = 0;   // celles que la planète des chats a avalées : elle les ren
 // à l'entrée : une gerbe, du centre (là où s'ouvre le trou blanc), un peu après les chats
 X.entre.push(() => {
   L.length = 0; avalees = 0; if (reduit) return;
-  const n = Wd.W < 700 ? 10 : 18, [cx, cy] = O.centre ? O.centre() : [O.W / 2, O.H / 2];
+  const n = Wd.W < 700 ? 6 : 11, [cx, cy] = O.centre ? O.centre() : [O.W / 2, O.H / 2];
   for (let i = 0; i < n; i++) setTimeout(() => { if (!Wd.espace) return; const a = rnd(0, TAU), v = rnd(60, 220) * Wd.s0 / 150;
     L.push({ x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, a: rnd(0, TAU), w: rnd(-3, 3), r: Wd.s0 * rnd(0.055, 0.075), forme: i % 3, t0: Wd.t }); }, 900 + i * 60);
 });
@@ -28,6 +28,10 @@ X.pas.push(dt => {
     k.x += k.vx * dt; k.y += k.vy * dt; k.a += k.w * dt; const f = Math.exp(-dt * 0.35); k.vx *= f; k.vy *= f;
     if (Wd.t - k.t0 <= 35 && (k.x < k.r || k.x > W - k.r)) { k.vx = -k.vx; k.x = Math.max(k.r, Math.min(W - k.r, k.x)); }
     if (Wd.t - k.t0 <= 35 && (k.y < haut + k.r || k.y > bas - k.r)) { k.vy = -k.vy; k.y = Math.max(haut + k.r, Math.min(bas - k.r, k.y)); }
+    // (vague 11) elles ne passent pas sur les sous-titres : le bandeau du texte les repousse, doucement, vers le haut ou le bas
+    const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande;
+    if (bd && k.x > bd.x - k.r * 2 && k.x < bd.x + bd.w + k.r * 2 && k.y > bd.y - k.r * 2 && k.y < bd.y + bd.h + k.r * 2) {
+      const haut2 = k.y < bd.y + bd.h / 2; k.vy += (haut2 ? -1 : 1) * 900 * dt; k.vy = haut2 ? Math.min(k.vy, -40) : Math.max(k.vy, 40); }
     const c = Wd.cats.find(c => c.sp && !c.held && c.sp.m !== 'crache' && !c.rare && (() => { const [x, y] = centreDe(c); return Math.hypot(x - k.x, y - k.y) < rayon(c) * 0.75; })());
     if (c) { L.splice(i, 1); if (Wd.t - (c.miamT || -9) > 2) { c.miamT = Wd.t; say(c, pick(en() ? ['yum', 'crunch', 'space snack!'] : ['miam', 'crounch', 'croquette de l’espace !'])); }
       if (window.Dex && Dex.vu) Dex.vu('croquette-espace'); if (c.sp.cible && c.sp.cible.croq === k) { c.sp.m = 'derive'; c.sp.next = Wd.t + rnd(2, 4); } }
