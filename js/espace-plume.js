@@ -275,7 +275,10 @@ function compose() {
   const t0 = barre.bas + (L ? 18 : 10), b0 = yCap - hMax - (L ? 22 : 14), cx = W / 2, cy = (t0 + b0) / 2;
   const s = Math.max(40, Math.min((b0 - t0) / 2 * 0.94, L ? W * 0.26 : W / 2 * 0.8));
   // (pour les scènes dessinées, js/espace-scenes.js : la largeur qu'elles peuvent prendre, les bords, l'épaisseur du trait, celle des chats)
-  const G = { cx, cy: cy + (b0 - t0) * 0.04, s: s * 1.12, sw: Math.min(W * 0.44, Math.max(s * 1.2, (b0 - t0) * 1.6)), lw: L ? 2.6 : 2.1, gauche: 16, droite: W - 16, haut: t0, bas: b0 + (L ? 10 : 6) };
+  // (29/09, 07:51, Mathieu : « vois plus grand ») : les scènes dessinées prennent tout le ciel, de la barre jusqu'à la Terre ; les sous-titres passent
+  // par-dessus, sur un voile de nuit
+  const bF = hautTerre() - (L ? 12 : 6), gs = Math.max(60, Math.min((bF - t0) / 2 * 0.98, L ? W * 0.3 : W / 2 * 0.95));
+  const G = { cx, cy: t0 + (bF - t0) * 0.47, s: gs * 1.08, sw: Math.min(W * 0.47, Math.max(gs * 1.2, (bF - t0) * 1.6)), lw: L ? 2.6 : 2.1, gauche: 16, droite: W - 16, haut: t0, bas: bF, caps: yCap - hMax - 12 };
   return { W, H, L, barre, caps, yCap, cx, cy, s, G, planete, SC };
 }
 
@@ -377,7 +380,7 @@ X.fond.push((ctx, now) => {
       o.setTransform(1, 0, 0, 1, 0, 0); o.clearRect(0, 0, c2.width, c2.height); o.setTransform(ctx.getTransform()); o.save();
       o.beginPath(); o.arc(G.cx, G.cy, r * Math.hypot(L.W, L.H) * 0.7, 0, TAU); o.clip(); EspaceScenes.pose(o, G, O); D.cs.dessin(reduit ? 3 : a, now); o.restore();
       o.globalAlpha = 1; o.globalCompositeOperation = 'destination-in';
-      const gv = o.createLinearGradient(0, 0, 0, L.H), y1 = c01(G.haut * 0.75 / L.H), y2 = c01((G.bas - 24) / L.H), y3 = c01((G.bas + 22) / L.H);
+      const gv = o.createLinearGradient(0, 0, 0, L.H), y1 = c01(G.haut * 0.75 / L.H), y2 = c01((G.bas - 30) / L.H), y3 = c01((G.bas + 4) / L.H);
       gv.addColorStop(0, 'rgba(0,0,0,0)'); gv.addColorStop(y1, '#000'); gv.addColorStop(Math.max(y1, y2), '#000'); gv.addColorStop(Math.max(y1, y3), 'rgba(0,0,0,0)'); gv.addColorStop(1, 'rgba(0,0,0,0)'); o.fillStyle = gv; o.fillRect(0, 0, L.W, L.H);
       const bh = Math.min(90, L.W * 0.1), gh = o.createLinearGradient(0, 0, L.W, 0); gh.addColorStop(0, 'rgba(0,0,0,0)'); gh.addColorStop(bh / L.W, '#000'); gh.addColorStop(1 - bh / L.W, '#000'); gh.addColorStop(1, 'rgba(0,0,0,0)'); o.fillStyle = gh; o.fillRect(0, 0, L.W, L.H);
       o.globalCompositeOperation = 'source-over'; ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(c2, 0, 0); ctx.restore(); ctx.globalAlpha = 1; };
@@ -407,6 +410,10 @@ X.fond.push((ctx, now) => {
   const txt = (D, q) => { const ox = L.W / 2, oy = L.yCap - D.h; D.L.forEach(l => { const r = c01(q(l)); if (r <= 0) return; ctx.save(); ctx.beginPath(); ctx.rect(ox + l.x - 4, oy + l.y - 60, (l.w + 8) * r, 90); ctx.clip();
     ctx.globalAlpha = l.a; ctx.font = l.font; espace(ctx, l.esp || '0px'); ctx.fillStyle = `rgb(${BL})`; ctx.fillText(l.txt, ox + l.x, oy + l.y); ctx.restore(); }); };
   if (cap) { M.bande = { x: L.W / 2 - cap.w / 2 - 12, y: L.yCap - cap.h - 12, w: cap.w + 24, h: cap.h + 24 };
+    // le voile : la scène continue dessous, les mots restent lisibles
+    { const b = M.bande, cxv = b.x + b.w / 2, cyv = b.y + b.h / 2, rx = b.w * 0.62, ry = b.h * 0.9; ctx.save(); ctx.translate(cxv, cyv); ctx.scale(1, ry / rx);
+      const gv = ctx.createRadialGradient(0, 0, 0, 0, 0, rx); gv.addColorStop(0, 'rgba(9,11,16,0.86)'); gv.addColorStop(0.7, 'rgba(9,11,16,0.7)'); gv.addColorStop(1, 'rgba(9,11,16,0)');
+      ctx.globalAlpha = 1; ctx.fillStyle = gv; ctx.fillRect(-rx, -rx, rx * 2, rx * 2); ctx.restore(); ctx.fillStyle = ctx.strokeStyle = `rgb(${BL})`; }
     if (V && vu < 1) txt(V.cap, l => 1 - vu);
     else { txt(cap, l => reduit ? 1 : (tl - 0.5 - l.dl) * 900 / (l.w + 120));
       const ui = reduit ? 1 : c01((tl - 0.65) / 0.9); if (ui > 0) icone(ctx, cap.k, L.W / 2 + cap.ic.x, L.yCap - cap.h + cap.ic.y, cap.ic.s, ui, now, 0); } }
