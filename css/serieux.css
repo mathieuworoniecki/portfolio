@@ -67,7 +67,8 @@ html.serieux, html.serieux body { overflow: hidden; }
 /* les étiquettes de la pile de compétences, accrochées à la 3D */
 #serieux .sx-etiqs { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
 #serieux .sx-etiq { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 8px; font: 500 11px/1 var(--sx-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--sx-doux); opacity: 0; white-space: nowrap; will-change: transform; transition: color .2s; }
-#serieux .sx-etiq i { width: 26px; height: 1px; background: currentColor; opacity: .6; }
+#serieux .sx-etiq i { width: 40px; height: 1px; background: currentColor; opacity: .6; }
+#serieux .sx-etiq b { font-weight: 500; padding: 4px 7px; background: rgba(var(--sx-bas-rgb),.72); border: 1px solid var(--sx-trait); }   /* un cartouche : le texte ne se mélange plus aux traits */
 #serieux .sx-etiq.ia, #serieux .sx-etiq.on { color: var(--sx-accent); }
 
 /* ——— la page ——— */

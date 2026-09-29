@@ -192,19 +192,20 @@ let e0 = null;   // le graphe de l'équipe (compétences), partagé entre sa con
 function puce(nom, cfg) {
   const o = objet(nom, Object.assign({ s: 1 }, cfg)), C = {}, Y0 = { devops: -0.55, lead: -0.512, back: -0.4, secu: -0.325, ia: -0.32, front: -0.2 };
   COUCHES.forEach((id, k) => { const p = piece(o, [(k % 2 ? 1 : -1) * 1.6, (k - 2.5) * 0.9, (k % 3 - 1) * 0.8]); const g = new T.Group(); p.g.add(g); C[id] = { p, g, m: matieres(), k, hot: 0, f: 1 }; MATS.push(C[id].m); });
-  /* la carte */
-  { const c = C.devops, m = c.m; solide(c.g, new T.BoxGeometry(3.0, 0.07, 2.2), m.l);
-    [[-1.35, -0.95], [1.35, -0.95], [-1.35, 0.95], [1.35, 0.95]].forEach(p => c.g.add(trait(cercleH(0.06, 20, p[0], 0.037, p[1]), m.l, true)));
-    c.g.add(trait([[-1.02, 0.037, -1.02], [1.02, 0.037, -1.02], [1.02, 0.037, 1.02], [-1.02, 0.037, 1.02]], m.d, true));
-    [[-1.2, 0.3], [-1.2, -0.3], [1.2, 0.35], [1.2, -0.1], [0.4, -1.0], [-0.5, 1.0]].forEach((p, i) => { const b = new T.Group(); b.position.set(p[0], 0.06, p[1]); c.g.add(b); solide(b, new T.BoxGeometry(i < 4 ? 0.1 : 0.18, 0.05, i < 4 ? 0.18 : 0.1), m.l); }); }
-  /* les pistes : du bord de la puce vers les connecteurs, coudées à 45° */
+  /* la carte : un circuit imprimé aux coins arrondis, quatre trous de fixation, une zone réservée en pointillés, des composants alignés */
+  { const c = C.devops, m = c.m; solide(c.g, plaque(1.5, 1.1, 0.06, 0.12).translate(0, -0.03, 0), m.l, 30);
+    [[-1.34, -0.94], [1.34, -0.94], [-1.34, 0.94], [1.34, 0.94]].forEach(p => { c.g.add(trait(cercleH(0.065, 24, p[0], 0.032, p[1]), m.l, true)); c.g.add(trait(cercleH(0.035, 16, p[0], 0.032, p[1]), m.s, true)); });
+    const zr = trait([[-1.1, 0.032, -0.8], [1.1, 0.032, -0.8], [1.1, 0.032, 0.8], [-1.1, 0.032, 0.8]], m.d, true); c.g.add(zr); c.zr = zr;
+    for (let i = 0; i < 5; i++) { const b = new T.Group(); b.position.set(-0.5 + i * 0.25, 0.055, -0.98); c.g.add(b); solide(b, new T.BoxGeometry(0.12, 0.04, 0.07), m.l); }
+    for (let i = 0; i < 3; i++) { const b = new T.Group(); b.position.set(1.25, 0.06, -0.3 + i * 0.3); c.g.add(b); solide(b, new T.BoxGeometry(0.1, 0.05, 0.18), m.l); } }
+  /* les pistes : droites, parallèles, du bord du substrat à une rangée de pastilles ; les signaux y courent */
   { const c = C.lead, m = c.m, segs = [], pads = [], rails = [];
-    for (let s = 0; s < 4; s++) for (let i = 0; i < 6; i++) {
-      const u = (i - 2.5) * 0.24, a = [0.9, u], b = [1.1 + Math.abs(u) * 0.35, u * 1.25], c2 = [1.36, u * 1.25];
-      const rot = ([x, z]) => s === 0 ? [x, z] : s === 1 ? [-x, z] : s === 2 ? [z, x * 0.72] : [z, -x * 0.72];
-      const P = [a, b, c2].map(rot).map(([x, z]) => [x, 0, z]); segs.push(P[0], P[1], P[1], P[2]); rails.push(P); pads.push(...boucleSegs(cercleH(0.03, 10, P[2][0], 0, P[2][2])));
+    for (let s2 = 0; s2 < 4; s2++) for (let i = 0; i < 6; i++) {
+      const u = (i - 2.5) * 0.22, rot = ([x, z]) => s2 === 0 ? [x, z] : s2 === 1 ? [-x, z] : s2 === 2 ? [z, x * 0.68] : [z, -x * 0.68];
+      const L2 = s2 < 2 ? 1.28 : 1.3, P = [[0.88, u], [(0.88 + L2) / 2, u], [L2, u]].map(rot).map(([x, z]) => [x, 0, z]);
+      segs.push(P[0], P[2]); rails.push(P); const q = 0.028; pads.push(...boucleSegs([[P[2][0] - q, 0, P[2][2] - q], [P[2][0] + q, 0, P[2][2] - q], [P[2][0] + q, 0, P[2][2] + q], [P[2][0] - q, 0, P[2][2] + q]]));
     }
-    c.g.add(traits(segs, m.l)); c.g.add(traits(pads, m.l)); c.rails = rails;
+    c.g.add(traits(segs, m.s)); c.g.add(traits(pads, m.l)); c.rails = rails;
     c.imp = points(24, o.m.pa); c.g.add(c.imp.p); }
   /* le substrat et ses billes */
   { const c = C.back, m = c.m; solide(c.g, new T.BoxGeometry(1.7, 0.1, 1.7), m.l); const s = [];
@@ -219,17 +220,19 @@ function puce(nom, cfg) {
     c.g.add(traits(s, m.s));
     [[1, 1], [2, 4], [4, 2], [3, 3], [5, 5], [0, 3]].forEach(([i, j]) => { const x = -0.4 + (i + 0.5) * 0.8 / 6, z = -0.4 + (j + 0.5) * 0.8 / 6; hot.push(...boucleSegs([[x - 0.045, 0.064, z - 0.045], [x + 0.045, 0.064, z - 0.045], [x + 0.045, 0.064, z + 0.045], [x - 0.045, 0.064, z + 0.045]])); });
     c.cores = traits(hot, o.m.a); c.g.add(c.cores); }
-  /* le capot : gravé MW */
-  { const c = C.front, m = c.m; solide(c.g, plaque(0.75, 0.75, 0.12, 0.1), m.l, 30); const y = 0.122, k = 0.7;
-    const M = [[-0.35, -0.15], [-0.35, 0.15], [-0.2, -0.02], [-0.05, 0.15], [-0.05, -0.15]], Wl = [[0.05, 0.15], [0.12, -0.15], [0.2, 0.05], [0.28, -0.15], [0.35, 0.15]];
-    [M, Wl].forEach(L => c.g.add(trait(L.map(([x, z]) => [x * k, y, -z * k]), m.l)));
-    c.g.add(trait(cercleH(0.04, 16, -0.55, y, 0.55), m.l, true)); c.g.add(trait([[-0.3, y, 0.28], [0.3, y, 0.28]], m.s)); }
+  /* le capot : une plaque nette, un chanfrein au coin de la broche 1, un cadre intérieur fin, deux lignes de marquage */
+  { const c = C.front, m = c.m, w = 1.3, h = 0.12, sh = new T.Shape(), k = 0.16, r = w / 2;
+    sh.moveTo(-r + k, -r); sh.lineTo(r, -r); sh.lineTo(r, r); sh.lineTo(-r, r); sh.lineTo(-r, -r + k); sh.closePath();
+    const g = new T.ExtrudeGeometry(sh, { depth: h, bevelEnabled: false }); g.rotateX(-Math.PI / 2); solide(c.g, g, m.l, 30); const y = h + 0.003;
+    c.g.add(trait([[-0.52, y, -0.52], [0.52, y, -0.52], [0.52, y, 0.52], [-0.52, y, 0.52]], m.s, true));
+    c.g.add(trait(cercleH(0.05, 24, -0.4, y, 0.4), m.l, true));
+    c.g.add(traits([[-0.2, y, -0.12], [0.36, y, -0.12], [-0.2, y, 0.04], [0.16, y, 0.04]], m.s)); }
   const X = { devops: [1.5, 0.035, 1.1], lead: [1.36, 0, 0.6], back: [0.85, 0.05, 0.85], secu: [0.64, 0.05, 0.64], ia: [0.45, 0.06, 0.45], front: [0.75, 0.12, 0.75] };
   o.C = C; sol(o, cfg.solY ?? -1.65, 3.4, 0.34);
   /* compétences : au-dessus de la couche qu'on lit, son univers se construit (réseau de neurones, fenêtre, bases, boucle, bouclier, équipe) */
   const EM = {};
   if (cfg.univers) {
-    const Y = 1.0, nv = (id, f) => { const p = piece(o, [0, 2.4, 0]), g = new T.Group(); g.position.y = Y; g.scale.setScalar(0.85); p.g.add(g); const m = C[id].m; f(g, m); EM[id] = { g, L: pieces(g), b: 0, imp: null }; return EM[id]; };
+    const Y = 1.2, nv = (id, f) => { const p = piece(o, [0, 2.4, 0]), g = new T.Group(); g.position.y = Y; g.scale.setScalar(0.85); p.g.add(g); const m = C[id].m; f(g, m); EM[id] = { g, L: pieces(g), b: 0, imp: null }; return EM[id]; };
     { const e = nv('ia', (g, m) => { const P = [[-0.6, [-0.3, 0, 0.3]], [0, [-0.45, -0.15, 0.15, 0.45]], [0.6, [-0.2, 0.2]]], s2 = [], N = [];
         P.forEach(([x, ys]) => ys.forEach(y => { const n = new T.Group(); n.position.set(x, y + 0.45, 0); g.add(n); solide(n, new T.OctahedronGeometry(0.06), m.l, 1); N.push([x, y + 0.45]); }));
         P[0][1].forEach(a => P[1][1].forEach(b => s2.push([-0.6, a + 0.45, 0], [0, b + 0.45, 0]))); P[1][1].forEach(a => P[2][1].forEach(b => s2.push([0, a + 0.45, 0], [0.6, b + 0.45, 0]))); g.add(traits(s2, m.s)); });
@@ -1062,8 +1065,8 @@ function init(toile, d) {
   ecran = new T.Scene(); ecran.add(new T.Mesh(new T.PlaneGeometry(2, 2), passe)); camE = new T.Camera(); cam = new T.PerspectiveCamera(FOV, 1, 20, 40000);
   /* la puce, quatre fois : l'accueil (en éclaté léger, annotée), les compétences (une couche par étape), le contact (refermée, les signaux partent) */
   orchestre(d);
-  puce('couches', { s: 0.9, pl: { x: 0.25, y: 0.02, s: 0.82 }, rot: t => [0.55, -0.7 + Math.sin(t * 0.16) * 0.12],
-    ex: (t, v) => 0.6 + 0.4 * sm((v.pas || 0) * 0.8), hl: (t, v) => v.pas === undefined || v.pas >= 6 ? -1 : [4, 5, 2, 0, 3, 1][Math.floor(v.pas)], impulsions: (t, v) => Math.floor(v.pas || 0) === 5 ? 24 : 0,
+  puce('couches', { s: 0.9, pl: { x: 0.23, y: -0.04, s: 0.66 }, rot: t => [0.58, -0.62 + Math.sin(t * 0.16) * 0.1],
+    ex: (t, v) => 0.42 + 0.2 * sm((v.pas || 0) * 0.8), hl: (t, v) => v.pas === undefined || v.pas >= 6 ? -1 : [4, 5, 2, 0, 3, 1][Math.floor(v.pas)], impulsions: (t, v) => Math.floor(v.pas || 0) === 5 ? 24 : 0,
     etiq: d.competences.map(c => [c.couche, c.court]), univers: true });
   { /* le contact : la puce se referme et émet ; des ondes partent sur le sol, vers vous */
     const oc = puce('contact', { fin: true, s: 0.85, pl: { x: 0.24, y: 0.08, s: 0.72 }, plT: { y: 0.33, s: 0.6 }, solY: -0.62, rot: t => [0.5, t * 0.15], ex: (t, v) => 0.5 * (1 - sm(v.loc * 1.5)), impulsions: () => 24 });

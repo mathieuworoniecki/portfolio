@@ -252,7 +252,7 @@ function page() {
   return `
   <canvas class="sx-grille" aria-hidden="true"></canvas>
   <canvas class="sx-3d" aria-hidden="true"></canvas>
-  <div class="sx-etiqs" aria-hidden="true">${Serieux3D.etiquettes().map(e => `<span class="sx-etiq ${e.cls}" data-nom="${e.nom}" data-i="${e.i}"><i></i>${esc(e.t)}</span>`).join('')}</div>
+  <div class="sx-etiqs" aria-hidden="true">${Serieux3D.etiquettes().map(e => `<span class="sx-etiq ${e.cls}" data-nom="${e.nom}" data-i="${e.i}"><i></i><b>${esc(e.t)}</b></span>`).join('')}</div>
   <div class="sx-defile" tabindex="-1">
     <main class="sx-page">
       ${accueil}${iaPin}${iaSuite}${methode}${preuve}${projets}${autres}${comp}${parcours}${formation}${impact}${contact}
