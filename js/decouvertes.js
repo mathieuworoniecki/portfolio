@@ -174,7 +174,7 @@ const file = []; let montre = false;
 const toast = document.createElement('div'); toast.className = 'dex-toast'; toast.setAttribute('role', 'status'); document.body.appendChild(toast);
 function suivante() {
   if (montre || !file.length) return; montre = true; const d = file.shift();
-  toast.innerHTML = `<b>${T('Découverte !', 'Discovery!')}</b> <span>${d.t}</span> <i>${n()} / ${TOUS.length}</i>`;
+  toast.innerHTML = (photos[d.id] ? `<img class="dex-toast-ph" src="${photos[d.id]}" alt="">` : '') + `<b>${T('Découverte !', 'Discovery!')}</b> <span>${d.t}</span> <i>${n()} / ${TOUS.length}</i>`;
   toast.classList.remove('go', 'plie'); toast.style.visibility = ''; void toast.offsetWidth; toast.classList.add('go');
   // (vague 10, l'audit : « le carnet ») : la carte ne s'efface plus. Le mot s'écrit à la main ; puis elle se plie en avion de papier
   // qui file en looping jusqu'au bouton du carnet ; le bouton l'avale et rebondit
@@ -196,8 +196,10 @@ function avion() {
     else { a.remove(); btn.classList.remove('hf-avale'); void btn.offsetWidth; btn.classList.add('hf-avale'); setTimeout(() => btn.classList.remove('hf-avale'), 700); } };
   requestAnimationFrame(pas);
 }
-function vu(id) {
-  const d = PAR[id]; if (!d || vus[id]) return false; vus[id] = Date.now(); garde(); file.push(d); suivante(); compte();
+function vu(id, c) {
+  const d = PAR[id]; if (!d || vus[id]) return false; vus[id] = Date.now(); garde(); compte();
+  // un chat : on le photographie d'abord (l'annonce part avec la photo, voir « les photos » plus bas)
+  if (c && !aPhoto && (id.startsWith('race-') || id.startsWith('rare-'))) aPhoto = { id, c, t: performance.now() }; else { file.push(d); suivante(); }
   try { dispatchEvent(new CustomEvent('dex', { detail: id })); } catch (e) {}   // (les hauts faits écoutent : js/hautsfaits.js)
   if (id.startsWith('rare-') && ['geant', 'interminable', 'ballon', 'eclair', 'totem', 'acrobate'].every(k => vus['rare-' + k])) vu('tousrares');
   if (window.Scenarios && Scenarios.gerbe && Wd.a > 0.5) Scenarios.gerbe(70, Wd.H - 120, 10, 200);
@@ -217,13 +219,17 @@ H.post.push(() => {
 const dort = c => /dodo|pain|couche|dort/.test((c.task && c.task.anim) || c.anim || '');
 const tache = c => c.task && c.task.k;
 H.post.push(() => {
+  if (aPhoto && !aPhoto.muet && performance.now() - aPhoto.t > 1500) { const P = aPhoto; aPhoto = null; file.push(PAR[P.id]); suivante(); }   // (pas de rendu : l'annonce part sans photo)
   if (Wd.t < (Wd.dexT || 0) || Wd.a < 0.5) return; Wd.dexT = Wd.t + 0.5;
   let dormeurs = 0;
   for (const c of Wd.cats) {
     if (!c.hp || c.hidden && !(c.perch && c.perch.pe && c.perch.pe.inside)) continue;
     const visible = c.x > 0 && c.x < Wd.W;
-    if (visible && !c.rare && TY[c.breed]) vu('race-' + c.breed);
-    if (c.rare && visible) vu('rare-' + c.rare);
+    if (visible && !c.rare && TY[c.breed]) vu('race-' + c.breed, c);
+    if (c.rare && visible) vu('rare-' + c.rare, c);
+    // (un chat découvert avant les photos : on le prend en photo, sans bruit, la prochaine fois qu'il passe bien en vue)
+    const cle = c.rare ? 'rare-' + c.rare : 'race-' + c.breed;
+    if (!aPhoto && vus[cle] && !photos[cle] && Wd.t > phT && c.x > Wd.W * 0.12 && c.x < Wd.W * 0.88 && !c.fall && !c.held) { aPhoto = { id: cle, c, muet: true }; phT = Wd.t + 3; }
     const k = tache(c), pe = c.perch && c.perch.pe, it = c.perch && c.perch.it;
     if (k === 'titre') vu('titre'); if (k === 'rebord') vu('bouton'); if (k === 'etagere') vu('etagere'); if (k === 'passager') vu('passager'); if (k === 'vitre') vu('vitre');
     if (k === 'griffes' || c.accr) vu('griffes');
@@ -247,6 +253,38 @@ H.post.push(() => {
   if (window.Vie && Vie.LETTERS) { const L = Vie.LETTERS(); if (L && L.some(l => l.st === 'fall' || l.st === 'sol')) vu('lettre'); }
 });
 
+/* ——— les photos (vague 33, l'audit : « le carnet des chats n'est qu'une liste de textes ») ———
+   Chaque chat qu'on croise pour la première fois est photographié sur le vif : un viseur au trait se referme sur lui dans la pièce, « clic ! »,
+   et le cliché (le vrai dessin du chat, à cet instant, dans sa pose) part avec l'annonce et se colle dans le carnet, en polaroïd, avec la date.
+   La photo est prise juste après le rendu 3D de l'image (Obj3D.render), tant que le dessin est encore dans la toile. */
+const CLEPH = 'pf-carnet-photos';
+let photos = {}; try { photos = JSON.parse(localStorage.getItem(CLEPH) || '{}') || {}; } catch (e) { photos = {}; }
+const gardePh = () => { try { localStorage.setItem(CLEPH, JSON.stringify(photos)); } catch (e) {} };
+let aPhoto = null, phT = 0;
+if (window.Obj3D && Obj3D.render) { const r0 = Obj3D.render; Obj3D.render = function () { const r = r0.apply(this, arguments); if (aPhoto) { const P = aPhoto; aPhoto = null; try { cliche(P); } catch (e) {} if (!P.muet) { file.push(PAR[P.id]); suivante(); } } return r; }; }
+function cliche(P) {
+  const c = P.c, cv = document.getElementById('obj'); if (!cv || !cv.width || !c || c.hidden) return false;
+  const s = c.s * (c.b ? c.b.s : 1), hp = c.hp || [c.x, c.y - s];
+  // (cadré entre les pattes et la tête : debout, assis ou couché, le chat remplit la photo)
+  const cx = (c.x + hp[0]) / 2, cy = (c.y + hp[1]) / 2 - s * 0.1, h = Math.max(24, s * 0.72, Math.abs(c.y - hp[1]) * 0.8);
+  const N = 160, o = document.createElement('canvas'); o.width = o.height = N; const x = o.getContext('2d');
+  // la pièce derrière lui (la grille, le décor), puis le dessin 3D : une vraie photo, pas un détourage
+  ['grid', 'piece', 'obj'].forEach(q => { const e = document.getElementById(q); if (!e || !e.width) return; const ke = e.width / (e.clientWidth || innerWidth);
+    try { x.drawImage(e, (cx - h) * ke, (cy - h) * ke, 2 * h * ke, 2 * h * ke, 0, 0, N, N); } catch (er) {} });
+  let url = o.toDataURL('image/webp', 0.85); if (!url.startsWith('data:image/webp')) url = o.toDataURL();
+  photos[P.id] = url; gardePh();
+  if (!P.muet) viseur(cx, cy, h);
+  return true;
+}
+// le viseur : quatre coins au trait qui se referment sur le chat, le mot « clic ! », puis les coins se replient en tournant jusqu'à un point (rien ne s'efface)
+function viseur(cx, cy, h) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const v = document.createElement('div'); v.className = 'dex-vise'; v.setAttribute('aria-hidden', 'true');
+  v.style.cssText = `left:${cx - h}px;top:${cy - h}px;width:${2 * h}px;height:${2 * h}px`;
+  v.innerHTML = '<svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M2 22 V2 H22 M78 2 H98 V22 M98 78 V98 H78 M22 98 H2 V78"/><path class="dv-croix" d="M44 50 H56 M50 44 V56"/></svg><b>' + T('clic !', 'click!') + '</b>';
+  document.body.appendChild(v); setTimeout(() => v.remove(), 1500);
+}
+
 /* ——— le carnet ——— */
 const ICONE = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M8 7 q6 -2 12 2 q6 -4 12 -2 v25 q-6 -2 -12 2 q-6 -4 -12 -2z"/><path d="M20 9 v25"/><path d="M11 14 q4 -1 6 1 M11 19 q4 -1 6 1 M23 15 q4 -2 6 -1"/></svg>';
 let btn = null, badge = null;
@@ -255,16 +293,20 @@ const panneau = document.createElement('div'); panneau.className = 'dex'; pannea
 panneau.setAttribute('aria-label', T('Carnet de découvertes', 'Discovery notebook')); document.body.appendChild(panneau);
 // (un tampon penché au hasard, mais toujours le même pour une découverte donnée)
 const bruitD = id => { let h = 7; for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) % 9973; return h / 9973; };
+// la date au dos du polaroïd, écrite à la main ; la silhouette d'un chat pas encore croisé : une tête en pointillés et un point d'interrogation
+const quand = t => { if (!(t > 1e12)) return ''; const d = new Date(t); return T('vu le ', 'seen ') + d.toLocaleDateString(EN ? 'en-GB' : 'fr-FR', { day: 'numeric', month: 'short' }); };
+const OMBRE = '<svg viewBox="0 0 120 100" aria-hidden="true"><path d="M20 96 C18 70 22 52 30 44 L26 16 L46 34 C54 31 66 31 74 34 L94 16 L90 44 C98 52 102 70 100 96"/><text x="60" y="80">?</text></svg>';
 function ouvre() {
   const total = TOUS.length, k = n();
   panneau.innerHTML = `<div class="dex-page"><header><h2>${T('Carnet de découvertes', 'Discovery notebook')}</h2><p>${k} / ${total}</p>
     <div class="dex-barre"><span style="width:${(k / total * 100).toFixed(1)}%"></span></div><button type="button" class="dex-x" aria-label="${T('Fermer', 'Close')}">×</button></header>
     ${(() => { let i = 0; return FAM.map(f => `<section><h3>${f.nom} <small>${f.L.filter(d => vus[d.id]).length}/${f.L.length}</small></h3><ul>${f.L.map(d => { const st = `--i:${Math.min(40, i++)};--r:${((bruitD(d.id) - 0.5) * 16).toFixed(1)}deg`; return vus[d.id]
-      ? `<li class="ok" style="${st}"><b>${d.t}</b><span>${d.ok || d.h}</span></li>` : `<li style="${st}"><b>???</b><span>${d.h}</span></li>`; }).join('')}</ul></section>`).join(''); })()}
+      ? (photos[d.id] ? `<li class="ok ph" style="${st}"><figure><img src="${photos[d.id]}" alt=""><figcaption>${quand(vus[d.id])}</figcaption></figure><b>${d.t}</b><span>${d.ok || d.h}</span></li>` : `<li class="ok" style="${st}"><b>${d.t}</b><span>${d.ok || d.h}</span></li>`)
+      : (/^(race|rare)-/.test(d.id) ? `<li class="ph" style="${st}"><figure class="dex-ombre">${OMBRE}</figure><b>???</b><span>${d.h}</span></li>` : `<li style="${st}"><b>???</b><span>${d.h}</span></li>`); }).join('')}</ul></section>`).join(''); })()}
     <footer><button type="button" class="dex-raz">${T('Tout oublier', 'Forget everything')}</button></footer></div>`;
   panneau.hidden = false; panneau.querySelector('.dex-x').focus();
   panneau.querySelector('.dex-x').onclick = ferme; guetteur();
-  const raz = panneau.querySelector('.dex-raz'); raz.onclick = () => { if (raz.dataset.sur) { vus = {}; garde(); compte(); ouvre(); } else { raz.dataset.sur = 1; raz.textContent = T('Sûr ? Cliquer encore', 'Sure? Click again'); } };
+  const raz = panneau.querySelector('.dex-raz'); raz.onclick = () => { if (raz.dataset.sur) { vus = {}; garde(); photos = {}; gardePh(); compte(); ouvre(); } else { raz.dataset.sur = 1; raz.textContent = T('Sûr ? Cliquer encore', 'Sure? Click again'); } };
 }
 function ferme() { panneau.hidden = true; cancelAnimationFrame(G.raf); if (btn) btn.focus(); }
 /* (vague 7, l'audit : « le carnet est un panneau, pas un moment ») : un chat passe la tête par-dessus le bord du carnet, les pattes posées sur la tranche.
