@@ -370,7 +370,7 @@ html:not(.locked) #gate:not(.open){display:none}
 .dex-raz{background:none;border:0;color:inherit;opacity:.55;font:400 .75rem/1 var(--mono);text-decoration:underline;cursor:pointer}
 @keyframes dex-fade{0%,100%{opacity:0}12%,80%{opacity:1}}
 /* les hauts faits (js/hautsfaits.js) : la grande animation, la vitrine */
-.hf-show{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));right:14px;z-index:35;display:flex;align-items:center;gap:10px;max-width:min(340px,calc(100vw - 28px));
+.hf-show{position:fixed;top:calc(84px + env(safe-area-inset-top,0px));right:14px;z-index:35;display:flex;align-items:center;gap:10px;max-width:min(340px,calc(100vw - 28px));
   padding:8px 16px 8px 8px;color:rgb(var(--ink));background:var(--bp-hi);border:2.5px solid rgb(var(--ink));border-radius:18px 14px 20px 16px;
   box-shadow:4px 4px 0 rgba(var(--ink),.22);cursor:pointer;transform-origin:100% 0}
 .hf-show[hidden]{display:none}

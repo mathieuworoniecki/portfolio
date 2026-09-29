@@ -643,18 +643,19 @@ S.front = (() => {
 S.back = (() => ({
   cles: () => [[-0.62, -0.5], [-0.62, 0.5], [0.85, -0.45], [0.85, 0.45]],
   dessin(a, now) {
-    const [k, lx] = large(1.5, 2.1), V = cam(0.42, -0.5, k * 1.08, 0, -0.02), xA = -lx * 0.7, xW = lx * 0.05, xD = lx * 0.68, zs = [-0.6, 0, 0.6], yS = 0.3;
+    const [k, lx] = large(1.5, 2.1), V = cam(0.42, -0.5, k * 0.92, 0, -0.26), xA = -lx * 0.55, xW = lx * 0.05, xD = lx * 0.68, zs = [-0.45, 0, 0.45], yS = 0.3;
     // les murs entre les bases
-    [-0.3, 0.3].forEach(z => { const Q = [V(xD - 0.32, yS, z), V(xD + 0.32, yS, z), V(xD + 0.32, yS - 0.42, z), V(xD - 0.32, yS - 0.42, z)]; trait(Q, true, 0.7, 0.6);
+    [-0.225, 0.225].forEach(z => { const Q = [V(xD - 0.32, yS, z), V(xD + 0.32, yS, z), V(xD + 0.32, yS - 0.42, z), V(xD - 0.32, yS - 0.42, z)]; trait(Q, true, 0.7, 0.6);
       for (let j = 1; j < 4; j++) trait([V(xD - 0.32, yS - j * 0.105, z), V(xD + 0.32, yS - j * 0.105, z)], false, 0.35, 0.4); });
     // les files : deux rails ; l'engrenage
     zs.forEach((z, i) => { [-0.07, 0.07].forEach(o => trait([V(xA + 0.14, yS, z + o), V(xW - 0.14, yS, z + o)], false, 0.5, 0.5)); trait([V(xW + 0.14, yS - 0.05, z), V(xD - 0.2, yS - 0.3, z)], false, 0.4, 0.35);
-      const g = V(xW, yS - 0.1, z); rouage(g[0], g[1], k * 0.085 * g[3], now * 2 * (i % 2 ? -1 : 1)); const w = V(xW, yS, z + 0.2), r = k * 0.045 * w[3]; chabot(w[0], w[1] - r * 1.7, r, { now, ph: i, lac: -0.6, casque: false, travaille: true, bras: [0.6 + Math.sin(now * 6 + i) * 0.5, 0.6 - Math.sin(now * 6 + i) * 0.5] }); });
+      const g = V(xW, yS - 0.1, z); rouage(g[0], g[1], k * 0.12 * g[3], now * 2 * (i % 2 ? -1 : 1)); const w = V(xW, yS, z + 0.2), r = k * 0.045 * w[3]; chabot(w[0], w[1] - r * 1.7, r, { now, ph: i, lac: -0.6, casque: false, travaille: true, bras: [0.6 + Math.sin(now * 6 + i) * 0.5, 0.6 - Math.sin(now * 6 + i) * 0.5] }); });
     // la passerelle
-    bloc(V, xA - 0.1, xA + 0.1, yS, yS - 0.45, -0.75, 0.75, 1, 0.9); zs.forEach(z => { const d = [V(xA + 0.1, yS, z - 0.08), V(xA + 0.1, yS, z + 0.08), V(xA + 0.1, yS - 0.14, z + 0.08), V(xA + 0.1, yS - 0.14, z - 0.08)]; ctx.globalAlpha = 1; ctx.fillStyle = ENC; ctx.beginPath(); d.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.fill(); });
-    { const t = V(xA, yS - 0.45, 0.2), r = k * 0.075 * t[3]; chabot(t[0], t[1] - r * 1.75, r, { now, lac: Math.sin(now * 0.9) * 0.9, travaille: true }); } const la = V(xA, yS - 0.45, -0.45); mot('API', la[0], la[1] - k * 0.08, Math.max(11, k * 0.09), 1);
+    // (09:57 : « le bloc API tordu » : une passerelle basse et large, avec son toit en gradin et trois portes, au lieu d'un monolithe)
+    bloc(V, xA - 0.16, xA + 0.1, yS, yS - 0.26, -0.56, 0.5, 1, 0.9); bloc(V, xA - 0.12, xA + 0.06, yS - 0.26, yS - 0.34, -0.4, 0.34, 1, 0.8); zs.forEach(z => { const d = [V(xA + 0.1, yS, z - 0.08), V(xA + 0.1, yS, z + 0.08), V(xA + 0.1, yS - 0.14, z + 0.08), V(xA + 0.1, yS - 0.14, z - 0.08)]; ctx.globalAlpha = 1; ctx.fillStyle = ENC; ctx.beginPath(); d.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.fill(); });
+    { const t = V(xA, yS - 0.34, 0.2), r = k * 0.075 * t[3]; chabot(t[0], t[1] - r * 1.75, r, { now, lac: Math.sin(now * 0.9) * 0.9, travaille: true }); } const la = V(xA, yS - 0.34, -0.3); mot('API', la[0], la[1] - k * 0.08, Math.max(11, k * 0.09), 1);
     // les bases : des cylindres qui se remplissent
-    zs.forEach((z, i) => { const r = 0.17, hh = 0.36; cylindre(V, xD, z, r, yS, yS - hh);
+    zs.forEach((z, i) => { const r = 0.15, hh = 0.36; cylindre(V, xD, z, r, yS, yS - hh);
       const nv = Math.floor((a * 1.2 + i * 1.7) % 5); ctx.globalAlpha = 0.7; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.45; for (let j = 1; j <= 3; j++) { const C = cylindre.av || null; const L = anneau(V, r, yS - j * hh / 4, 28, xD, z), D = L.filter(p => p[2] >= V(xD, yS - j * hh / 4, z)[2] - 1e-3); if (j <= nv) { ctx.beginPath(); D.forEach((p, q) => q ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke(); } }
       const t = V(xD, yS - hh - 0.14, z); mot(['A', 'B', 'C'][i], t[0], t[1], Math.max(10, k * 0.08), 0.9); });
     // les requêtes : elles arrivent, sont triées, traitées, rangées
