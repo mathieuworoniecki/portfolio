@@ -288,7 +288,10 @@ H.pre.push(dt => {
   const Ls = LETTERS(); if (!Ls) return; const r = RECT(), g = K.grav() * 0.9, fl = Wd.floor - 2;
   Ls.forEach(L => {
     const w = L.x1 - L.x0, h = L.y1 - L.y0;
-    if (!L.st) { if (L.wob) { const u = Wd.t - L.wob; L.rot = Math.sin(u * 22) * 0.07 * (L.wobA || 1) * Math.exp(-u * 3); if (u > 2) { L.wob = 0; L.rot = 0; } } return; }
+    if (!L.st) { if (L.wob) { const u = Wd.t - L.wob; if (u < 0) return; L.rot = Math.sin(u * 22) * 0.07 * (L.wobA || 1) * Math.exp(-u * 3);
+        // (la vague de retour : un petit saut de joie qui passe d'une lettre à l'autre)
+        if (L.hopA) { L.dy = u < 0.32 ? -Math.sin(u / 0.32 * Math.PI) * L.hopA : 0; if (u >= 0.32) L.hopA = 0; }
+        if (u > 2) { L.wob = 0; L.rot = 0; L.dy = 0; } } return; }
     if (L.st === 'fall') {
       L.vy += g * dt; L.dx += L.vx * dt; L.dy += L.vy * dt; L.rot += L.vr * dt;
       const x = lx(L, r); if (x < w / 2) { L.dx += w / 2 - x; L.vx = Math.abs(L.vx) * 0.5; } if (x > Wd.W - w / 2) { L.dx -= x - (Wd.W - w / 2); L.vx = -Math.abs(L.vx) * 0.5; }
@@ -313,7 +316,10 @@ H.pre.push(dt => {
       if ((Math.abs(e) < 3 && u > 0.5) || u > 9) { L.st = 'back'; L.t = Wd.t; L.from = [L.dx, L.dy, L.rot]; dust(x, fl, Math.max(w, 20) * 0.5, 0.6); }
     } else if (L.st === 'back') {
       const u = Math.min(1, (Wd.t - L.t) / 1.1), e = sm(u); L.dx = L.from[0] * (1 - e); L.dy = L.from[1] * (1 - e) - Math.sin(u * Math.PI) * Wd.s0 * 0.8; L.rot = L.from[2] * (1 - e);
-      if (u >= 1) { L.st = ''; L.dx = L.dy = L.rot = 0; L.wob = Wd.t; L.wobA = 0.6; L.out0 = 0; }
+      if (u >= 1) { L.st = ''; L.dx = L.dy = L.rot = 0; L.wob = Wd.t; L.wobA = 0.6; L.out0 = 0;
+        // (vague 24 de l'audit : « les lettres ») : quand elle retrouve sa place, ses voisines lui font la fête : une vague de petits sauts
+        // part d'elle et court le long du titre, de plus en plus petite (les lettres encore dehors ne bougent pas)
+        const i0 = Ls.indexOf(L), hh = L.y1 - L.y0; Ls.forEach((M, j) => { if (M === L || M.st || M.a < 0.3) return; const d = Math.abs(j - i0); if (d > 7) return; M.wob = Wd.t + d * 0.07; M.wobA = 0.5 * Math.exp(-d * 0.3); M.hopA = hh * 0.22 * Math.exp(-d * 0.35); }); }
     }
   });
 });
