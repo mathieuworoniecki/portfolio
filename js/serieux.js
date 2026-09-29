@@ -479,7 +479,12 @@ function ferme() {
   }, reduit ? 0 : 750));
 }
 
+/* la page se bâtit (3D comprise) dès qu'on vise le bouton « Mode sérieux », pendant que les chats font place nette :
+   à l'ouverture, elle est prête et se pose sur l'esquisse sans temps mort */
+function prepare() { if (!el) try { batir(); } catch (e) {} }
+['pointerenter', 'pointerdown', 'focusin'].forEach(ev => document.addEventListener(ev, e => { if (!el && e.target && e.target.closest && e.target.closest('#stay')) setTimeout(prepare, 30); }, true));
+
 /* ?serieux : directement dans le mode sérieux */
 if (/[?&]serieux(=|&|$)/.test(location.search)) ouvre({ instant: true });
-return { ouvre, ferme, get ouvert() { return ouvert; } };
+return { ouvre, ferme, prepare, get ouvert() { return ouvert; } };
 })();

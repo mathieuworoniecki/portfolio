@@ -1149,7 +1149,10 @@ function init(toile, d) {
     const ondes = [0, 1, 2, 3].map(() => { const m = oc.m.a.clone(); const l = trait(cercleH(1, 120, 0, -0.6, 0), m, true); oc.g.add(l); return l; }), tk = oc.tick;
     oc.tick = (t, v) => { tk(t, v); ondes.forEach((l, i) => { const k = (t * 0.28 + i / 4) % 1; l.scale.set(0.9 + k * 3.4, 1, 0.9 + k * 3.4); l.material.opacity = oc.op * Math.pow(1 - k, 1.6) * 0.9; }); }; }
   poussiere(); chaine(); atelier(); if (d.marko) preuve(d.marko); impact(); circuit(d.parcours.slice().reverse()); immeuble(); fleur(); globe(); chat(); archive(); bougies(); reseau(); caviarde(); radar();
-  ok = true; resize(); return true;
+  ok = true; resize();
+  /* les shaders se compilent tout de suite (l'accueil suffit : les autres scènes partagent ses programmes), pas au moment où la page se pose */
+  setTimeout(() => { try { const a = OBJ.accueil; if (a) a.g.visible = true; R.compile(scene, cam); R.compile(ecran, camE); if (a) a.g.visible = false; } catch (e) {} }, 0);
+  return true;
 }
 function resize() {
   if (!ok) return;
