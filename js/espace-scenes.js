@@ -653,7 +653,10 @@ S.front = (() => {
         return [0, 1, 2].map(i => [-W + 0.08 + (i % nc) * (cw + 0.06), top + Math.floor(i / nc) * (ch + 0.05), cw, ch]); };
       const CA = cartes(A), CB = cartes(B), CC = CA.map((q, i) => q.map((v, j) => lerp(v, CB[i][j], u)));
       // le cadre (l'écran) ; en téléphone : l'encoche
-      const T = Pk(-w, -h); { const P = Pk(w * 0.55, -h), r = k * 0.1; chabot(P[0], P[1] - r * 0.55 - Math.abs(Math.sin(now * 2)) * r * 0.15, r, { now, v: 1, lac: Math.sin(now * 0.7) * 0.6, bras: [1.2 + Math.sin(now * 6) * 0.4, -0.4] }); }
+      const T = Pk(-w, -h); { // (vague 8) le chat-robot assis sur l'écran : quand l'écran se resserre, le bord se dérobe sous lui ; il saute, bras en l'air, et retombe dessus
+        const P = Pk(w * 0.55, -h), r = k * 0.1, sa = u > 0 && u < 1 ? Math.sin(Math.PI * u) : 0;
+        chabot(P[0], P[1] - r * 0.55 - Math.abs(Math.sin(now * 2)) * r * 0.15 * (1 - sa) - sa * r * 1.6, r, { now, v: 1, lac: sa ? 0 : Math.sin(now * 0.7) * 0.6, cligne: sa > 0.3, bras: sa ? [1.5, 1.5] : [1.2 + Math.sin(now * 6) * 0.4, -0.4] });
+        if (sa > 0.2) mot(A < B ? (en() ? 'whoa' : 'oh là') : 'hop', P[0] + r * 1.4, P[1] - r * 2.6 - sa * r, Math.max(11, k * 0.06), sa); }
       ecran(T[0], T[1], 2 * w * k, 2 * h * k, k * 0.1, k * lerp(0.1, 0.03, large01));
       if (large01 < 1) { const n = Pk(0, -h + 0.05); boite(n[0] - k * 0.07, n[1] - k * 0.015, k * 0.14, k * 0.03, k * 0.015, 0.7, 1 - large01); }
       trait([Pk(-w, -h + 0.16), Pk(w, -h + 0.16)], false, 0.8, 0.9);
