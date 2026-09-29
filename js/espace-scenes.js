@@ -63,10 +63,15 @@ function chabot(x, y, r, o = {}) {
   // le voyant de poitrine (il clignote quand il travaille), la ceinture
   ctx.globalAlpha = a; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.7; ctx.beginPath(); ctx.moveTo(x - bw * 0.8, by + bh * 0.35); ctx.quadraticCurveTo(x, by + bh * 0.5, x + bw * 0.8, by + bh * 0.35); ctx.stroke();
   ctx.beginPath(); ctx.arc(x + sl * bw * 0.4, by + bh * 0.02, r * 0.1, 0, TAU); ctx.fillStyle = o.travaille && Math.sin(now * 12 + ph) > 0 ? ENC : PAP; ctx.fill(); ctx.stroke();
+  // (vague 23 de l'audit : « le chat-robot astronaute ») : du volume à la plume, comme la planète des chats : quelques hachures du côté de l'ombre
+  const hach = (cx, cy, rx, ry, n) => { if (r < 9) return; ctx.save(); ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, TAU); ctx.clip(); ctx.globalAlpha = a * 0.42; ctx.strokeStyle = ENC; ctx.lineWidth = Math.max(0.6, G.lw * w * 0.3); ctx.beginPath();
+    for (let i = 0; i < n; i++) { const u = cx + rx * (0.5 + i * 0.5 / n) - sl * rx * 0.3; ctx.moveTo(u, cy - ry); ctx.lineTo(u + ry * 0.5, cy + ry); } ctx.stroke(); ctx.restore(); };
+  hach(x, by + bh * 0.2, bw * 0.95, bh * 0.75, 4);
   // la tête : un rond un peu large, deux oreilles pointues (celle du fond plus petite quand il tourne)
   const hx = x + sl * r * 0.06, oe = g => { const ox = hx + (g * 0.52 + sl * 0.3) * r, k = 1 - Math.max(0, g * -sl) * 0.5; return [[ox - g * r * 0.3, y - r * 0.55], [ox + g * r * 0.05 * k, y - r * (0.62 + 0.5 * k)], [ox + g * r * 0.32, y - r * 0.38]]; };
   cerne(() => { ctx.beginPath(); const L = oe(-1), R = oe(1); ctx.moveTo(...L[0]); ctx.lineTo(...L[1]); ctx.lineTo(...L[2]); ctx.ellipse(hx, y, r * 0.95, r * 0.78, 0, -2.4, -0.74); ctx.lineTo(...R[0]); ctx.lineTo(...R[1]); ctx.lineTo(...R[2]);
     ctx.ellipse(hx, y, r * 0.95, r * 0.78, 0, -0.35, Math.PI + 0.35); ctx.closePath(); }, w, a);
+  hach(hx, y, r * 0.93, r * 0.76, 3);
   // les yeux : deux grands ovales noirs, deux reflets ; ils suivent le regard ; parfois il cligne
   const cl = o.cligne ? 0.12 : 1;
   [-1, 1].forEach(g => { const ex = hx + (g * 0.36 + sl * 0.3) * r, ey = y + r * 0.02, sq = 1 - Math.max(0, g * -sl) * 0.35;
