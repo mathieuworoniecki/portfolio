@@ -864,16 +864,16 @@ function archive() {   // Archon : la pile avale, chaque document passe sous le 
   o.rot = t => [0.3, -0.5 + Math.sin(t * 0.2) * 0.18];
 }
 function bougies() {   // NumerusX : des chandeliers, des agents qui les lisent, une stratégie qui évolue
-  const o = objet('bougies', { s: 0.92 });
+  const o = objet('bougies', { s: 0.8 });
   sol(o, -0.64, 2.8, 0.3); const socle = piece(o, [0, -1.6, 0.3]); socle.g.add(trait([[-1.3, -0.62, -0.35], [1.3, -0.62, -0.35], [1.3, -0.62, 0.35], [-1.3, -0.62, 0.35]], o.m.s, true));
   { const s = []; for (let i = 0; i <= 6; i++) { const y = -0.6 + i * 0.2; s.push([-1.3, y, -0.35], [1.3, y, -0.35]); } socle.g.add(traits(s, o.m.s)); }
-  const B = [], n = 16; let prix = -0.2; const courbe = [];
+  const B = [], n = 16; let prix = -0.2; const courbe = [], CL = [];
   for (let i = 0; i < n; i++) {
     const ouv = prix, clo = prix + Math.sin(i * 1.7) * 0.16 + (i > 8 ? 0.06 : -0.02), hi = Math.max(ouv, clo) + 0.06 + (i % 3) * 0.03, lo = Math.min(ouv, clo) - 0.05 - (i % 2) * 0.04; prix = clo;
     const x = -1.2 + i * 0.16, p = piece(o, [(i - n / 2) * 0.25, (i % 2 ? 1 : -1) * 1.2, 0.8]), g = new T.Group(); g.position.x = x; p.g.add(g);
     const h = Math.max(0.025, Math.abs(clo - ouv)), m = clo >= ouv ? o.m.a : o.m.l;
     solide(g, new T.BoxGeometry(0.07, h, 0.07).translate(0, (ouv + clo) / 2, 0), m); g.add(trait([[0, lo, 0], [0, Math.min(ouv, clo), 0]], o.m.l)); g.add(trait([[0, Math.max(ouv, clo), 0], [0, hi, 0]], o.m.l));
-    B.push(g); courbe.push([x, (ouv + clo) / 2 + 0.28, 0.2]);
+    B.push(g); CL.push(clo); courbe.push([x, (ouv + clo) / 2 + 0.28, 0.2]);
   }
   const strat = piece(o, [0, 1.8, 0.5]); const cl = trait(courbe, o.m.d); strat.g.add(cl);
   /* la profondeur du marché : d'autres séries derrière, de plus en plus pâles, qui s'allument au passage */
@@ -883,10 +883,25 @@ function bougies() {   // NumerusX : des chandeliers, des agents qui les lisent,
     const l = traits(segs, o.m.s); p.g.add(l); return p; });
   const rayons = segments(3, o.m.a); o.g.add(rayons.l);   // chaque agent lit la dernière bougie
   const ag = piece(o, [0, 2.2, -0.5]), A = []; for (let i = 0; i < 3; i++) { const g = new T.Group(); ag.g.add(g); solide(g, new T.OctahedronGeometry(0.07), i === 0 ? o.m.a : o.m.l, 1); g.add(trait(cercleH(0.13, 24), o.m.s, true)); A.push(g); }
+  /* l'évolution : devant la dernière bougie, une génération de stratégies s'ouvre en éventail vers nous ; les moins bonnes tombent, la meilleure s'allume et engendre la suivante */
+  const NP = 8, NK = 6, pop = segments(NP * NK, o.m.s), elu = segments(NK, o.m.a); o.g.add(pop.l, elu.l);
+  let gen = -1, G = [], best = { d: 0.4, f: 2.2 };
+  const genere = g => { let r = Math.sin(g * 91.7) * 43758.5; const al = () => { r = Math.sin(r) * 43758.5; return r - Math.floor(r); };
+    G = Array.from({ length: NP }, (_, j) => ({ d: best.d + (al() - 0.5) * 1.2, f: best.f + (al() - 0.5) * 1.5, ph: al() * TAU, z: (j / (NP - 1) - 0.5) * 1.6 }));
+    G.forEach(c => { c.y = k2 => c.d * k2 * 0.05 + Math.sin(k2 * c.f * 0.5 + c.ph) * 0.07 * Math.min(1, k2 / 2); c.fit = c.y(NK); });
+    G.forEach((c, j) => { c.j = j; }); G.best = G.reduce((m, c) => c.fit > m.fit ? c : m, G[0]); };
   o.tick = (t, v) => {
     const k = 0.25 + 0.75 * sm(v.loc * 1.7), vis = Math.ceil(k * n);
     B.forEach((g, i) => { g.visible = i < vis; g.scale.y = i === vis - 1 ? 0.6 + 0.4 * ((t * 1.5) % 1) : 1; });
     cl.geometry.setDrawRange(0, vis);
+    { const DUR = 3.4, g = Math.floor(t / DUR), ph = (t / DUR) % 1; if (g !== gen) { if (G.best) best = { d: G.best.d, f: G.best.f }; gen = g; genere(g); }
+      const b0 = B[Math.max(0, vis - 1)], x0 = b0.position.x, y0 = CL[Math.max(0, vis - 1)], pousse = c01(ph / 0.45) * NK, chute = c01((ph - 0.72) / 0.28), on = o.op > 0.02;
+      G.forEach((c, j) => { const lui = c === G.best; for (let k2 = 0; k2 < NK; k2++) { const vu = on && k2 < pousse, e = Math.min(1, pousse - k2), dy = lui ? 0 : -chute * chute * 0.9;
+        const P0 = [x0 + k2 * 0.075, y0 + c.y(k2) + dy, c.z * k2 / NK], P1 = [x0 + (k2 + e) * 0.075, y0 + c.y(k2 + e) + dy, c.z * (k2 + e) / NK];
+        pop.pos.set(vu && !(lui && ph > 0.6) ? [...P0, ...P1] : [0, -99, 0, 0, -99, 0], (j * NK + k2) * 6);
+        if (lui) elu.pos.set(vu && ph > 0.6 ? [...P0, ...P1] : [0, -99, 0, 0, -99, 0], k2 * 6); } });
+      pop.a.needsUpdate = true; elu.a.needsUpdate = true; }
+
     A.forEach((g, i) => { const a = t * 0.5 + i * TAU / 3, x = Math.cos(a) * 0.9; g.position.set(x, 0.75 + Math.sin(t * 1.2 + i) * 0.05, Math.sin(a) * 0.35); g.rotation.y = t; });
     const cible = B[Math.max(0, vis - 1)]; A.forEach((g, i) => { const on = (t * 0.7 + i / 3) % 1 < 0.35; rayons.pos.set(on ? [g.position.x, g.position.y, g.position.z, cible.position.x, 0.2, 0] : [0, -9, 0, 0, -9, 0], i * 6); }); rayons.a.needsUpdate = true;
   };
