@@ -662,6 +662,33 @@ function boucleSortie(id) {
 
 Wd.ail = { on: () => !!(Wd.trou || Wd.espace || RV), step: dt => (Wd.trou ? aspiration(dt) : RV ? sortant(dt) : espace(dt)), draw() {}, click: (x, y) => RV ? true : click(x, y), grab: (x, y) => RV ? null : grab(x, y), drag, release };
 // pour les modules de l'espace
+/* (vague 27, l'audit : « les chats en apesanteur ») : dans le vide, un chat qui nage laisse un sillage de poussière d'étoiles ;
+   et quand des chats flottent près les uns des autres, des pointillés les relient : ils forment une constellation, qui a son nom
+   (à trois ou plus : « la Grande Chatte », « Minou Major »…), écrit à la main à côté, tant qu'ils restent ensemble */
+const NOMS_C = () => (window.I18N && I18N.lang && I18N.lang !== 'fr') ? ['Ursa Meow', 'the Great Cat', 'Minor Kitten', 'the Yarn Ball', 'Puss in Boots', 'the Whiskers'] : ['la Grande Minette', 'Minou Major', 'le Petit Matou', 'la Pelote', 'le Chat Botté', 'les Moustaches'];
+X.fond.push((c2, now) => {
+  if (reduit) return;
+  const L = Wd.cats.filter(c => !c.gone && c.sp && c.sp.m !== 'crache' && c.s > 0.01);
+  c2.save(); c2.lineCap = 'round'; c2.fillStyle = c2.strokeStyle = '#F4F4EE';
+  // le sillage : des points qui restent là où il est passé, de plus en plus petits
+  L.forEach(c => { const [x, y] = centreDe(c), h = c.sill || (c.sill = []);
+    if (!h.length || Math.hypot(h[h.length - 1][0] - x, h[h.length - 1][1] - y) > 7) { h.push([x, y, now]); if (h.length > 26) h.shift(); }
+    for (let i = h.length - 1; i >= 0; i--) { const u = (now - h[i][2]) / 1.4; if (u >= 1) { h.splice(0, i + 1); break; }
+      const r = (1 - u) * 1.8 * (0.6 + 0.4 * Math.sin(i * 2.3 + now * 6)); c2.globalAlpha = 0.55 * (1 - u); c2.beginPath(); c2.arc(h[i][0] + Math.sin(i * 1.7) * 3 * u, h[i][1] + Math.cos(i * 2.1) * 3 * u, Math.max(0.3, r), 0, TAU); c2.fill(); } });
+  // les constellations : les paires proches, en pointillés ; les groupes, par voisinage
+  const P = L.map(centreDe), n = L.length, par = L.map((_, i) => i), f = i => par[i] === i ? i : (par[i] = f(par[i]));
+  const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, dansBande = q => bd && q[0] > bd.x - 20 && q[0] < bd.x + bd.w + 20 && q[1] > bd.y - 20 && q[1] < bd.y + bd.h + 20;
+  c2.setLineDash([3, 5]); c2.lineWidth = 1.5;
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) { const d = Math.hypot(P[i][0] - P[j][0], P[i][1] - P[j][1]), lim = (rayon(L[i]) + rayon(L[j])) * 3.2; if (d > lim || L[i].rare === 'geant' || L[j].rare === 'geant' || dansBande(P[i]) || dansBande(P[j])) continue;
+    const k = sm((lim - d) / (lim * 0.35)); c2.globalAlpha = 0.75 * k; c2.lineDashOffset = -now * 12; c2.beginPath(); c2.moveTo(P[i][0], P[i][1]); c2.lineTo(P[j][0], P[j][1]); c2.stroke(); if (k > 0.3) par[f(i)] = f(j); }
+  c2.setLineDash([]);
+  const G2 = {}; for (let i = 0; i < n; i++) (G2[f(i)] = G2[f(i)] || []).push(i);
+  Object.values(G2).filter(g => g.length >= 3).forEach(g => { const id = Math.min(...g.map(i => Wd.cats.indexOf(L[i]))), nom = NOMS_C()[id % 6];
+    const cx = g.reduce((s, i) => s + P[i][0], 0) / g.length, cy = Math.min(...g.map(i => P[i][1])) - Math.max(...g.map(i => rayon(L[i]))) * 1.3;
+    if (bd && cy > bd.y - 24 && cx > bd.x - 40 && cx < bd.x + bd.w + 40) return;
+    const t = g.t0 || 0; c2.globalAlpha = 0.75; c2.font = 'italic 15px "Caveat","Segoe Print",cursive'; c2.textAlign = 'center'; c2.fillText(nom, cx, cy); brille(c2, cx + c2.measureText(nom).width / 2 + 8, cy - 5, 2.2, 0.8, true, now, id); });
+  c2.restore();
+});
 const outils = { X, E, K, brille, sortie, melange, rgb, centre, centreDe, rayon, apres, onde, lache, say, BLANC, HAUT, BAS, DERIVE, get W() { return W; }, get H() { return H; }, get ctx() { return ctx; } };
 return { aspire, entre, retour, outils, get espace() { return !!Wd.espace; }, get actif() { return !!(Wd.trou || Wd.espace || RV); }, get trou() { return !!T; }, get depuis() { return performance.now() / 1000 - finSortie; } };
 })();
