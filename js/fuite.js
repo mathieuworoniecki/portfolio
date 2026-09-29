@@ -6,7 +6,7 @@
    - Au retour (Serieux.ferme) : les trous se rouvrent et recrachent chaque objet à sa place (« pop ! »), et les chats reviennent peu à peu. */
 window.Fuite = (() => {
 if (!window.Chats || !Chats.K) return null;
-const K = Chats.K, { Wd, H, rnd, pick, clamp, sgn, sm, sOf, floorAt, say, interrupt, go, fn, later, grav, sc } = K;
+const K = Chats.K, { Wd, H, rnd, pick, clamp, sgn, sm, sOf, floorAt, say, interrupt, go, fn, later, grav, sc, pose } = K;
 const en = () => !!(window.I18N && I18N.lang && I18N.lang !== 'fr');
 const word = (text, x, y, size) => Wd.fx.push({ k: 'txt', text, x, y, t0: Wd.t, life: 1.1, rot: rnd(-0.2, 0.2), size: size || 16 });
 
@@ -63,7 +63,9 @@ H.pre.push(() => {
       const e = sm(u / 0.75);
       if (u < 0.12) return;
       it.fade = it.fadeT = 1; it.big = T.big * Math.max(0.05, Math.min(1, e * 1.6)); it.tilt = T.sens * (1 - e) * Math.PI * 2;
-      if (e >= 1) { it.trou = null; it.big = T.big; it.tilt = 0; it.fall = true; it.lift = Math.max(it.lift, s * 0.6); it.vy = 0; it.away = Wd.t; }
+      if (e >= 1) { it.trou = null; it.big = T.big; it.tilt = 0; it.fall = true; it.lift = Math.max(it.lift, s * 0.6); it.vy = 0; it.away = Wd.t;
+        // (vague 10) le trou se referme dans un nuage de poussière ; un meuble lourd fait trembler la pièce
+        K.dust(it.fx * Wd.W, floorAt(it.d), s * 0.35, 0.7); if (K.LOURD[it.kind]) Wd.shake = { t0: Wd.t, a: 2 }; }
       else it.lift = Math.sin(e * Math.PI) * s * (K.LOURD[it.kind] ? 1.3 : 2.2);
     }
   });
@@ -101,6 +103,14 @@ function retour() {
   tr.forEach((it, i) => later(0.55 + (n - 1) * 0.12 + i * 0.3, () => { if (K.residents().length >= K.MAXC) return; const d = it.d ?? 0.3, c = K.addCat({ x: it.fx * Wd.W, d }), s = sc(c);
     c.y = floorAt(d) - s * 0.3; c.fall = true; c.vy = -s * rnd(5.5, 7); c.vx = s * rnd(1, 2.4) * (i % 2 ? -1 : 1); c.face = sgn(c.vx) || 1; later(0.2, () => say(c, pick(en() ? ['woohoo!', 'I’m back!', 'hi!', 'hop!'] : ['youhou !', 'me revoilà !', 'coucou !', 'hop !']))); }));
   [0, 1].forEach(i => later(1.4 + n * 0.12 + i * 0.7, () => { if (K.residents().length < K.MAXC) { const c = K.enter(); c.q.unshift(go(c.x + (c.x < Wd.W / 2 ? 1 : -1) * sc(c) * 3, { g: 'galop', v: 1.5 })); } }));
+  // (vague 10, l'audit : « le retour du mode sérieux ») : quand tout est revenu, un dernier trou s'ouvre, là où il n'y a rien ;
+  // il en sort un chat qui dormait dedans, toujours endormi ; il se pose, ronfle, s'étire et découvre qu'il a tout raté
+  later(1.2 + n * 0.12, () => { if (K.residents().length >= K.MAXC || Wd.fuite) return;
+    const libre = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8].map(f => [f, Math.min(...Wd.props.filter(p => !p.gone && !p.on).map(p => Math.abs(p.fx - f)), 1)]).sort((a, b) => b[1] - a[1])[0][0];
+    const d = 0.45, x = libre * Wd.W, y = floorAt(d); trou(x, y, Wd.s0 * 0.3, 0.3, 1.4);
+    later(0.45, () => { const c = K.addCat({ x, d }), s = sc(c); c.y = y - s * 0.2; c.fall = true; c.vy = -s * 3.2; c.vx = 0; c.dormeur = true;
+      const dort = () => { if (c.gone || c.held || !Wd.cats.includes(c)) return; if (c.fall) { later(0.2, dort); return; } interrupt(c); c.q = [pose('dodo', 2.6, { zzz: 1 }), pose('etirement', 1.3, { fx: c => say(c, pick(en() ? ['…is it over?', 'did I miss something?'] : ['…c’était fini ?', 'j’ai raté un truc ?'])) })]; }; later(0.3, dort);
+      word('pop…', x, y - s * 0.7, 16); if (window.Dex && Dex.vu) later(2, () => Dex.vu('dormeur')); }); });
   Wd.nextIn = Wd.t + 6 + n * 0.1;
 }
 addEventListener('serieux:ferme', retour);

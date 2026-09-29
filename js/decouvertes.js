@@ -116,6 +116,7 @@ fam('evts', 'Les événements', 'Events', [
   ['souris-geante', 'Le retour de bâton', 'Payback', 'La grande horde revient… poursuivie.', 'The big horde comes back… chased.'],
   ['miaou-geant', 'Le grand miaou', 'The giant meow', 'Le géant s’arrête au milieu de la pièce… et miaule. Tout s’envole.', 'The giant stops mid-room… and meows. Everything flies.'],
   ['toboggan', 'Le toboggan arc-en-ciel', 'The rainbow slide', 'Grimper sur l’arche des Nyan Cats, et redescendre en glissant.', 'Climb the Nyan Cats’ arch, and slide back down.'],
+  ['dormeur', 'Le dormeur du trou', 'The sleeper in the hole', 'Au retour du mode sérieux, un dernier trou s’ouvre…', 'Back from serious mode, one last hole opens…'],
   ['surprise', 'Le chat dans la caisse', 'The cat in the box', 'Quand la grande tour s’écroule, une caisse s’ouvre : quelqu’un était dedans.', 'When the big tower falls, a box bursts open: someone was inside.'],
   ['aspirateur', 'L’aspirateur', 'The vacuum', 'Quand il y a trop de désordre.', 'When there’s too much mess.'],
   ['passager', 'Le passager', 'The passenger', 'Certains chats aiment l’aspirateur.', 'Some cats love the vacuum.'],
