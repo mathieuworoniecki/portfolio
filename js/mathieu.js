@@ -21,7 +21,7 @@ window.Mathieu = (() => {
 if (!window.Obj3D || !Obj3D.T) return null;
 const T = Obj3D.T, G = 256;
 const DROP = 0.2, PUSH = 0.06;     // la mâchoire, bouche grande ouverte : combien elle descend, combien elle avance (en fractions du cadre)
-const HAUT = 0.06, LOGO_BAS = 0.04;  // le haut des cheveux dans l'image ; en logo, on coupe un peu sous le menton
+const HAUT = 0.06, LOGO_BAS = 0.012;  // le haut des cheveux dans l'image ; en logo, on coupe un peu sous le menton
 const BASE = (() => { const s = document.currentScript && document.currentScript.src; try { return s ? new URL('../media/mathieu/', s).href : 'media/mathieu/'; } catch (e) { return 'media/mathieu/'; } })();
 const inkNow = () => (window.THEME && THEME.inkHex) ?? 0x222428, paperNow = () => (window.THEME && THEME.fog) ?? 0xdadbd8;
 
@@ -36,10 +36,11 @@ function load() {
   const webp = k => M[k] ? img(M[k]) : img(BASE + k + '.webp').catch(() => img(src(k)));
   const tex = i => { const t = new T.Texture(i); t.minFilter = T.LinearFilter; t.generateMipmaps = false; t.needsUpdate = true; return t; };
   const meta = M.meta ? Promise.resolve(M.meta) : fetch(BASE + 'relief.json').then(r => r.json());
-  assets = Promise.all([webp('visage'), webp('dos'), img(src('relief')), meta]).then(([v, d, r, meta]) => {
+  // le logo du site : son propre dessin, plus simple et plus épais (29/09) ; à défaut, le visage
+  assets = Promise.all([webp('visage'), webp('dos'), img(src('relief')), meta, webp('logo').catch(() => null)]).then(([v, d, r, meta, lg]) => {
     const c = document.createElement('canvas'); c.width = G; c.height = G; const x = c.getContext('2d'); x.drawImage(r, 0, 0, G, G);
     const data = x.getImageData(0, 0, G, G).data; x.clearRect(0, 0, G, G); x.drawImage(v, 0, 0, G, G);
-    return { front: tex(v), back: tex(d), data, alpha: x.getImageData(0, 0, G, G).data, meta };
+    return { front: tex(v), back: tex(d), logo: lg ? tex(lg) : null, data, alpha: x.getImageData(0, 0, G, G).data, meta };
   });
   return assets;
 }
@@ -58,10 +59,11 @@ function geometry(A, recto) {
   const large = row.map((r, j) => { let best = r; for (let k = Math.max(0, j - 12); k <= Math.min(G - 1, j + 12); k++) if (row[k] && (!best || row[k][1] > best[1])) best = row[k]; return best; });
   for (let i = 0; i < n; i++) {
     const x = p.getX(i) + 0.5 - hx, y = p.getY(i) - 0.5 + hy;          // l'origine : le centre de la tête
-    dep[i] = d0 + (d1 - d0) * A.data[i * 4] / 255; jaw[i] = A.data[i * 4 + 1] / 255;
+    dep[i] = (d0 + (d1 - d0) * A.data[i * 4] / 255) * (recto ? 1 : 0.4); jaw[i] = A.data[i * 4 + 1] / 255;   // le logo : un relief moins profond (la joue ne cache plus le bord)
     const r = large[Math.floor(i / G)];
+    if (r) bord[i] = Math.min(1, Math.abs(x - r[0]) / r[1]);
     if (recto && r) {
-      const u = Math.min(1, Math.abs(x - r[0]) / r[1]); bord[i] = u; const k = Math.max(0, Math.min(1, (y + 0.13) / 0.05));
+      const u = bord[i], k = Math.max(0, Math.min(1, (y + 0.13) / 0.05));
       dep[i] -= ek * u * u + (en + (eh - en) * k) * u ** 8 + et * Math.min(0.18, Math.max(0, y - ey)) ** 2;
       // sous le menton, le cou de la photo est trop épais : son devant recule (le dessous de la mâchoire apparaît de profil)
       const c = Math.max(0, Math.min(1, (-0.175 - y) / 0.025)); dep[i] -= 0.045 * c * c * (3 - 2 * c) * (1 - u * u);
@@ -69,7 +71,7 @@ function geometry(A, recto) {
     p.setXYZ(i, x, y, dep[i]);
   }
   g.setAttribute('aDepth', new T.BufferAttribute(dep, 1)); g.setAttribute('aJaw', new T.BufferAttribute(jaw, 1));
-  if (recto) { g.computeVertexNormals(); g.setAttribute('aBord', new T.BufferAttribute(bord, 1)); }
+  g.computeVertexNormals(); g.setAttribute('aBord', new T.BufferAttribute(bord, 1));
   return g;
 }
 // part 0 : toute la figure, sauf la mâchoire quand la bouche s'ouvre (sa place devient de l'encre) ; part 1 : la mâchoire seule, qui descend ; part 2 : le contour
@@ -77,7 +79,7 @@ function geometry(A, recto) {
 // recto (le corps entier) : le dos du relief ne se voit pas (il est dans le crâne) ; le contour dessiné au bord de la tête ne reste que de face (face > 0,5 ; 1 de face, 0 tournée),
 // ensuite, c'est le contour en 3D (part 2 : la grille repoussée le long de ses normales, dont on ne dessine que l'envers, en encre : elle dépasse au bord de ce qu'on voit)
 function material(A, part, cut, recto) {
-  const u = { front: { value: A.front }, back: { value: A.back }, ink: { value: new T.Color(inkNow()) }, paper: { value: new T.Color(paperNow()) }, open: { value: 0 }, opacity: { value: 1 }, face: { value: 1 }, off: { value: 0 } };
+  const u = { front: { value: recto ? A.front : A.logo || A.front }, back: { value: A.back }, ink: { value: new T.Color(inkNow()) }, paper: { value: new T.Color(paperNow()) }, open: { value: 0 }, opacity: { value: 1 }, face: { value: 1 }, off: { value: 0 } };
   const hull = part === 2;
   return new T.ShaderMaterial({ uniforms: u, side: hull ? T.BackSide : T.DoubleSide, transparent: true,
     vertexShader: `attribute float aDepth; attribute float aJaw; ${hull ? 'attribute float aBord; varying float vBord;' : ''} uniform float open; uniform float off;
@@ -97,7 +99,9 @@ function material(A, part, cut, recto) {
         if (t.a < 0.9) discard;
         if (vUv.y < ${(1 - cut).toFixed(4)}) discard;
         float l = t.r;
-        ${hull ? `if (vBord > 0.5 || texture2D(front, vUv + vec2(0.0, 0.03)).a < 0.9) discard;   /* les bords enroulés, le haut des cheveux : c'est le crâne qui fait le contour */
+        ${hull && recto ? `if (vBord > 0.5 || texture2D(front, vUv + vec2(0.0, 0.03)).a < 0.9) discard;   /* les bords enroulés, le haut des cheveux : c'est le crâne qui fait le contour */` : ''}
+        ${hull && !recto ? 'if (vBord < 0.65) discard;   /* le logo : seulement le tour de la tête (en petit, les creux du visage feraient des taches) */' : ''}
+        ${hull ? `
         if (open > 0.015 && vJaw > 0.5) discard; if (vUv.y < ${(1 - cut + 0.03).toFixed(4)}) discard; l = 0.0;` : ''}
         ${recto && !hull ? `/* le contour dessiné au bord de la tête : de face seulement */
         if (face < 0.5) for (int i = 0; i < 8; i++) { float an = float(i) * 0.7854; vec2 d = vec2(cos(an), sin(an));
@@ -308,7 +312,7 @@ function create(opt) {
     const M = A.meta, cut = logo ? M.chin + LOGO_BAS : (M.neck ? M.neck[2] + 0.012 : M.chin + 0.06);
     // la tête : la grille, sa mâchoire, le trou noir ; dans son groupe, qui se tourne et hoche
     const head = new T.Group(), geo = geometry(A, !logo), mk = part => { const x = new T.Mesh(geo, material(A, part, cut, !logo)); x.frustumCulled = false; x.renderOrder = 1; head.add(x); return x; };
-    const mesh = mk(0), jaw = mk(1); jaw.visible = false; m.jaw = jaw; if (!logo) m.hull = mk(2);
+    const mesh = mk(0), jaw = mk(1); jaw.visible = false; m.jaw = jaw; m.hull = mk(2);
     const hole = new T.Mesh(new T.CircleGeometry(1, 48), new T.MeshBasicMaterial({ color: inkNow(), transparent: true })); hole.frustumCulled = false; head.add(hole); hole.visible = false;
     Object.assign(m, { mesh, hole, head, A: M });
     if (logo) {
@@ -378,7 +382,9 @@ function pose(m, o) {
   m.root.visible = m.ready && a > 0.004;
   if (!m.ready) return m;
   if (m.logo) {
-    m.turn.rotation.set((p.tilt ?? 0) - (p.nod ?? 0), Math.sin(p.turn ?? 0) * 0.7, p.roll ?? 0, 'YXZ');
+    const sw = Math.sin(p.turn ?? 0) * 0.5;   // un balancement doux (au-delà, le bord du dessin se tasse et s'épaissit) m.turn.rotation.set((p.tilt ?? 0) - (p.nod ?? 0), sw, p.roll ?? 0, 'YXZ');
+    // tournée, le contour du relief (sinon, la joue cache le bord du dessin, et le tour de la tête s'interrompt)
+    m.hull.visible = false; m.hull.material.uniforms.off.value = 0.012 * Math.min(1, Math.abs(sw) / 0.3); m.hull.material.uniforms.opacity.value = a;
   } else {
     m.turn.rotation.set(p.tilt ?? 0, p.turn ?? 0, p.roll ?? 0, 'YXZ');
     // la tête tourne avec le corps : le visage (le relief de la photo) devant, le crâne, les oreilles et le cou en volume autour ; look : la tête seule

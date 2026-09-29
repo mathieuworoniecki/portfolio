@@ -183,10 +183,12 @@ def tete(im, m, L, g, bottom=640, head=None, contour=True):
       p = smooth(c, 9); d.line([tuple(q) for q in p] + [tuple(p[0])], fill=INK, width=W + 1, joint='curve')
     return np.asarray(img, np.float32) / 255, hair
 
-def simple(im, m, L, g, head):
+def simple(im, m, L, g, head, logo=False):
     """La version simple (27 septembre : « plus simple, un trait qui me dessine, moins de détails ») : un seul trait de feutre, franc, pas de gris,
     comme les chats. La silhouette, la ligne des cheveux (leur forme seule), les sourcils, les yeux en points avec un reflet,
-    le dessous du nez, la moustache en guidon (deux traits qui remontent en boucle), le sourire, le menton."""
+    le dessous du nez, la moustache en guidon (deux traits qui remontent en boucle), le sourire, le menton.
+    logo=True (29 septembre : « plus simple, trop de détails en petit, il manque tout le tour de la tête ») : pour le logo, 44 px de haut :
+    un trait deux fois plus épais, et seulement la silhouette, la forme des cheveux, les yeux (des points), le bout du nez, la moustache, le menton."""
     H0, W0 = m.shape; yy, xx = np.mgrid[0:H0, 0:W0]
     L = np.asarray(L, float)
     def curve(idx, n=80, s=0, pts=None):
@@ -196,7 +198,7 @@ def simple(im, m, L, g, head):
       P = c[:, 0, :].astype(np.float32)
       return np.stack([np.convolve(np.r_[P[-k:, i], P[:, i], P[:k, i]], np.ones(2 * k + 1) / (2 * k + 1), 'same')[k:-k] for i in (0, 1)], 1)
     img = Image.new('L', (W0, H0), 255); d = ImageDraw.Draw(img)
-    fw = L[454, 0] - L[234, 0]; W = 0.042 * fw                    # un seul trait, proportionné au visage
+    fw = L[454, 0] - L[234, 0]; W = 0.042 * fw * (2.2 if logo else 1)                    # un seul trait, proportionné au visage
     OVAL = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109]
     fm = np.zeros((H0, W0), np.uint8); cv2.fillPoly(fm, [L[OVAL].astype(np.int32)], 1); face = fm > 0
     gb = cv2.GaussianBlur(g, (0, 0), 2)
@@ -214,7 +216,7 @@ def simple(im, m, L, g, head):
       if runs: r = max(runs, key=len); brush(d, p[r][::3], W, INK, (0.2, 0.2), 0.3)     # la forme seule : une ligne, pas de mèches
 
     # ——— les sourcils : un trait, épais vers le nez, effilé vers la tempe ———
-    for up, lo in [([107, 66, 105, 63, 70], [55, 65, 52, 53, 46]), ([336, 296, 334, 293, 300], [285, 295, 282, 283, 276])]:
+    for up, lo in ([] if logo else [([107, 66, 105, 63, 70], [55, 65, 52, 53, 46]), ([336, 296, 334, 293, 300], [285, 295, 282, 283, 276])]):
       M = (curve(up, 30) + curve(lo, 30)) / 2
       brush(d, M, W * 1.5, INK, (0.1, 0.6), 0.25)
 
@@ -222,16 +224,16 @@ def simple(im, m, L, g, head):
     for up, lo, iris in [([33, 246, 161, 160, 159, 158, 157, 173, 133], [33, 7, 163, 144, 145, 153, 154, 155, 133], 468),
                          ([263, 466, 388, 387, 386, 385, 384, 398, 362], [263, 249, 390, 373, 374, 380, 381, 382, 362], 473)]:
       Up = curve(up, 40); Lo = curve(lo, 40); c = L[iris]
-      brush(d, Up[2:-2] + [0, -0.015 * fw], W * 0.9, INK, (0.3, 0.3), 0.3)
-      r = max(np.linalg.norm(L[iris + 1] - L[iris + 3]) / 2 * 0.85, 0.055 * fw)
+      if not logo: brush(d, Up[2:-2] + [0, -0.015 * fw], W * 0.9, INK, (0.3, 0.3), 0.3)
+      r = max(np.linalg.norm(L[iris + 1] - L[iris + 3]) / 2 * 0.85, 0.055 * fw) * (1.3 if logo else 1)
       d.ellipse([c[0] - r, c[1] - r, c[0] + r, c[1] + r], fill=INK)
-      d.ellipse([c[0] + r * 0.05, c[1] - r * 0.7, c[0] + r * 0.55, c[1] - r * 0.2], fill=255)
+      if not logo: d.ellipse([c[0] + r * 0.05, c[1] - r * 0.7, c[0] + r * 0.55, c[1] - r * 0.2], fill=255)
 
     # ——— le nez : le dessous du bout, d'un trait ; un petit bout d'arête ———
     brush(d, curve([98, 97, 2, 326, 327], 40, s=30), W * 0.85, INK, (0.3, 0.3), 0.2)
     side = 1 if gb[int(L[209, 1]), int(L[209, 0])] > gb[int(L[429, 1]), int(L[429, 0])] else -1
-    br = L[[188, 174, 236, 198]] if side < 0 else L[[412, 399, 456, 420]]
-    brush(d, curve(None, 30, s=100, pts=br), W * 0.7, INK, (0.5, 0.3), 0.2)
+    br = None if logo else L[[188, 174, 236, 198]] if side < 0 else L[[412, 399, 456, 420]]
+    if br is not None: brush(d, curve(None, 30, s=100, pts=br), W * 0.7, INK, (0.5, 0.3), 0.2)
 
     # ——— la moustache en guidon : deux traits, épais sous le nez, qui s'effilent au-delà des coins de la bouche, les pointes à peine relevées, en petite boucle ———
     UPO = [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291]; lipP = curve(UPO, 60)
@@ -241,12 +243,12 @@ def simple(im, m, L, g, head):
       ys = np.interp(xs, lipP[:, 0], lipP[:, 1], left=lipP[0, 1], right=lipP[-1, 1]) - 0.035 * fw - 0.022 * fw * np.clip((u - 0.6) / 0.4, 0, 1) ** 2     # les pointes remontent à peine (27 septembre : « elle remonte pas autant »)
       P = np.c_[xs, ys]; tip = P[-1]
       curl = [tip + [sg * 0.016 * fw, -0.012 * fw], tip + [sg * 0.008 * fw, -0.026 * fw], tip + [-sg * 0.004 * fw, -0.024 * fw]]
-      brush(d, curve(None, 50, s=0, pts=np.vstack([P[::5], curl])), W * 1.7, INK, (0.05, 0.75), 0.12)
+      brush(d, curve(None, 50, s=0, pts=np.vstack([P[::5], curl])), W * (1.2 if logo else 1.7), INK, (0.05, 0.75), 0.12)
 
     # ——— la bouche : un sourire, d'un trait ; le menton ———
     MID = [78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308]
     Mq = curve(MID, 50); u = np.linspace(-1, 1, 50); Mq[:, 1] -= 0.03 * fw * u ** 4 - 0.01 * fw * (1 - u ** 2)
-    brush(d, Mq, W, INK, (0.2, 0.2), 0.3)
+    if not logo: brush(d, Mq, W, INK, (0.2, 0.2), 0.3)
     jaw = [234, 93, 132, 58, 172, 136, 150, 149, 176, 148, 152, 377, 400, 378, 379, 365, 397, 288, 361, 323, 454]
     brush(d, curve(jaw, 160)[46:-46], W, INK, (0.2, 0.2), 0.3)
 
