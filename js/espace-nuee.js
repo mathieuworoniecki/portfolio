@@ -74,16 +74,16 @@ FORMES.equipe = (a, now) => {
     if (k >= 1) { o.x = ax; o.y = ay; o.f = 1; o.s = 0.6; o.a = 0.5; } } };
 };
 
-// plusieurs terminaux, plusieurs agents : on est au milieu d'un mur circulaire de terminaux ; chaque colonne s'écrit à sa vitesse
-// (des caractères qui tombent, une tête plus vive), le mur tourne lentement autour de nous
+// plusieurs terminaux, plusieurs agents : le mur de terminaux du dessin (même caméra, même grille, qui défile de même) ;
+// dans les allées entre les terminaux, un trafic incessant : des paquets de lumière filent d'un terminal à l'autre, dans les deux sens
 FORMES.terminaux = (a, now) => {
-  const V = E.vue(now * 0.035, -0.08, E.K * 0.9, E.cx, E.cy, 3.6), NC = 150;
+  const G = E.G, V = E.vue(-0.62, 0.5, G.sw / 1.75, G.cx, G.cy), GX = 1.02, GY = 0.7, off = Math.max(0, a) * 0.32;
   return { V, f(r, o) {
-    const j = Math.floor(r.a * NC), rad = 2.7 + h(j * 3.3) * 2.4, an = j / NC * TAU + h(j) * 0.02, v = Math.floor(r.b * 44) / 44;
-    o.x = Math.cos(an) * rad; o.z = Math.sin(an) * rad; o.y = -2.3 + v * 4.6;
-    const sp = 0.12 + h(j * 7.7) * 0.22, tete = fr(h(j * 1.9) + a * sp), d = fr(tete - v);
-    const vif = d < 0.025 ? 2.4 : d < 0.4 ? 0.25 + 0.95 * (1 - d / 0.4) : 0.16;
-    o.s = d < 0.02 ? 1.8 : 0.8; o.a = vif * (0.4 + 0.6 * h(j * 2.2 + v * 50)); } };
+    const sens = r.d < 0.5 ? -1 : 1, v = (0.6 + r.e * 1.6) * sens, lg = 0.1 + r.e * 0.2;
+    if (r.u < 0.55) { const c = Math.floor(r.a * 10) - 5, x = (c + 0.5) * GX, y = -11 * GY + fr(r.b + a * v * 0.04) * 21 * GY - (off % GY);
+      o.x = x; o.y = y; o.z = 0; o.s = 1.1; o.a = 0.9; o.t = 1; o.tx = x; o.ty = y - lg * sens; o.tz = 0; return; }
+    const rg = Math.floor(r.a * 22) - 11, y = (rg + 0.5) * GY - (off % GY), x = -5 * GX + fr(r.b + a * v * 0.08) * 10 * GX;
+    o.x = x; o.y = y; o.z = 0; o.s = 1.1; o.a = 0.9; o.t = 1; o.tx = x - lg * sens; o.ty = y; o.tz = 0; } };
 };
 
 // des agents qui délèguent : un arbre immense qui pousse du haut de l'écran, branche après branche (3 par nœud, 6 étages),
