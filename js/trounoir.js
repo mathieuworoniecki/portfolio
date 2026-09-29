@@ -664,7 +664,7 @@ Wd.ail = { on: () => !!(Wd.trou || Wd.espace || RV), step: dt => (Wd.trou ? aspi
 // pour les modules de l'espace
 /* (vague 27, l'audit : « les chats en apesanteur ») : dans le vide, un chat qui nage laisse un sillage de poussière d'étoiles ;
    et quand des chats flottent près les uns des autres, des pointillés les relient : ils forment une constellation, qui a son nom
-   (à trois ou plus : « la Grande Chatte », « Minou Major »…), écrit à la main à côté, tant qu'ils restent ensemble */
+   (à trois ou plus : « la Grande Minette », « Minou Major »…), écrit à la main à côté, tant qu'ils restent ensemble */
 const NOMS_C = () => (window.I18N && I18N.lang && I18N.lang !== 'fr') ? ['Ursa Meow', 'the Great Cat', 'Minor Kitten', 'the Yarn Ball', 'Puss in Boots', 'the Whiskers'] : ['la Grande Minette', 'Minou Major', 'le Petit Matou', 'la Pelote', 'le Chat Botté', 'les Moustaches'];
 X.fond.push((c2, now) => {
   if (reduit) return;
