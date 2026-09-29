@@ -25,6 +25,11 @@ const en = () => !!(window.I18N && I18N.lang && I18N.lang !== 'fr');
 
 let P = null;                       // le festival en cours
 let cvP, xP, cvO, xO, cvM, xM, motif = null;   // les trois toiles, et le bleu (en motif)
+/* (29/09, 13 h 21, Mathieu : « la peinture doit être vraiment comme de la peinture qui coule, du liquide, pas une shape avec des polygones »)
+   La peinture est d'abord un champ, en basse définition (cvL) : chaque goutte y dépose un halo ; là où les halos s'additionnent
+   au-delà d'un seuil, c'est de la peinture (des métaballes : deux gouttes proches se rejoignent, les bords sont ronds, les coulures
+   finissent en perle). Puis on colore ce masque avec le bleu du mode sérieux, avec un reflet mouillé en haut à gauche et une ombre en bas. */
+let cvL, xL, cvS, xS, LQ = 0.34, Lw = 0, Lh = 0, COL = null, IMG = null, VV = null;
 
 function toile(apres, z) {
   const c = document.createElement('canvas'); c.setAttribute('aria-hidden', 'true'); c.className = 'peinture';
@@ -45,7 +50,35 @@ function taille(W, H) {
   d.addColorStop(0, '#2468B6'); d.addColorStop(0.45, '#1C58A2'); d.addColorStop(1, '#133F7C');
   g.translate(W / 2, H * 0.4); g.scale(1, ry / rx); g.fillStyle = d; g.fillRect(-W * 2, -H * 4, W * 4, H * 8);
   motif = xP.createPattern(o, 'no-repeat');
+  // le champ liquide, et sa couleur (le même dégradé que le motif, pixel par pixel)
+  Lw = Math.ceil(W * LQ); Lh = Math.ceil(H * LQ);
+  cvL = cvL || document.createElement('canvas'); cvL.width = Lw; cvL.height = Lh; xL = cvL.getContext('2d', { willReadFrequently: true }); xL.setTransform(LQ, 0, 0, LQ, 0, 0); xL.globalCompositeOperation = 'lighter';
+  cvS = cvS || document.createElement('canvas'); cvS.width = Lw; cvS.height = Lh; xS = cvS.getContext('2d'); IMG = xS.createImageData(Lw, Lh); VV = new Float32Array(Lw * Lh);
+  COL = new Uint8ClampedArray(Lw * Lh * 3); const A = [0x24, 0x68, 0xB6], B = [0x1C, 0x58, 0xA2], C = [0x13, 0x3F, 0x7C];
+  for (let j = 0; j < Lh; j++) for (let i = 0; i < Lw; i++) { const x = i / LQ - W / 2, y = j / LQ - H * 0.4, t = Math.min(1, Math.hypot(x / rx, y / ry)), k = (j * Lw + i) * 3;
+    for (let q = 0; q < 3; q++) COL[k + q] = t < 0.45 ? A[q] + (B[q] - A[q]) * t / 0.45 : B[q] + (C[q] - B[q]) * (t - 0.45) / 0.55; }
 }
+// une goutte dans le champ : un halo (le seuil en fait un rond d'environ r)
+function goutte(x, y, r) {
+  if (r < 0.6) return; const R = r * 1.5, g = xL.createRadialGradient(x, y, 0, x, y, R);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.55, 'rgba(255,255,255,0.75)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  xL.fillStyle = g; xL.beginPath(); xL.arc(x, y, R, 0, TAU); xL.fill(); P.sale = true;
+}
+// le champ devient de la peinture : seuil doux, couleur, reflet et ombre ; puis agrandi (lissé) sur la toile
+function rendu() {
+  if (!P || !P.sale || !xL) return; P.sale = false;
+  const d = xL.getImageData(0, 0, Lw, Lh).data, o = IMG.data, V = VV, n = Lw * Lh;
+  for (let i = 0; i < n; i++) { const a = d[i * 4 + 3]; V[i] = a <= 105 ? 0 : a >= 150 ? 1 : (a - 105) / 45; }
+  for (let j = 0; j < Lh; j++) for (let i = 0; i < Lw; i++) { const k = j * Lw + i, v = V[k], p = k * 4; if (!v) { o[p + 3] = 0; continue; }
+    let r = COL[k * 3], g = COL[k * 3 + 1], b = COL[k * 3 + 2];
+    const hl = i > 1 && j > 1 ? V[k - 2 * Lw - 2] : 0, sh = i < Lw - 2 && j < Lh - 2 ? V[k + 2 * Lw + 2] : 0;
+    if (hl < 0.5) { const q = 0.42 * (1 - hl * 2); r += (255 - r) * q; g += (255 - g) * q; b += (255 - b) * q; }   // (le reflet mouillé, sur le bord haut-gauche)
+    else if (sh < 0.5) { const q = 0.28 * (1 - sh * 2); r *= 1 - q; g *= 1 - q; b *= 1 - q; }                          // (l'ombre du bourrelet, en bas à droite)
+    o[p] = r; o[p + 1] = g; o[p + 2] = b; o[p + 3] = v * 255; }
+  xS.putImageData(IMG, 0, 0); xP.save(); xP.setTransform(1, 0, 0, 1, 0, 0); xP.clearRect(0, 0, cvP.width, cvP.height); xP.imageSmoothingEnabled = true; xP.imageSmoothingQuality = 'high';
+  xP.drawImage(cvS, 0, 0, cvP.width, cvP.height); xP.restore();
+}
+function plein() { if (!xL) return; xL.save(); xL.globalCompositeOperation = 'source-over'; xL.fillStyle = '#fff'; xL.fillRect(0, 0, P.W, P.H); xL.restore(); P.sale = true; }
 
 /* ——— la couverture : une grille ; une case est couverte quand elle est entièrement peinte ——— */
 const GX = 24, GY = 16;
@@ -65,33 +98,36 @@ const couvert = (x, y) => { const i = clamp(Math.floor(x / P.W * GX), 0, GX - 1)
 /* ——— peindre (sur la toile de la peinture : elle reste) ——— */
 // une bande de rouleau, de y0 (haut) à y1 (bas) : les bords un peu irréguliers, les traces du rouleau
 function bande(x0, x1, y0, y1, R) {
-  if (y1 - y0 < 0.5) return; const c = xP; c.save(); c.fillStyle = motif; c.beginPath();
-  const n = Math.max(1, Math.ceil((y1 - y0) / 6)); c.moveTo(x0 + Math.sin(y0 * 0.07 + R.ph) * 2.5, y0);
-  for (let k = 1; k <= n; k++) { const y = y0 + (y1 - y0) * k / n; c.lineTo(x0 + Math.sin(y * 0.07 + R.ph) * 2.5, y); }
-  for (let k = n; k >= 0; k--) { const y = y0 + (y1 - y0) * k / n; c.lineTo(x1 + Math.sin(y * 0.05 + R.ph * 2) * 2.5, y); }
-  c.closePath(); c.fill();
-  // les traces du rouleau : des stries claires et sombres, dans le sens de la montée
-  c.globalAlpha = 0.07; c.lineWidth = 1.2;
-  R.stries.forEach((q, k) => { c.strokeStyle = k % 2 ? '#fff' : '#0A2350'; c.beginPath(); const x = x0 + (x1 - x0) * q; c.moveTo(x, y0); c.lineTo(x, y1); c.stroke(); });
-  c.restore();
+  if (y1 - y0 < 0.5) return; const c = xL, w = x1 - x0;
+  // le cœur de la bande, un peu plus étroit ; les bords : des gouttes de tailles inégales (le rouleau charge plus ou moins)
+  c.fillStyle = '#fff'; c.fillRect(x0 + w * 0.08, y0, w * 0.84, y1 - y0);
+  for (let y = y1; y > y0 - 1; y -= 7) { const q = Math.sin(y * 0.045 + R.ph) * 0.5 + Math.sin(y * 0.13 + R.ph * 3) * 0.3;
+    goutte(x0 + w * (0.09 + 0.03 * q), y, w * (0.1 + 0.05 * q)); goutte(x1 - w * (0.09 - 0.03 * q), y, w * (0.1 - 0.04 * q)); }
+  // (parfois une grosse charge de peinture : une bosse, et une coulure qui part)
+  if (Math.random() < 0.12) { const x = x0 + w * rnd(0.1, 0.9), y = y0 + (y1 - y0) * 0.5; goutte(x, y, w * rnd(0.18, 0.3)); P.coul.push({ x, y, l: 0, L: w * rnd(0.5, 1.4), w: w * rnd(0.05, 0.09), v: w * rnd(1, 2) }); }
+  P.sale = true;
 }
 // une flaque : un rond biscornu, des éclaboussures autour, des coulures qui descendent (P.coul)
 function flaque(x, y, r, gros) {
-  const c = xP; c.save(); c.fillStyle = motif; c.beginPath(); const n = 22, ph = rnd(0, TAU);
-  for (let k = 0; k <= n; k++) { const a = k / n * TAU, q = 1 + 0.16 * Math.sin(a * 3 + ph) + 0.1 * Math.sin(a * 7 + ph * 2) + (Math.random() < 0.18 ? rnd(0.1, 0.3) : 0);
-    const X = x + Math.cos(a) * r * q, Y = y + Math.sin(a) * r * q; k ? c.lineTo(X, Y) : c.moveTo(X, Y); }
-  c.closePath(); c.fill(); c.globalAlpha = 0.35; c.strokeStyle = BORD; c.lineWidth = 1.5; c.stroke(); c.globalAlpha = 1;
-  // les gouttes projetées
-  for (let k = 0; k < (gros ? 16 : 10); k++) { const a = rnd(0, TAU), d = r * rnd(1.05, 1.7), rr = r * rnd(0.03, 0.09); c.beginPath(); c.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, rr, 0, TAU); c.fill(); }
-  c.restore(); couvreRond(x, y, r * 0.93);
+  // (l'impact n'est pas instantané : la tache s'étale en quelques images, les rayons partent ensuite ; P.eclats)
+  const ph = rnd(0, TAU), n = gros ? 9 : 7;
+  goutte(x, y, r * 0.55);
+  for (let k = 0; k < n; k++) { const a = ph + k / n * TAU + rnd(-0.3, 0.3), d = r * rnd(0.25, 0.55); P.eclats.push({ x: x + Math.cos(a) * d * 0.3, y: y + Math.sin(a) * d * 0.3, tx: x + Math.cos(a) * d, ty: y + Math.sin(a) * d, r: r * rnd(0.32, 0.5), t0: Wd.t, dur: rnd(0.12, 0.25) }); }
+  // les éclaboussures : des rayons de gouttelettes qui rapetissent en s'éloignant
+  for (let k = 0; k < (gros ? 12 : 8); k++) { const a = rnd(0, TAU), L = r * rnd(1.1, 1.9), m = 5; for (let j = 1; j <= m; j++) { const e = j / m;
+    P.eclats.push({ x: x + Math.cos(a) * r * 0.7, y: y + Math.sin(a) * r * 0.7, tx: x + Math.cos(a) * (r * 0.7 + (L - r * 0.7) * e), ty: y + Math.sin(a) * (r * 0.7 + (L - r * 0.7) * e) + e * e * r * 0.15, r: r * (0.1 - e * 0.065), t0: Wd.t + 0.05, dur: 0.08 + e * 0.2 }); } }
+  couvreRond(x, y, r * 0.93);
   // les coulures : elles partent du bas de la flaque, et descendent un moment
   for (let k = 0; k < (gros ? 4 : 3); k++) { const a = Math.PI * rnd(0.2, 0.8); P.coul.push({ x: x + Math.cos(a) * r * 0.85, y: y + Math.sin(a) * r * 0.85, l: 0, L: r * rnd(0.6, 1.8), w: r * rnd(0.06, 0.12), v: r * rnd(1.2, 2.4) }); }
 }
 function coulures(dt) {
-  const c = xP; c.save(); c.strokeStyle = motif; c.lineCap = 'round';
-  P.coul.forEach(D => { if (D.l >= D.L) return; const l0 = D.l; D.l = Math.min(D.L, D.l + D.v * dt * (1 - D.l / D.L * 0.7));
-    c.lineWidth = D.w * (1 - l0 / D.L * 0.5); c.beginPath(); c.moveTo(D.x, D.y + l0); c.lineTo(D.x, D.y + D.l); c.stroke(); });
-  c.restore(); P.coul = P.coul.filter(D => D.l < D.L);
+  const c = xL; c.save(); c.strokeStyle = '#fff'; c.lineCap = 'round';
+  P.coul.forEach(D => { if (D.l >= D.L) return; const l0 = D.l; D.l = Math.min(D.L, D.l + D.v * dt * (1 - D.l / D.L * 0.75)); D.x += Math.sin(D.l * 0.05 + D.w) * 0.15;
+    c.lineWidth = D.w * 1.1 * (1 - l0 / D.L * 0.4); c.beginPath(); c.moveTo(D.x, D.y + l0); c.lineTo(D.x, D.y + D.l); c.stroke(); });
+  c.restore(); P.coul.forEach(D => { if (D.l > 1) goutte(D.x, D.y + D.l, D.w * (1.15 - D.l / D.L * 0.3)); }); if (P.coul.length) P.sale = true;   // (la perle au bout)
+  P.coul = P.coul.filter(D => D.l < D.L);
+  // les éclats d'un impact : ils filent vers leur place, et s'y posent
+  P.eclats = P.eclats.filter(E => { const u = (Wd.t - E.t0) / E.dur; if (u < 0) return true; const e = Math.min(1, u); goutte(E.x + (E.tx - E.x) * e, E.y + (E.ty - E.y) * e, E.r * (0.5 + 0.5 * e)); return u < 1; });
 }
 
 /* ——— les mots (au-dessus de tout : le titre est sous la peinture) ——— */
@@ -166,6 +202,28 @@ STEPS.peintPousse = (c, T, dt) => {
   if (Math.random() < dt * 0.7) dit(c, mots.pousse());
   return dir > 0 ? c.x > P.W + s * 1.6 : c.x < -s * 1.6;
 };
+// le vent : l'objet glisse, sautille et tourne, de plus en plus vite, jusqu'à sortir de l'écran
+function souffle(it, dir) {
+  Object.assign(it, { vx: 0, vy: 0, fall: false, run: null, suck: null, held: false }); it.wob = Wd.t; it.wobA = 0.8;
+  P.vent.push({ it, dir, v: P.W * rnd(0.15, 0.35), t0: Wd.t, ph: rnd(0, TAU) });
+}
+function vent(dt) {
+  P.vent.forEach(V => { const it = V.it; if (it.ventre || it.gone || !Wd.props.includes(it)) { V.fin = true; return; }
+    V.v += P.W * 1.8 * dt; it.fx += V.dir * V.v * dt / P.W; it.fall = false; it.vx = it.vy = 0; const s = sOf(it.d);
+    it.tilt = (it.tilt || 0) + V.dir * dt * (it.r ? 14 : 5); it.lift = Math.abs(Math.sin((Wd.t - V.t0) * 8 + V.ph)) * s * 0.3;
+    if ((it.fx * P.W - V.dir * larg(it) / 2 - (V.dir > 0 ? P.W : 0)) * V.dir > 2) { it.lift = 0; it.tilt = 0; sort(it); V.fin = true; } });
+  P.vent = P.vent.filter(V => !V.fin);
+  (P.rafales || []).forEach(R => R.L = R.L.filter(l => (Wd.t - R.t0 - l.dl) * P.W * 1.4 < P.W * 0.75 + l.len)); P.rafales = (P.rafales || []).filter(R => R.L.length);
+}
+// une rafale : des traits de vent au trait, qui filent du bouton vers un bord (dessinés sur la toile des outils)
+function rafale(dir, cx) { (P.rafales = P.rafales || []).push({ dir, cx, t0: Wd.t, L: Array.from({ length: P.W < 700 ? 8 : 14 }, () => ({ y: (Wd.ceil || P.H * 0.35) + rnd(-0.05, 1) * ((Wd.floor || P.H * 0.9) - (Wd.ceil || P.H * 0.35)), len: rnd(60, 170), dl: rnd(0, 0.35), ph: rnd(0, TAU), bou: Math.random() < 0.3 })) }); }
+function dessineRafales(c) {
+  (P.rafales || []).forEach(R => R.L.forEach(l => { const u = Wd.t - R.t0 - l.dl; if (u < 0) return; const x = R.cx + R.dir * u * P.W * 1.4, pts = [];
+    for (let k = 0; k <= 12; k++) { const e = k / 12, X = x - R.dir * l.len * e; pts.push([X, l.y + Math.sin(X * 0.03 + l.ph) * 5]); }
+    c.save(); c.strokeStyle = INK; c.lineWidth = 2; c.lineCap = 'round'; c.beginPath(); pts.forEach((p, k) => k ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]));
+    if (l.bou) { const [X, Y] = pts[0]; c.moveTo(X, Y); c.arc(X - R.dir * 10, Y - 10, 10, Math.PI / 2, R.dir > 0 ? -Math.PI : Math.PI * 2, R.dir < 0); }   // (une boucle au bout : un tourbillon)
+    c.stroke(); c.restore(); }));
+}
 const larg = it => (it.hull ? it.hull.w : 1) * sOf(it.d) * (it.big || 1);
 // un objet (et ce qui est posé dessus) sort de l'écran : il attend le retour (js/fuite.js)
 function sort(it) {
@@ -289,16 +347,24 @@ function roles() {
 /* ——— le déroulé ——— */
 function go0(o, opts) {
   if (P) return false; toiles(); const W = Wd.W, Hh = Wd.H;
-  P = { t0: Wd.t, o, W, H: Hh, g: cases(), coul: [], mots: [], dits: [], seaux: [], fini: opts.fini, sorti: opts.sorti, R: Math.max(W, Hh) * (W < 700 ? 0.16 : 0.1),
-    lanceurs: 0, nLance: W < 700 ? 2 : 3, renfort: Wd.t + 0.15, part: false, fait: false, kib: Wd.nextKib, extra: Wd.nextExtra };
+  P = { t0: Wd.t, o, W, H: Hh, g: cases(), coul: [], mots: [], dits: [], seaux: [], eclats: [], vent: [], fini: opts.fini, sorti: opts.sorti, R: Math.max(W, Hh) * (W < 700 ? 0.16 : 0.1),
+    lanceurs: 0, nLance: W < 700 ? 3 : 5, renfort: Wd.t + 0.15, part: false, fait: false, kib: Wd.nextKib, extra: Wd.nextExtra };
   taille(W, Hh); Wd.nextKib = Wd.nextExtra = Infinity;
   const ti = document.getElementById('titles'); if (ti) { P.tiZ = ti.style.zIndex; ti.style.zIndex = '0'; }
   P.boutons = ['stay', 'enter'].map(id => document.getElementById(id)).filter(Boolean);
-  if (reduit) { xP.fillStyle = motif; xP.fillRect(0, 0, W, Hh); P.g.fill(1); Wd.props.forEach(it => { if (!it.gone && !it.ventre && !it.on) sort(it); }); Wd.cats.forEach(c => { c.gone = true; c.fin = true; }); P.boutons.forEach(b => b.style.visibility = 'hidden'); P.fait = true; later(0.05, () => P && P.fini && P.fini()); return true; }
+  if (reduit) { plein(); rendu(); P.g.fill(1); Wd.props.forEach(it => { if (!it.gone && !it.ventre && !it.on) sort(it); }); Wd.cats.forEach(c => { c.gone = true; c.fin = true; }); P.boutons.forEach(b => b.style.visibility = 'hidden'); P.fait = true; later(0.05, () => P && P.fini && P.fini()); return true; }
   P.ech = echelles();
   // les pousseurs : de chaque côté, une rangée devant et une derrière (une seule sur téléphone)
   const nr = W < 700 ? 1 : 2; P.pous = [];
   for (let r = 0; r < nr; r++) [-1, 1].forEach(dir => P.pous.push({ dir, d0: r / nr, d1: r === nr - 1 ? 9 : (r + 1) / nr, dm: (r + 0.5) / nr * 0.9 }));
+  // (29/09, 13 h 21, Mathieu : « les autres éléments tombent dans des trous, ou sont poussés avec du vent pour aller plus vite »)
+  // plus de pousseurs : un grand coup de vent part du bouton vers les deux bords et emporte ce qui est léger ; les meubles lourds tombent dans un trou
+  P.pous = [];
+  const cx = o && o.x != null ? o.x : W / 2, objs = Wd.props.filter(it => !it.gone && !it.ventre && !it.on && !it.mur && it.fade > 0.3).sort((a, b) => Math.abs(a.fx * W - cx) - Math.abs(b.fx * W - cx));
+  later(0.35, () => { if (!P) return; rafale(-1, cx); rafale(1, cx); mot(en() ? 'WHOOOOSH' : 'FIOUUUUU', cx, Hh * 0.46, W < 700 ? 28 : 38, { life: 1.3 }); Wd.shake = { t0: Wd.t, a: 3 }; });
+  later(1.5, () => { if (P && !P.fait) { rafale(-1, cx); rafale(1, cx); } });
+  objs.forEach((it, i) => later(0.45 + i * 0.07, () => { if (!P || P.fait || it.ventre || it.gone || !Wd.props.includes(it)) return;
+    if (LOURD[it.kind] && window.Fuite && Fuite.avale) Fuite.avale(it); else souffle(it, it.fx * W < cx ? -1 : 1); }));
   // la trappe accrochée au mur : elle glisse le long du mur, hors de l'écran
   Wd.props.forEach(it => { if (it.mur && !it.ventre && !it.gone) later(0.9, () => { if (!P) return; it.peintFixe = it.fixe; it.fixe = true; it.peintMur = true; mot('scrrr', P.W - 40, floorAt(it.d) - it.lift, 20); }); });
   // tout le monde est réquisitionné : ceux qu'on tenait tombent, les perchés sautent
@@ -313,7 +379,7 @@ H.pre.push(dt => {
   (P.ech || []).forEach(L => { const c = L.chat; if (!c || !Wd.cats.includes(c) || c.task && (c.task.k === 'peintMonte' || c.task.k === 'peintGlisse')) return;
     const s = sc(c); L.rx = c.x + c.face * s * 0.15; L.ry = c.y - s * 1.25; });
   if (!P.fait) {
-    roles(); seaux(dt); coulures(dt);
+    roles(); seaux(dt); coulures(dt); vent(dt); rendu();
     Wd.props.forEach(it => { if (it.peintMur && !it.ventre) { it.fx += dt * 0.35; if (it.fx * P.W - larg(it) / 2 > P.W + 2) sort(it); } });
     // les boutons : quand un coup de peinture les recouvre, ils sont sous la peinture
     P.boutons.forEach(b => { if (b.style.visibility === 'hidden') return; const r = b.getBoundingClientRect(); if (couvert(r.left + r.width / 2, r.top + r.height / 2)) { b.style.visibility = 'hidden'; } });
@@ -326,7 +392,7 @@ H.pre.push(dt => {
       // (29/09, Mathieu : « d'un coup plein de bleu arrive, tout n'est pas logique ») : la salve n'est plus un coup de tonnerre ; chaque seau part
       // d'un lanceur qu'on voit, les uns après les autres, sur deux secondes et demie, et du bas vers le haut ; sans lanceur, c'est un chat qui passe
       // qui le jette (jamais une flaque qui tombe de nulle part)
-      const vus = []; F.slice().sort((a, b) => centre(b)[1] - centre(a)[1]).forEach(q => { const [x, y] = centre(q); if (vus.some(([a, b]) => Math.hypot(a - x, b - y) < P.R * 0.85)) return; vus.push([x, y]); });
+      const vus = []; F.slice().sort(() => Math.random() - 0.5).forEach(q => { const [x, y] = centre(q); if (vus.some(([a, b]) => Math.hypot(a - x, b - y) < P.R * 0.85)) return; vus.push([x, y]); });
       const pas = 2.5 / Math.max(1, vus.length); vus.forEach(([x, y], i) => { const q = F.find(f => { const [a, b] = centre(f); return a === x && b === y; }); later(i * pas, () => { if (!P || P.fait) return;
         const Ls = Wd.cats.filter(c => c.role === 'lance' && !c.gone && c.x > 0 && c.x < P.W), c = Ls.length ? Ls[i % Ls.length] : L[i % Math.max(1, L.length)];
         if (c && Wd.cats.includes(c)) lance(c, q, true); else flaque(x, y, P.R * 1.1, true); }); });
@@ -335,14 +401,14 @@ H.pre.push(dt => {
     if (P.salve && Wd.t > (P.salveFin || 0) && !P.seaux.some(B => !B.plouf) && !P.part) {
       // plus rien en vol : les derniers trous sont bouchés d'un coup de pinceau, et tout le monde s'en va
       libres().forEach((q, i) => { const [x, y] = centre(q); later(i * 0.05, () => { if (P && !P.fait) flaque(x, y, P.R * 0.8, false); }); });
-      xP.fillStyle = motif; P.boutons.forEach(b => b.style.visibility = 'hidden');
+      P.boutons.forEach(b => b.style.visibility = 'hidden');
       depart();
     }
   }
   if (P.part) {
-    seaux(dt); coulures(dt); roles();
+    seaux(dt); coulures(dt); roles(); rendu();
     const reste = Wd.cats.filter(c => !c.gone && c.x > -sc(c) * 0.8 && c.x < P.W + sc(c) * 0.8), vol = P.ech.some(L => !L.vol || Wd.t - L.vol < 1.1);
-    if (!P.fait && (!reste.length && !vol || Wd.t - P.part > 4.5)) { P.fait = true; xP.fillStyle = motif; xP.fillRect(0, 0, P.W, P.H);
+    if (!P.fait && (!reste.length && !vol || Wd.t - P.part > 4.5)) { P.fait = true; plein(); rendu();
       Wd.props.forEach(it => { if (!it.gone && !it.ventre && !it.on && it.fade > 0.3) sort(it); }); P.fini && P.fini(); }
   }
 });
@@ -372,7 +438,7 @@ function depart() {
 H.draw.push(() => {
   if (!P || !cvO) return; const W = P.W, Hh = P.H;
   xO.clearRect(0, 0, W, Hh); xM.clearRect(0, 0, W, Hh); if (P.fait) return;
-  const now = Wd.t; (P.ech || []).forEach(L => dessineEchelle(xO, L, now));
+  const now = Wd.t; dessineRafales(xO); (P.ech || []).forEach(L => dessineEchelle(xO, L, now));
   (P.ech || []).forEach(L => dessineRouleau(xO, L));
   P.seaux.forEach(B => dessineSeau(xO, B));
   dessineMots(xM);
