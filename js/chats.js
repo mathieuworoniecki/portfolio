@@ -1375,6 +1375,11 @@ function drawVac(S) {
   C.circle(x, y - s0 * 0.5, w * 0.7, w * 0.16, 1, { w: 1.6, a: a * 0.8, seed: 71 , color: col(6) });
   // l'aspiration : des petits traits qui montent vers la bouche
   // le tourbillon : des traits en spirale qui s'enroulent dans la bouche, la poussière du sol qui monte en cône
+  // (vague 34 de l'audit : « l'aspirateur reste dans son coin ») : l'air de toute la pièce converge vers la bouche, des filets qui s'enroulent depuis les bords de l'écran
+  if (V.ph === 'balaye') { const Rm = Math.hypot(Wd.W, Wd.H) * 0.85, sd = V.dir || 1;
+    for (let i = 0; i < 26; i++) { const th = i / 26 * Math.PI * 2 + Math.sin(i * 7.3) * 0.2, ph = (Wd.t * 0.55 + ((i * 0.618) % 1)) % 1, P = [];
+      for (let j = 0; j <= 6; j++) { const v = Math.min(0.999, ph + j * 0.025), r = Rm * Math.pow(1 - v, 1.4), aa = th + v * 2.4 * sd; P.push([x + Math.cos(aa) * r, y + Math.sin(aa) * r * 0.72]); }
+      C.stroke(P, 1, { w: 1.1 + ph, a: a * 0.5 * Math.sin(Math.PI * ph), seed: 300 + i, tip: false, dash: [10, 7], color: col(i) }); } }
   if (V.ph === 'balaye') { for (let i = 0; i < 12; i++) { const ph = (Wd.t * 1.6 + i / 12) % 1, a0 = i / 12 * Math.PI * 2 + Wd.t * 4, r0 = s0 * 1.1 * (1 - ph), P = [];
       for (let j = 0; j <= 4; j++) { const v = ph + j * 0.05, rr = s0 * 1.1 * Math.max(0, 1 - v), aa = a0 + v * 5; P.push([x + Math.cos(aa) * rr, Wd.floor - (Wd.floor - y) * Math.min(1, v) + Math.sin(aa) * rr * 0.18]); }
       if (r0 > 4) C.stroke(P, 1, { w: 1.3, a: a * 0.55 * Math.sin(Math.PI * ph), seed: 90 + i, tip: false, color: col(i) }); }
