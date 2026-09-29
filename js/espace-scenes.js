@@ -315,7 +315,11 @@ S.skills = (() => {
     ctx.globalAlpha = al; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35;
     if (q.kind === 'skill') { const zF = F[0][2] > R(0, 0, 0)[2] ? 0.18 : -0.18; for (let l = 0; l < 4; l++) { const A = R(-0.6, 0.55 + l * 0.1, zF), B = R(0.6, 0.55 + l * 0.1, zF); ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke(); } }
     if (q.kind === 'cmd') { const zF = F[0][2] > R(0, 0, 0)[2] ? 0.35 : -0.35, I = [[-0.6, -0.6], [0.6, -0.6], [0.6, 0.6], [-0.6, 0.6]].map(([u, v]) => R(u, v, zF)); ctx.beginPath(); I.forEach((p, j) => j ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.stroke(); }
-    encre(q.l, F, al, q.kind === 'cmd' ? 0.3 : 0.28);
+    // (13 h 27, Mathieu : « revois l'apparence ») : le mot est posé au centre de la face (pas sur les tenons du puzzle), et seulement quand
+    // la face nous regarde assez ; de profil, pas de lettres écrasées ni coupées
+    { const ep = q.kind === 'cmd' ? 0.7 : 0.36, zF = F[0][2] > R(0, 0, 0)[2] ? ep / 2 : -ep / 2, Q = [[-0.62, -0.62], [0.62, -0.62], [0.62, 0.62], [-0.62, 0.62]].map(([u, v]) => R(u, v, zF)),
+        w = Math.hypot(Q[1][0] - Q[0][0], Q[1][1] - Q[0][1]), h = Math.hypot(Q[3][0] - Q[0][0], Q[3][1] - Q[0][1]);
+      if (w > h * 0.55) encre(q.l, Q, al * c01((w / h - 0.55) / 0.3), q.kind === 'cmd' ? 0.36 : 0.32); }
   }
   return {
     cles: () => [0, 1, 2, 3, 4, 5].map(i => { const t = i / 6 * TAU; return [Math.cos(t) * 0.35, Math.sin(t) * 0.35]; }),
