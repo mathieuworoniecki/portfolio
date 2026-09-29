@@ -1171,7 +1171,10 @@ function init(toile, d) {
   { /* le contact : la puce se referme et émet ; des ondes partent sur le sol, vers vous */
     const oc = puce('contact', { fin: true, s: 0.85, pl: { x: 0.22, y: -0.02, s: 0.6 }, plT: { y: 0.33, s: 0.6 }, solY: -0.62, rot: t => [0.5, t * 0.15], ex: (t, v) => 0.5 * (1 - sm(v.loc * 1.5)), impulsions: () => 24 });
     const ondes = [0, 1, 2, 3].map(() => { const m = oc.m.a.clone(); const l = trait(cercleH(1, 120, 0, -0.6, 0), m, true); oc.g.add(l); return l; }), tk = oc.tick;
-    oc.tick = (t, v) => { tk(t, v); ondes.forEach((l, i) => { const k = (t * 0.28 + i / 4) % 1; l.scale.set(0.9 + k * 3.4, 1, 0.9 + k * 3.4); l.material.opacity = oc.op * Math.pow(1 - k, 1.6) * 0.9; }); }; }
+    /* les messages : de la puce partent six pistes vers la gauche, vers vos liens ; des signaux y courent en continu */
+    const PIS = [0, 1, 2, 3, 4, 5].map(i => { const a = Math.PI + 0.85 + (i - 2.5) * 0.1, L2 = 4.2; return [Math.cos(a) * L2, Math.sin(a) * L2]; });
+    const G2 = new T.Group(); oc.g.add(G2); G2.add(traits(PIS.flatMap(([x, z]) => [[0, -0.6, 0], [x, -0.6, z]]), oc.m.d)); const sig = points(36, oc.m.pa); G2.add(sig.p);
+    oc.tick = (t, v) => { tk(t, v); G2.rotation.y = -t * 0.15; for (let i = 0; i < 36; i++) { const [x, z] = PIS[i % 6], u = (t * 0.22 + i * 0.137) % 1; sig.pos.set([x * (0.3 + u * 0.7), -0.6 + Math.sin(u * Math.PI) * 0.08, z * (0.3 + u * 0.7)], i * 3); } sig.a.needsUpdate = true; ondes.forEach((l, i) => { const k = (t * 0.28 + i / 4) % 1; l.scale.set(0.9 + k * 3.4, 1, 0.9 + k * 3.4); l.material.opacity = oc.op * Math.pow(1 - k, 1.6) * 0.9; }); }; }
   poussiere(); chaine(); atelier(); if (d.marko) preuve(d.marko); impact(); circuit(d.parcours.slice().reverse()); immeuble(); fleur(); globe(); chat(); archive(); bougies(); reseau(); caviarde(); radar();
   ok = true; resize();
   /* les shaders se compilent tout de suite (l'accueil suffit : les autres scènes partagent ses programmes), pas au moment où la page se pose */
