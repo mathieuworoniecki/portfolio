@@ -270,7 +270,7 @@ S.agents = (() => {
   return {
     cles: () => [[0, -0.82], [-0.5, -0.3], [0.5, -0.3], [0, 0.62]],
     dessin(a, now) {
-      const [k] = large(1.45, 2), V = cam(now * 0.22, -0.28, k), Cy = 6, c = a > 2.3 ? (a - 2.3) % Cy : -1;
+      const [k] = large(1.45, 2), V0 = cam(now * 0.22, -0.36, k * 0.8, 0, -0.26), V = (x, y, z) => V0(x * 0.85, y * 0.62, z * 0.55), Cy = 6, c = a > 2.3 ? (a - 2.3) % Cy : -1;
       const pos = N.map(q => V(Math.cos(q.t) * q.r, q.y, Math.sin(q.t) * q.r)), nait = q => sm((a - q.n * 0.55 - bruit(q.i) * 0.25) / 0.45);
       trait3(anneau(V, 1.45, 0.88), 0.5, 0.35); trait3(anneau(V, 0.5, 0.88, 24), 0.5, 0.25);
       N.forEach(q => { if (q.p < 0) return; const e = nait(q); if (e <= 0) return; const A = pos[q.p], B = pos[q.i], al = prof(B[2]);
@@ -280,7 +280,7 @@ S.agents = (() => {
           if (u > 0 && u < 1) brille(lerp(B[0], A[0], u), lerp(B[1], A[1], u), 3.2 * B[3], al, true, now, q.i); } });
       N.slice().sort((p, q) => pos[p.i][2] - pos[q.i][2]).forEach(q => { const e = nait(q); if (e <= 0) return; const [x, y, z, f] = pos[q.i], pop = e < 1 ? 1 + 0.35 * Math.sin(Math.PI * e) : 1, al = prof(z);
         if (q.n < 3) robot(x, y, k * [0.14, 0.09, 0.06][q.n] * f * pop, al, Math.sin(now * 1.5 + q.i) > 0.97, { now, ph: q.i, lac: Math.sin(now * 0.6 + q.i * 1.7) * 0.7, travaille: c > 1.3 && c < 2.9 });
-        else { const r = k * 0.028 * f * pop; rond(x, y, r, 0.8, al, 'nuit'); if (c > 1.3 && c < 2.9) { style(0.6, al); ctx.beginPath(); ctx.arc(x, y, r * 1.9, now * 6 + q.i, now * 6 + q.i + 2); ctx.stroke(); } } });
+        else { const r = k * 0.028 * f * pop; if (r > 5) { chabot(x, y, r * 1.25, { now, ph: q.i, a: al, casque: false, lac: Math.sin(now * 0.8 + q.i) * 0.6, travaille: c > 1.3 && c < 2.9 }); } else rond(x, y, r, 0.8, al, 'nuit'); if (c > 1.3 && c < 2.9) { style(0.6, al); ctx.beginPath(); ctx.arc(x, y, r * 1.9, now * 6 + q.i, now * 6 + q.i + 2); ctx.stroke(); } } });
       if (c > 4.1 && c < 5.6) { const [x, y] = pos[0]; coche(x + k * 0.24, y - k * 0.12, k * 0.06, (c - 4.1) / 0.4, 1); eclat(x, y, k * 0.2, (c - 4.1) / 0.6, 10); }
     }
   };
@@ -601,7 +601,7 @@ S.front = (() => {
   return {
     cles: () => [[-1, -0.62], [1, -0.62], [1, 0.62], [-1, 0.62]],
     dessin(a, now) {
-      const [k, lx] = large(1.2, 1.8), Pk = (x, y) => [G.cx + x * k, G.cy + y * k], Cy = 12, c = a % Cy, b1 = a < Cy;
+      const [k0, lx] = large(1.2, 1.8), k = k0 * 0.84, Pk = (x, y) => [G.cx + x * k, G.cy + (y - 0.16) * k], Cy = 12, c = a % Cy, b1 = a < Cy;   // (09:57 : l'écran passait sous les sous-titres : plus petit, remonté)
       const FO = [[Math.min(1.5, lx * 0.85), 0.66, 3], [0.64, 0.8, 2], [0.36, 0.86, 1]];
       let A = 0, B = 0, u = 0;
       if (c > 4.4 && c < 5.2) [A, B, u] = [0, 1, sm((c - 4.4) / 0.8)]; else if (c >= 5.2 && c < 7.2) A = B = 1; else if (c >= 7.2 && c < 8) [A, B, u] = [1, 2, sm((c - 7.2) / 0.8)]; else if (c >= 8 && c < 10.4) A = B = 2; else if (c >= 10.4 && c < 11.4) [A, B, u] = [2, 0, sm((c - 10.4) / 1)];
