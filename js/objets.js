@@ -221,7 +221,7 @@ H.post.push(() => Wd.cats.forEach(c => { if (c.anim === 'mange') c.mangeT = Wd.t
 /* ——— les boutons : un chat qui tombe dessus s'y pose, un moment ——— */
 const ledges = () => K.boutons();
 H.fall.push((c, dt) => {
-  if (c.vy <= 0 || c.sulk || c.fuit) return false; const ny = c.y + (c.vy + K.grav() * dt) * dt;
+  if (c.vy <= 0 || c.sulk || c.fuit || Wd.fuite) return false; const ny = c.y + (c.vy + K.grav() * dt) * dt;
   for (const { el, r } of ledges()) {
     const drop = Wd.t - (c.relT ?? -9) < 0.3 && c.y - sc(c) * 0.9 < r.top + r.height * 0.5; if (c.x < r.left + 6 || c.x > r.right - 6 || ((c.y > r.top + r.height * 0.75 || ny < r.top) && !drop)) continue;
     interrupt(c); c.fall = false; c.spin = 0; c.vx = 0; c.y = r.top; c.task = null; c.q = [{ k: 'rebord', el, air: true }]; say(c, pick(['hop', 'tadaa'])); return true;

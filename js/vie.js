@@ -144,7 +144,7 @@ function catchIt(c, up) {
 
 /* ——— l'arbre, les perchoirs : lâché au-dessus, il s'y pose ; lâché contre le poteau, il s'y agrippe ——— */
 H.fall.push((c, dt) => {
-  if (c.vy <= 0 || c.sulk) return false;
+  if (c.vy <= 0 || c.sulk || Wd.fuite) return false;
   const ny = c.y + (c.vy + K.grav() * dt) * dt, s = sc(c);
   for (const it of Wd.props) {
     if (!it.perches.length || it.held || it.fall || it.run || it.suck || it.fade < 0.9 || it.trap || (it.busy && it.busy !== c)) continue;
@@ -319,7 +319,7 @@ H.pre.push(dt => {
 H.release.push(c => { if (c && c.hp) c.relT = Wd.t; return false; });
 // se poser sur le titre en tombant
 H.fall.push((c, dt) => {
-  const Ls = LETTERS(); if (!Ls || c.vy <= 0 || c.sulk || TL.jeu || c.fuit) return false; const r = RECT(), ny = c.y + (c.vy + K.grav() * dt) * dt;
+  const Ls = LETTERS(); if (!Ls || c.vy <= 0 || c.sulk || TL.jeu || c.fuit || Wd.fuite) return false; const r = RECT(), ny = c.y + (c.vy + K.grav() * dt) * dt;
   for (const L of Ls) {
     if (L.st || L.a < 0.9) continue; const top = r.top + L.y0;
     // lâché les pattes déjà dans la lettre (on le tient par la peau du cou, le corps pend) : il se pose dessus quand même

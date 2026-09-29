@@ -60,7 +60,7 @@ H.think.push((c, add) => {
 });
 // tombé (ou lâché) au-dessus d'une étagère : il s'y pose
 H.fall.push((c, dt) => {
-  if (c.vy <= 0 || c.held) return false; const E = etageres(); if (!E) return false;
+  if (c.vy <= 0 || c.held || Wd.fuite) return false; const E = etageres(); if (!E) return false;
   const ny = c.y + c.vy * dt, e = E.L.find(e => Math.abs(c.x - e.x) < e.w * 0.5 && c.y <= e.y + 2 && ny >= e.y - 2); if (!e) return false;
   interrupt(c); c.fall = false; c.vx = c.vy = 0; c.spin = 0; c.y = e.y; say(c, pick(['ouf', 'hop', 'rattrapé !']));
   c.q = [{ k: 'etagere', i: e.i, dur: rnd(1, 2.5), anim: 'assis', air: true }, fn(c => etape(c, e.i + 1))];

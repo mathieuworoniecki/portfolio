@@ -1,10 +1,8 @@
 /* Le passage au mode sérieux (28/09, Mathieu : « fais plutôt un bouton "mode sérieux" : au clic on vire les chats, qui s'en vont effrayés,
    les objets disparaissent dans des trous, tout se clean, on passe en mode page au scroll »).
    Ce fichier est du côté du mode chat : il fait place nette, puis passe la main au mode sérieux (js/serieux.js : Serieux.ouvre / ferme).
-   - Les chats sursautent (le poil hérissé, « !! »), puis filent au galop vers le bord le plus proche ; ceux qu'on tenait tombent d'abord.
-   - Sous chaque objet, un trou s'ouvre dans le sol (des cercles au trait, de plus en plus petits vers le fond) : l'objet tremble,
-     bascule et tombe dedans en rapetissant ; le trou se referme (« gloup »). Les croquettes aussi, par petits trous.
-   - Quand tout est parti : le mode sérieux s'ouvre en cercle depuis le bouton.
+   - (29/09) La sortie est maintenant le festival de peinture (js/peinture.js) : les chats peignent tout en bleu, poussent les objets
+     hors de l'écran et s'en vont ; quand tout est bleu et vide, le mode sérieux s'ouvre par-dessus, sans cercle.
    - Au retour (Serieux.ferme) : les trous se rouvrent et recrachent chaque objet à sa place (« pop ! »), et les chats reviennent peu à peu. */
 window.Fuite = (() => {
 if (!window.Chats || !Chats.K) return null;
@@ -20,22 +18,14 @@ function go0(btn) {
   if (F || !window.Serieux) return false;
   const r = btn && btn.getBoundingClientRect(), o = r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : { x: innerWidth / 2, y: innerHeight / 2 };
   F = { t0: Wd.t, o, scen: Wd.nextScen }; Wd.fuite = true; Wd.nextIn = Wd.nextScen = Infinity;
-  // les chats : un sursaut, puis la fuite
-  Wd.cats.forEach((c, i) => {
-    if (c.gone) return; c.held = false; interrupt(c); c.hidden = 0;
-    const dir = c.x < Wd.W / 2 ? -1 : 1, s = sc(c);
-    later(i * 0.02, () => { if (c.gone) return; c.fall = true; c.vy = -Math.sqrt(2 * grav() * s * 0.5); c.vx = -dir * 40; c.face = -dir;
-      say(c, pick(en() ? ['!!', 'EEK', 'run!', 'hsss'] : ['!!', 'AAAH', 'fshhh', 'au secours', 'sauve qui peut !', 'mia !!'])); word(pick(['!', '!!', '⚡']), c.x, c.y - s * 1.1, 22); });
-    later(0.2 + i * 0.02, () => { c.fuit = dir; });
+  // (29/09, 07:35, Mathieu : « c'est nos chats qui peignent, avec un rouleau, pas du papier peint ; un festival de peinture ») : js/peinture.js
+  // (les chats peignent tout en bleu, d'autres poussent les objets hors de l'écran, tout le monde s'en va) ; puis le mode sérieux, sans cercle
+  const moi = F;
+  const ok = window.Peinture && Peinture.go(o, {
+    sorti: it => { if (!avales.includes(it)) avales.push(it); },
+    fini: () => { if (F !== moi || F.ouvert) return; F.ouvert = true; const p = Serieux.ouvre({ x: o.x, y: o.y, instant: true, papier: true }); if (p && p.then) p.then(() => {}, () => {}); setTimeout(() => Peinture.range(), 700); }
   });
-  // les objets : chacun son trou, l'un après l'autre (les plus proches du bouton d'abord)
-  const P = Wd.props.filter(it => !it.gone && it.fade > 0.3 && !it.ventre).sort((a, b) => Math.abs(a.fx * Wd.W - o.x) - Math.abs(b.fx * Wd.W - o.x));
-  const moi = F; P.forEach((it, i) => later(0.15 + i * 0.035, () => { if (F === moi) avale(it); }));
-  // les croquettes par terre : de petits trous
-  Wd.kib.forEach((k, i) => { if (k.gone || k.suck) return; later(0.1 + i * 0.01, () => { if (k.gone) return; trou(k.x, k.y + 2, Wd.s0 * 0.07, 0.2, 0.5); later(0.2, () => { k.gone = true; }); }); });
-  // (28/09, 20:42, Mathieu : « bien plus rapide, et une animation : les chats font le papier peint de la partie bleue, puis tous les éléments arrivent »)
-  // pendant que tout file, une équipe de chats pose le bleu en lés de papier peint ; quand le dernier lé est collé : le mode sérieux, sans cercle
-  const moi2 = F; Papier.pose(o, () => { if (F !== moi2 || F.ouvert) return; F.ouvert = true; const p = Serieux.ouvre({ x: o.x, y: o.y, instant: true, papier: true }); if (p && p.then) p.then(() => {}, () => {}); });
+  if (!ok) { F.ouvert = true; Serieux.ouvre({ x: o.x, y: o.y }); }
   return true;
 }
 // un trou s'ouvre sous l'objet ; il tremble, bascule, tombe dedans en rapetissant ; le trou se referme
@@ -55,7 +45,7 @@ function fuit(c) {
   if (c.gone || c.held || c.fall || !Wd.cats.includes(c)) return; const s = sc(c);
   if (c.y < floorAt(c.d) - 4 && !(c.task && c.task.fuite)) { interrupt(c); c.fall = true; c.vy = 0; c.vx = c.fuit * 60; return; }
   if (c.task && c.task.fuite || c.q.some(T => T.fuite)) return;
-  interrupt(c); const T = go(c.fuit < 0 ? -s * 2.2 : Wd.W + s * 2.2, { g: 'galop' }); T.fuite = true; c.q = [T, fn(c => { c.gone = true; })];
+  interrupt(c); const T = go(c.fuit < 0 ? -s * 2.2 : Wd.W + s * 2.2, { g: 'galop', v: 1.7 }); T.fuite = true; c.q = [T, fn(c => { c.gone = true; })];
 }
 // chaque image : les chats qui fuient ; les objets qui tombent dans leur trou (ou en ressortent, au retour)
 H.pre.push(() => {
@@ -96,6 +86,7 @@ function retour() {
   L.forEach((it, i) => later(0.3 + i * 0.1, () => {
     if (!Wd.props.includes(it)) return; it.ventre = false;
     if (it.home && !it.home.on) { it.fx = it.home.fx; it.d = it.home.d; it.dT = it.home.d; }
+    it.tilt = 0; it.vx = it.vy = 0; it.fall = false;
     const s = sOf(it.d); trou(it.fx * Wd.W, floorAt(it.d), clamp(s * 0.5, Wd.s0 * 0.18, Wd.s0 * 1.2), 0.15, 0.6);
     it.lift = 0; it.big = it.big || 1; it.trou = { t0: Wd.t, retour: true, big: it.big, sens: Math.random() < 0.5 ? -1 : 1 }; it.big *= 0.05;
     later(0.25, () => word(pick(['pop !', 'plop', 'tadaa']), it.fx * Wd.W, floorAt(it.d) - s * 0.8, 18));

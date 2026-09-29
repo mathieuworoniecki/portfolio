@@ -177,7 +177,7 @@ H.post.push(() => {
 
 /* ——— un chat qui tombe au bord d'un coussin, d'un panier, d'un coffre : il rebondit sur le bord (boing) ——— */
 H.fall.push((c, dt) => {
-  if (c.vy <= 0 || c.held || c.rare || recent(c, 'bordT', 0.6)) return false; const k = sc(c), ny = c.y + c.vy * dt;
+  if (c.vy <= 0 || c.held || c.rare || Wd.fuite || recent(c, 'bordT', 0.6)) return false; const k = sc(c), ny = c.y + c.vy * dt;
   for (const it of Wd.props) {
     if (it.held || it.fall || it.run || it.mur || it.a < 0.5 || !it.perches || !it.perches.length || Math.abs(it.d - c.d) > 0.3) continue;
     const w = it.hull.w * it.s * 0.5, top = it.y - it.hull.h * it.s, ex = Math.abs(c.x - it.x);

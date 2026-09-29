@@ -60,7 +60,7 @@ function peche(c, b, it) {
 
 /* ——— ce qui tombe dedans ——— */
 H.fall.push((c, dt) => {
-  if (c.vy <= 0 || c.held) return false;
+  if (c.vy <= 0 || c.held || Wd.fuite) return false;
   for (const b of bassins()) {
     if (b.held || b.fall) continue; const S = surface(b);
     // (lâché par la main : on juge à l'écran ; sinon, il faut être à la bonne profondeur)
