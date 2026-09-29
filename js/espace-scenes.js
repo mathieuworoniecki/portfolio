@@ -406,7 +406,7 @@ S.flotte = (() => {
   return {
     cles: () => [[-0.24, 0.86], [0.24, 0.86], [-0.24, -0.5], [0.24, -0.5]],
     dessin(a, now) {
-      const [k, lx] = large(1.3, 1.9), V = cam(0.5 + a * 0.12, -0.3, k * 0.74, 0, -0.3), Cy = NE * 0.55 + 4.5, c = a % Cy;
+      const [k, lx] = large(1.3, 1.9), V = cam(0.5 + a * 0.12, -0.3, k * 0.74, 0, G.sw < 500 ? -0.52 : -0.3), Cy = NE * 0.55 + 4.5, c = a % Cy;
       const tas = 1 - sm((c - Cy + 0.6) / 0.6), n = Math.min(NE, Math.floor(c / 0.55) + 1), f = c01((c % 0.55) / 0.35), top = B0 - (n - 1 + (n < NE ? f : 1)) * EH * tas;
       trait([[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, z]) => V(x * 0.62, B0, z * 0.62)), true, 0.7, 0.5);
       // l'essaim : chacun son orbite ; de temps en temps, l'un plonge vers le sommet avec son bloc
@@ -821,8 +821,8 @@ S.pilotage = (() => {
   }
   // le bus : une vraie boîte en 3D (l'arrière, le toit, le flanc qu'on voit), des fenêtres avec l'équipe ; le chauffeur, c'est lui ; il penche dans les virages
   function bus(Pp, bx, zb, roulis, now, bonk, a, camX) {
-    const w = 0.56, h = 1.2, Lg = 3.4, sh = now - bonk < 0.35 ? Math.sin((now - bonk) * 60) * 0.03 : 0, bump = Math.abs(Math.sin(now * 9)) * 0.012 + sh;
-    const Q = (x, y, z) => { const r = roulis * (y - 0.1); return Pp(bx + x + r, y + bump, zb + z); };
+    const kb = G.sw < 500 ? 0.72 : 1, w = 0.56, h = 1.2, Lg = 3.4, sh = now - bonk < 0.35 ? Math.sin((now - bonk) * 60) * 0.03 : 0, bump = Math.abs(Math.sin(now * 9)) * 0.012 + sh;
+    const Q = (x, y, z) => { const r = roulis * (y - 0.1); return Pp(bx + (x + r) * kb, (y + bump) * kb, zb + z * kb); };   // (kb : plus petit sur téléphone)
     const cote = bx - camX > 0 ? -1 : 1;   // (le flanc qu'on voit : celui qui regarde le milieu de la route)
     // le flanc : ses fenêtres, l'équipe qui y passe la tête
     const F = [Q(cote * w, 0.12, 0), Q(cote * w, 0.12, Lg), Q(cote * w, h, Lg), Q(cote * w, h, 0)];
