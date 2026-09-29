@@ -299,9 +299,16 @@ S.agents = (() => {
         if (c >= 0) { const d = c01((c - (q.n - 1) * 0.45) / 0.45), u = c01((c - 2.7 - (3 - q.n) * 0.45) / 0.45);
           if (d > 0 && d < 1) brille(lerp(A[0], B[0], d), lerp(A[1], B[1], d), 2.6 * B[3], al, false, now, q.i);
           if (u > 0 && u < 1) brille(lerp(B[0], A[0], u), lerp(B[1], A[1], u), 3.2 * B[3], al, true, now, q.i); } });
-      N.slice().sort((p, q) => pos[p.i][2] - pos[q.i][2]).forEach(q => { const e = nait(q); if (e <= 0) return; const [x, y, z, f] = pos[q.i], pop = e < 1 ? 1 + 0.35 * Math.sin(Math.PI * e) : 1, al = prof(z);
+      N.slice().sort((p, q) => pos[p.i][2] - pos[q.i][2]).forEach(q => { const e = nait(q); if (e <= 0) return; const [x, y, z, f] = pos[q.i], pop = e < 1 ? 1 + 0.35 * Math.sin(Math.PI * e) : 1, al = 1;
         if (q.n < 3) robot(x, y, k * [0.14, 0.09, 0.06][q.n] * f * pop, al, Math.sin(now * 1.5 + q.i) > 0.97, { now, ph: q.i, lac: Math.sin(now * 0.6 + q.i * 1.7) * 0.7, travaille: c > 1.3 && c < 2.9 });
         else { const r = k * 0.028 * f * pop; if (r > 5) { chabot(x, y, r * 1.25, { now, ph: q.i, a: al, casque: false, lac: Math.sin(now * 0.8 + q.i) * 0.6, travaille: c > 1.3 && c < 2.9 }); } else rond(x, y, r, 0.8, al, 'nuit'); if (c > 1.3 && c < 2.9) { style(0.6, al); ctx.beginPath(); ctx.arc(x, y, r * 1.9, now * 6 + q.i, now * 6 + q.i + 2); ctx.stroke(); } } });
+      // (vague 8, l'audit : le dessin doit servir le texte) : chaque sous-agent porte son métier, celui des sous-titres
+      const MET = en() ? ['explore', 'code', 'tests', 'review'] : ['exploration', 'code', 'tests', 'revue'];
+      const L1 = N.filter(q => q.n === 1), dev = L1.slice().sort((p, q) => pos[q.i][2] - pos[p.i][2]).slice(0, 2);   // (les deux de devant : les autres sont cachés derrière)
+      L1.forEach((q, j) => { const e = nait(q); if (e < 0.5 || !dev.includes(q)) return; const [x, y, , f] = pos[q.i], o = dev.find(d => d !== q), sd = x < (o ? pos[o.i][0] : pos[0][0]) ? -1 : 1, px = Math.max(12, k * 0.07 * f);
+        ctx.font = `600 ${px}px "Space Grotesk",system-ui,sans-serif`; const w = ctx.measureText(MET[j]).width + px, lx0 = x + sd * k * 0.2 * f - (sd < 0 ? w : 0), ly0 = y - px * 0.8;
+        ctx.globalAlpha = (e - 0.5) * 2; ctx.fillStyle = '#07080C'; ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx0, ly0, w, px * 1.6, px * 0.5) : ctx.rect(lx0, ly0, w, px * 1.6); ctx.fill(); ctx.stroke();
+        mot(MET[j], lx0 + w / 2, ly0 + px * 0.8, px, (e - 0.5) * 2); });
       if (c > 4.1 && c < 5.6) { const [x, y] = pos[0]; coche(x + k * 0.24, y - k * 0.12, k * 0.06, (c - 4.1) / 0.4, 1); eclat(x, y, k * 0.2, (c - 4.1) / 0.6, 10); }
     }
   };
