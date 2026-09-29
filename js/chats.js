@@ -871,6 +871,8 @@ function drawFx(S) {
     } else if (f.k === 'z') C.text(u < 0.5 ? 'z' : 'Z', f.x + f.dx * u * 18 + Math.sin(u * 7) * 5, f.y - u * 40, 1, { size: 12 + u * 10, a: 0.6 * fade });
     else if (f.k === 'dust') { for (let i = -1; i <= 1; i += 2) for (let j = 0; j < 2; j++) { const a0 = f.r * (0.5 + u * 0.8), h = (j + 1) * 5; C.line(f.x + i * a0, f.y - h * 0.4, f.x + i * (a0 + 8 + u * 8), f.y - h, 1, { w: 1.6, a: 0.5 * f.a * (1 - u), seed: f.seed + i + j }); } }
     else if (f.k === 'calage') calage(f, t, K);
+    else if (f.k === 'rayons') rayons(f, u, t);
+    else if (f.k === 'rouleaux') rouleaux(f, t - f.t0, fade, K);
     else if (f.k === 'vague') vaguePoussiere(f, u, K);
     else if (f.k === 'bagarre') fightCloud(f, u, fade, K);
     else if (f.k === 'heart') heart(f.x, f.y - u * 26, f.r * K, fade);
@@ -900,6 +902,21 @@ function calage(f, t, K) {
   if (f.kick) { const d3 = t - f.kick; x = f.kx + f.kd * d3 * 900; y = f.ky - 500 * d3 + g / 2 * d3 * d3; rot += d3 * 20; if (x < -40 || x > Wd.W + 40 || y > Wd.H + 40) { f.life = 0; return; } }
   const r = f.sz * K * Math.min(1, (f.life - dt) / 2), c = Math.cos(rot), s = Math.sin(rot), P = [[-1, -0.5], [-0.4, 0.4], [0.4, -0.4], [1, 0.5]].map(([a, b]) => [x + (a * c - b * s) * r, y + (a * s + b * c) * r]);
   Chalk.stroke(P, 1, { w: 1.5, a: 0.8 * Wd.a, seed: f.seed, tip: false });
+}
+// les rayons du jackpot : seize traits qui partent de la machine jusqu'aux bords de l'écran et tournent, un sur deux plus long
+function rayons(f, u, t) {
+  const L = Math.hypot(Wd.W, Wd.H), n = 16, e = sm(u / 0.15), k = (1 - sm((u - 0.55) / 0.45)) * Wd.a;
+  for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2 + t * 0.9, r0 = 40 + u * 60, r1 = r0 + L * e * (i % 2 ? 0.55 : 1);
+    Chalk.line(f.x + Math.cos(a) * r0, f.y + Math.sin(a) * r0, f.x + Math.cos(a) * r1, f.y + Math.sin(a) * r1, 1, { w: i % 2 ? 1.2 : 2, a: 0.45 * k * (0.7 + 0.3 * Math.sin(t * 20 + i)), seed: f.seed + i }); }
+}
+// les rouleaux : trois cases au-dessus du distributeur ; les symboles défilent, chaque rouleau freine et se pose, le dernier sur le 7
+function rouleaux(f, d, fade, K) {
+  const g = f.g; if (!g || !Wd.props.includes(g)) { f.life = 0; return; }
+  const m = Univers.at(g, [0, 1.02, 0]), w = Math.max(32, g.s * 0.26) * K, h = w * 1.25, S = ['★', '♥', '7', '$', '♣'];
+  for (let i = 0; i < 3; i++) { const x = m[0] + (i - 1) * w * 1.15, y = m[1] - h * 0.6, stop = 0.9 + i * 0.45, pose = d > stop;
+    Chalk.stroke([[x - w / 2, y - h / 2], [x + w / 2, y - h / 2], [x + w / 2, y + h / 2], [x - w / 2, y + h / 2], [x - w / 2, y - h / 2]], 1, { w: 2, a: 0.85 * fade, seed: f.seed + i, tip: false });
+    if (pose) { const b = Math.exp(-(d - stop) * 9) * Math.sin((d - stop) * 30) * h * 0.12; Chalk.text('7', x, y + b + h * 0.02, 1, { size: h * 0.7, align: 'center', a: 0.9 * fade }); }
+    else { const v = d * 14 * (1 - 0.5 * d / stop), j = Math.floor(v), q = v - j; [0, 1].forEach(o => { const yy = y + (q - o) * h * 0.8; if (Math.abs(yy - y) < h * 0.45) Chalk.text(S[(j + o + i) % S.length], x, yy, 1, { size: h * 0.55, align: 'center', a: 0.7 * fade }); }); } }
 }
 // la vague de poussière : un rouleau de nuages au ras du sol, qui part des deux côtés du pied de la tour jusqu'aux bords de l'écran, monte et se défait en volutes
 function vaguePoussiere(f, u, K) {
@@ -1153,10 +1170,14 @@ function machines(dt) {
         for (let i = 0; i < 3; i++) Wd.kib.push({ x: m[0], y: m[1], vx: rnd(-750, 750) * k, vy: -rnd(300, 1050) * k, d: rnd(0, 0.15), t0: Wd.t, rest: false, spin: Math.random() * 6 }); }
       if (Wd.t > F.say) { F.say = Wd.t + rnd(0.6, 1); const m = Univers.at(g, g.bec); Wd.fx.push({ k: 'txt', text: pick(g.cour && Math.abs(g.cour) > 8 ? ['youhouuu !', 'attrapez-moi !', 'croquettes pour tous !', 'BZZT !', 'hihihi'] : ['BZZT !', 'ding ding ding', '!!!', 'croquettes !!!', 'brrrrr']), x: m[0] + rnd(-40, 40), y: m[1] - g.s * rnd(0.4, 0.8), t0: Wd.t, life: 1.2, rot: rnd(-0.3, 0.3), size: 19 }); }
       if (!F.fest && Wd.t > F.t0 + 1.2) { F.fest = true; feast(); }
+      if (!F.rouleaux && Wd.t > F.end - 3.1) { F.rouleaux = true; Wd.fx.push({ k: 'rouleaux', g, t0: Wd.t, life: 3.4, seed: 9 }); }
       // (29/09, l'audit : il manquait un vrai moment) : le bouquet final. Il se tasse, tremble plus fort… et JACKPOT : un geyser de croquettes
       // qui monte jusqu'au plafond et retombe en pluie sur toute la pièce, la pièce tremble
       if (!F.boum && Wd.t > F.end - 1.6) { F.boum = true; g.wob = Wd.t; g.wobA = 2.2; const m = Univers.at(g, g.bec), k = Wd.s0 / 160; Wd.shake = { t0: Wd.t, a: 7 };
         Wd.fx.push({ k: 'txt', text: 'JACKPOT !!!', x: m[0], y: m[1] - g.s * 1.1, t0: Wd.t, life: 2, rot: -0.08, size: 44 }); dust(m[0], m[1], g.s * 0.6, 1);
+        // (vague 29, l'audit : « le distributeur fou ») : une machine à sous. Juste avant, trois rouleaux à la craie tournent au-dessus de lui
+        // et s'arrêtent un à un sur 7 7 7 ; au jackpot, des rayons de lumière partent de lui et balaient toute la pièce
+        Wd.fx.push({ k: 'rayons', x: m[0], y: m[1] - g.s * 0.2, t0: Wd.t, life: 2.4, seed: 5 });
         for (let i = 0; i < 70 && Wd.kib.length < KIBMAX() + 60; i++) Wd.kib.push({ x: m[0], y: m[1], vx: rnd(-1, 1) * rnd(200, 1500) * k, vy: -rnd(900, 1900) * k, d: rnd(0, 0.5), t0: Wd.t, rest: false, spin: Math.random() * 6 }); }
       if (Wd.t > F.end) { g.folle = null; g.cour = 0; if (Math.abs(g.fx - F.fx0) > 0.002) g.rentre = { fx0: F.fx0 }; const m = Univers.at(g, [0, 0.8, 0]); dust(m[0], m[1], g.s * 0.3, 1); Wd.fx.push({ k: 'txt', text: 'pfff…', x: m[0], y: m[1] - 20, t0: Wd.t, life: 1.6, rot: -0.1, size: 18 }); g.clk = 0; }
     }
