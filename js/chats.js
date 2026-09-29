@@ -908,9 +908,20 @@ function fightCloud(f, u, fade, K) {
 /* ——— les scénarios : de temps en temps ——— */
 // (28/09, Mathieu : « pas mal d'événements cliquables ne marchent pas ou ne sont pas impressionnants ») : lancée du menu (grand),
 // c'est une ruée : deux fois plus de chats, sur toute la profondeur, plus vite, la pièce qui tremble et la poussière tout du long
-function horde(grand) {
+function horde(grand, dir0) {
   if (grand ? Wd.cats.filter(c => c.temp).length > 8 : Wd.cats.filter(c => c.temp).length > 4 || Wd.cats.length > MAXC + 6) return false;   // une horde à la fois, pas de foule
-  const dir = Math.random() < 0.5 ? 1 : -1, d = rnd(0.02, 0.2), s = sOf(d), W = Wd.W;
+  // (vague 11, l'audit : « la horde ») : la grande ruée s'annonce. Un grondement monte d'un bord : la pièce frémit de plus en plus fort,
+  // les croquettes sautillent, les objets légers tremblent, un nuage roule à l'horizon ; un chat de la maison dresse l'oreille (« …vous entendez ? »)
+  if (grand && !dir0) { if (Wd.preRue) return false; const dr = Math.random() < 0.5 ? 1 : -1, x0 = dr > 0 ? 0 : Wd.W; Wd.preRue = true;
+    const ecoute = Wd.cats.filter(k => !k.temp && free4(k)).sort((a, b) => Math.abs(a.x - x0) - Math.abs(b.x - x0))[0];
+    if (ecoute) { interrupt(ecoute); ecoute.q = [pose('affut', 1.4, { face: -dr, fx: k => say(k, pick(['…vous entendez ?', '…c’est quoi ce bruit ?', 'oh oh.'])) })]; }
+    [0, 0.35, 0.7, 1.0, 1.25].forEach((t, i) => later(t, () => { Wd.shake = { t0: Wd.t, a: 0.8 + i * 0.7 };
+      Wd.kib.forEach(k => { if (k.rest && !k.who && Math.random() < 0.5) { k.rest = false; k.vy = -rnd(60, 160) * Wd.s0 / 160 * (1 + i * 0.3); k.vx = rnd(-20, 20); } });
+      Wd.props.forEach(it => { if (!it.gone && !LOURD[it.kind] && !it.run && Math.random() < 0.4) { it.wob = Wd.t; it.wobA = 0.25 + i * 0.1; } });
+      for (let j = 0; j < 2 + i; j++) dust(x0 + dr * rnd(0, Wd.s0 * (0.3 + i * 0.25)), floorAt(rnd(0.1, 0.7)), Wd.s0 * rnd(0.4, 0.8), 0.8);
+      if (i === 2) Wd.fx.push({ k: 'txt', text: 'brrrrrm…', x: x0 + dr * Wd.s0 * 0.9, y: floorAt(0.3) - Wd.s0 * 1.2, t0: Wd.t, life: 1.2, rot: -0.08 * dr, size: 24 }); }));
+    later(1.5, () => { Wd.preRue = false; horde(true, dr); }); return true; }
+  const dir = dir0 || (Math.random() < 0.5 ? 1 : -1), d = rnd(0.02, 0.2), s = sOf(d), W = Wd.W;
   const m = prop('souris', dir > 0 ? -0.05 : 1.05, d, { yaw: dir > 0 ? -0.35 : Math.PI + 0.35 });
   m.run = { dir, v: s * 2.1 }; m.zo = 200;
   const n = grand ? (Wd.mode === 'large' ? 10 + Math.floor(Math.random() * 3) : 6) : Wd.mode === 'large' ? 4 + Math.floor(Math.random() * 3) : 3;
