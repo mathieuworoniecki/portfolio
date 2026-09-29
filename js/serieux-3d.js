@@ -1122,6 +1122,7 @@ function preuve(M) {
     solide(g, new T.BoxGeometry(0.055, 1, 0.055).translate(0, 0.5, 0), i === pic ? L[1].a : juil ? L[1].l : L[0].l);
     g.scale.y = 0.001; COL.push({ g, h: 1.25 * Math.sqrt(J[i] / maxJ), i, juil });
   }
+  const NE0 = 48, etc0 = points(NE0, L[0].pa); ville.add(etc0.p);   // le front des jours : chaque colonne qui pousse lâche ses étincelles ; une fois la ville bâtie, un balayage repasse les jours un à un
   const phare = new T.Group(); ville.add(phare); { const c = COL[pic]; if (c) { phare.position.set(c.g.position.x, -0.5 + c.h + 0.1, c.g.position.z); phare.add(trait(cercle(0.06, 32), L[1].a, true)); phare.add(trait([[0, -0.08, 0], [0, 0.25, 0]], L[1].d)); } }
   const FM2 = new T.PointsMaterial({ color: ACCENT.clone(), size: 2.4, sizeAttenuation: false, transparent: true, depthWrite: false }), jet = points(451, FM2); ville.add(jet.p);   // le 23 juillet jaillit : 451 commits, un point chacun
   const JP = Array.from({ length: 451 }, () => ({ o: rnd(), a: rnd() * TAU, v: 0.25 + rnd() * 0.55, h: 0.5 + rnd() * 0.5 }));
@@ -1172,6 +1173,8 @@ function preuve(M) {
     /* 0 : les jours montent dans l'ordre ; 1 : juillet ressort */
     const front = pas >= 1 ? NJ : NJ * sm(k(0) * 1.3), k1 = S >= 1 ? 1 : 0;
     COL.forEach(c => { if (!c) return; const on = c01((front - c.i) / 12), h = S >= 2 ? 0.001 : c.h * sm(on) * (S === 1 && !c.juil ? 0.55 : 1); c.g.scale.y = Math.max(0.001, lerp(c.g.scale.y, h, df)); });
+    { const bati = front >= NJ, fr = bati ? (t * 22) % NJ : front; for (let j = 0; j < NE0; j++) { const u = (t * 1.3 + j / NE0 * 3) % 1, ci = Math.floor(fr - (j % 8) * 1.5), c = ci >= 0 && ci < NJ ? COL[ci] : null, vu = c && S === 0 && f[0] > 0.3;
+      etc0.pos.set(vu ? [c.g.position.x + Math.sin(j * 7.3) * 0.04 * u, -0.5 + c.g.scale.y + u * 0.35, c.g.position.z + Math.cos(j * 3.1) * 0.04 * u] : [0, -99, 0], j * 3); } etc0.a.needsUpdate = true; }
     phare.visible = k1 > 0 && S <= 1 && (t % 1.2) > 0.3; phare.rotation.y = t;
     FM2.opacity = o.op * f[1]; { const c = COL[pic], on = f[1] > 0.02 && c; if (on) { const bx = c.g.position.x, by = -0.5 + c.g.scale.y, bz = c.g.position.z;
       JP.forEach((p, i) => { const u = (t * 0.45 + p.o) % 1, r = p.v * u, y = by + p.h * 4 * u * (1 - u) * 0.9 - u * u * (by + 0.5) * 0.6;   // une gerbe : ça monte, ça s'ouvre, ça retombe sur la ville
