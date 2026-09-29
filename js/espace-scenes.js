@@ -149,7 +149,28 @@ function caillou(x, y, r, t, n, a = 1, mechant = false) { cerne(() => { ctx.begi
 // lui, dans le style des chats (29/09, 07:49, Mathieu : « ta forme d'humain pour la dernière étape de la partie 1, c'est vraiment super basique ») :
 // un seul contour à l'encre, rempli de papier, cerné de blanc ; un visage long, les cheveux en épis, la moustache en guidon, deux grands yeux noirs
 // à reflets ; un t-shirt (une petite montagne dessus) ; o.tp (0 → 1) : le bras abat le tampon sur o.cible ; o.hoche : la tête hoche
+// (vague 33 de l'audit : « toi, dans le style des chats » : original et vivant) : en apesanteur, ses épis flottent ; ses yeux suivent la souris ;
+// et un petit chat est assis sur son épaule : il balance la queue, remue une oreille, suit la souris lui aussi, et fait un bond quand le tampon tombe
+const souris = () => { const W = window.Chats && Chats.K && Chats.K.Wd, P = W && W.ptr; return P && P.on ? P : null; };
+function epaule(x, y, r, now, a, regard, saut) {
+  const yb = y - saut * r * 0.5, qx = Math.sin(now * 1.9) * 0.5 + Math.sin(now * 0.7) * 0.3, w = clamp01(r / 20) * 0.6 + 0.4;
+  // la queue qui pend derrière l'épaule et balance
+  cerne(() => { ctx.beginPath(); ctx.moveTo(x + r * 0.5, yb - r * 0.3); ctx.bezierCurveTo(x + r * 1.3, yb, x + r * (0.9 + qx * 0.6), yb + r * 1.2, x + r * (1.3 + qx), yb + r * 1.7); }, w * 1.3, a, null);
+  // le corps (une miche), les deux pattes avant
+  cerne(() => { ctx.beginPath(); ctx.ellipse(x, yb - r * 0.45, r * 0.72, r * 0.52, 0, 0, TAU); }, w, a);
+  [-0.28, 0.12].forEach(d => cerne(() => { ctx.beginPath(); ctx.ellipse(x + d * r, yb - r * 0.02, r * 0.17, r * 0.12, 0, 0, TAU); }, w * 0.8, a));
+  // la tête, les oreilles dans son contour (l'une tressaille de temps en temps)
+  const hy = yb - r * 1.2, tr = Math.sin(now * 0.9) > 0.93 ? Math.sin(now * 40) * 0.12 : 0;
+  cerne(() => { ctx.beginPath(); ctx.moveTo(x - r * 0.62, hy + r * 0.1); ctx.lineTo(x - r * 0.6, hy - r * 0.62); ctx.lineTo(x - r * 0.22, hy - r * 0.38);
+    ctx.quadraticCurveTo(x, hy - r * 0.46, x + r * 0.22, hy - r * 0.38); ctx.lineTo(x + r * (0.62 + tr), hy - r * (0.64 - tr)); ctx.lineTo(x + r * 0.62, hy + r * 0.1);
+    ctx.quadraticCurveTo(x + r * 0.6, hy + r * 0.52, x, hy + r * 0.52); ctx.quadraticCurveTo(x - r * 0.6, hy + r * 0.52, x - r * 0.62, hy + r * 0.1); ctx.closePath(); }, w, a);
+  const cl = (now * 0.37 + 1.3) % 3.3 < 0.12 ? 0.15 : 1, vx = r * 0.08 * regard[0], vy = r * 0.06 * regard[1];
+  [-1, 1].forEach(sd => { const ex = x + sd * r * 0.25 + vx, ey = hy + r * 0.05 + vy; ctx.globalAlpha = a; ctx.fillStyle = ENC; ctx.beginPath(); ctx.ellipse(ex, ey, r * 0.12, r * 0.16 * cl, 0, 0, TAU); ctx.fill();
+    if (cl > 0.5) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex - r * 0.04, ey - r * 0.06, r * 0.045, 0, TAU); ctx.fill(); } });
+  ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.6; ctx.beginPath(); ctx.moveTo(x - r * 0.08, hy + r * 0.28); ctx.quadraticCurveTo(x, hy + r * 0.36, x, hy + r * 0.28); ctx.quadraticCurveTo(x, hy + r * 0.36, x + r * 0.08, hy + r * 0.28); ctx.stroke();
+}
 function lui(x, y, r, o = {}) {
+  const nw = o.now || 0, P = souris(), regard = P ? (() => { const dx = P.x - x, dy = P.y - y, d = Math.hypot(dx, dy) || 1; return [dx / d, dy / d]; })() : [Math.sin(nw * 0.5) * 0.6, 0.2];
   const a = o.a ?? 1, w = clamp01(r / 30) * 0.7 + 0.45, hy = y + (o.hoche || 0) * r * 0.1, by = y + r * 0.95, bw = r * 1.2, bh = r * 1.45, g = o.cote || -1, tp = o.tp || 0;
   // le bras qui ne tamponne pas, derrière le corps
   cerne(() => { ctx.beginPath(); ctx.moveTo(x - g * bw * 0.8, by + r * 0.35); ctx.quadraticCurveTo(x - g * bw * 1.25, by + bh * 0.55, x - g * bw * 0.7, by + bh * 0.85); }, w * 1.9, a, null);
@@ -167,11 +188,11 @@ function lui(x, y, r, o = {}) {
   // des épis bien nets, des sourcils ronds, un grand sourire
   [-1, 1].forEach(sd => cerne(() => { ctx.beginPath(); ctx.ellipse(x + sd * r * 0.68, hy + r * 0.12, r * 0.14, r * 0.2, 0, 0, TAU); }, w * 0.8, a));
   cerne(() => { ctx.beginPath(); ctx.ellipse(x, hy, r * 0.7, r * 0.98, 0, 0, TAU); }, w, a);
-  cerne(() => { ctx.beginPath(); const n = 9; for (let i = 0; i <= n; i++) { const t = Math.PI + 0.25 + i / n * (Math.PI - 0.5), R = i % 2 ? 1.24 + 0.06 * Math.sin(i * 3.7) : 0.96, j = i % 2 ? 0.12 * Math.sin(i * 2.1) : 0; ctx.lineTo(x + Math.cos(t + j) * r * 0.72 * R, hy - r * 0.18 + Math.sin(t + j) * r * 0.95 * R); }
+  cerne(() => { ctx.beginPath(); const n = 9; for (let i = 0; i <= n; i++) { const t = Math.PI + 0.25 + i / n * (Math.PI - 0.5), R = i % 2 ? 1.24 + 0.06 * Math.sin(i * 3.7) + 0.05 * Math.sin(nw * 2.3 + i * 1.7) : 0.96, j = i % 2 ? 0.12 * Math.sin(i * 2.1) + 0.06 * Math.sin(nw * 1.7 + i) : 0; ctx.lineTo(x + Math.cos(t + j) * r * 0.72 * R, hy - r * 0.18 + Math.sin(t + j) * r * 0.95 * R); }
     for (let i = 8; i >= 0; i--) { const t = Math.PI + 0.25 + i / 8 * (Math.PI - 0.5); ctx.lineTo(x + Math.cos(t) * r * 0.7, hy - r * 0.05 + Math.sin(t) * r * 0.72); } ctx.closePath(); }, w, a);
-  // les yeux : deux grands ovales noirs, deux reflets (ils clignent)
-  const cl = Math.sin((o.now || 0) * 1.1 + 1) > 0.985 ? 0.12 : 1;
-  [-1, 1].forEach(s => { const ex = x + s * r * 0.28, ey = hy + r * 0.08; ctx.globalAlpha = a; ctx.fillStyle = ENC; ctx.beginPath(); ctx.ellipse(ex, ey, r * 0.12, r * 0.17 * cl, 0, 0, TAU); ctx.fill();
+  // les yeux : deux grands ovales noirs, deux reflets (ils clignent) ; (vague 33) ils suivent la souris
+  const cl = Math.sin(nw * 1.1 + 1) > 0.985 ? 0.12 : 1, vx = r * 0.07 * regard[0], vy = r * 0.05 * regard[1];
+  [-1, 1].forEach(s => { const ex = x + s * r * 0.28 + vx, ey = hy + r * 0.08 + vy; ctx.globalAlpha = a; ctx.fillStyle = ENC; ctx.beginPath(); ctx.ellipse(ex, ey, r * 0.12, r * 0.17 * cl, 0, 0, TAU); ctx.fill();
     if (cl > 0.5) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex - r * 0.04, ey - r * 0.06, r * 0.045, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(ex + r * 0.04, ey + r * 0.06, r * 0.022, 0, TAU); ctx.fill(); }
     ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.7; ctx.beginPath(); ctx.arc(ex, ey - r * 0.12, r * 0.15, Math.PI * 1.2, Math.PI * 1.8); ctx.stroke(); });
   // la moustache en guidon (les pointes relevées), le sourire dessous
@@ -183,6 +204,7 @@ function lui(x, y, r, o = {}) {
   cerne(() => { ctx.beginPath(); ctx.moveTo(...ep); ctx.quadraticCurveTo(lerp(ep[0], main[0], 0.5) + g * r * 0.3, lerp(ep[1], main[1], 0.5) + r * 0.3, main[0], main[1]); }, w * 1.9, a, null);
   cerne(() => { ctx.beginPath(); ctx.rect(main[0] - st * 0.55, main[1] + st * 0.35, st * 1.1, st * 0.45); }, w, a); cerne(() => { ctx.beginPath(); ctx.rect(main[0] - st * 0.12, main[1] - st * 0.1, st * 0.24, st * 0.48); }, w * 0.8, a);
   cerne(() => { ctx.beginPath(); ctx.arc(main[0], main[1] - st * 0.2, st * 0.22, 0, TAU); }, w, a);
+  if (r > 8) epaule(x - g * r * 1.05, by + r * 0.08, r * 0.5, nw, a, regard, tp > 0.9 ? 0 : Math.max(0, Math.sin(Math.PI * c01((tp - 0.3) / 0.5))) * (tp > 0.3 ? 1 : 0));
 }
 
 // (28/09, 20:40, Mathieu : « revois toutes tes animations, c'est vraiment super basique » : tout passe en 3D, sur toute la largeur de l'écran du ciel)
