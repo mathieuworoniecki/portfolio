@@ -718,8 +718,8 @@ function immeuble() {   // MARKO : un parc d'immeubles ; l'anneau IA descend lir
   o.rot = t => [0.34, -0.6 + Math.sin(t * 0.2) * 0.22];
 }
 function fleur() {   // HUman : une seule nuée de particules raconte le livre, d'un mot dans un modèle à la fleur, l'atome, l'univers et le cerveau
-  const o = objet('fleur', { s: 0.95 });
-  const N = 1500, nu = nuage(N), pc = piece(o, [0, 0, 0], [0, 0, 0], { fond: true }); pc.g.add(nu.p);
+  const o = objet('fleur', { s: 1.2 });
+  const N = 2200, nu = nuage(N), pc = piece(o, [0, 0, 0], [0, 0, 0], { fond: true }); pc.g.add(nu.p);
   const R = Array.from({ length: N }, () => [rnd(), rnd(), rnd()]), F = [];
   const mk = () => ({ p: new Float32Array(N * 3), h: new Float32Array(N) });
   /* un mot dans un modèle : une phrase découpée en jetons (des cadres) ; les arcs d'attention convergent vers le jeton suivant, qui s'allume */
