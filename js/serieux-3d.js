@@ -1169,6 +1169,8 @@ function radar() {   // ScanRift : une cible autorisée passée au scanner couch
   const plan = new T.Group(); c.add(plan); plan.add(trait([[-0.34, 0, -0.34], [0.34, 0, -0.34], [0.34, 0, 0.34], [-0.34, 0, 0.34]], o.m.a, true));
   const scs = piece(o, [-1.5, 1.8, -0.5]), SC = []; for (let i = 0; i < 3; i++) { const g = new T.Group(); scs.g.add(g); solide(g, new T.OctahedronGeometry(0.07), o.m.l, 1); SC.push(g); }
   const fx = segments(3, o.m.d); o.g.add(fx.l);
+  /* chaque passage du plan envoie une onde sur tout le sol, comme un sonar */
+  const ONDES = [0, 1, 2, 3].map(() => { const m = matieres(); MATS.push(m); const l = trait(cercleH(1, 96, CX, 0.004, 0), m.l, true); o.g.add(l); return { l, m }; });
   /* le filtre du LLM : un anneau à traverser */
   const LX = 0.5, LY = 0.55; const len = piece(o, [0, 2, 0]), lens = new T.Group(); lens.position.set(LX, LY, 0); len.g.add(lens);
   lens.add(trait(cercle(0.28, 60).map(p => [0, p[1], p[0]]), o.m.l, true)); lens.add(trait(cercle(0.2, 48).map(p => [0, p[1], p[0]]), o.m.s, true));
@@ -1178,8 +1180,9 @@ function radar() {   // ScanRift : une cible autorisée passée au scanner couch
   const rap = piece(o, [2, 2, 0]), R = new T.Group(); R.position.set(BX, 1.05, 0); rap.g.add(R);
   R.add(trait([[0, -0.2, -0.28], [0, 0.2, -0.28], [0, 0.2, 0.28], [0, -0.2, 0.28]], o.m.l, true)); R.add(traits([[0, 0.1, -0.2], [0, 0.1, 0.1], [0, 0.02, -0.2], [0, 0.02, 0.16], [0, -0.06, -0.2], [0, -0.06, 0.05]], o.m.s));
   const tampon = new T.Group(); R.add(tampon); tampon.add(trait(cercle(0.13, 40).map(p => [0.01, p[1], p[0]]), o.m.a, true)); tampon.add(trait([[0.01, -0.005, -0.06], [0.01, -0.05, -0.015], [0.01, 0.06, 0.07]], o.m.a));
-  const N = 14, F = []; for (let i = 0; i < N; i++) F.push({ y: 0.08 + (i / N) * (HT - 0.16), a: rnd() * TAU, faux: i % 3 === 1, g: [0, 1, 2, 3, 1, 2, 3, 2, 3, 3, 1, 2, 3, 2][i] });
+  const N = 36, F = []; for (let i = 0; i < N; i++) { const z = rnd(); F.push({ y: 0.08 + (i / N) * (HT - 0.16), a: rnd() * TAU, faux: i % 3 === 1, g: z < 0.1 ? 0 : z < 0.35 ? 1 : z < 0.65 ? 2 : 3 }); }
   const pts = points(N, o.m.pa); o.g.add(pts.p);
+  const NT = 70, tri = points(NT, o.m.p); lens.add(tri.p);   // dans l'anneau, le LLM brasse ce qu'il lit
   o.tick = (t, v) => {
     const u = (t * 0.14) % 1, k = sm(v.loc * 1.6), yP = HT * sm(u / 0.45);
     plan.position.y = u < 0.5 ? yP : HT * (1 - sm((u - 0.5) / 0.3)); plan.visible = u < 0.8;
@@ -1192,11 +1195,13 @@ function radar() {   // ScanRift : une cible autorisée passée au scanner couch
       if (i < nMax && w > 0) {
         if (w < 0.16) { const e = sm(w / 0.16); q = [lerp(s0[0], LX, e), lerp(s0[1], LY, e) + Math.sin(e * Math.PI) * 0.2, lerp(s0[2], 0, e)]; }
         else if (f.faux) { const e = c01((w - 0.16) / 0.12); q = [LX + 0.12 + e * 0.25, Math.max(-0.01, LY - e * e * 0.6), (i % 2 ? 0.2 : -0.2) * e]; }   // le faux positif tombe et reste au sol
-        else { const e = sm((w - 0.16) / 0.14), top = 0.05 + 0.08 * (h[f.g]); q = [lerp(LX, BX, e), lerp(LY, top, e) + Math.sin(e * Math.PI) * 0.25, lerp(0, -0.33 + f.g * 0.22, e)]; if (e >= 1) { h[f.g]++; q = null; } }
+        else { const e = sm((w - 0.16) / 0.14), top = 0.05 + 0.035 * (h[f.g]); q = [lerp(LX, BX, e), lerp(LY, top, e) + Math.sin(e * Math.PI) * 0.25, lerp(0, -0.33 + f.g * 0.22, e)]; if (e >= 1) { h[f.g]++; q = null; } }
       }
       pts.pos.set(q || [0, -9, 0], i * 3); });
     pts.a.needsUpdate = true;
-    B.forEach((g, i) => { g.scale.y = Math.max(0.02, (u < 0.97 ? h[i] : 0) * 0.09); });
+    B.forEach((g, i) => { g.scale.y = Math.max(0.02, (u < 0.97 ? h[i] : 0) * 0.035); });
+    ONDES.forEach((w, j) => { const q2 = (t * 0.35 + j / 4) % 1; w.l.scale.set(0.35 + q2 * 2.6, 1, 0.35 + q2 * 2.6); w.l.position.set(CX * (1 - (0.35 + q2 * 2.6)), 0, 0); opac(w.m, o.op * (1 - q2) * 0.8); });
+    for (let i = 0; i < NT; i++) { const a = i * 2.4 + t * (1 + (i % 5) * 0.3), rr = 0.05 + ((i * 0.37) % 1) * 0.17; tri.pos.set([Math.sin(t * 2 + i) * 0.04, Math.sin(a) * rr, Math.cos(a) * rr], i * 3); } tri.a.needsUpdate = true;
     const e = c01((u - 0.82) / 0.06); tampon.visible = u > 0.82 && u < 0.99; tampon.position.x = (1 - sm(e)) * 0.5; tampon.scale.setScalar(1 + (1 - sm(e)) * 0.8);
     lens.rotation.x = t * 0.5;
   };
