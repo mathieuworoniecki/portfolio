@@ -391,10 +391,17 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
     const g = new T.Group(); [buste, tete, cheveux, moust].forEach(p => g.add(trait(p.map(q => [q[0], q[1], 0]), moi && p === moust ? L[1].a : m)));
     return g;
   }
+  /* au-dessus de chaque copie, son métier de sous-agent : explorer (loupe), coder (chevrons), tester (fiole), relire (œil) */
+  function outil(k, m) { const g = new T.Group(); g.position.y = 0.86; const y = 0;
+    if (k === 0) { g.add(trait(cercle(0.07, 24).map(p => [p[0] - 0.02, p[1] + 0.02, 0]), m, true)); g.add(trait([[0.03, -0.03, 0], [0.1, -0.1, 0]], m)); }
+    if (k === 1) { g.add(trait([[-0.05, 0.07, 0], [-0.12, 0, 0], [-0.05, -0.07, 0]], m)); g.add(trait([[0.05, 0.07, 0], [0.12, 0, 0], [0.05, -0.07, 0]], m)); g.add(trait([[0.02, 0.09, 0], [-0.02, -0.09, 0]], m)); }
+    if (k === 2) g.add(trait([[-0.03, 0.1, 0], [-0.03, 0.03, 0], [-0.1, -0.09, 0], [0.1, -0.09, 0], [0.03, 0.03, 0], [0.03, 0.1, 0]], m));
+    if (k === 3) { const oe = Array.from({ length: 13 }, (_, i) => { const u = i / 12 * 2 - 1; return [u * 0.12, (1 - u * u) * 0.06, 0]; }); g.add(trait(oe, m)); g.add(trait(oe.map(p => [p[0], -p[1], 0]), m)); g.add(trait(cercle(0.03, 14), m, true)); }
+    return g; }
   sol(o, -0.78, 3, 0.3, R); const foule = new T.Group(); R.add(foule); const moi = perso(L[1].l, true); moi.position.set(0, -0.2, 0.9); foule.add(moi);
   const FM = [0, 1, 2].map(() => { const m = matieres(); MATS.push(m); return m; }), CL = [];
   [[4, 0.7, 0.35], [6, 1.05, -0.25], [8, 1.4, -0.85]].forEach(([n, r, z], rang) => { for (let i = 0; i < n; i++) {
-    const a = (i / (n - 1) - 0.5) * 2.1, g = perso(FM[rang].l, false); foule.add(g); CL.push({ g, fin: V(Math.sin(a) * r, 0.02 + rang * 0.26, z), rang, ph: rnd() * TAU, d: rnd() * 0.25 });
+    const a = (i / (n - 1) - 0.5) * 2.1, g = perso(FM[rang].l, false); foule.add(g); g.add(outil(CL.length % 4, FM[rang].a)); CL.push({ g, fin: V(Math.sin(a) * r, 0.02 + rang * 0.26, z), rang, ph: rnd() * TAU, d: rnd() * 0.25 });
   } });
   const bras = segments((CL.length + 1) * 8, L[1].l); foule.add(bras.l); const mains = points((CL.length + 1) * 4, L[1].pa); foule.add(mains.p);
   const bouge = (fig, t, s, n, e) => {   // quatre bras : deux paires, épaule → coude → main, qui tapent, attrapent, désignent
