@@ -444,17 +444,17 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
   const NE = 140, ess = points(NE, L[4].pa); R.add(ess.p); const EP = Array.from({ length: NE }, () => ({ x: (rnd() - 0.5) * 3.6, y: (rnd() - 0.3) * 2.4, o: rnd(), v: 0.3 + rnd() * 0.35 }));
 
   /* 5 · le portique : les livraisons passent sur un tapis à travers l'anneau ; ce qui n'est pas bon est éjecté dans le bac ; ce qui passe s'empile, et je valide */
-  const port = new T.Group(); port.position.set(-0.55, 0.0, 0.75); R.add(port); const anneau = new T.Group(); anneau.rotation.y = 0.75; port.add(anneau);
+  const port = new T.Group(); port.position.set(-0.66, 0.0, 0.75); R.add(port); const anneau = new T.Group(); anneau.rotation.y = 0.75; port.add(anneau);
   const ann = trait(cercle(0.34, 72), L[5].a, true); anneau.add(ann); anneau.add(trait(cercle(0.4, 72), L[5].s, true));
   const scan = trait(cercle(0.3, 48), L[5].d, true); anneau.add(scan);
-  port.add(traits([[-1.3, -0.2, -0.12], [1.0, -0.2, -0.12], [-1.3, -0.2, 0.12], [1.0, -0.2, 0.12]], L[5].s));
+  port.add(traits([[-1.05, -0.2, -0.12], [1.0, -0.2, -0.12], [-1.05, -0.2, 0.12], [1.0, -0.2, 0.12]], L[5].s));
   { const r = []; for (let x = -1.3; x <= 1.0; x += 0.2) r.push([x, -0.2, -0.12], [x, -0.2, 0.12]); port.add(traits(r, L[5].d)); }
   const bac = new T.Group(); bac.position.set(-0.35, -0.72, -0.55); port.add(bac); solide(bac, new T.BoxGeometry(0.42, 0.18, 0.32).translate(0, 0.09, 0), L[5].l);
   const pile = new T.Group(); pile.position.set(0.95, -0.2, 0); port.add(pile);
   const coche = new T.Group(); coche.position.set(0.95, 0.6, 0); port.add(coche); coche.add(trait(cercle(0.13, 40), L[5].a, true)); coche.add(trait([[-0.06, 0, 0.01], [-0.015, -0.045, 0.01], [0.07, 0.055, 0.01]], L[5].a));
   const NGI = 9, COL = []; for (let i = 0; i < NGI; i++) { const g = new T.Group(); port.add(g); solide(g, new T.BoxGeometry(0.13, 0.13, 0.13).translate(0, 0.065, 0), L[5].l); g.add(trait([[-0.04, 0.132, 0], [0.04, 0.132, 0]], L[5].s)); COL.push({ g, rejet: i % 4 === 2 }); }
   const PIL = []; for (let k = 0; k < 5; k++) { const g = new T.Group(); g.position.y = k * 0.1; pile.add(g); solide(g, new T.BoxGeometry(0.2, 0.09, 0.2).translate(0, 0.045, 0), k === 4 ? L[5].a : L[5].l); PIL.push(g); }
-  const juge = perso(L[5].l, true); juge.position.set(0.72, -0.3, 0.3); juge.scale.setScalar(0.72); R.add(juge);
+  const juge = perso(L[5].l, true); juge.position.set(0.58, -0.3, 0.3); juge.scale.setScalar(0.72); R.add(juge);
 
   /* la caméra de chaque étape : [rx, ry, zoom, décalage x, décalage y] */
   const VUE = [[0.05, -0.05, 0.8, 0.1, 0], [0.12, 0, 0.85, -0.05, 0.05], [0.3, 0.1, 1.05, 0, 0.05], [0.55, -0.1, 0.95, 0, 0.1], [0.2, -0.1, 0.9, 0, 0], [0.1, -0.05, 1.05, 0, -0.05], [0.2, 0, 0.9, 0, 0]];
@@ -511,7 +511,7 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
     ess.a.needsUpdate = true;
     /* 5 : le tapis avance ; l'anneau lit chaque colis ; le mauvais saute dans le bac, le bon rejoint la pile ; je coche */
     port.visible = juge.visible = f[5] > 0.01; let passe = 0, mauvais = 0;
-    COL.forEach((c, i) => { const u3 = (t * 0.11 + i / NGI) % 1, x = lerp(-1.25, 0.85, u3); let y = -0.2, z = 0, r = 0;
+    COL.forEach((c, i) => { const u3 = (t * 0.11 + i / NGI) % 1, x = lerp(-1.0, 0.85, u3); let y = -0.2, z = 0, r = 0;
       if (c.rejet && x > 0.02) { const e = c01((x - 0.02) / 0.5); passe = passe || e < 0.25; mauvais = mauvais || e < 0.3;
         const bx = bac.position; c.g.position.set(lerp(0.02, bx.x, e), lerp(-0.2, bx.y + 0.12, e) + Math.sin(e * Math.PI) * 0.55, lerp(0, bx.z, e)); c.g.rotation.set(e * 4, e * 2, 0); c.g.visible = f[5] > 0.01 && e < 0.98; return; }
       if (Math.abs(x) < 0.12) passe = 1; c.g.position.set(x, y, z); c.g.rotation.set(0, r, 0); c.g.visible = f[5] > 0.01 && x < 0.82; });
