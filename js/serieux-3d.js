@@ -1099,7 +1099,10 @@ function preuve(M) {
     solide(g, new T.BoxGeometry(0.1, 1, 0.06).translate(0, 0.5, 0), h < 6 ? L[2].a : L[2].l); g.scale.y = 0.001; BH.push({ g, h: 0.9 * HH[h] / maxH });
     hor.add(trait([[Math.cos(a) * 0.95, 0, Math.sin(a) * 0.95], [Math.cos(a) * 1.02, 0, Math.sin(a) * 1.02]], L[2].s)); }
   const aiguille = trait([[0, 0.01, 0], [0.98, 0.01, 0]], L[2].a); hor.add(aiguille);
-  const NET = 60, etin = points(NET, L[2].pa); hor.add(etin.p);   // chaque barre que l'aiguille franchit lâche des commits, au prorata de son heure
+  const NET = 60, etin = points(NET, L[2].pa); hor.add(etin.p);
+  /* le soleil et la lune font le tour du cadran avec l'aiguille : le jour et la nuit passent, les commits ne s'arrêtent pas */
+  const soleil = new T.Group(); hor.add(soleil); boule(o, soleil, 0.07, L[2].a); { const r = []; for (let i = 0; i < 8; i++) { const a = i / 8 * TAU; r.push([Math.cos(a) * 0.1, Math.sin(a) * 0.1, 0], [Math.cos(a) * 0.15, Math.sin(a) * 0.15, 0]); } const l = traits(r, L[2].a); soleil.add(l); o.bb.push(l); }
+  const lune = new T.Group(); hor.add(lune); { const c = []; for (let i = 0; i <= 24; i++) { const a = -Math.PI / 2 + i / 24 * Math.PI; c.push([Math.cos(a) * 0.08, Math.sin(a) * 0.08, 0]); } for (let i = 24; i >= 0; i--) { const a = -Math.PI / 2 + i / 24 * Math.PI; c.push([Math.cos(a) * 0.04 + 0.005, Math.sin(a) * 0.08, 0]); } const l = trait(c, L[2].l, true); lune.add(l); o.bb.push(l); }   // chaque barre que l'aiguille franchit lâche des commits, au prorata de son heure
   /* 3 — deux tours : le produit (1,2 M de lignes), ses tests (0,9 M) ; une dalle = 100 000 lignes */
   const tours = new T.Group(); tours.position.y = -0.62; tours.scale.setScalar(1.3); R.add(tours); const DAL = [];
   const HD = 0.1;   // une dalle : 0,085 d'épaisseur, 0,1 de pas ; sur ses faces, des lignes de code indentées
@@ -1141,7 +1144,8 @@ function preuve(M) {
       JP.forEach((p, i) => { const u = (t * 0.45 + p.o) % 1, r = p.v * u, y = by + p.h * 4 * u * (1 - u) * 0.9 - u * u * (by + 0.5) * 0.6;   // une gerbe : ça monte, ça s'ouvre, ça retombe sur la ville
         jet.pos.set([bx + Math.cos(p.a) * r, Math.max(-0.5, y), bz + Math.sin(p.a) * r * 0.8], i * 3); }); } else jet.pos.fill(0).forEach((_, i, A) => { if (i % 3 === 1) A[i] = -99; }); jet.a.needsUpdate = true; }
     /* 2 : l'horloge */
-    const k2 = S >= 2 ? sm(k(2) * 1.5) : 0; BH.forEach((b, i) => { const e = sm(k2 * 2 - i / 24); b.g.scale.y = Math.max(0.001, b.h * e); }); aiguille.rotation.y = -t * 0.9;
+    const k2 = S >= 2 ? sm(k(2) * 1.5) : 0; BH.forEach((b, i) => { const e = sm(k2 * 2 - i / 24); b.g.scale.y = Math.max(0.001, b.h * e); }); aiguille.rotation.y = -t * 0.9; { const a = t * 0.9, hh = ((((a + Math.PI / 2) / TAU * 24) % 24) + 24) % 24, nuit = hh < 6 || hh >= 21;   // au bout de l'aiguille : la lune sur les heures de nuit, le soleil le jour
+      soleil.visible = !nuit; lune.visible = nuit; soleil.position.set(Math.cos(a) * 1.25, 0.25, Math.sin(a) * 1.25); lune.position.copy(soleil.position); }
     for (let i = 0; i < NET; i++) { const u = (t * 0.7 + i / NET) % 1, tb = t - u / 0.7, a = tb * 0.9, h = ((Math.floor((a + Math.PI / 2) / TAU * 24) % 24) + 24) % 24, b = BH[h];
       const vu = f[2] > 0.05 && k2 > 0.5 && Math.abs(Math.sin(i * 12.9898 + Math.floor(tb / 7) * 3.1)) < HH[h] / maxH, r = 0.75 + u * 0.18, aa = a + (Math.sin(i * 7.1) * 0.06);
       etin.pos.set(vu ? [Math.cos(aa) * r, b.g.scale.y + u * 0.7, Math.sin(aa) * r] : [0, -99, 0], i * 3); } etin.a.needsUpdate = true;
