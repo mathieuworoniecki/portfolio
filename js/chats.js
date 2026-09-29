@@ -874,6 +874,7 @@ function drawFx(S) {
     else if (f.k === 'rayons') rayons(f, u, t);
     else if (f.k === 'rouleaux') rouleaux(f, t - f.t0, fade, K);
     else if (f.k === 'vague') vaguePoussiere(f, u, K);
+    else if (f.k === 'cri') ondeCri(f, t);
     else if (f.k === 'bagarre') fightCloud(f, u, fade, K);
     else if (f.k === 'heart') heart(f.x, f.y - u * 26, f.r * K, fade);
   });
@@ -925,6 +926,13 @@ function vaguePoussiere(f, u, K) {
     for (let i = 0; i < n; i++) { const q = i / (n - 1), xp = f.x + sd * reach * e * q, front = Math.pow(q, 1.5), rr = f.r * (0.35 + 0.65 * front) * (0.6 + 0.8 * u) * (1 - 0.55 * u * (1 - front)), yp = f.y - rr * 0.7 - u * f.r * 0.5 * (1 - front);
       if (rr < 2) continue; const P = []; for (let k = 0; k <= 12; k++) { const a = k / 12 * Math.PI * 2, bump = 1 + 0.18 * Math.sin(a * 3 + i + sd + u * 6); P.push([xp + Math.cos(a) * rr * bump, yp + Math.sin(a) * rr * 0.62 * bump]); }
       Chalk.stroke(P, 1 - 0.5 * u, { w: 1.4, a: 0.55 * (1 - u) * Wd.a, seed: f.seed + i * 3 + sd, tip: false }); } }
+}
+// le MIAOU du géant (js/rares.js) : cinq ondes sonores au trait, qui ondulent et traversent tout l'écran ; elles sortent par les bords (rien ne s'efface)
+function ondeCri(f, t) {
+  const D = Math.hypot(Wd.W, Wd.H) * 1.25;
+  for (let i = 0; i < 5; i++) { const tt = t - f.t0 - i * 0.11, R = tt * f.v; if (tt < 0 || R > D) continue;
+    const P = [], n = Math.min(120, 24 + Math.floor(R / 12)); for (let k = 0; k <= n; k++) { const a = k / n * Math.PI * 2, rr = R * (1 + 0.025 * Math.sin(a * 18 + tt * 40 + i)); P.push([f.x + Math.cos(a) * rr, f.y + Math.sin(a) * rr * 0.9]); }
+    Chalk.stroke(P, 1, { w: Math.max(1, 3.2 - i * 0.5), a: 0.7 * Wd.a, seed: f.seed + i * 7, tip: false }); }
 }
 function heart(x, y, r, a) {
   const P = []; for (let i = 0; i <= 24; i++) { const q = i / 24 * Math.PI * 2; P.push([x + 16 * Math.pow(Math.sin(q), 3) * r / 16, y - (13 * Math.cos(q) - 5 * Math.cos(2 * q) - 2 * Math.cos(3 * q) - Math.cos(4 * q)) * r / 16]); }
