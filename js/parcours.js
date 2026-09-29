@@ -17,7 +17,10 @@ function etageres() {
   if (Wd.mode !== 'large' || Wd.W < 1000 || Wd.a < 0.5) return null; const el = bouton(); if (!el) return null;
   const r = K.rectOf(el), s0 = Wd.s0, y0 = floorAt(1), h = y0 - r.top; if (h < s0 * 1.2) return null;
   const n = clamp(Math.round(h / (s0 * 0.8)) - 1, 2, 4), w = s0 * 0.5, L = [];
-  for (let i = 1; i <= n; i++) L.push({ i, x: r.left - s0 * (i % 2 ? 0.95 : 0.3), y: y0 - h * i / (n + 1), w, wob: (cache && cache[i - 1] && cache[i - 1].wob) || -9 });
+  // (29/09, 07:32, Mathieu : « le chat bugge si l'étagère est proche du bouton ») : les étagères restent à gauche des deux boutons et de la phrase d'aide,
+  // avec une marge d'un demi-chat : un chat assis dessus ne chevauche plus rien
+  const bl = document.querySelector('[data-scene="salut"] .ctas'), gx = Math.min(r.left, bl ? bl.getBoundingClientRect().left : r.left) - s0 * 0.5 - w / 2;
+  for (let i = 1; i <= n; i++) L.push({ i, x: gx - s0 * (i % 2 ? 0.6 : 0), y: y0 - h * i / (n + 1), w, wob: (cache && cache[i - 1] && cache[i - 1].wob) || -9 });
   return (cache = { L, r, el });
 }
 const surQuoi = (x, y) => { const E = etageres(); return E && E.L.find(e => Math.abs(x - e.x) < e.w * 0.5 && Math.abs(y - e.y) < 6); };
