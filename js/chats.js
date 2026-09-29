@@ -1262,7 +1262,13 @@ function vacFrame(dt) {
     Wd.cats.forEach(c => { if (c.rare || c.held || c.fall || c.hidden || c.perch || Math.abs(c.x - V.x) > R * 1.8 || Wd.t - (c.fled || -9) < 4) return;
       c.fled = Wd.t;
       if ((V.grand ? V.nC < 4 && Math.random() < 0.75 : !V.curious && Math.random() < 0.35) && Math.abs(c.x - V.x) < R) { V.curious = true; V.nC++; interrupt(c); say(c, 'miaaa !!'); c.fall = true; c.vx = (V.x - c.x) * 2; c.vy = -Math.sqrt(2 * grav() * Math.max(10, c.y - V.y)); c.spin = Math.PI * 2 * sgn(Math.random() - 0.5);
-        later(0.9, () => Wd.fx.push({ k: 'txt', text: 'ptoui !', x: V.x, y: V.y + 10, t0: Wd.t, life: 1.2, rot: 0.1, size: 18 })); return; }
+        later(0.9, () => Wd.fx.push({ k: 'txt', text: 'ptoui !', x: V.x, y: V.y + 10, t0: Wd.t, life: 1.2, rot: 0.1, size: 18 }));
+        // (vague 9, l'audit : l'aspirateur) : un copain accourt à la rescousse, tape l'aspirateur du bout de la patte (« rends-le ! ») ;
+        // le recraché arrive tout ébouriffé
+        const ami = Wd.cats.filter(k => k !== c && !k.temp && !k.rare && free4(k)).sort((a, b) => Math.abs(a.x - V.x) - Math.abs(b.x - V.x))[0];
+        if (ami && Math.random() < 0.7) { interrupt(ami); const sd = sgn(ami.x - V.x) || 1; ami.q = [go(inView(V.x + sd * s0 * 0.7), { g: 'galop', face: -sd }), pose('tape', 0.7, { fx: k => { say(k, pick(['rends-le !', 'lâche-le !', 'hé !!'])); Wd.fx.push({ k: 'txt', text: 'bonk', x: V.x, y: V.y - s0 * 0.2, t0: Wd.t, life: 0.8, rot: -0.2, size: 16 }); } }), pose('affut', 1)]; }
+        later(1.6, () => { if (Wd.cats.includes(c)) say(c, pick(['pfff…', 'beurk', 'plus jamais'])); });
+        return; }
       interrupt(c); say(c, pick(['!!', 'fshhh', 'mia !'])); c.q = [go(inView(c.x + V.dir * Wd.W * 0.35), { g: 'galop' }), pose('affut', rnd(1, 2), { face: -V.dir }), pose('toilette', rnd(1.5, 3))]; });
     if (V.x < -s0 * 0.4 || V.x > Wd.W + s0 * 0.4 || Wd.t - V.tb > (V.grand ? 9 : 7)) { V.ph = 'remonte'; V.tu = Wd.t; V.x = clamp(V.x, 0, Wd.W);
       if (V.grand) recrache(V);
