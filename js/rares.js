@@ -73,8 +73,16 @@ function geant(x) {
   return c;
 }
 STEPS.rouleau = (c, T, dt) => {
-  const v = Math.max(Wd.W / 6.5, T.Rb * 1.4); c.x += T.dir * v * dt; c.anim = 'rouleau'; c.face = T.dir;
-  const roll = c.x / T.Rb; c.spin = -roll * c.face;
+  // (vague 9, l'audit : « il passe, c'est tout ») : au milieu de la pièce, il s'arrête. Il se balance, nous regarde (« …? »),
+  // puis pousse un MIAOU énorme : l'écran tremble, le souffle balaie les chats et les objets légers ; puis il repart en roulant
+  if (T.arret == null && (c.x - Wd.W / 2) * T.dir > 0) T.arret = Wd.t;
+  const ua = T.arret != null ? Wd.t - T.arret : -1, stop = ua >= 0 && ua < 2.8;
+  const v = Math.max(Wd.W / 6.5, T.Rb * 1.4); if (!stop) c.x += T.dir * v * dt; c.anim = 'rouleau'; c.face = T.dir;
+  const roll = c.x / T.Rb; c.spin = -roll * c.face + (stop ? Math.sin(ua * 5) * 0.25 * Math.max(0, 1 - ua / 2.8) : 0);
+  if (stop && !T.vu && ua > 0.5) { T.vu = true; say(c, '…?'); }
+  if (stop && !T.cri && ua > 1.5) { T.cri = true; Wd.shake = { t0: Wd.t, a: 18 }; word('MIAOU', c.x, floorAt(c.d) - T.Rb * 3, 96); if (window.Dex && Dex.vu) Dex.vu('miaou-geant');
+    Wd.cats.forEach(o => { if (o === c || o.rare || o.held || o.gone || o.hidden) return; const sd = sgn(o.x - c.x) || 1; interrupt(o); o.perch = null; o.fall = true; o.vx = sd * sOf(o.d) * rnd(3, 6); o.vy = -sOf(o.d) * rnd(2.5, 4.5); o.spin = sd * rnd(3, 7); if (Math.random() < 0.5) say(o, pick(['waaah', '!!', 'mes oreilles !'])); });
+    Wd.props.forEach(it => { if (it.mur || it.held || LOURD[it.kind] || it.kind === 'distrib' || !Wd.props.includes(it)) return; kick(it, sgn(it.x - c.x) || 1); if (it.fall) { it.vx *= 2.5; it.vy *= 1.5; } }); }
   // posé sur son point le plus bas (le corps rond, ou la tête quand elle passe dessous) : mesuré sur l'image d'avant
   if (c.hp) { const b = Chat.where(c, c.body), low = Math.max(b[1] + c.b.body[1] * sc(c) * 1.05, c.hp[1] + c.b.head[0] * sc(c) * 1.1);
     T.off = (T.off || 0) - (low - floorAt(c.d)) * 0.8; }
