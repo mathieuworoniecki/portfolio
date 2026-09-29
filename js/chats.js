@@ -947,6 +947,14 @@ function rue() {
   if (L.length) { Wd.shake = { t0: Wd.t, a: 3 + Math.min(4, L.length * 0.4) };
     // (29/09, l'audit : on ne lisait pas une ruée) : un vrai nuage de poussière roule derrière la horde, trois bouffées par image
     for (let j = 0; j < 3; j++) { const c = pick(L); if (!c.fall) dust(c.x - c.face * sc(c) * rnd(0.4, 1.4), floorAt(c.d), sc(c) * rnd(0.5, 0.9), 0.9); }
+    // (vague 7, l'audit : la finition) : les chats de la maison qui ne courent pas sautent en l'air pour laisser passer la ruée (saute-mouton) ;
+    // le grondement fait trembler le titre, et une ou deux lettres s'en décrochent (elles rentreront à pattes)
+    Wd.cats.forEach(k => { if (k.temp || k.rue || k.gone || !free4(k) || Wd.t - (k.sauteRue || -9) < 2.5) return;
+      if (!L.some(c => Math.abs(c.x - k.x) < sc(c) * 1.6 && (c.x - k.x) * c.face < 0 && Math.abs(c.d - k.d) < 0.35)) return;
+      k.sauteRue = Wd.t; interrupt(k); const x = k.x, d = k.d; k.q = [hop(() => groundAt(x, d), { h: sc(k) * rnd(1, 1.5) }), pose('atterrit', 0.35), pose('assis', rnd(1, 2))]; say(k, pick(['!', 'hop !', 'ouf', 'à peine…'])); });
+    if (!R.lettres && Wd.t - R.t0 > 0.8 && window.Vie && Vie.LETTERS) { R.lettres = true; const Ls = Vie.LETTERS(), en = Ls ? Ls.filter(l => !l.st && l.a > 0.9 && (l.x1 - l.x0) > 6) : [];
+      en.forEach(l => { l.wob = Wd.t + rnd(0, 0.3); l.wobA = 1.6; });
+      en.sort(() => Math.random() - 0.5).slice(0, Wd.mode === 'large' ? 2 : 1).forEach((l, i) => later(0.4 + i * 0.5, () => { if (!l.st) Vie.tumble(l, R.dir * Wd.s0 * rnd(0.5, 1.2), -Wd.s0 * rnd(0.2, 0.6), R.dir * rnd(3, 7)); })); }
     const c = pick(L);
     if (Wd.t > R.dit) { R.dit = Wd.t + rnd(0.5, 0.9); Wd.fx.push({ k: 'txt', text: pick(['VROOOM', 'tagada tagada', 'BRRRM', 'place !', 'ZOOOM', 'mia mia mia']), x: c.x, y: c.y - sc(c) * 1.3, t0: Wd.t, life: 1.1, rot: rnd(-0.2, 0.2), size: rnd(20, 30) }); } }
 }
