@@ -2,7 +2,7 @@
    Dessinée au trait, derrière tout (sa propre toile, entre le quadrillage et les objets 3D) :
    - le bas du mur et sa plinthe, juste derrière la rangée du fond ; des lattes de parquet qui fuient vers le fond ;
    - une fenêtre au mur, dans le plus grand vide entre les meubles du fond : le ciel suit l'heure du visiteur
-     (soleil et nuages le jour, soleil couchant le soir, lune et étoiles la nuit : js/nuit.js ne dessine plus la sienne) ;
+     (soleil et nuages le jour, soleil couchant le soir) ; (29/09, Mathieu : le mode nuit est retiré) ;
    - un cadre accroché (le portrait d'un chat) ; un tapis sous la table.
    On ne redessine que si quelque chose a bougé (la taille, le sol, l'heure, la table). */
 window.Piece = (() => {
@@ -14,7 +14,7 @@ cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:blo
 stage.appendChild(cv); const ctx = cv.getContext('2d');
 let cle = '', lune = null;
 const ink = () => (window.THEME && THEME.ink) || (window.Chalk && Chalk.INK) || '34,36,40';
-const ciel = () => { const h = new Date().getHours(); if (window.Nuit && Nuit.on()) return 'nuit'; return h >= 18 ? 'soir' : 'jour'; };
+const ciel = () => { const h = new Date().getHours(); return h >= 18 ? 'soir' : 'jour'; };
 
 // un trait un peu tremblé, comme à la plume (toujours le même tremblement pour le même trait)
 function trait(P, a, w, seed) {

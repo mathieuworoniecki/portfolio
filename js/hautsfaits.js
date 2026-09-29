@@ -45,7 +45,6 @@ const LISTE = [
   ['arc', 'argent', '☂', 'Double arc-en-ciel', 'Double rainbow', 'Les couleurs aiment l’eau : le bassin, la fontaine, un chat mouillé.', 'Colours love water: the pool, the fountain, a wet cat.', () => ['arcmouille', 'bassinarc', 'fontarc'].every(v)],
   ['boutons', 'argent', '☰', 'Tous les boutons', 'Every button', 'Chaque bouton du menu de gauche, au moins une fois.', 'Every button of the left menu, at least once.', () => EVTS.length && EVTS.every(v)],
   ['observateur', 'argent', '◉', 'Observateur', 'Watcher', 'Sept manies de chats.', 'Seven cat quirks.', () => nv(MANIES.map(k => 'manie-' + k)) >= 7],
-  ['nuit', 'argent', '☾', 'Oiseau de nuit', 'Night owl', 'Reviens tard le soir.', 'Come back late at night.', () => v('nuit')],
   ['masseur', 'argent', '∞', 'Masseur', 'Masseur', 'Une caresse. Et encore une. Cent fois.', 'One pet. And another. A hundred times.', () => N.caresses >= 100],
   ['cheznous', 'argent', '⌂', 'Comme chez soi', 'Home sweet home', 'La table, le lit, la bibliothèque, la mezzanine : partout un chat.', 'Table, bed, bookcase, loft: a cat everywhere.', () => ['table', 'lit', 'biblio', 'etage'].every(v)],
   ['fidele', 'argent', '↻', 'Fidèle', 'Loyal', 'Revenir voir les chats, encore et encore.', 'Come back to see the cats, again and again.', () => N.visites >= 3],
@@ -73,7 +72,6 @@ const LISTE = [
   ['voleur', 'secret', '⚲', 'Main dans le sac', 'Caught red-pawed', 'Pas vu, pas pris.', 'Not seen, not caught.', () => v('vol')],
   ['somnambule', 'secret', 'z', 'Somnambule', 'Sleepwalker', 'Il marche… les yeux fermés ?', 'Walking… with eyes closed?', () => v('manie-reveur')],
   ['lune', 'secret', '✶', 'Décrocher la lune', 'Reach for the moon', 'Vise plus haut.', 'Aim higher.', () => v('plafond')],
-  ['papillon', 'secret', '⋈', 'Papillon de nuit', 'Moth', 'Ce qui vole quand tout le monde dort.', 'What flies while everyone sleeps.', () => v('papillon')],
   ['nyanespace', 'secret', '≋', 'Nyan sidéral', 'Sidereal Nyan', 'Un arc-en-ciel, là où il n’y a pas de pluie.', 'A rainbow where there is no rain.', () => v('nyanespace')],
   ['pouf', 'secret', '✺', 'Après la pluie', 'After the rain', 'Tout plat, puis tout gonflé.', 'All flat, then all fluffy.', () => v('regonfle')],
 ];

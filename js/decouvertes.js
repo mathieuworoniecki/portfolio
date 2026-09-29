@@ -134,9 +134,6 @@ fam('evts', 'Les événements', 'Events', [
   ['surprise-visiteur', 'Colis : un visiteur rare', 'Parcel: a rare visitor', 'Un autre colis, une autre surprise.', 'Another parcel, another surprise.'],
 ]);
 fam('moments', 'Les grands moments', 'Big moments', [
-  ['nuit', 'La nuit', 'Night time', 'Revenir tard, entre 22 h et 6 h.', 'Come back late, between 10 pm and 6 am.'],
-  ['lampe', 'La lampe de poche', 'The flashlight', 'La nuit, éclairer un chat avec la souris.', 'At night, shine the mouse on a cat.'],
-  ['papillon', 'Le papillon de nuit', 'The moth', 'La nuit, ce qui bourdonne le jour a de grandes ailes.', 'At night, what buzzes by day has big wings.'],
   ['dodo3', 'La grande sieste', 'The big nap', 'Trois chats endormis en même temps.', 'Three cats asleep at once.'],
   ['foule', 'La foule', 'The crowd', 'Douze chats à l’écran.', 'Twelve cats on screen.'],
   ['miam', 'Réveillé par une croquette', 'Woken by a kibble', 'Une croquette qui tombe sur un gourmand endormi.', 'A kibble landing on a sleeping glutton.'],
