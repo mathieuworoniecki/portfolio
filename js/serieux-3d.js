@@ -403,8 +403,9 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
       const cote = b % 2 ? 1 : -1, haut = b < 2 ? 0.08 : -0.06, sh = [P.x + cote * 0.3 * sc, P.y + haut * sc, P.z];
       const a1 = cote * (0.9 + 0.5 * Math.sin(t * (3 + b) + s)) * e + (1 - e) * cote * 0.2, a2 = a1 + cote * (0.8 + 0.6 * Math.sin(t * (5 + b * 0.7) + s * 2)) * e;
       const el = [sh[0] + Math.sin(a1) * 0.22 * sc, sh[1] - Math.cos(a1) * 0.22 * sc * (b < 2 ? -1 : 0.3), sh[2] + 0.05], ma = [el[0] + Math.sin(a2) * 0.2 * sc, el[1] + Math.cos(a2) * 0.2 * sc * (b < 2 ? 1 : 0.2), el[2] + 0.04];
-      bras.pos.set(e > 0.02 ? [...sh, ...el, ...el, ...ma] : [0, -99, 0, 0, -99, 0, 0, -99, 0, 0, -99, 0], (n * 8 + b * 2) * 6 / 2 * 1);
-      mains.pos.set(e > 0.02 ? ma : [0, -99, 0], (n * 4 + b) * 3);
+      const vu = e > 0.02 && (fig === moi || b < 2);   // moi seul a quatre bras ; mes copies en ont deux
+      bras.pos.set(vu ? [...sh, ...el, ...el, ...ma] : [0, -99, 0, 0, -99, 0, 0, -99, 0, 0, -99, 0], (n * 8 + b * 2) * 6);
+      mains.pos.set(vu ? ma : [0, -99, 0], (n * 4 + b) * 3);
     }
   };
 
@@ -1160,7 +1161,7 @@ function init(toile, d) {
     ex: (t, v) => 0.42 + 0.2 * sm((v.pas || 0) * 0.8), hl: (t, v) => v.pas === undefined || v.pas >= 6 ? -1 : [4, 5, 2, 0, 3, 1][Math.floor(v.pas)], impulsions: (t, v) => Math.floor(v.pas || 0) === 5 ? 24 : 0,
     etiq: d.competences.map(c => [c.couche, c.court]), univers: true });
   { /* le contact : la puce se referme et émet ; des ondes partent sur le sol, vers vous */
-    const oc = puce('contact', { fin: true, s: 0.85, pl: { x: 0.24, y: 0.08, s: 0.72 }, plT: { y: 0.33, s: 0.6 }, solY: -0.62, rot: t => [0.5, t * 0.15], ex: (t, v) => 0.5 * (1 - sm(v.loc * 1.5)), impulsions: () => 24 });
+    const oc = puce('contact', { fin: true, s: 0.85, pl: { x: 0.22, y: -0.02, s: 0.6 }, plT: { y: 0.33, s: 0.6 }, solY: -0.62, rot: t => [0.5, t * 0.15], ex: (t, v) => 0.5 * (1 - sm(v.loc * 1.5)), impulsions: () => 24 });
     const ondes = [0, 1, 2, 3].map(() => { const m = oc.m.a.clone(); const l = trait(cercleH(1, 120, 0, -0.6, 0), m, true); oc.g.add(l); return l; }), tk = oc.tick;
     oc.tick = (t, v) => { tk(t, v); ondes.forEach((l, i) => { const k = (t * 0.28 + i / 4) % 1; l.scale.set(0.9 + k * 3.4, 1, 0.9 + k * 3.4); l.material.opacity = oc.op * Math.pow(1 - k, 1.6) * 0.9; }); }; }
   poussiere(); chaine(); atelier(); if (d.marko) preuve(d.marko); impact(); circuit(d.parcours.slice().reverse()); immeuble(); fleur(); globe(); chat(); archive(); bougies(); reseau(); caviarde(); radar();
