@@ -1062,6 +1062,10 @@ function caviarde() {   // SafeShare : on dépose le document, le repérage pass
   /* les valeurs sensibles : sous chaque masque, elles se défont en poussière qui rebondit contre le cadre du navigateur ; rien ne sort */
   const NV = 72, pv = points(NV, o.m.pa); nav.g.add(pv.p); const PV = Array.from({ length: NV }, () => ({ x: 0, y: -99, z: 0, vx: 0, vy: 0, vz: 0, on: 0 })); let tp = null;
   sol(o, -h - 0.02, 2.2, 0.25, nav.g);
+  /* dehors, le réseau vient frapper au cadre : les requêtes arrivent de partout, touchent le bord du navigateur et repartent bredouilles */
+  const NQ = 56, dehors = points(NQ, o.m.p), trace = segments(NQ, o.m.s); nav.g.add(dehors.p); nav.g.add(trace.l);
+  const DQ = Array.from({ length: NQ }, () => { const a = rnd() * TAU, c = Math.cos(a), sn = Math.sin(a), k = Math.min(w / Math.abs(c || 1e-6), h / Math.abs(sn || 1e-6));
+    return { bx: c * k, by: sn * k, d: 1.1 + rnd() * 2.2, o: rnd(), v: 0.18 + rnd() * 0.2, z: (rnd() - 0.5) * 0.6 }; });
   o.tick = (t, v) => {
     const u = (t * 0.1) % 1;
     const tombe = sm(u / 0.1); pg.position.set(0, (1 - tombe) * 1.4, (1 - tombe) * 0.4); pg.rotation.z = (1 - tombe) * 0.25;
@@ -1083,6 +1087,11 @@ function caviarde() {   // SafeShare : on dépose le document, le repérage pass
     const e = sm((u - 0.8) / 0.14); copie.visible = u > 0.8; copie.position.set(lerp(0, 1.45, e), lerp(-0.1, -0.35, e), lerp(0.05, 0.4, e)); copie.rotation.y = -e * 0.4;
     c.scale.setScalar(1 + (u > 0.8 && u < 0.86 ? 0.2 * Math.sin((u - 0.8) / 0.06 * Math.PI) : 0));
   };
+  const tick0 = o.tick; o.tick = (t, v) => { tick0(t, v);
+    DQ.forEach((q, i) => { const u = (t * q.v + q.o) % 1, e = u < 0.5 ? sm(u / 0.5) : 1 - sm((u - 0.5) / 0.5), n = Math.hypot(q.bx, q.by), dx = q.bx / n, dy = q.by / n;
+      const x = q.bx + dx * q.d * (1 - e), y = q.by + dy * q.d * (1 - e), z = -0.05 + q.z * (1 - e), rev = u < 0.5 ? 1 : -1;
+      dehors.pos.set([x, y, z], i * 3); trace.pos.set([x, y, z, x + dx * 0.12 * rev, y + dy * 0.12 * rev, z], i * 6); });
+    dehors.a.needsUpdate = true; trace.a.needsUpdate = true; };
   o.rot = t => [0.18 + Math.sin(t * 0.3) * 0.05, -0.4 + Math.sin(t * 0.22) * 0.2];
 }
 function preuve(M) {
