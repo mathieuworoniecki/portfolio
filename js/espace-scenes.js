@@ -660,6 +660,7 @@ S.puce = (() => {
 // IA & données : des documents sont lus (un faisceau) ; leurs morceaux s'envolent dans un grand nuage de vecteurs en 3D ; une question arrive,
 // ses voisins s'allument et se relient ; la réponse s'écrit, file vers un agent, qui agit (son engrenage tourne) et coche
 S.ia = (() => {
+  const HALO = Array.from({ length: 170 }, (_, i) => { const t = i * 2.39996, r = 1.25 + bruit(i * 2.7) * 1.0, y = (bruit(i * 8.3) - 0.5) * 1.6; return [Math.cos(t) * r, y, Math.sin(t) * r]; });
   const Nn = 130, Vs = Array.from({ length: Nn }, (_, i) => { const y = 1 - (i + 0.5) / Nn * 2, r = Math.sqrt(1 - y * y), t = i * 2.39996, j = 0.85 + 0.3 * bruit(i * 1.7); return [Math.cos(t) * r * j, y * j, Math.sin(t) * r * j]; });
   const VO = Vs.map((p, i) => Vs.map((q, j) => [Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]), j]).filter(d => d[1] > i).sort((a, b) => a[0] - b[0]).slice(0, 2).map(d => d[1]));
   const Qp = [0.35, -0.3, 0.55], PR = Vs.map((p, i) => [Math.hypot(p[0] - Qp[0], p[1] - Qp[1], p[2] - Qp[2]), i]).sort((a, b) => a[0] - b[0]).slice(0, 7).map(d => d[1]);
@@ -667,6 +668,13 @@ S.ia = (() => {
     cles: () => [[-0.95, -0.3], [-0.95, 0.35], [0, 0], [0.95, 0]],
     dessin(a, now) {
       const [k, lx] = large(1.5, 2.1), Pk = (x, y) => [G.cx + x * k, G.cy + y * k], xd = -lx * 0.8, xa = lx * 0.7, Cy = 7, c = a % Cy, R = 0.78, V = cam(now * 0.28, -0.25, k * 0.92, 0, -0.18);
+      // (vague 16 de l'audit : « le nuage reste une boule au milieu ») : tout le ciel est l'espace des vecteurs : un grand halo de fiches tourne
+      // lentement, de bord à bord, derrière les documents et l'écran ; celles du fond ne sont que des points
+      sousLaBarre();
+      { const hx = ((G.droite - G.gauche) / 2 * 0.95) / (k * 0.92 * 2.2), H = HALO.map(([x, y, z], i) => { const p = V(x, y * 0.55, z); p[0] = G.cx + (p[0] - G.cx) * hx; return [p, i]; }).sort((A, B) => A[0][2] - B[0][2]);
+        H.forEach(([q, i]) => { if (q[1] < G.haut || q[1] > G.caps) return; const al = prof(q[2] * 0.5, 0.9); if (q[2] < 0.2) { rond(q[0], q[1], 0.9 + q[3] * 0.8, 0.5, al, true); return; }
+          const w = k * 0.026 * q[3], h = w * 0.72; ctx.save(); ctx.translate(q[0], q[1]); ctx.rotate(bruit(i * 5.1) - 0.5); cerne(() => { ctx.beginPath(); ctx.rect(-w, -h, 2 * w, 2 * h); }, 0.4, al); ctx.restore(); }); }
+      ctx.restore();
       // les documents, en éventail ; le faisceau de lecture
       [2, 1, 0].forEach(j => { const p = Pk(xd + j * 0.08, -0.05 - j * 0.04); ctx.save(); ctx.translate(p[0], p[1]); ctx.rotate(-0.09 * j); ctx.translate(j * k * 0.02, -j * k * 0.02); cerne(() => { ctx.beginPath(); ctx.moveTo(-0.2 * k, -0.34 * k); ctx.lineTo(0.1 * k, -0.34 * k); ctx.lineTo(0.2 * k, -0.24 * k); ctx.lineTo(0.2 * k, 0.34 * k); ctx.lineTo(-0.2 * k, 0.34 * k); ctx.closePath(); }, 0.9, 1);
         ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.5; ctx.beginPath(); ctx.moveTo(0.1 * k, -0.34 * k); ctx.lineTo(0.1 * k, -0.24 * k); ctx.lineTo(0.2 * k, -0.24 * k); ctx.stroke();
