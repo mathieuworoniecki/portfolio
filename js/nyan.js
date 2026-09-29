@@ -13,31 +13,48 @@ const TAU = Math.PI * 2, COUL = Arc.COUL, VIE = 1.8;   // (le ruban : chaque bou
 const reduit = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 
 // le ruban : six bandes, en escalier (les marches de Nyan Cat) qui ondule ; P = [[x, y, t], …] du plus vieux au plus récent
-function ruban(ctx, P, bw, now, a, dir) {
-  if (P.length < 2) return;
+// (29/09, vague 5) les bandes suivent la direction du vol (la normale) : le ruban tient dans une boucle, sur une arche ; le rouge reste dehors
+function ruban(ctx, P, bw, now, a, dir, vie) {
+  if (P.length < 2) return; dir = dir || 1; vie = vie || VIE;
+  const N = P.map((p, j) => { const q = P[Math.max(0, j - 2)], r = P[Math.min(P.length - 1, j + 2)]; let nx = -(r[1] - q[1]), ny = r[0] - q[0]; const L = Math.hypot(nx, ny) || 1; return [nx / L * dir, ny / L * dir]; });
   ctx.save(); ctx.lineCap = 'butt'; ctx.lineJoin = 'round';
   for (let i = 0; i < 6; i++) {
     ctx.strokeStyle = `rgba(${COUL[i]},${(0.9 * a).toFixed(3)})`; ctx.lineWidth = bw + 0.6; ctx.beginPath();
     let prevM = null;
-    P.forEach(([x, y, t], j) => { const m = Math.floor(t * 9) % 2, yy = y + (i - 2.5) * bw + (m ? bw * 0.45 : -bw * 0.45);
-      if (!j) ctx.moveTo(x, yy); else { if (m !== prevM) ctx.lineTo(x, P[j - 1][1] + (i - 2.5) * bw + (prevM ? bw * 0.45 : -bw * 0.45)); ctx.lineTo(x, yy); } prevM = m; });
-    ctx.globalAlpha = 1; ctx.stroke(); }
+    const off = (j, m) => (i - 2.5) * bw + (m ? bw * 0.45 : -bw * 0.45);
+    P.forEach(([x, y, t], j) => { const m = Math.floor(t * 9) % 2, o = off(j, m), n = N[j];
+      if (!j) ctx.moveTo(x + n[0] * o, y + n[1] * o); else { if (m !== prevM) { const o2 = off(j, prevM); ctx.lineTo(x + n[0] * o2, y + n[1] * o2); } ctx.lineTo(x + n[0] * o, y + n[1] * o); } prevM = m; });
+    ctx.stroke(); }
   // les étoiles semées derrière : des petites croix qui clignotent
-  for (let j = 0; j < P.length; j += 7) { const [x, y, t] = P[j], age = now - t, k = 1 - age / VIE; if (k <= 0) continue; const q = (t * 13) % 1, yy = y + (q - 0.5) * bw * 12, r = bw * (0.8 + 0.6 * Math.sin(now * 12 + t * 40));
-    ctx.strokeStyle = `rgba(${COUL[(j / 7 | 0) % 6]},${(0.9 * a * k).toFixed(3)})`; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(x - r, yy); ctx.lineTo(x + r, yy); ctx.moveTo(x, yy - r); ctx.lineTo(x, yy + r); ctx.stroke(); }
+  for (let j = 0; j < P.length; j += 7) { const [x, y, t] = P[j], age = now - t, k = Math.min(1, (1 - age / vie) * 3); if (k <= 0) continue; const q = (t * 13) % 1, o = (q - 0.5) * bw * 12, n = N[j], r = bw * (0.8 + 0.6 * Math.sin(now * 12 + t * 40)) * Math.min(1.6, 2.2 / Math.max(1, bw / 3)), xx = x + n[0] * o, yy = y + n[1] * o;
+    ctx.strokeStyle = `rgba(${COUL[(j / 7 | 0) % 6]},${(0.9 * a * k).toFixed(3)})`; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(xx - r, yy); ctx.lineTo(xx + r, yy); ctx.moveTo(xx, yy - r); ctx.lineTo(xx, yy + r); ctx.stroke(); }
   ctx.restore();
 }
 // le bout du ruban s'efface par le début (le plus vieux), jamais d'un coup
-const coupe = (P, now) => { while (P.length && now - P[0][2] > VIE) P.shift(); };
+const coupe = (P, now, vie) => { vie = vie || VIE; while (P.length && now - P[0][2] > vie) P.shift(); };
 
 /* ——— dans la pièce ——— */
 const VOLS = [];   // { c, P } : les rubans (ils restent le temps de s'effacer, même le chat parti)
+let ARCHE = null;   // la grande arche (le bouquet de la parade) : { xs, xe, yb, yp, dir, bw, pret, fin }
+const archePt = (A, u) => [A.xs + (A.xe - A.xs) * u, A.yb - (A.yb - A.yp) * Math.sin(Math.PI * clamp(u, 0, 1))];
 STEPS.nyan = (c, T, dt) => {
-  if (!T.P) { T.P = []; VOLS.push({ c, P: T.P }); T.y0 = c.y; c.face = T.dir; }
+  if (!T.P) { T.P = []; VOLS.push({ c, P: T.P, vie: T.vie, bw: T.bw, dir: T.dir }); T.y0 = c.y; c.face = T.dir; }
   const s = sc(c); c.anim = ANIMS.nage ? 'nage' : 'chute'; c.face = T.dir;
-  c.x += T.dir * T.v * dt; c.y = T.y0 + Math.sin(T.t * 7) * s * 0.1; c.spin = Math.sin(T.t * 7) * 0.12;
-  // le ruban part de derrière lui, à mi-corps
-  T.P.push([c.x - T.dir * s * 0.55, c.y - s * 0.42, Wd.t]);
+  let pt = null;
+  if (T.arche) {
+    // l'arche : il la dessine d'un bord à l'autre de la pièce, par le plafond ; son ruban, c'est l'arche
+    const A = T.arche; T.u = (T.u || 0) + dt / T.dur;
+    if (T.u <= 1) { const [x, y] = archePt(A, T.u); pt = [x, y]; c.x = x; c.y = y + s * 0.42; const [x2, y2] = archePt(A, T.u + 0.01); c.spin = Math.atan2(y2 - y, (x2 - x) * T.dir) * 0.8; }
+    else { if (!A.pret) { A.pret = Wd.t; Wd.shake = { t0: Wd.t, a: 4 }; Wd.fx.push({ k: 'txt', text: 'un pont !!', x: (A.xs + A.xe) / 2, y: A.yp - 30, t0: Wd.t, life: 2, rot: -0.05, size: 30 }); }
+      c.x += T.dir * T.v * dt; c.y = A.yb + s * 0.42; c.spin *= Math.exp(-dt * 5); }
+  } else if (T.boucle != null && !T.bf && (T.dir > 0 ? c.x >= T.boucle : c.x <= T.boucle)) { T.bf = { a: 0, cx: c.x, cy: c.y }; T.R = clamp((c.y - s * 0.42 - ((Wd.ceil || Wd.H * 0.3) + s * 0.4)) / 2, s * 0.7, Math.min(T.R, Wd.H * 0.15));  /* (la boucle ne monte pas sur le titre) */ say(c, pick(['wiiii ✨', 'looping !', 'nyaaaan !'])); etoiles(c.x, c.y - s * 0.4, 12); }
+  if (!T.arche) {
+    if (T.bf && T.bf.a < TAU) { const R = T.R, B = T.bf; B.a = Math.min(TAU, B.a + dt * TAU / 1.5); c.x = B.cx + T.dir * R * Math.sin(B.a); c.y = B.cy - R + R * Math.cos(B.a); c.spin = -T.dir * B.a; T.y0 = B.cy; if (B.a >= TAU) c.spin = 0; }
+    else { c.x += T.dir * T.v * dt; c.y = T.y0 + Math.sin(T.t * 7) * s * 0.1; c.spin = Math.sin(T.t * 7) * 0.12; }
+  }
+  // le ruban part de derrière lui, à mi-corps (dans la boucle : derrière, le long de la courbe)
+  if (pt) T.P.push([pt[0], pt[1], Wd.t]);
+  else if (!T.arche || T.u <= 1) T.P.push([c.x - T.dir * s * 0.55, c.y - s * 0.42, Wd.t]);   // (après l'arche, il file au ras du sol sans ruban : l'arche ne finit pas en V)
   // ce qu'il frôle devient arc-en-ciel, avec une gerbe d'étoiles
   Wd.cats.forEach(o => { if (o === c || o.nyanT > Wd.t || Math.abs(o.x - c.x) > s * 0.6 || Math.abs((o.y - sc(o) * 0.4) - (c.y - s * 0.4)) > s * 0.9) return; o.nyanT = Wd.t + 5; Arc.colore(o, 18); say(o, pick(['ooh ✨', 'wouah', '!?'])); etoiles(o.x, o.y - sc(o) * 0.6, 8); });
   Wd.props.forEach(it => { if (it.nyanT > Wd.t || it.a < 0.5 || Math.abs(it.x - c.x) > s * 0.5 || Math.abs(it.y - c.y) > s * 1.6) return; it.nyanT = Wd.t + 5; Arc.colore(it, 18); etoiles(it.x, it.y - s * 0.3, 6); });
@@ -51,19 +68,48 @@ function vol(o) {
   const dir = o.dir || (Math.random() < 0.5 ? 1 : -1), c = addCat({ temp: true, d: o.d ?? rnd(0, 0.35), face: dir }), s = sc(c);
   const bas = floorAt(c.d) - s * 0.3, haut = Math.max((Wd.ceil || Wd.H * 0.25) - s * 0.2, s * 1.4), h = o.h ?? rnd(0.2, 0.8);
   c.nyan = true; c.x = dir > 0 ? -s * 1.2 : Wd.W + s * 1.2; c.y = bas + (haut - bas) * h; c.stay = 1e9;
-  c.q = [{ k: 'nyan', air: true, dir, v: Wd.W / (o.dur || rnd(4.5, 6)) }, fn(k => { k.gone = true; })];
+  const T = { k: 'nyan', air: true, dir, v: Wd.W / (o.dur || rnd(4.5, 6)) };
+  if (o.boucle) { T.boucle = Wd.W * (dir > 0 ? 0.42 : 0.58); T.R = clamp((bas - haut) * 0.42, s * 1.2, Wd.H * 0.2); }
+  if (o.arche) { const yb = floorAt(0.2), A = { xs: Wd.W * (dir > 0 ? 0.1 : 0.9), xe: Wd.W * (dir > 0 ? 0.9 : 0.1), yb: yb - 2, yp: Math.max((Wd.ceil || Wd.H * 0.25) + s * 0.3, yb - Wd.H * 0.55), dir, bw: Math.max(5, s * 0.075) };
+    ARCHE = A; T.arche = A; T.dur = 2.6; T.vie = 20; T.bw = A.bw; c.d = 0.2; c.x = A.xs; c.y = A.yb + s * 0.42; }
+  c.q = [T, fn(k => { k.gone = true; })];
   return c;
 }
+// sur l'arche : les chats y montent en galopant, et redescendent en glissant, assis, comme sur un toboggan
+STEPS.arche = (c, T, dt) => {
+  const A = ARCHE; if (!A || A.pret && Wd.t - A.pret > 14 && !T.u) return true;
+  if (!A.pret) { c.anim = ANIMS.assis ? 'assis' : c.anim; c.face = T.rev ? -A.dir : A.dir; return T.t > 8; }   // (arrivé avant que l'arche soit finie : il attend au pied, assis)
+  const s = sc(c); T.u = T.u || 0.001;
+  const monte = T.u < 0.5; T.u += dt * (monte ? 0.2 : 0.2 + (T.u - 0.5) * 1.6);
+  // (chacun monte par le bout le plus proche de lui : T.rev, il part de l'autre pied)
+  const u = Math.min(1, T.u), D = T.rev ? -A.dir : A.dir, P = v => archePt(A, T.rev ? 1 - v : v), [x, y] = P(u), [x2, y2] = P(Math.min(1, u + 0.01));
+  c.x = x; c.y = y - A.bw * 3.4; c.face = D; c.anim = monte ? 'galop' : (ANIMS.assis ? 'assis' : 'chute'); c.spin = Math.atan2(y2 - y, Math.abs(x2 - x)) * 0.7;
+  if (!monte && !T.wi) { T.wi = 1; say(c, pick(['wiiiiiii !', 'youpiii ✨', 'wiiiii'])); etoiles(x, y - s * 0.5, 10); }
+  if (!monte && Math.random() < dt * 14) Wd.fx.push({ k: 'etoile', x: x - D * s * 0.3, y: y - A.bw * 3, vx: -D * rnd(20, 80), vy: rnd(-60, -10), g: 120, frein: 1.5, t0: Wd.t, life: 0.9, col: pick(COUL), r: rnd(2.5, 4), tw: true });
+  if (u >= 1) { c.fall = true; c.vx = D * s * 3.2; c.vy = -s * 1.6; c.spin = 0; if (window.Dex && Dex.vu) Dex.vu('toboggan'); later(0.6, () => say(c, pick(['encore !', 'hihi', 'on recommence ?']))); return true; }
+  return false;
+};
 // la parade (le bouton arc-en-ciel) : trois (deux sur un téléphone), l'un après l'autre, à des hauteurs différentes ; la pièce tremble
 function parade() {
   const n = Wd.mode === 'large' ? 3 : 2, dir = Math.random() < 0.5 ? 1 : -1, H0 = [0.75, 0.3, 0.55];
-  for (let i = 0; i < n; i++) later(i * 0.7, () => { vol({ dir, h: H0[i], d: [0.05, 0.3, 0.15][i], dur: 4.2 }); Wd.shake = { t0: Wd.t, a: 3 }; });
+  for (let i = 0; i < n; i++) later(i * 0.7, () => { vol({ dir, h: H0[i], d: [0.05, 0.3, 0.15][i], dur: 4.2, boucle: i === 1 || n === 2 && i === 0 }); Wd.shake = { t0: Wd.t, a: 3 }; });
+  // le bouquet : le dernier trace une arche immense d'un bout à l'autre de la pièce ; les chats de la maison courent dessus
+  later(n * 0.7 + 1.4, () => { vol({ dir, arche: true, dur: 3 });
+    const A = ARCHE; if (!A) return;
+    const want = Wd.mode === 'large' ? 4 : 2, L = Wd.cats.filter(c => !c.temp && !c.nyan && !c.held && !c.hidden && !c.fall).sort((a, b) => Math.min(Math.abs(a.x - A.xs), Math.abs(a.x - A.xe)) - Math.min(Math.abs(b.x - A.xs), Math.abs(b.x - A.xe))).slice(0, want);
+    // pas assez de chats libres : ceux d'à côté débarquent par le bord, exprès pour le toboggan (et repartent après)
+    for (let i = L.length; i < want; i++) { const c = addCat({ temp: true, d: 0.2 }), g = i % 2 ? 1 : -1; c.x = g < 0 ? -sc(c) * 1.2 : Wd.W + sc(c) * 1.2; c.face = -g; c.visiteur = true; L.push(c); }
+    const n = [0, 0];
+    L.forEach((c, i) => { K.interrupt(c); const rev = Math.abs(c.x - A.xe) < Math.abs(c.x - A.xs), x0 = rev ? A.xe : A.xs, D = rev ? -A.dir : A.dir, k = n[+rev]++;
+      c.q.push(K.go(x0 - D * sc(c) * (0.3 + k * 0.5), { d: 0.2, g: 'galop', face: D }), K.pose('assis', 0.2 + k * 0.7), { k: 'arche', air: true, rev });
+      if (c.visiteur) c.q.push(K.pose('assis', 1.2), fn(k => K.leave(k)));
+      if (!i) say(c, pick(['un pont !', 'ooh ✨', 'j’y vais !'])); }); });
   later(0.4, () => Wd.fx.push({ k: 'txt', text: 'NYAN NYAN NYAN ♪', x: Wd.W / 2, y: (Wd.ceil || Wd.H * 0.3) + 20, t0: Wd.t, life: 2.2, rot: -0.06, size: 40 }));
 }
 // les rubans : dessinés sur la craie, par-dessus le décor ; un Nyan Cat attrapé au vol s'arrête (son ruban s'efface derrière lui)
 H.draw.push(() => {
   const ctx = window.Chalk && Chalk.ctx; if (!ctx || Wd.a < 0.05) return; const now = Wd.t;
-  for (let i = VOLS.length - 1; i >= 0; i--) { const V = VOLS[i]; coupe(V.P, now); if (!V.P.length && !(V.c.task && V.c.task.P === V.P)) { VOLS.splice(i, 1); continue; } ruban(ctx, V.P, Math.max(2.2, sc(V.c) * 0.035), now, Wd.a, 1); }
+  for (let i = VOLS.length - 1; i >= 0; i--) { const V = VOLS[i]; coupe(V.P, now, V.vie); if (!V.P.length && !(V.c.task && V.c.task.P === V.P)) { VOLS.splice(i, 1); continue; } ruban(ctx, V.P, V.bw || Math.max(2.2, sc(V.c) * 0.035), now, Wd.a, V.dir, V.vie); }
 });
 // de temps en temps, un seul passe, sans prévenir (à tour de rôle avec les autres scénarios)
 if (K.SCEN) K.SCEN.push(() => { if (Wd.mode !== 'large' && Math.random() < 0.5) return false; return vol() ? undefined : false; });

@@ -114,6 +114,7 @@ fam('evts', 'Les événements', 'Events', [
   ['tourchute', 'La tour s’écroule', 'The tower falls', 'Trop de chats en haut.', 'Too many cats on top.'],
   ['horde', 'La horde', 'The horde', 'Ils courent tous dans le même sens.', 'They all run the same way.'],
   ['souris-geante', 'Le retour de bâton', 'Payback', 'La grande horde revient… poursuivie.', 'The big horde comes back… chased.'],
+  ['toboggan', 'Le toboggan arc-en-ciel', 'The rainbow slide', 'Grimper sur l’arche des Nyan Cats, et redescendre en glissant.', 'Climb the Nyan Cats’ arch, and slide back down.'],
   ['aspirateur', 'L’aspirateur', 'The vacuum', 'Quand il y a trop de désordre.', 'When there’s too much mess.'],
   ['passager', 'Le passager', 'The passenger', 'Certains chats aiment l’aspirateur.', 'Some cats love the vacuum.'],
   ['folle', 'Le distributeur fou', 'The crazy feeder', 'Trop de coups sur le distributeur.', 'Too many hits on the feeder.'],
