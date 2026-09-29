@@ -832,7 +832,7 @@ S.devops = (() => ({
 S.secu = (() => ({
   cles: () => [0, 1, 2, 3, 4, 5].map(i => [Math.cos(i / 6 * TAU) * 0.6, Math.sin(i / 6 * TAU) * 0.6]),
   dessin(a, now) {
-    const [k, lx] = large(1.2, 2), V = cam(now * 0.2, -0.42, k, 0, 0.14), R = 0.82, sw = now * 1.3;
+    sousLaBarre(); const [k, lx] = large(1.2, 2), V = cam(now * 0.2, -0.42, k, 0, 0.14), R = 0.82, sw = now * 1.3;
     trait3(anneau(V, Math.min(1.8, lx * 0.9), 0, 64), 0.5, 0.35); trait3(anneau(V, R * 1.3, 0, 64), 0.5, 0.5);
     for (let j = 0; j < 9; j++) { const t = sw - j * 0.05; trait([V(0, 0, 0), V(Math.cos(t) * R * 1.3, 0, Math.sin(t) * R * 1.3)], false, 0.9 - j * 0.07, 0.9 - j * 0.1); }
     // le dôme
@@ -843,11 +843,11 @@ S.secu = (() => ({
     const c0 = V(0, -0.12, 0), s = k * 0.12; cerne(() => { ctx.beginPath(); ctx.arc(c0[0], c0[1] - s * 0.1, s * 0.62, Math.PI, 0); }, 1.6, 1, null); cerne(() => { ctx.beginPath(); ctx.rect(c0[0] - s, c0[1] - s * 0.1, 2 * s, 1.5 * s); }, 1, 1);
     ctx.fillStyle = ENC; ctx.beginPath(); ctx.arc(c0[0], c0[1] + s * 0.5, s * 0.16, 0, TAU); ctx.fill(); ctx.fillRect(c0[0] - s * 0.06, c0[1] + s * 0.5, s * 0.12, s * 0.4);
     { const g = V(0.4, 0, 0.25), r = k * 0.075 * g[3]; chabot(g[0], g[1] - r * 1.75, r, { now, v: 2, lac: Math.sin(now * 0.6) * 0.9, travaille: true, bras: [0.9 + Math.sin(now * 4) * 0.3, -0.3] }); }
-    // les menaces
-    const T = 2.4; let bloq = 0;
-    for (let q = 0; q < 6; q++) { const tt = a + q * T / 6, t = tt % T, n = Math.floor(tt / T), th = bruit(q * 7 + n * 13) * TAU, ph = 0.2 + bruit(q * 3 + n * 5) * 1.1, dir = [Math.cos(th) * Math.cos(ph), -Math.sin(ph), Math.sin(th) * Math.cos(ph)];
+    // les menaces (vague 15 de l'audit : « quelques cailloux près du dôme ») : une pluie qui vient de tout le ciel, de loin, par dizaines
+    const T = 2.4, NQ = G.cx * 2 < 700 ? 9 : 14; let bloq = 0;
+    for (let q = 0; q < NQ; q++) { const tt = a + q * T / NQ, t = tt % T, n = Math.floor(tt / T), th = bruit(q * 7 + n * 13) * TAU, ph = 0.2 + bruit(q * 3 + n * 5) * 1.1, dir = [Math.cos(th) * Math.cos(ph), -Math.sin(ph), Math.sin(th) * Math.cos(ph)];
       bloq += n; const pt = d => V(dir[0] * d, dir[1] * d, dir[2] * d);
-      if (t < 1.2) { const d = lerp(2.6, R, t / 1.2), p = pt(d), p0 = pt(d + 0.3); trait([p0, p], false, 0.9, 0.9); caillou(p[0], p[1], k * 0.08 * p[3], Math.sin(now * 3 + q) * 0.3, q * 7 + n, 1, true); }
+      if (t < 1.2) { const d = lerp(4.2, R, sm(t / 1.2) * 0.4 + t / 1.2 * 0.6), p = pt(d), p0 = pt(d + 0.3); trait([p0, p], false, 0.9, 0.9); caillou(p[0], p[1], k * 0.08 * p[3], Math.sin(now * 3 + q) * 0.3, q * 7 + n, 1, true); }
       else if (t < 2.2) { const u = (t - 1.2) / 1, p = pt(R); eclat(p[0], p[1], 12, u, 7, th);
         // (vague 7) repoussé : le petit méchant rebondit sur le dôme et repart en tournoyant, sonné
         if (u < 0.8) { const b = pt(R + u * 1.1), r0 = k * 0.08 * b[3] * (1 - u * 0.4); caillou(b[0], b[1] - Math.sin(u * Math.PI) * k * 0.15, r0, u * 9, q * 7 + n, 1 - u * 0.5, true); if (u < 0.35) mot(pick2(['paf', 'bonk', 'toc'], q + n), b[0], b[1] - r0 * 2.2, Math.max(10, k * 0.06), 1 - u * 2.5); }
@@ -857,6 +857,7 @@ S.secu = (() => ({
         if (L.length > 1) trait(L, false, 0.9, (1 - u) * 0.9); } }
     // le compteur, en haut du dôme, sur un petit écran de papier (il était caché sous les sous-titres)
     { const o = V(0, 0, 0), w = Math.max(k * 0.52, 108), h = Math.max(k * 0.14, 28), m = [Math.min(o[0] + R * k * 1.2, G.cx * 2 - w * 0.62 - 10), o[1] - R * k * (G.cx * 2 < 700 ? 1.25 : 0.8)]; ecran(m[0] - w / 2, m[1] - h / 2, w, h, k * 0.03, 3); mot(`${en() ? 'blocked' : 'bloqués'} : ${bloq}`, m[0], m[1], Math.max(12, k * 0.075), 1); }
+    ctx.restore();
   }
 }))();
 
