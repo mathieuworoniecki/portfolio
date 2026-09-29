@@ -6,7 +6,8 @@
    Trois étapes, sans aucun fondu :
    1. La fuite : les chats sursautent et filent au galop vers le bord le plus proche. Sous chaque objet, un trou s'ouvre en vague depuis
       le bouton ; il bascule dedans. Les lettres du titre et les deux boutons tombent aussi, chacun dans son trou.
-   2. Le tracé : sur la pièce vide, la plume trace le plan du mode sérieux (le filet du haut, le sommaire à gauche, le cartouche en bas à droite).
+   2. Le tracé : sur la pièce vide, trois plumes esquissent la première page du mode sérieux, à sa place (l'en-tête, le nom en lettres
+      creuses, le texte, les cartes, les orbites, le cartouche).
    3. Les tuiles : la grille se retourne, carreau après carreau, depuis le bouton ; chaque carreau montre sa face bleue (le bleu exact du
       mode sérieux). Quand tout est bleu, le mode sérieux s'ouvre par-dessus, sans cercle, et ses éléments arrivent un à un.
    Au retour (Serieux.ferme) : les trous se rouvrent et recrachent chaque objet à sa place, les lettres et les boutons ressortent, les chats reviennent. */
@@ -67,7 +68,8 @@ function sortBouton(b, dl) {
 /* ——— étapes 2 et 3 : le plan tracé à la plume, puis les carreaux qui se retournent en bleu ——— */
 const reduit = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 let cvE = null, xE = null, bleu = null, E = null, vit = 1;   // (vit : pour les captures, on ralentit)
-const T_TRACE = 1.0, T_TUILES = 1.9, FLIP = 0.3;
+const FONTE = '"Barlow Condensed","Arial Narrow",sans-serif';
+const T_TRACE = 1.0, T_TUILES = 2.25, FLIP = 0.3;
 function toileE() {
   if (!cvE) { cvE = document.createElement('canvas'); cvE.className = 'passage'; cvE.setAttribute('aria-hidden', 'true');
     Object.assign(cvE.style, { position: 'fixed', inset: '0', width: '100%', height: '100%', zIndex: '57', pointerEvents: 'none', display: 'none' }); document.body.appendChild(cvE); xE = cvE.getContext('2d'); }
@@ -78,38 +80,96 @@ function toileE() {
   g.addColorStop(0, '#2468B6'); g.addColorStop(0.45, '#1C58A2'); g.addColorStop(1, '#133F7C'); b.fillStyle = g; b.fillRect(-rx, -rx, rx * 2, rx * 2); b.restore();
   return [W, Hh];
 }
+// (vague 14 de l'audit : « le tracé du plan est discret ») : les plumes tracent maintenant l'esquisse de la vraie première page du mode sérieux,
+// à sa place : l'en-tête, le nom en grandes lettres creuses, le rôle, le texte (des lignes d'écriture), les deux cartes, le sommaire à gauche,
+// les orbites et le cœur à droite, les immeubles, le cartouche. Trois plumes à la fois (comme ses agents). Quand un carreau devient bleu,
+// les traits qui passent dessus deviennent blancs : le croquis au crayon devient le plan bleu, puis la vraie page arrive par-dessus.
+function planSerieux(W, Hh) {
+  const P = [], sx = W / 1280, sy = Hh / 760, tel = W < 900;
+  const poly = (L, t, d) => P.push({ L, t, d }), rect = (x, y, w, h, t, d) => poly([[x, y], [x + w, y], [x + w, y + h], [x, y + h], [x, y]], t, d);
+  const ell = (cx, cy, rx, ry, rot, t, d) => { const L = []; for (let i = 0; i <= 48; i++) { const a = i / 48 * TAU, x = Math.cos(a) * rx, y = Math.sin(a) * ry; L.push([cx + x * Math.cos(rot) - y * Math.sin(rot), cy + x * Math.sin(rot) + y * Math.cos(rot)]); } poly(L, t, d); };
+  const ecrit = (x, y, w, t, d) => { const L = [], n = Math.max(8, Math.round(w / 7)); for (let i = 0; i <= n; i++) L.push([x + w * i / n, y + Math.sin(i * 1.9) * 3 + (i % 3 === 0 ? -2 : 0)]); poly(L, t, d); };
+  const mot = (s, x, y, fs, t, d) => P.push({ s, x, y, fs, t, d });
+  // (la fonte du mode sérieux n'est peut-être pas encore chargée : le nom est réduit s'il dépasserait)
+  const tient = (fs, w) => { xE.font = `700 ${fs}px ${FONTE}`; return Math.min(fs, fs * w / (xE.measureText('WORONIECKI').width || 1)); };
+  const coeur = (cx, cy, r, t, d) => { const H6 = [0, 1, 2, 3, 4, 5, 0].map(i => [cx + Math.cos(i / 6 * TAU + 0.3) * r, cy + Math.sin(i / 6 * TAU + 0.3) * r]); poly(H6, t, d);
+    const I = [[cx - r * 0.25, cy - r * 0.35], [cx + r * 0.35, cy - r * 0.1], [cx - r * 0.05, cy + r * 0.4], [cx - r * 0.25, cy - r * 0.35]]; poly(I, t + d * 0.5, d * 0.6);
+    [0, 2, 4].forEach((k, j) => poly([H6[k], I[j]], t + d * 0.7, d * 0.3)); };
+  // l'en-tête : la marque MW, le nom en petit, les boutons à droite
+  const m = tel ? 16 : 38 * sx;
+  rect(m, 18, 38, 38, 0, 0.18); mot('MW', m + 5, 45, 18, 0.1, 0.15);
+  if (tel) rect(W - m - 110, 19, 110, 36, 0.05, 0.2);
+  else { [[837, 136], [980, 49], [1036, 41], [1102, 139]].forEach(([x, w], i) => rect(x * sx, 19, w * sx, 36, 0.05 + i * 0.06, 0.18)); ecrit((88) * sx + 8, 38, 150 * sx, 0.12, 0.25); }
+  if (!tel) {
+    // le sommaire à gauche (00 à 08)
+    for (let i = 0; i < 9; i++) poly([[38 * sx, 271 * sy + i * 27 * sy], [52 * sx + (i ? 0 : 12), 271 * sy + i * 27 * sy]], 0.25 + i * 0.03, 0.08);
+    // le nom, en grandes lettres creuses ; le rôle ; le texte ; les deux cartes ; la ligne du bas
+    const fs = tient(clamp(W * 0.072, 52, 112), 600 * sx), x0 = 141 * sx, b1 = 120 * sy + fs * 0.8, b2 = b1 + fs * 0.86;
+    mot('MATHIEU', x0, b1, fs, 0.15, 0.45); mot('WORONIECKI', x0, b2, fs, 0.4, 0.55);
+    ecrit(x0, b2 + 32 * sy, 300 * sx, 0.7, 0.2);
+    [75, 101, 127].forEach((dy, i) => ecrit(x0, b2 + dy * sy, [570, 548, 575][i] * sx, 0.75 + i * 0.08, 0.28));
+    const yc = b2 + 158 * sy, hc = Math.min(167 * sy, Hh - yc - 110 * sy);
+    if (hc > 60) { rect(x0, yc, 294 * sx, hc, 0.85, 0.3); rect(x0 + 306 * sx, yc, 294 * sx, hc, 0.92, 0.3);
+      ecrit(x0 + 16 * sx, yc + 28 * sy, 150 * sx, 1.0, 0.15); ecrit(x0 + 322 * sx, yc + 28 * sy, 210 * sx, 1.05, 0.15); }
+    poly([[x0, Hh - 97 * sy], [x0 + 600 * sx, Hh - 97 * sy]], 1.0, 0.3);
+    // à droite : les orbites, le cœur, les immeubles, le cartouche
+    const cx = 985 * sx, cy = 290 * sy;
+    ell(cx, cy, 225 * sx, 100 * sy, -0.1, 0.3, 0.55); ell(cx, cy - 10 * sy, 180 * sx, 70 * sy, -0.05, 0.45, 0.45); coeur(955 * sx, 290 * sy, 55 * Math.min(sx, sy), 0.55, 0.4);
+    [[855, 490, 50, 62], [905, 410, 52, 180], [965, 438, 50, 150], [1026, 484, 50, 76]].forEach(([x, y, w, h], i) => { rect(x * sx, y * sy, w * sx, h * sy, 0.7 + i * 0.06, 0.25); poly([[x * sx, (y + h / 2) * sy], [(x + w) * sx, (y + h / 2) * sy]], 0.8 + i * 0.06, 0.1); });
+    const kx = W - 38 * sx - 259 * sx, ky = Hh - 23 * sy - 152 * sy, kw = 259 * sx, kh = 152 * sy;
+    rect(kx, ky, kw, kh, 0.6, 0.35); [0.25, 0.5, 0.75].forEach((f, i) => poly([[kx, ky + kh * f], [kx + kw, ky + kh * f]], 0.8 + i * 0.05, 0.12)); poly([[kx + kw / 2, ky + kh / 2], [kx + kw / 2, ky + kh * 0.75]], 0.95, 0.08);
+  } else {
+    // au téléphone : les orbites et le cœur en haut, le nom dessous, le texte, une carte
+    const cx = W / 2, cy = Hh * 0.15, fs = tient(clamp(W * 0.155, 44, 80), W - 40), x0 = 20, b1 = Hh * 0.49 + fs * 0.8, b2 = b1 + fs * 0.86;
+    ell(cx, cy, W * 0.44, Hh * 0.07, -0.1, 0.2, 0.5); ell(cx, cy, W * 0.32, Hh * 0.05, -0.05, 0.35, 0.4); coeur(cx, cy, W * 0.1, 0.4, 0.4);
+    [[0.4, 0.26, 0.09, 0.08], [0.5, 0.24, 0.09, 0.1]].forEach(([x, y, w, h], i) => rect(W * x, Hh * y, W * w, Hh * h, 0.6 + i * 0.08, 0.25));
+    mot('MATHIEU', x0, b1, fs, 0.15, 0.4); mot('WORONIECKI', x0, b2, fs, 0.35, 0.5);
+    ecrit(x0, b2 + 30, W * 0.6, 0.7, 0.2); [60, 84, 108].forEach((dy, i) => ecrit(x0, b2 + dy, W - 2 * x0 - i * 20, 0.75 + i * 0.07, 0.25));
+    if (b2 + 130 + 120 < Hh) rect(x0, b2 + 130, W - 2 * x0, 120, 0.9, 0.3);
+  }
+  // les durées : l'esquisse entière en ~1,5 s (T_TRACE + t)
+  P.forEach(p => { if (p.L) { let tot = 0; for (let i = 1; i < p.L.length; i++) tot += Math.hypot(p.L[i][0] - p.L[i - 1][0], p.L[i][1] - p.L[i - 1][1]); p.tot = tot; } });
+  return P;
+}
 function etapes(o, fini) {
   const [W, Hh] = toileE(), T = 48, tu = [], dmax = Math.hypot(Math.max(o.x, W - o.x), Math.max(o.y, Hh - o.y));
   for (let y = 0; y < Hh; y += T) for (let x = 0; x < W; x += T) { const d = Math.hypot(x + T / 2 - o.x, y + T / 2 - o.y); tu.push({ x, y, t: T_TUILES + d / dmax * 1.0 + Math.random() * 0.12 }); }
-  // le plan du mode sérieux, en traits : le filet du haut, les crans du sommaire à gauche, le cartouche en bas à droite
-  const m = Math.max(16, Math.min(40, W * 0.03)), hy = 62, cw = Math.min(260, W * 0.6), ch = 64, pl = [];
-  pl.push({ L: [[m, hy], [W - m, hy]], d: 0.35 });
-  if (W >= 700) pl.push({ L: [0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => [[m, Hh / 2 + (i - 4) * 23], [m + 14, Hh / 2 + (i - 4) * 23]]), d: 0.35, crans: true });
-  pl.push({ L: [[W - m - cw, Hh - m - ch], [W - m, Hh - m - ch], [W - m, Hh - m], [W - m - cw, Hh - m], [W - m - cw, Hh - m - ch]], d: 0.4 });
-  E = { t0: performance.now() / 1000, o, W, Hh, T, tu, pl, fini, fin: T_TUILES + 1.12 + FLIP };
+  E = { t0: performance.now() / 1000, o, W, Hh, T, tu, pl: planSerieux(W, Hh), fini, fin: T_TUILES + 1.12 + FLIP };
   if (reduit) { E.t0 -= 99; }
   cvE.style.display = 'block'; requestAnimationFrame(image);
+}
+// dessine l'esquisse telle qu'elle est à l'instant t ; renvoie les pointes des plumes qui écrivent encore
+function esquisse(c, t, col, pointes) {
+  c.strokeStyle = col; c.lineWidth = 2.2;
+  E.pl.forEach(P => { const u = c01((t - T_TRACE - P.t) / P.d); if (u <= 0) return;
+    if (P.s) { c.font = `700 ${P.fs}px ${FONTE}`; const w = c.measureText(P.s).width; c.save(); c.beginPath(); c.rect(P.x - 4, P.y - P.fs, (w + 8) * u, P.fs * 1.2); c.clip();
+      c.lineWidth = Math.max(1.6, P.fs / 48); c.strokeText(P.s, P.x, P.y); c.restore(); c.lineWidth = 2.2;
+      if (u < 1 && pointes) pointes.push([P.x + w * u, P.y - P.fs * (0.2 + 0.5 * Math.abs(Math.sin(t * 23)))]); return; }
+    let reste = P.tot * u, x = P.L[0][0], y = P.L[0][1]; c.beginPath(); c.moveTo(x, y);
+    for (let i = 1; i < P.L.length && reste > 0; i++) { const l = Math.hypot(P.L[i][0] - P.L[i - 1][0], P.L[i][1] - P.L[i - 1][1]) || 1, k = Math.min(1, reste / l);
+      x = P.L[i - 1][0] + (P.L[i][0] - P.L[i - 1][0]) * k; y = P.L[i - 1][1] + (P.L[i][1] - P.L[i - 1][1]) * k; c.lineTo(x, y); reste -= l; }
+    c.stroke(); if (u < 1 && pointes) pointes.push([x, y]); });
+}
+// une plume, au trait : le bec sur la pointe, le corps penché vers la droite
+function plume(c, x, y, ink) {
+  c.save(); c.translate(x, y); c.rotate(-0.55); c.lineWidth = 2; c.strokeStyle = ink; c.fillStyle = '#F7F5EF';
+  c.beginPath(); c.moveTo(0, 0); c.lineTo(-5, -12); c.lineTo(-5, -54); c.quadraticCurveTo(0, -60, 5, -54); c.lineTo(5, -12); c.closePath(); c.fill(); c.stroke();
+  c.beginPath(); c.moveTo(-5, -14); c.lineTo(5, -14); c.moveTo(0, -1); c.lineTo(0, -9); c.stroke(); c.restore();
 }
 function image() {
   if (!E) return; const t = (performance.now() / 1000 - E.t0) * vit, { W, Hh, T } = E, c = xE; c.clearRect(0, 0, W, Hh);
   const ink = `rgb(${(window.THEME && THEME.ink) || '34,36,40'})`; c.lineCap = c.lineJoin = 'round';
-  // 2. la plume trace le plan, trait après trait ; sa pointe est un point d'encre
-  let t1 = T_TRACE; c.strokeStyle = ink; c.lineWidth = 2.6;
-  E.pl.forEach(P => { const u = c01((t - t1) / P.d); t1 += P.d; if (u <= 0) return;
-    if (P.crans) { P.L.forEach(([a, b], i) => { const v = c01(u * P.L.length - i); if (v <= 0) return; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(a[0] + (b[0] - a[0]) * v, b[1]); c.stroke(); }); return; }
-    const Ls = []; let tot = 0; for (let i = 1; i < P.L.length; i++) { const l = Math.hypot(P.L[i][0] - P.L[i - 1][0], P.L[i][1] - P.L[i - 1][1]); Ls.push(l); tot += l; }
-    let reste = tot * u, x = P.L[0][0], y = P.L[0][1]; c.beginPath(); c.moveTo(x, y);
-    for (let i = 1; i < P.L.length && reste > 0; i++) { const k = Math.min(1, reste / Ls[i - 1]); x = P.L[i - 1][0] + (P.L[i][0] - P.L[i - 1][0]) * k; y = P.L[i - 1][1] + (P.L[i][1] - P.L[i - 1][1]) * k; c.lineTo(x, y); reste -= Ls[i - 1]; }
-    c.stroke(); if (u < 1) { c.fillStyle = ink; c.beginPath(); c.arc(x, y, 4, 0, TAU); c.fill(); } });
-  // 3. les carreaux se retournent : la face papier se referme (un trait d'encre sur sa tranche), la face bleue s'ouvre
-  let tous = true;
-  E.tu.forEach(q => { const u = c01((t - q.t) / FLIP); if (u < 1) tous = false; if (u <= 0) return; const cx = q.x + T / 2;
-    // (la face bleue s'ouvre depuis le milieu du carreau, comme une carte qu'on retourne ; sa tranche, un filet clair, disparaît à plat)
-    // (vague d'essai : les carreaux qui s'ouvraient en largeur faisaient des rayures ; ils poussent maintenant depuis leur centre, en carré,
-    // avec un petit rebond, et un filet clair tant qu'ils ne sont pas posés)
-    const e = u < 1 ? 1 + 2.2 * Math.pow(u - 1, 3) + 1.2 * Math.pow(u - 1, 2) : 1, w = T * Math.max(0.01, Math.min(1.12, e)), cy = q.y + T / 2;
+  // 2. les plumes tracent l'esquisse
+  const pointes = []; esquisse(c, t, ink, pointes);
+  // 3. les carreaux se retournent : ils poussent depuis leur centre, en carré, avec un petit rebond et un filet clair tant qu'ils ne sont pas posés
+  let tous = true; const faits = [];
+  E.tu.forEach(q => { const u = c01((t - q.t) / FLIP); if (u < 1) tous = false; if (u <= 0) return; const cx = q.x + T / 2, cy = q.y + T / 2;
+    const e = u < 1 ? 1 + 2.2 * Math.pow(u - 1, 3) + 1.2 * Math.pow(u - 1, 2) : 1, w = T * Math.max(0.01, Math.min(1.12, e));
     if (u < 1) { c.drawImage(bleu, q.x, q.y, T, T, cx - w / 2, cy - w / 2, w, w); c.strokeStyle = 'rgba(238,245,255,.5)'; c.lineWidth = 1; c.strokeRect(cx - w / 2 + 0.5, cy - w / 2 + 0.5, w - 1, w - 1); }
-    else c.drawImage(bleu, q.x, q.y, T, T, q.x, q.y, T, T); });
+    else c.drawImage(bleu, q.x, q.y, T, T, q.x, q.y, T, T); faits.push([cx - w / 2, cy - w / 2, w]); });
+  // sur le bleu, l'esquisse passe au blanc : le plan bleu du mode sérieux
+  if (faits.length) { c.save(); c.beginPath(); faits.forEach(([x, y, w]) => c.rect(x, y, w, w)); c.clip(); esquisse(c, t, 'rgba(238,245,255,.85)', null); c.restore(); }
+  pointes.forEach(([x, y]) => plume(c, x, y, ink));
   if (tous || t > E.fin + 0.3) { const f = E.fini; E.fini = null; if (f) f(); }
   requestAnimationFrame(image);
 }
