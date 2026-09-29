@@ -1034,7 +1034,8 @@ function preuve(M) {
   for (let h = 0; h < 24; h++) { const a = h / 24 * TAU - Math.PI / 2, g = new T.Group(); g.position.set(Math.cos(a) * 0.75, 0, Math.sin(a) * 0.75); g.rotation.y = -a; hor.add(g);
     solide(g, new T.BoxGeometry(0.1, 1, 0.06).translate(0, 0.5, 0), h < 6 ? L[2].a : L[2].l); g.scale.y = 0.001; BH.push({ g, h: 0.9 * HH[h] / maxH });
     hor.add(trait([[Math.cos(a) * 0.95, 0, Math.sin(a) * 0.95], [Math.cos(a) * 1.02, 0, Math.sin(a) * 1.02]], L[2].s)); }
-  const aiguille = trait([[0, 0.01, 0], [0.5, 0.01, 0]], L[2].a); hor.add(aiguille);
+  const aiguille = trait([[0, 0.01, 0], [0.98, 0.01, 0]], L[2].a); hor.add(aiguille);
+  const NET = 60, etin = points(NET, L[2].pa); hor.add(etin.p);   // chaque barre que l'aiguille franchit lâche des commits, au prorata de son heure
   /* 3 — deux tours : le produit (1,2 M de lignes), ses tests (0,9 M) ; une dalle = 100 000 lignes */
   const tours = new T.Group(); tours.position.y = -0.5; R.add(tours); const DAL = [];
   [[-0.38, 12, L[3].l], [0.38, 9, L[3].a]].forEach(([x, n, m], j) => { for (let k = 0; k < n; k++) { const g = new T.Group(); g.position.set(x, k * 0.085, 0); tours.add(g); solide(g, new T.BoxGeometry(0.46, 0.07, 0.46).translate(0, 0.035, 0), m); DAL.push({ g, k, j }); } });
@@ -1066,6 +1067,9 @@ function preuve(M) {
     phare.visible = k1 > 0 && S <= 1 && (t % 1.2) > 0.3; phare.rotation.y = t;
     /* 2 : l'horloge */
     const k2 = S >= 2 ? sm(k(2) * 1.5) : 0; BH.forEach((b, i) => { const e = sm(k2 * 2 - i / 24); b.g.scale.y = Math.max(0.001, b.h * e); }); aiguille.rotation.y = -t * 0.9;
+    for (let i = 0; i < NET; i++) { const u = (t * 0.7 + i / NET) % 1, tb = t - u / 0.7, a = tb * 0.9, h = ((Math.floor((a + Math.PI / 2) / TAU * 24) % 24) + 24) % 24, b = BH[h];
+      const vu = f[2] > 0.05 && k2 > 0.5 && Math.abs(Math.sin(i * 12.9898 + Math.floor(tb / 7) * 3.1)) < HH[h] / maxH, r = 0.75 + u * 0.18, aa = a + (Math.sin(i * 7.1) * 0.06);
+      etin.pos.set(vu ? [Math.cos(aa) * r, b.g.scale.y + u * 0.7, Math.sin(aa) * r] : [0, -99, 0], i * 3); } etin.a.needsUpdate = true;
     /* 3 : les tours, dalle par dalle */
     const k3 = S >= 3 ? k(3) : 0, H3 = [0, 0];
     DAL.forEach(d => { const e = c01(k3 * 14 - d.k * 0.9 - d.j * 0.5), y0 = d.k * 0.085; d.g.visible = e > 0.02; if (e >= 1) H3[d.j] = Math.max(H3[d.j], d.k + 1);
