@@ -798,6 +798,13 @@ S.ia = (() => {
       Q.slice(0, nb).map((q, i) => [q, i]).sort((p, r) => p[0][2] - r[0][2]).forEach(([q, i]) => { const al = prof(q[2]); if (q[2] < -0.1) { rond(q[0], q[1], 1.3 + q[3] * 0.9, 0.5, al, true); return; }
         const w = k * 0.03 * q[3], h = w * 0.72, rt = bruit(i * 3.3) - 0.5; ctx.save(); ctx.translate(q[0], q[1]); ctx.rotate(rt); cerne(() => { ctx.beginPath(); ctx.rect(-w, -h, 2 * w, 2 * h); }, 0.45, al);
         if (w > 5) { ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.3; ctx.beginPath(); ctx.moveTo(-w * 0.6, -h * 0.25); ctx.lineTo(w * 0.6, -h * 0.25); ctx.moveTo(-w * 0.6, h * 0.3); ctx.lineTo(w * 0.2, h * 0.3); ctx.stroke(); } ctx.restore(); });
+      // (vague 38 de l'audit : « IA et données, peu original ») : le chercheur : un chat-robot bibliothécaire, lampe frontale allumée, fait le tour
+      // du nuage en fouillant les fiches de son faisceau ; quand la question arrive, il pique vers elle et braque sa lampe sur les voisins
+      { const Qc = V(Qp[0] * R, Qp[1] * R, Qp[2] * R), on = c > 1.8 && c < 5.2, an = now * 0.45, orb = V(Math.cos(an) * R * 1.35, -0.1 + Math.sin(an * 1.7) * 0.25, Math.sin(an) * R * 1.35), ci = on ? Qc : V(Math.cos(an + 2.4) * R * 0.3, Math.sin(now * 0.9) * R * 0.4, Math.sin(an + 2.4) * R * 0.3),
+          px = on ? lerp(orb[0], Qc[0] + k * 0.35, 0.6) : orb[0], py = on ? lerp(orb[1], Qc[1] - k * 0.3, 0.6) : orb[1], r = k * 0.065 * (on ? 1.15 : orb[3]), hx = px, hy = py - r * 1.2;
+        const dx = ci[0] - hx, dy = ci[1] - hy, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, L = Math.min(d * 1.15, k * 0.9), wv = L * 0.32;
+        ctx.globalAlpha = on ? 0.2 : 0.12; ctx.fillStyle = '#fff4c8'; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + ux * L - uy * wv, hy + uy * L + ux * wv); ctx.lineTo(hx + ux * L + uy * wv, hy + uy * L - ux * wv); ctx.closePath(); ctx.fill();
+        style(0.4, on ? 0.6 : 0.35); ctx.stroke(); if (orb[2] > -0.2 || on) chabot(px, py - r * 0.6, r, { now, ph: 14, lac: ux * 0.9, casque: true, bras: [0.9, -0.4] }); brille(hx, hy, 3, 1, true, now, 7); }
       // les morceaux qui s'envolent vers le nuage (chacun vers son point)
       for (let m = 0; m < 6; m++) { const v = (now * 0.55 + m / 6) % 1, i = Math.floor(bruit(m * 5 + Math.floor(now * 0.55 + m / 6)) * nb), B = Q[i]; brille(lerp(A1[0], B[0], sm(v)), lerp(A1[1], B[1], sm(v)) - Math.sin(Math.PI * v) * k * 0.2, 1.9, 1 - v * 0.4, false, now, m);
         style(0.6, 1 - v); ctx.strokeRect(lerp(A1[0], B[0], sm(v)) - 4, lerp(A1[1], B[1], sm(v)) - Math.sin(Math.PI * v) * k * 0.2 - 3, 8, 6); }
