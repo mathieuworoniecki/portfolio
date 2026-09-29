@@ -483,6 +483,37 @@ X.mode.cine = (c, dt) => {
   c.anim = S.rea && Wd.t < S.rea ? S.animR : S.anim;
   if (Wd.t > S.fin) { leve(c, 150); if (Math.random() < 0.4) say(c, pick(en() ? ['brb', 'stretch!'] : ['entracte', 'je reviens', 'hop'])); }
 };
+/* (vague 7, l'audit : les chats en apesanteur manquaient d'un moment à eux) : le petit train. Pendant la séance, un chat qui flotte part
+   au ras de la Terre en nageant, « tchou tchou ! » ; ceux qui flottent près de lui et les spectateurs devant qui il passe s'accrochent
+   à la queue du précédent ; le train ondule d'un bord à l'autre, puis se défait (chacun repart flotter, ou se rassoit). */
+let TR = null;
+const train = c => {
+  if (TR || !M || !M.sc || c.rare || rayon(c) > Wd.s0 * 0.3 || Math.random() > 0.12 || Wd.t < (X.trainT || 0)) return false;
+  const [x] = centreDe(c), dir = x < O.W / 2 ? 1 : -1; TR = { dir, x, L: [c], H: [], t0: Wd.t, dit: Wd.t + 2 }; X.trainT = Wd.t + 40;
+  c.sp.m = 'train'; say(c, en() ? 'choo choo!' : 'tchou tchou !'); if (window.Dex && Dex.vu) Dex.vu('train'); return true; };
+X.envie.unshift(train);
+X.mode.train = (c, dt) => {
+  const S = c.sp; if (!TR || !TR.L.includes(c)) { S.m = 'derive'; S.next = Wd.t + rnd(2, 4); return; }
+  const i = TR.L.indexOf(c), r = rayon(c), pas = Math.round(r * 1.9 / 4), q = i ? TR.H[Math.max(0, TR.H.length - 1 - i * pas)] : [TR.x, surface(TR.x) - r * 0.5 - Math.abs(Math.sin((TR.x / O.W) * 12)) * r * 0.3];
+  if (!q) return; const [cx, cy] = centreDe(c), k = Math.min(1, dt * (i ? 7 : 4)); c.x += (q[0] - cx) * k; c.y += (q[1] - cy) * k;
+  c.face = TR.dir; c.anim = 'nage'; c.spin += (Math.sin(Wd.t * 5 + i) * 0.15 - c.spin) * Math.min(1, dt * 4); S.vx = S.vy = 0;
+};
+X.pas.push(dt => {
+  if (!TR) return; const T = TR, lead = T.L[0];
+  if (!M || !lead || lead.gone || !lead.sp || lead.sp.m !== 'train' || lead.held) { fin(); return; }
+  const r = rayon(lead); T.x += T.dir * Wd.s0 * 0.9 * dt; const [lx, ly] = centreDe(lead), last = T.H[T.H.length - 1];
+  if (!last || Math.hypot(lx - last[0], ly - last[1]) > 4) { T.H.push([lx, ly]); if (T.H.length > 400) T.H.splice(0, 100); }
+  // qui monte : un chat libre ou un spectateur tout près de la queue du train
+  const queue = T.L[T.L.length - 1], [qx, qy] = centreDe(queue);
+  if (T.L.length < 7) Wd.cats.forEach(o => { if (!o.sp || o.gone || o.held || o.rare || T.L.includes(o) || !['derive', 'cine', 'nage'].includes(o.sp.m) || Math.random() > dt * 3) return;
+    const [ox, oy] = centreDe(o); if (rayon(o) > Wd.s0 * 0.3 || Math.hypot(ox - qx, oy - qy) > r * 9 || (ox - qx) * T.dir > r * 3) return;
+    o.sp.m = 'train'; o.sp.cible = null; T.L.push(o); if (Math.random() < 0.6) say(o, pick(en() ? ['wait for me!', 'me too!', 'all aboard'] : ['attendez-moi !', 'moi aussi !', 'en voiture !', 'je monte !'])); });
+  if (Wd.t > T.dit) { T.dit = Wd.t + rnd(2.5, 4); say(pick(T.L), pick(en() ? ['choo choo', 'toot toot'] : ['tchou tchou', 'tut tuut', 'tchou !'])); }
+  if ((T.dir > 0 ? T.x > O.W * 0.93 : T.x < O.W * 0.07) || Wd.t - T.t0 > 30) fin();
+});
+function fin() { if (!TR) return; const T = TR; TR = null;
+  T.L.forEach((c, i) => { if (!c.sp || c.sp.m !== 'train') return; c.sp.m = 'derive'; c.sp.vx = -T.dir * rnd(10, 60); c.sp.vy = -rnd(30, 90); c.sp.w = rnd(-2, 2); c.sp.next = Wd.t + rnd(2, 5); c.sp.anim = 'apesanteur'; });
+  if (T.L[0] && T.L.length > 1) say(T.L[0], en() ? 'end of the line!' : 'terminus !'); }
 // à la fin de chaque dessin : un ou deux spectateurs réagissent
 function reagit(C) {
   const V = Wd.cats.filter(c => c.sp && c.sp.m === 'cine'); if (!V.length) return;
