@@ -413,7 +413,7 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
   const FILS = segments(NS, L[2].a), ETIN = segments(NS, L[2].d); R.add(FILS.l); R.add(ETIN.l); const ETC = []; for (let i = 0; i < NS; i++) { const r = trait(cercleH(0.08, 24), L[2].a, true); ceinture.add(r); ETC.push(r); }
 
   /* 3 · le banc d'essai : dix couloirs, dix outils qui courent ; un seul franchit la ligne en tête */
-  const piste = new T.Group(); piste.position.set(-0.1, -0.35, 0.2); piste.rotation.y = -0.2; piste.scale.setScalar(1.12); R.add(piste); const NL = 10, CO = [];
+  const piste = new T.Group(); piste.position.set(-0.5, -0.35, 0.2); piste.rotation.y = -0.2; piste.scale.setScalar(0.98); R.add(piste); const NL = 10, CO = [];
   for (let i = 0; i < NL; i++) { const z = (i - (NL - 1) / 2) * 0.16; piste.add(trait([[-1.5, 0, z - 0.08], [1.5, 0, z - 0.08]], L[3].s)); }
   piste.add(trait([[1.2, 0, -0.85], [1.2, 0, 0.85]], L[3].a)); piste.add(trait([[1.2, 0.18, -0.85], [1.2, 0.18, 0.85]], L[3].d));
   for (let i = 0; i < NL; i++) { const g = new T.Group(); piste.add(g); solide(g, new T.BoxGeometry(0.1, 0.08, 0.08).translate(0, 0.04, 0), i === 6 ? L[3].a : L[3].l); CO.push({ g, z: (i - (NL - 1) / 2) * 0.16, v: i === 6 ? 1 : 0.55 + rnd() * 0.35 }); }
@@ -710,11 +710,13 @@ function fleur() {   // HUman : une seule nuée de particules raconte le livre, 
   const N = 1500, nu = nuage(N), pc = piece(o, [0, 0, 0], [0, 0, 0], { fond: true }); pc.g.add(nu.p);
   const R = Array.from({ length: N }, () => [rnd(), rnd(), rnd()]), F = [];
   const mk = () => ({ p: new Float32Array(N * 3), h: new Float32Array(N) });
-  /* un mot dans un modèle : une phrase découpée en jetons (des cadres), l'un d'eux s'allume */
+  /* un mot dans un modèle : une phrase découpée en jetons (des cadres) ; les arcs d'attention convergent vers le jeton suivant, qui s'allume */
   { const f = mk(), W = [0.34, 0.22, 0.4, 0.18, 0.3, 0.26], tot = W.reduce((a, b) => a + b, 0) + 0.06 * (W.length - 1); let x = -tot / 2; const B = W.map(w => { const b = [x, w]; x += w + 0.06; return b; });
     for (let i = 0; i < N; i++) { const j = i % W.length, [x0, w] = B[j], u = R[i][0] * 2 * (w + 0.18), hh = 0.18; let px, py;
       if (u < w) { px = x0 + u; py = hh / 2; } else if (u < w + hh) { px = x0 + w; py = hh / 2 - (u - w); } else if (u < 2 * w + hh) { px = x0 + w - (u - w - hh); py = -hh / 2; } else { px = x0; py = -hh / 2 + (u - 2 * w - hh); }
-      f.p.set([px, py + 0.1, (R[i][1] - 0.5) * 0.02], i * 3); f.h[i] = j === 2 ? 1 : 0; } F.push(f); }
+      f.p.set([px, py + 0.1, (R[i][1] - 0.5) * 0.02], i * 3); f.h[i] = j === 5 ? 1 : 0;
+      if (i % 5 < 2) { const k = i % 5 ? (i >> 1) % 5 : (i >> 3) % 5, xs = B[k][0] + B[k][1] / 2, xe = B[5][0] + B[5][1] / 2, v = R[i][0], hh2 = 0.22 + 0.09 * (5 - k);   // l'attention : chaque jeton passé tend un arc vers le mot à prédire
+        f.p.set([lerp(xs, xe, v), 0.19 + Math.sin(Math.PI * v) * hh2, (R[i][1] - 0.5) * 0.015], i * 3); f.h[i] = v > 0.86 ? 1 : 0; } } F.push(f); }
   /* la fleur : chaque graine à 137,5° de la précédente */
   { const f = mk(); for (let i = 0; i < N; i++) { const r = 0.03 * Math.sqrt(i), a = i * 137.5 * Math.PI / 180; f.p.set([Math.cos(a) * r, 0.25 - r * r * 0.3, Math.sin(a) * r], i * 3); f.h[i] = i < 21 ? 1 : 0; } F.push(f); }
   /* l'atome : un noyau, trois orbites */
@@ -727,7 +729,6 @@ function fleur() {   // HUman : une seule nuée de particules raconte le livre, 
   /* le cerveau : deux lobes plissés */
   { const f = mk(); for (let i = 0; i < N; i++) { const s = i % 2 ? 1 : -1, u = R[i][0] * TAU, v = Math.acos(R[i][1] * 2 - 1), pl = 1 + 0.07 * Math.sin(u * 7 + v * 9) * Math.sin(v * 5);
     const x = s * (0.36 + 0.34 * Math.sin(v) * Math.abs(Math.cos(u)) * pl), y = 0.18 + 0.48 * Math.cos(v) * pl, z = 0.72 * Math.sin(v) * Math.sin(u) * pl; f.p.set([x, y, z], i * 3); f.h[i] = R[i][2] > 0.985 ? 1 : 0; } F.push(f); }
-  const tige = piece(o, [0, -2, 0]); tige.g.add(trait([[0, -0.2, 0], [0.05, -0.8, 0.02], [0, -1.3, 0]], o.m.s));
   const ROT = [0.1, 0.75, 0.45, 0.9, 0.2];
   let rx = 0.3;
   o.tick = (t, v) => {
@@ -736,7 +737,7 @@ function fleur() {   // HUman : une seule nuée de particules raconte le livre, 
       nu.P[i3] = lerp(A.p[i3], B.p[i3], k); nu.P[i3 + 1] = lerp(A.p[i3 + 1], B.p[i3 + 1], k) + Math.sin(k * Math.PI) * (R[i][0] - 0.5) * 0.5; nu.P[i3 + 2] = lerp(A.p[i3 + 2], B.p[i3 + 2], k);
       nu.H[i] = lerp(A.h[i], B.h[i], k); nu.A[i] = 1; }
     nu.maj(); nu.m.uniforms.op.value = o.op; nu.m.uniforms.sz.value = 2.4 * PR;
-    rx = lerp(ROT[s], ROT[(s + 1) % F.length], sm(m)); pc.g.rotation.y = t * 0.15; tige.g.visible = s === 1 && m < 0.3;
+    rx = lerp(ROT[s], ROT[(s + 1) % F.length], sm(m)); pc.g.rotation.y = t * 0.15;
   };
   o.rot = t => [rx, 0];
 }
