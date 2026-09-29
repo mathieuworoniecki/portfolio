@@ -771,6 +771,8 @@ function globe() {   // Digiplace : le globe, des liaisons entre les sites
   o.tick = t => { arcs.forEach((P, i) => { const u = ((t * 0.35 + i * 0.27) % 1), p = P[Math.floor(u * (P.length - 1))]; pts.pos.set([p.x, p.y, p.z], i * 3); }); pts.a.needsUpdate = true; };
   o.rot = t => [0.35, t * 0.18];
 }
+const SOURIS = { x: 0, y: 0, t: -99 };   // le pointeur, en −1…1 ; le chat le suit des yeux quand il bouge
+addEventListener('pointermove', e => { SOURIS.x = e.clientX / innerWidth * 2 - 1; SOURIS.y = e.clientY / innerHeight * 2 - 1; SOURIS.t = performance.now(); }, { passive: true });
 function chat() {   // ce portfolio : la tête de chat se dessine d'un trait de plume, puis suit des yeux une pelote qui roule en déroulant son fil
   const o = objet('chat', { s: 0.82 });
   sol(o, -1.05, 3, 0.3);
@@ -801,7 +803,7 @@ function chat() {   // ce portfolio : la tête de chat se dessine d'un trait de 
   const pel = piece(o, [2, 0, 1]), ball = new T.Group(); pel.g.add(ball); boule(o, ball, 0.16, o.m.l);
   [0, 1, 2].forEach(k => { const r = new T.Group(); r.rotation.set(k * 1.05, k * 0.7, 0); ball.add(r); r.add(trait(cercle(0.158, 40), o.m.a, true)); });
   const NF = 40, fil = new T.Line(new T.BufferGeometry(), o.m.a); fil.geometry.setAttribute('position', new T.BufferAttribute(new Float32Array(NF * 3), 3)); fil.frustumCulled = false; fil.renderOrder = 1; pel.g.add(fil);
-  let t0 = null;
+  let t0 = null; const tourne = { x: 0, y: 0 };
   o.tick = (t, v) => {
     if (v.w < 0.05) t0 = null; if (t0 === null) t0 = t; const ec = t - t0;
     const d = c01(ec / 1.6); plume.geometry.setDrawRange(0, Math.max(2, Math.ceil(d * 161)));   // la plume trace le contour
@@ -812,7 +814,9 @@ function chat() {   // ce portfolio : la tête de chat se dessine d'un trait de 
     ball.position.set(x, y, 0.75); ball.rotation.z = -x / 0.16;
     const P = fil.geometry.attributes.position.array; for (let i = 0; i < NF; i++) { const s = i / (NF - 1), xx = lerp(x, 2.1, s); P.set([xx, -1.045, 0.75 + Math.sin(s * 9 + t) * 0.1 * s], i * 3); } fil.geometry.attributes.position.needsUpdate = true;
     /* les yeux suivent la pelote, les moustaches frémissent, une oreille tressaille */
-    const r = c01((x + 2) / 4) * 2 - 1; PU.forEach(p => p.position.set((p.position.x > 0 ? 0.36 : -0.36) + r * 0.05, -0.05, 0));
+    const vif = performance.now() - SOURIS.t < 2500, r = vif ? SOURIS.x : c01((x + 2) / 4) * 2 - 1, ry = vif ? -SOURIS.y : -1;   // le pointeur bouge : c'est lui qu'il regarde ; sinon la pelote
+    PU.forEach(p => p.position.set((p.position.x > 0 ? 0.36 : -0.36) + r * 0.05, -0.05 + ry * 0.04, 0));
+    tourne.y = lerp(tourne.y, vif ? SOURIS.x * 0.35 : 0, 0.06); tourne.x = lerp(tourne.x, vif ? SOURIS.y * 0.2 : 0, 0.06); [corps, f, m].forEach(g => { g.rotation.y = tourne.y; g.rotation.x = tourne.x; });
     m.children.forEach((w, i) => { w.rotation.z = Math.sin(t * 7 + i) * 0.04; });
     const b = (ec % 4.2) > 4.05 ? 0.1 : 1; f.children.forEach(c => { if (c.type === 'LineLoop' && c.geometry.attributes.position.count === 48) c.scale.y = b; }); PU.forEach(p => p.scale.y = b);
     corps.rotation.z = (t % 3.1) > 2.95 ? Math.sin(t * 40) * 0.01 : 0;
