@@ -151,6 +151,10 @@ function lui(x, y, r, o = {}) {
   cerne(() => { ctx.beginPath(); ctx.moveTo(x - bw, by + bh); ctx.quadraticCurveTo(x - bw * 1.08, by + r * 0.1, x - r * 0.3, by); ctx.lineTo(x + r * 0.3, by); ctx.quadraticCurveTo(x + bw * 1.08, by + r * 0.1, x + bw, by + bh); ctx.closePath(); }, w, a);
   ctx.globalAlpha = a; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.7; ctx.beginPath(); ctx.moveTo(x - r * 0.32, by + r * 0.02); ctx.quadraticCurveTo(x, by + r * 0.32, x + r * 0.32, by + r * 0.02); ctx.stroke();
   const mx = x + r * 0.45, my = by + bh * 0.45; ctx.beginPath(); ctx.moveTo(mx - r * 0.28, my + r * 0.12); ctx.lineTo(mx - r * 0.1, my - r * 0.1); ctx.lineTo(mx, my); ctx.lineTo(mx + r * 0.08, my - r * 0.06); ctx.lineTo(mx + r * 0.26, my + r * 0.12); ctx.stroke();
+  // (vague 25 de l'audit : « toi, dans le style des chats ») : du volume à la plume, comme les chats-robots : des hachures sur l'épaule dans l'ombre
+  if (r > 12) { ctx.save(); ctx.beginPath(); ctx.moveTo(x - bw, by + bh); ctx.quadraticCurveTo(x - bw * 1.08, by + r * 0.1, x - r * 0.3, by); ctx.lineTo(x + r * 0.3, by); ctx.quadraticCurveTo(x + bw * 1.08, by + r * 0.1, x + bw, by + bh); ctx.closePath(); ctx.clip();
+    ctx.globalAlpha = a * 0.42; ctx.strokeStyle = ENC; ctx.lineWidth = Math.max(0.7, G.lw * w * 0.3); ctx.beginPath(); const sd = g > 0 ? -1 : 1;
+    for (let i = 0; i < 5; i++) { const u = x + sd * bw * (0.55 + i * 0.12); ctx.moveTo(u, by + r * 0.2); ctx.lineTo(u + sd * r * 0.25, by + bh); } ctx.stroke(); ctx.restore(); }
   // le cou, la tête : un visage long ; les cheveux en épis par-dessus
   cerne(() => { ctx.beginPath(); ctx.rect(x - r * 0.22, by - r * 0.35, r * 0.44, r * 0.45); }, w * 0.8, a);
   // (vague 8, l'audit : « ton dessin dans l'espace est raide ») : comme le logo (Mathieu, 29/09 : « je fais peur ») : des oreilles,
