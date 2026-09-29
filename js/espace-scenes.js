@@ -115,8 +115,11 @@ function ecran(x, y, w, h, ep, r = 6, a = 1) { const V = (u, v, d) => [x + u + (
 function rouage(x, y, r, t, a = 1) { cerne(() => { ctx.beginPath(); for (let k = 0; k < 20; k++) { const u = t + k / 20 * TAU, rr = r * (k % 2 ? 0.76 : 1); ctx.lineTo(x + Math.cos(u) * rr, y + Math.sin(u) * rr); } ctx.closePath(); }, 0.8, a);
   ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.5; ctx.beginPath(); ctx.arc(x, y, r * 0.3, 0, TAU); ctx.stroke(); }
 // un caillou de l'espace, en papier
-function caillou(x, y, r, t, n, a = 1) { cerne(() => { ctx.beginPath(); for (let i = 0; i < 11; i++) { const u = i / 11 * TAU + t, rr = r * (0.78 + 0.3 * bruit(n * 13 + i)); ctx.lineTo(x + Math.cos(u) * rr, y + Math.sin(u) * rr); } ctx.closePath(); }, 0.7, a);
-  ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.4; ctx.beginPath(); ctx.arc(x + Math.cos(t) * r * 0.3, y + Math.sin(t) * r * 0.3, r * 0.2, 0, TAU); ctx.stroke(); }
+function caillou(x, y, r, t, n, a = 1, mechant = false) { cerne(() => { ctx.beginPath(); for (let i = 0; i < 11; i++) { const u = i / 11 * TAU + t, rr = r * (0.78 + 0.3 * bruit(n * 13 + i)); ctx.lineTo(x + Math.cos(u) * rr, y + Math.sin(u) * rr); } ctx.closePath(); }, 0.7, a);
+  ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.4; if (!mechant) { ctx.beginPath(); ctx.arc(x + Math.cos(t) * r * 0.3, y + Math.sin(t) * r * 0.3, r * 0.2, 0, TAU); ctx.stroke(); return; }
+  // (un méchant : deux yeux plissés, les sourcils en V, des crocs)
+  ctx.fillStyle = ENC; [-1, 1].forEach(g => { ctx.beginPath(); ctx.ellipse(x + g * r * 0.3, y - r * 0.05, r * 0.13, r * 0.17, 0, 0, TAU); ctx.fill(); ctx.lineWidth = G.lw * 0.5; ctx.beginPath(); ctx.moveTo(x + g * r * 0.55, y - r * 0.4); ctx.lineTo(x + g * r * 0.12, y - r * 0.22); ctx.stroke(); });
+  ctx.beginPath(); ctx.moveTo(x - r * 0.25, y + r * 0.35); ctx.lineTo(x - r * 0.12, y + r * 0.5); ctx.lineTo(x, y + r * 0.35); ctx.lineTo(x + r * 0.12, y + r * 0.5); ctx.lineTo(x + r * 0.25, y + r * 0.35); ctx.stroke(); }
 
 // lui, dans le style des chats (29/09, 07:49, Mathieu : « ta forme d'humain pour la dernière étape de la partie 1, c'est vraiment super basique ») :
 // un seul contour à l'encre, rempli de papier, cerné de blanc ; un visage long, les cheveux en épis, la moustache en guidon, deux grands yeux noirs
@@ -692,7 +695,7 @@ S.secu = (() => ({
     const T = 2.4; let bloq = 0;
     for (let q = 0; q < 6; q++) { const tt = a + q * T / 6, t = tt % T, n = Math.floor(tt / T), th = bruit(q * 7 + n * 13) * TAU, ph = 0.2 + bruit(q * 3 + n * 5) * 1.1, dir = [Math.cos(th) * Math.cos(ph), -Math.sin(ph), Math.sin(th) * Math.cos(ph)];
       bloq += n; const pt = d => V(dir[0] * d, dir[1] * d, dir[2] * d);
-      if (t < 1.2) { const d = lerp(2.6, R, t / 1.2), p = pt(d), p0 = pt(d + 0.3); trait([p0, p], false, 0.9, 0.9); caillou(p[0], p[1], k * 0.035 * p[3], now * 2 + q, q * 7 + n, 1); }
+      if (t < 1.2) { const d = lerp(2.6, R, t / 1.2), p = pt(d), p0 = pt(d + 0.3); trait([p0, p], false, 0.9, 0.9); caillou(p[0], p[1], k * 0.055 * p[3], Math.sin(now * 3 + q) * 0.3, q * 7 + n, 1, true); }
       else if (t < 2.2) { const u = (t - 1.2) / 1, p = pt(R); eclat(p[0], p[1], 12, u, 7, th);
         // l'onde, à la surface du dôme
         const up = Math.abs(dir[1]) > 0.95 ? [1, 0, 0] : [0, 1, 0], cr = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], nz = v => { const l = Math.hypot(...v); return v.map(x => x / l); }, e1 = nz(cr(dir, up)), e2 = cr(dir, e1), rho = 0.06 + u * 0.55, L = [];
