@@ -420,6 +420,8 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
     if (k === 2) g.add(trait([[-0.03, 0.1, 0], [-0.03, 0.03, 0], [-0.1, -0.09, 0], [0.1, -0.09, 0], [0.03, 0.03, 0], [0.03, 0.1, 0]], m));
     if (k === 3) { const oe = Array.from({ length: 13 }, (_, i) => { const u = i / 12 * 2 - 1; return [u * 0.12, (1 - u * u) * 0.06, 0]; }); g.add(trait(oe, m)); g.add(trait(oe.map(p => [p[0], -p[1], 0]), m)); g.add(trait(cercle(0.03, 14), m, true)); }
     return g; }
+  const devant = perso(L[0].l, false); devant.position.set(-1.3, -0.5, 1.1); devant.scale.setScalar(0.72); R.add(devant);   // moi, seul, devant le mur : l'échelle d'un homme face à des dizaines de terminaux
+  const regard = segments(6, L[0].d); R.add(regard.l);
   sol(o, -0.78, 3, 0.3, R); const foule = new T.Group(); R.add(foule); const moi = perso(L[1].l, true); moi.position.set(0, -0.2, 0.9); foule.add(moi);
   const FM = [0, 1, 2].map(() => { const m = matieres(); MATS.push(m); return m; }), CL = [];
   [[4, 0.7, 0.35], [6, 1.05, -0.25], [8, 1.4, -0.85]].forEach(([n, r, z], rang) => { for (let i = 0; i < n; i++) {
@@ -506,6 +508,9 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
       for (let c = 0; c < NC; c++) curseurs.pos.set(fm * a > 0.2 && (t * 2 + rg.cur[c] * 3) % 1 > 0.5 ? [(c - (NC - 1) / 2) * 0.6 + 0.2, y - 0.1, 0.02] : [0, -99, 0], (r * NC + c) * 3);
     });
     curseurs.a.needsUpdate = true; mur.visible = fm > 0.01;
+    devant.visible = regard.l.visible = fm > 0.01 && S === 0; devant.rotation.y = Math.sin(t * 0.5) * 0.4;
+    for (let j = 0; j < 6; j++) { const c = (Math.floor(t * 0.8) * 7 + j * 3) % (NC * NR), rg = RANGS[Math.floor(c / NC)], x = (c % NC - (NC - 1) / 2) * 0.6; vv.set(x, 0, 0.02); rg.g.localToWorld(vv); R.worldToLocal(vv);
+      regard.pos.set([devant.position.x, devant.position.y + 0.3, devant.position.z, vv.x, vv.y, vv.z], j * 6); } regard.a.needsUpdate = true;
     /* 1 : la foule sort de moi, s'agite, rentre ; en boucle tant qu'on lit l'étape */
     foule.visible = f[1] > 0.01; const cyc = S === 1 ? (t * 0.19) % 1 : S === 2 ? 0 : 0, sortie = S === 1 ? sm(cyc / 0.22) * (1 - sm((cyc - 0.78) / 0.2)) : 0;
     CL.forEach((c, i) => { const e = sm((sortie - c.d) / (1 - c.d)), pop = e * (1 + 0.25 * Math.sin(Math.PI * c01(e * 1.2))); c.g.visible = e > 0.01;
