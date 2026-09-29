@@ -836,6 +836,10 @@ S.pilotage = (() => {
       for (let k = 0; k < 3; k++) { const t = now * 14 + k * TAU / 3; ctx.beginPath(); ctx.moveTo(c[0] + Math.cos(t) * r * 0.2, c[1] + Math.sin(t) * r * 0.38); ctx.lineTo(c[0] + Math.cos(t) * r * 0.48, c[1] + Math.sin(t) * r * 0.88); ctx.stroke(); } });
     // le toit ; l'arrière (la grande vitre, l'équipe de dos, les feux)
     const T = [Q(-w, h, 0), Q(w, h, 0), Q(w, h, Lg), Q(-w, h, Lg)]; cerne(() => { ctx.beginPath(); T.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); }, 1, 1);
+    // (vague 4 : « une boîte blanche ») : sur le toit, les bagages de l'équipe, en papier, sanglés ; une valise qui tressaute
+    { const Vq = (x, y, z) => { const p = Q(x, y, z); return [p[0], p[1], -p[2]]; };
+      [[-0.35, 0.05, 0.3, 0.9, 0.22], [0.08, 0.4, 0.5, 1.3, 0.3], [-0.3, 0.1, 1.5, 2.1, 0.18], [0.12, 0.42, 1.9, 2.6, 0.26]].forEach(([x0, x1, z0, z1, hh], j) => {
+        const sa = j === 1 ? Math.abs(Math.sin(now * 9 + 1)) * 0.03 : 0; bloc(Vq, x0, x1, h + sa, h + hh + sa, z0, z1, 1, 0.6); }); }
     const B = [Q(-w, 0.12, 0), Q(w, 0.12, 0), Q(w, h, 0), Q(-w, h, 0)]; cerne(() => { ctx.beginPath(); B.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); }, 1, 1);
     const Wv = [Q(-w * 0.8, 0.5, 0), Q(w * 0.8, 0.5, 0), Q(w * 0.8, 0.86, 0), Q(-w * 0.8, 0.86, 0)]; ctx.globalAlpha = 1; ctx.fillStyle = NUIT; ctx.beginPath(); Wv.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fill(); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw; ctx.stroke();
     // de dos, par la vitre : l'équipe (des têtes rondes, des oreilles de chat), et lui au volant, tout devant (ses épis)
