@@ -444,6 +444,7 @@ S.bench = (() => {
   return {
     cles: () => [[-1.2, -0.3], [1.2, -0.3], [-1, 0.6], [1, 0.6]],
     dessin(a, now) {
+      const T0b = go => Math.PI / 2 + go * TAU * 1.5;
       const [k, lx] = large(1.5, 2.1), V = cam(0.3 + Math.sin(a * 0.15) * 0.15, -0.46, k, 0, -0.14), Cy = 7.5, n = Math.floor(a / Cy), c = a % Cy, Rx = Math.min(1.55, lx * 0.82), Rz = 0.62;
       const v = NOMS.map((_, i) => 0.75 + 0.5 * bruit(n * 11 + i * 3.7)), g = v.indexOf(Math.max(...v)), rang = v.map((x, i) => [x, i]).sort((p, q) => q[0] - p[0]).map(q => q[1]);
       // la piste : un anneau relevé (le bord intérieur plus bas), ses lignes de couloir, les traits de vitesse
@@ -451,6 +452,13 @@ S.bench = (() => {
       [-0.6, 4.6].forEach(l => trait3((() => { const L = []; for (let i = 0; i <= 90; i++) L.push(piste(i / 90 * TAU, l)); return L; })(), l < 0 ? 0.9 : 1.2, 0.9));
       for (let l = 0.5; l < 4.5; l++) { const L = []; for (let i = 0; i <= 90; i++) L.push(piste(i / 90 * TAU, l)); for (let i = 0; i < 90; i += 3) trait([L[i], L[i + 1]], false, 0.35, prof(L[i][2], 0.5)); }
       for (let i = 0; i < 36; i++) { const t = i / 36 * TAU, A = piste(t, -0.6), B = piste(t, 4.6); trait([A, B], false, 0.3, prof(A[2], 0.25)); }
+      // (vague 21 de l'audit : « la course ») : des tribunes de chats-robots font le tour du fond de la piste, derrière leur balustrade ;
+      // ils se lèvent, bras en l'air, quand une fusée passe devant eux (une ola qui suit la tête de la course)
+      { const go0 = c01((c - 1.1) / 3.4), tete = T0b(go0), R = [];
+        for (let j = 0; j <= 40; j++) { const t = Math.PI + j / 40 * Math.PI; R.push(piste(t, 5.4, -0.06)); } trait(R, false, 0.8, 0.8);
+        for (let j = 0; j < 34; j++) { const t = Math.PI + (j + 0.5) / 34 * Math.PI, p = piste(t, 6.1 + (j % 2) * 0.9, -0.05 - (j % 2) * 0.05), r = k * 0.045 * p[3] * (j % 2 ? 1.05 : 1);
+          if (p[1] - r * 3 < G.haut) continue; const d = Math.abs(Math.atan2(Math.sin(t - tete), Math.cos(t - tete))), ola = go0 > 0 && go0 < 1 ? Math.exp(-((d * 2.2) ** 2)) : c > 4.6 ? 0.5 + 0.5 * Math.sin(now * 6 + j) : 0;
+          chabot(p[0], p[1] - r * 1.75 - ola * r * 0.8, r, { now, ph: j + 50, casque: false, lac: Math.cos(t) * 0.6, bras: [0.3 + ola * 1.2 + Math.sin(now * 7 + j) * 0.2 * ola, 0.3 + ola * 1.2] }); } }
       // la ligne d'arrivée (un damier de papier sur la largeur de la piste)
       for (let l = 0; l < 5; l++) for (let j = 0; j < 2; j++) { const t0 = Math.PI / 2 - 0.02 + j * 0.04, Q = [piste(t0, l - 0.5), piste(t0 + 0.04, l - 0.5), piste(t0 + 0.04, l + 0.5), piste(t0, l + 0.5)];
         ctx.globalAlpha = 1; ctx.fillStyle = (l + j) % 2 ? PAP : ENC; ctx.beginPath(); Q.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fill(); }
