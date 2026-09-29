@@ -78,12 +78,13 @@ function page() {
           <h1 class="sx-h1" data-rev>${mots('Mathieu')}<br>${mots('Woroniecki')}</h1>
           <p class="sx-role" data-rev>${esc(A.titre)}</p>
           <p class="sx-chapo" data-rev>${esc(A.these)}</p>
+          ${A.duo ? `<div class="sx-duo" data-rev>${A.duo.map((c, i) => `<a class="sx-duo-c" href="${c.lien}" style="--i:${i}"><b>${esc(c.t)}</b><span>${esc(c.d)}</span><em aria-hidden="true">→</em></a>`).join('')}</div>` : ''}
           <p class="sx-maintenant" data-rev><i class="sx-point"></i>${esc(A.maintenant)}</p>
-          <ul class="sx-faits" data-rev>${A.faits.map(f => `<li>${f}</li>`).join('')}</ul>
+          <ul class="sx-faits" data-rev>${A.faits.slice(0, 2).map(f => `<li>${f}</li>`).join('')}</ul>
           <div class="sx-actions" data-rev>
-            <a class="sx-btn plein" href="#sx-ia">${U.voirIA}</a>
-            <a class="sx-btn" href="#sx-methode">${U.methode}</a>
-            <a class="sx-btn" href="#sx-projets">${U.lesProjets}</a>
+            <a class="sx-btn plein" href="#sx-projets">${U.lesProjets}</a>
+            <a class="sx-btn" href="#sx-competences">${U.comp}</a>
+            <a class="sx-btn" href="#sx-parcours">${U.parcours}</a>
           </div>
         </div>
         <p class="sx-defiler" aria-hidden="true"><span>${U.defiler}</span><i></i></p>
@@ -127,16 +128,16 @@ function page() {
               <h3>${esc(c.u)}</h3><p>${esc(c.d)}</p><p class="sx-source">${esc(c.src)}</p>
             </article>`).join('')}</div>
           ${points(P.etapes.length)}`) : '';
-  const impact = epingle('sx-impact', 'impact', '04', U.impact, im.chiffres.length, `
-          ${tete('04', im.titre)}
+  const impact = epingle('sx-impact', 'impact', '07', U.impact, im.chiffres.length, `
+          ${tete('07', im.titre)}
           <div class="sx-etapes grand">${im.chiffres.map((c, i) => `
             <article class="sx-etape sx-chiffre" data-k="${i}">
               <p class="sx-gros"><span class="sx-n" data-n="${c.n}" data-dec="${c.dec || 0}" data-pre="${esc(c.pre || '')}" data-suf="${esc(c.suf || '')}">${esc((c.pre || '') + fmt(c.n, c.dec || 0) + (c.suf || ''))}</span></p>
               <h3>${esc(c.u)}</h3><p>${esc(c.d)}</p><p class="sx-source">${esc(c.src)}</p>
             </article>`).join('')}</div>
           ${points(im.chiffres.length)}`);
-  const parcours = epingle('sx-parcours', 'circuit', '05', U.parcours, chrono.length, `
-          ${tete('05', U.parcours)}
+  const parcours = epingle('sx-parcours', 'circuit', '06', U.parcours, chrono.length, `
+          ${tete('06', U.parcours)}
           <p class="sx-chapo court" data-rev>${esc(D.parcoursChapo)}</p>
           <div class="sx-etapes">${chrono.map((p, i) => `
             <article class="sx-etape sx-poste${p.ia ? ' ia' : ''}" data-k="${i}">
@@ -156,8 +157,8 @@ function page() {
           </div>
         </div>
       </section>`;
-  const comp = epingle('sx-competences', 'couches', '06', U.comp, D.competences.length, `
-          ${tete('06', U.comp)}
+  const comp = epingle('sx-competences', 'couches', '05', U.comp, D.competences.length, `
+          ${tete('05', U.comp)}
           <p class="sx-chapo court" data-rev>${esc(D.competencesChapo)}</p>
           <div class="sx-etapes">${D.competences.map((c, i) => `
             <article class="sx-etape sx-couche${c.id === 'ia' ? ' ia' : ''}" data-k="${i}">
@@ -166,15 +167,15 @@ function page() {
               ${c.groupes.map(g => `<p class="sx-groupe"><span>${esc(g[0])}</span>${g[1].map(esc).join(' · ')}</p>`).join('')}
             </article>`).join('')}</div>
           ${points(D.competences.length)}`);
-  /* 05 — les projets : une tête avec la légende des catégories (cliquable : elle filtre), puis un projet par écran,
+  /* 04 — les projets : une tête avec la légende des catégories (cliquable : elle filtre), puis un projet par écran,
      la carte à gauche puis à droite, son objet 3D en face */
   const CAT = Object.fromEntries(D.categories.map(c => [c.id, c]));
   const tous = D.projets.concat(D.autres), nb = id => tous.filter(p => p.cats.includes(id)).length;
   const cats = l => `<ul class="sx-cats">${l.map(id => `<li data-c="${id}">${ico(CAT[id].i)}${esc(CAT[id].t)}</li>`).join('')}</ul>`;
   const projTete = `
-      <section class="sx-sec sx-projets-tete" id="sx-projets" data-obj="${D.projets[0].o}" data-fond="${D.projets[0].fond.join(',')}" data-nom="${U.projets}" data-num="07">
+      <section class="sx-sec sx-projets-tete" id="sx-projets" data-obj="${D.projets[0].o}" data-fond="${D.projets[0].fond.join(',')}" data-nom="${U.projets}" data-num="04">
         <div class="sx-col">
-          ${tete('07', U.projets)}
+          ${tete('04', U.projets)}
           <p class="sx-chapo" data-rev>${esc(D.projetsChapo)}</p>
           <div class="sx-legende" data-rev role="group" aria-label="${U.filtre}">
             ${D.categories.map(c => `<button type="button" data-c="${c.id}" aria-pressed="false">${ico(c.i)}<span>${esc(c.t)}</span><i>${nb(c.id)}</i></button>`).join('')}
@@ -242,9 +243,9 @@ function page() {
       </div>
       <div class="sx-rapide-grille">
         <section><h3>${esc(U.preuve)} · MARKO</h3><ul class="sx-rapide-chiffres">${[Pv.etapes[0], Pv.etapes[3], Pv.etapes[4]].map(e => `<li><b>${esc((e.pre || '') + fmt(e.n, e.dec || 0) + (e.suf || ''))}</b> ${esc(e.u)}</li>`).join('')}</ul></section>
-        <section><h3>${esc(U.parcours)}</h3><ul>${D.parcours.slice(0, 4).map(p => `<li><span class="sx-dates">${esc(p.dates)}</span> <b>${esc(p.lieu)}</b> · ${esc(p.poste)}</li>`).join('')}</ul></section>
-        <section><h3>${esc(U.comp)}</h3><ul>${D.competences.map(c => `<li><b>${esc(c.t)}</b> · ${esc(c.groupes[0][1].slice(0, 5).join(', '))}</li>`).join('')}</ul></section>
         <section><h3>${esc(U.projets)}</h3><ul>${D.projets.map(p => `<li><b>${esc(p.t)}</b> · ${esc(p.sous)}</li>`).join('')}</ul></section>
+        <section><h3>${esc(U.comp)}</h3><ul>${D.competences.map(c => `<li><b>${esc(c.t)}</b> · ${esc(c.groupes[0][1].slice(0, 5).join(', '))}</li>`).join('')}</ul></section>
+        <section><h3>${esc(U.parcours)}</h3><ul>${D.parcours.slice(0, 4).map(p => `<li><span class="sx-dates">${esc(p.dates)}</span> <b>${esc(p.lieu)}</b> · ${esc(p.poste)}</li>`).join('')}</ul></section>
       </div>
     </div>
   </div>`;
@@ -254,7 +255,7 @@ function page() {
   <div class="sx-etiqs" aria-hidden="true">${Serieux3D.etiquettes().map(e => `<span class="sx-etiq ${e.cls}" data-nom="${e.nom}" data-i="${e.i}"><i></i>${esc(e.t)}</span>`).join('')}</div>
   <div class="sx-defile" tabindex="-1">
     <main class="sx-page">
-      ${accueil}${iaPin}${iaSuite}${methode}${preuve}${impact}${parcours}${formation}${comp}${projets}${autres}${contact}
+      ${accueil}${iaPin}${iaSuite}${methode}${preuve}${projets}${autres}${comp}${parcours}${formation}${impact}${contact}
       <footer class="sx-pied"><span>${esc(D.nom)}</span><span>${U.pied}</span></footer>
     </main>
   </div>

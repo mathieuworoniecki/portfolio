@@ -7,11 +7,15 @@ window.SERIEUX_DONNEES = {
   nom: 'Mathieu Woroniecki',
   langues: ['Français natif', 'Anglais courant et technique', 'Espagnol, notions'],
 
-  /* 00 — l'accueil */
+  /* 00 — l'accueil : en un écran, l'IA de deux façons (je l'intègre, je travaille avec), puis le reste en détail */
   accueil: {
     sur: 'Paris · CV · 2026',
-    titre: 'Responsable technique senior & architecte IA',
-    these: 'Plus de dix ans à construire pour le web, de l’intégration au poste de CTO. Aujourd’hui je conçois des produits où l’IA lit, raisonne et agit, et je travaille entouré d’agents que j’orchestre pour livrer à la cadence d’une équipe.',
+    titre: 'Architecte IA & CTO',
+    these: 'L’IA est au cœur de mon travail, de deux façons : je l’intègre dans les produits que je conçois, et je travaille avec elle chaque jour. Derrière, plus de dix ans de web, de l’intégration au poste de CTO.',
+    duo: [
+      { t: 'J’intègre l’IA', d: 'Dans le produit : des documents lus, des données extraites et vérifiées, des réponses qui citent leurs sources, des agents qui agissent dans un cadre.', lien: '#sx-ia' },
+      { t: 'Je travaille avec l’IA', d: 'Au quotidien : des dizaines d’agents que j’orchestre, testés et mesurés, pour livrer à la cadence d’une équipe de dix.', lien: '#sx-methode' }
+    ],
     maintenant: 'Aujourd’hui CTO de MARKO, un SaaS B2B AI-native pour l’immobilier.',
     faits: ['<b>1 développeur</b> + ses agents = une équipe de 10', '<b>10+ ans</b> d’expérience', '<b>150 000+</b> utilisateurs sur une plateforme pilotée', '<b>85+</b> projets livrés en indépendant']
   },
@@ -51,7 +55,7 @@ window.SERIEUX_DONNEES = {
     ]
   },
 
-  /* 02 bis — la preuve : l'historique Git de MARKO (dépôt privé : des chiffres, jamais de code), relevé le 28 septembre 2026.
+  /* 03 — la preuve : l'historique Git de MARKO (dépôt privé : des chiffres, jamais de code), relevé le 28 septembre 2026.
      jours = commits par jour depuis le premier commit (27 janvier 2026, un mardi : d0 = 1, lundi = 0) ; heures = commits par heure de la journée */
   preuve: {
     titre: 'MARKO, la preuve en chiffres',
@@ -66,7 +70,7 @@ window.SERIEUX_DONNEES = {
   },
   marko: {"d0": 1, "jours": [10, 3, 2, 2, 9, 9, 16, 8, 0, 1, 0, 0, 15, 19, 8, 2, 8, 10, 57, 18, 30, 28, 46, 2, 32, 1, 0, 0, 0, 0, 0, 0, 0, 0, 11, 46, 73, 13, 28, 44, 0, 18, 36, 4, 38, 0, 52, 156, 140, 75, 41, 24, 22, 52, 78, 90, 12, 22, 2, 0, 0, 0, 0, 0, 3, 0, 9, 2, 0, 0, 59, 32, 28, 45, 40, 80, 16, 26, 32, 57, 64, 0, 0, 58, 35, 17, 226, 129, 12, 12, 53, 129, 95, 118, 47, 0, 0, 18, 35, 37, 2, 3, 16, 0, 7, 5, 17, 46, 24, 16, 54, 94, 17, 24, 22, 8, 7, 9, 28, 18, 23, 59, 35, 0, 0, 10, 16, 0, 3, 0, 12, 3, 1, 17, 3, 19, 4, 0, 0, 18, 25, 19, 7, 12, 4, 16, 84, 35, 59, 25, 67, 19, 0, 40, 40, 55, 187, 211, 30, 0, 156, 100, 43, 195, 290, 315, 302, 345, 220, 359, 367, 299, 122, 157, 278, 318, 362, 451, 49, 74, 26, 10, 80, 59, 19, 40, 125, 45, 194, 141, 81, 118, 245, 68, 2, 35, 13, 9, 19, 36, 23, 3, 83, 16, 16, 34, 0, 35, 0, 0, 5, 40, 0, 0, 0, 0, 5, 13, 14, 11, 38, 25, 2, 2, 12, 36, 123, 72, 0, 0, 62, 42, 60, 44, 10, 8, 11, 50, 11, 142, 178, 62, 61, 16, 12], "heures": [437, 326, 289, 212, 168, 158, 240, 330, 621, 650, 628, 741, 711, 715, 655, 743, 629, 484, 361, 461, 609, 664, 645, 569], "juillet": [155, 185], "mois": [{"j": 5, "t": "févr."}, {"j": 33, "t": "mars"}, {"j": 64, "t": "avr."}, {"j": 94, "t": "mai"}, {"j": 125, "t": "juin"}, {"j": 155, "t": "juil."}, {"j": 186, "t": "août"}, {"j": 217, "t": "sept."}]},
 
-  /* 02 — les chiffres, dans l'ordre des formes du nuage 3D :
+  /* 07 — les chiffres, dans l'ordre des formes du nuage 3D :
      cernes d'arbre (ans), sphère (personnes), anneau (disponibilité), barre qui se tasse, colonne qui monte, 25 foyers, 85 cubes */
   impact: {
     titre: 'Ce que ça a donné, en chiffres',
@@ -81,7 +85,7 @@ window.SERIEUX_DONNEES = {
     ]
   },
 
-  /* 03 — le parcours, du plus récent au plus ancien (la page le lit à l'envers : chronologique)
+  /* 06 — le parcours, du plus récent au plus ancien (la page le lit à l'envers : chronologique)
      c = le composant 3D du poste sur la piste de circuit ; an0 = l'année affichée sous le composant */
   parcoursChapo: 'Du support technique au poste de CTO. Chaque poste a ajouté une couche ; le signal suit la piste, un composant par poste.',
   parcours: [
@@ -117,7 +121,7 @@ window.SERIEUX_DONNEES = {
     { dates: '2009 — 2012', t: 'Bac pro SEN, informatique', o: 'Christophe Colomb' }
   ],
 
-  /* 04 — les compétences : les six couches de la puce, dans l'ordre des étapes (ia, front, back, devops, secu, lead).
+  /* 05 — les compétences : les six couches de la puce, dans l'ordre des étapes (ia, front, back, devops, secu, lead).
      Tirées du CV et de l'analyse de tous les dépôts ; seul ce qui est réellement dans le code est cité. */
   competencesChapo: 'Six couches, comme une puce : l’IA au cœur, ce qu’on voit au-dessus, ce qui tient tout en dessous. Tiré du CV et de la lecture de tous mes dépôts.',
   competences: [
@@ -172,7 +176,7 @@ window.SERIEUX_DONNEES = {
       ] }
   ],
 
-  /* 05 — les catégories des projets : une étiquette courte, une icône (js/serieux.js) ; la légende en tête des projets les filtre */
+  /* 04 — les catégories des projets : une étiquette courte, une icône (js/serieux.js) ; la légende en tête des projets les filtre */
   categories: [
     { id: 'ia', t: 'IA & agents', i: 'cerveau' },
     { id: 'donnees', t: 'Données & RAG', i: 'pile' },
@@ -184,7 +188,7 @@ window.SERIEUX_DONNEES = {
   ],
   projetsChapo: 'Sept projets choisis : le produit que je dirige, et ce que je construis à côté pour aller plus loin sur l’IA, la donnée et la sécurité. Choisissez une étiquette : le sommaire ci-dessous se trie, et un clic sur un projet vous y emmène.',
 
-  /* 05 — les projets ; o = l'objet 3D, fond = la couleur du papier [haut, milieu, bas] vers laquelle la page glisse,
+  /* 04 — les projets ; o = l'objet 3D, fond = la couleur du papier [haut, milieu, bas] vers laquelle la page glisse,
      faits = [icône, texte court] (icônes dans js/serieux.js) */
   projets: [
     { o: 'immeuble', t: 'MARKO', sous: 'Le système d’exploitation de la dette immobilière', role: 'CTO · 2026', prive: true, cats: ['produit', 'ia', 'donnees'],
@@ -244,7 +248,7 @@ window.SERIEUX_DONNEES = {
   ],
 
 
-  /* 06 — le contact (pas de téléphone sur le site) */
+  /* 08 — le contact (pas de téléphone sur le site) */
   contact: {
     titre: 'Parlons-en',
     chapo: 'Un produit IA à construire, une équipe à mener, une architecture à remettre d’aplomb : écrivez-moi.',

@@ -79,6 +79,23 @@ html.serieux, html.serieux body { overflow: hidden; }
 #serieux .sx-h1 { margin: 0 0 20px; font: 700 clamp(56px, 9.2vw, 132px)/.86 var(--sx-titre); letter-spacing: -.01em; text-transform: uppercase; }
 #serieux .sx-role { margin: 0 0 26px; font: 500 clamp(19px, 2vw, 26px)/1.25 var(--sx-titre); letter-spacing: .06em; text-transform: uppercase; color: var(--sx-accent); }
 #serieux .sx-chapo { margin: 0 0 22px; font-size: clamp(17px, 1.35vw, 20px); line-height: 1.5; color: var(--sx-encre); max-width: 34em; }
+/* l'accueil tient en un écran : nom, titre, l'IA en deux cartes, puis les boutons */
+@media (min-width: 900px) {
+  #serieux .sx-accueil { padding-top: 11vh; padding-bottom: 7vh; }
+  #serieux .sx-accueil .sx-h1 { font-size: clamp(52px, 7.2vw, 112px); margin-bottom: 14px; }
+  #serieux .sx-accueil .sx-role { margin-bottom: 16px; }
+  #serieux .sx-accueil .sx-chapo { margin-bottom: 16px; }
+  #serieux .sx-accueil .sx-maintenant { margin-bottom: 16px; }
+  #serieux .sx-accueil .sx-faits { margin-bottom: 20px; padding-top: 10px; }
+}
+/* l'IA de deux façons, en deux cartes qui mènent au détail (01 l'IA, 02 la méthode) */
+#serieux .sx-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 0 22px; max-width: 40em; }
+#serieux .sx-duo-c { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 14px 16px 16px; border: 1.5px solid var(--sx-trait-fort); background: rgba(var(--sx-bas-rgb),.45); text-decoration: none; color: var(--sx-doux); font-size: 14.5px; line-height: 1.45; transition: border-color .2s, background .2s, transform .2s; }
+#serieux .sx-duo-c b { color: var(--sx-accent); font: 600 clamp(18px, 1.6vw, 22px)/1.1 var(--sx-titre); letter-spacing: .05em; text-transform: uppercase; }
+#serieux .sx-duo-c em { position: absolute; top: 12px; right: 14px; font-style: normal; color: var(--sx-accent); transition: transform .2s; }
+#serieux .sx-duo-c:hover, #serieux .sx-duo-c:focus-visible { border-color: var(--sx-accent); background: rgba(var(--sx-bas-rgb),.7); transform: translateY(-2px); }
+#serieux .sx-duo-c:hover em { transform: translateX(4px); }
+@media (max-width: 899px) { #serieux .sx-duo { grid-template-columns: 1fr; } }
 #serieux .sx-maintenant { display: flex; align-items: center; gap: 12px; margin: 0 0 26px; color: var(--sx-doux); }
 #serieux .sx-point { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--sx-accent); box-shadow: 0 0 0 0 rgba(255,217,138,.6); animation: sx-pouls 2.2s infinite; }
 @keyframes sx-pouls { 70% { box-shadow: 0 0 0 10px rgba(255,217,138,0); } 100% { box-shadow: 0 0 0 0 rgba(255,217,138,0); } }
@@ -256,7 +273,7 @@ html.serieux, html.serieux body { overflow: hidden; }
   #serieux .sx-projet + .sx-projet { padding-top: 34vh; }
   #serieux .sx-projet:first-of-type .sx-tete { margin-top: 0; }
   #serieux .sx-carte { background: rgba(var(--sx-bas-rgb),.8); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-  #serieux .sx-accueil .sx-col > *:not(.sx-h1):not(.sx-actions):not(.sx-sur):not(.sx-role) { background: rgba(var(--sx-bas-rgb),.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); padding: 12px 14px; margin-left: -14px; margin-right: -14px; }
+  #serieux .sx-accueil .sx-col > *:not(.sx-h1):not(.sx-actions):not(.sx-sur):not(.sx-role):not(.sx-duo) { background: rgba(var(--sx-bas-rgb),.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); padding: 12px 14px; margin-left: -14px; margin-right: -14px; }
   /* les écrans épinglés : la 3D en haut, le texte de l'étape en bas, sur un verre dépoli */
   #serieux .sx-pin { padding: 0; height: calc(100vh + var(--pas) * 80vh); }
   #serieux .sx-scene { padding: 0 16px; align-items: flex-end; }
@@ -369,3 +386,4 @@ html.serieux, html.serieux body { overflow: hidden; }
 @keyframes sx-vise { 0%, 40% { border-color: var(--sx-accent); box-shadow: 0 0 0 4px var(--sx-accent-pale); } }
 #serieux .sx-carte.hors { opacity: 1; filter: none; }
 @media (max-width: 899px) { #serieux .sx-sommaire a { grid-template-columns: 20px 1fr auto; } #serieux .sx-sommaire span, #serieux .sx-sommaire i { display: none; } }
+@media (min-width: 900px) and (max-height: 960px) { #serieux .sx-accueil .sx-defiler { display: none; } }

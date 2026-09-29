@@ -8,11 +8,15 @@ window.SERIEUX_DONNEES_EN = {
   nom: 'Mathieu Woroniecki',
   langues: ['French (native)', 'English (fluent, technical)', 'Spanish (basic)'],
 
-  /* 00 — l'accueil */
+  /* 00 — l'accueil : en un écran, l'IA de deux façons (je l'intègre, je travaille avec), puis le reste en détail */
   accueil: {
     sur: 'Paris · CV · 2026',
-    titre: 'Senior Technical Lead & AI Architect',
-    these: 'More than ten years building for the web, from front-end integration to CTO. Today I design products where AI reads, reasons and acts, and I work alongside agents I orchestrate to ship at the pace of a full team.',
+    titre: 'AI Architect & CTO',
+    these: 'AI is at the heart of my work in two ways: I build it into the products I design, and I work with it every day. Behind that, more than ten years on the web, from front-end integration to CTO.',
+    duo: [
+      { t: 'I build AI in', d: 'Inside the product: documents read, data extracted and checked, answers that cite their sources, agents that act within set bounds.', lien: '#sx-ia' },
+      { t: 'I work with AI', d: 'Every day: dozens of agents I orchestrate, tested and measured, to ship at the pace of a ten-person team.', lien: '#sx-methode' }
+    ],
     maintenant: 'Currently CTO of MARKO, an AI-native B2B SaaS for real estate.',
     faits: ['<b>1 developer</b> + his agents = a team of 10', '<b>10+ years</b> of experience', '<b>150,000+</b> users on a platform I led', '<b>85+</b> projects delivered as a freelancer']
   },
@@ -52,7 +56,7 @@ window.SERIEUX_DONNEES_EN = {
     ]
   },
 
-  /* 02 bis — la preuve : l'historique Git de MARKO (dépôt privé : des chiffres, jamais de code), relevé le 28 septembre 2026.
+  /* 03 — la preuve : l'historique Git de MARKO (dépôt privé : des chiffres, jamais de code), relevé le 28 septembre 2026.
      jours = commits par jour depuis le premier commit (27 janvier 2026, un mardi : d0 = 1, lundi = 0) ; heures = commits par heure de la journée */
   preuve: {
     titre: 'MARKO, the proof in numbers',
@@ -67,7 +71,7 @@ window.SERIEUX_DONNEES_EN = {
   },
   marko: {"d0": 1, "jours": [10, 3, 2, 2, 9, 9, 16, 8, 0, 1, 0, 0, 15, 19, 8, 2, 8, 10, 57, 18, 30, 28, 46, 2, 32, 1, 0, 0, 0, 0, 0, 0, 0, 0, 11, 46, 73, 13, 28, 44, 0, 18, 36, 4, 38, 0, 52, 156, 140, 75, 41, 24, 22, 52, 78, 90, 12, 22, 2, 0, 0, 0, 0, 0, 3, 0, 9, 2, 0, 0, 59, 32, 28, 45, 40, 80, 16, 26, 32, 57, 64, 0, 0, 58, 35, 17, 226, 129, 12, 12, 53, 129, 95, 118, 47, 0, 0, 18, 35, 37, 2, 3, 16, 0, 7, 5, 17, 46, 24, 16, 54, 94, 17, 24, 22, 8, 7, 9, 28, 18, 23, 59, 35, 0, 0, 10, 16, 0, 3, 0, 12, 3, 1, 17, 3, 19, 4, 0, 0, 18, 25, 19, 7, 12, 4, 16, 84, 35, 59, 25, 67, 19, 0, 40, 40, 55, 187, 211, 30, 0, 156, 100, 43, 195, 290, 315, 302, 345, 220, 359, 367, 299, 122, 157, 278, 318, 362, 451, 49, 74, 26, 10, 80, 59, 19, 40, 125, 45, 194, 141, 81, 118, 245, 68, 2, 35, 13, 9, 19, 36, 23, 3, 83, 16, 16, 34, 0, 35, 0, 0, 5, 40, 0, 0, 0, 0, 5, 13, 14, 11, 38, 25, 2, 2, 12, 36, 123, 72, 0, 0, 62, 42, 60, 44, 10, 8, 11, 50, 11, 142, 178, 62, 61, 16, 12], "heures": [437, 326, 289, 212, 168, 158, 240, 330, 621, 650, 628, 741, 711, 715, 655, 743, 629, 484, 361, 461, 609, 664, 645, 569], "juillet": [155, 185], "mois": [{"j": 5, "t": "Feb"}, {"j": 33, "t": "Mar"}, {"j": 64, "t": "Apr"}, {"j": 94, "t": "May"}, {"j": 125, "t": "Jun"}, {"j": 155, "t": "Jul"}, {"j": 186, "t": "Aug"}, {"j": 217, "t": "Sep"}]},
 
-  /* 02 — les chiffres, dans l'ordre des formes du nuage 3D :
+  /* 07 — les chiffres, dans l'ordre des formes du nuage 3D :
      cernes d'arbre (ans), sphère (personnes), anneau (disponibilité), barre qui se tasse, colonne qui monte, 25 foyers, 85 cubes */
   impact: {
     titre: 'The results, by the numbers',
@@ -82,7 +86,7 @@ window.SERIEUX_DONNEES_EN = {
     ]
   },
 
-  /* 03 — le parcours, du plus récent au plus ancien (la page le lit à l'envers : chronologique)
+  /* 06 — le parcours, du plus récent au plus ancien (la page le lit à l'envers : chronologique)
      c = le composant 3D du poste sur la piste de circuit ; an0 = l'année affichée sous le composant */
   parcoursChapo: 'From technical support to CTO. Each role added a layer; the signal follows the trace, one component per role.',
   parcours: [
@@ -118,7 +122,7 @@ window.SERIEUX_DONNEES_EN = {
     { dates: '2009 — 2012', t: 'Vocational Baccalaureate SEN, Computer Science', o: 'Christophe Colomb' }
   ],
 
-  /* 04 — les compétences : les six couches de la puce, dans l'ordre des étapes (ia, front, back, devops, secu, lead).
+  /* 05 — les compétences : les six couches de la puce, dans l'ordre des étapes (ia, front, back, devops, secu, lead).
      Tirées du CV et de l'analyse de tous les dépôts ; seul ce qui est réellement dans le code est cité. */
   competencesChapo: 'Six layers, like a chip: AI at the core, what you see on top, what holds everything together underneath. Drawn from my CV and a read-through of all my repositories.',
   competences: [
@@ -173,7 +177,7 @@ window.SERIEUX_DONNEES_EN = {
       ] }
   ],
 
-  /* 05 — les catégories des projets : une étiquette courte, une icône (js/serieux.js) ; la légende en tête des projets les filtre */
+  /* 04 — les catégories des projets : une étiquette courte, une icône (js/serieux.js) ; la légende en tête des projets les filtre */
   categories: [
     { id: 'ia', t: 'AI & agents', i: 'cerveau' },
     { id: 'donnees', t: 'Data & RAG', i: 'pile' },
@@ -185,7 +189,7 @@ window.SERIEUX_DONNEES_EN = {
   ],
   projetsChapo: 'Seven selected projects: the product I lead, and what I build on the side to push further into AI, data and security. Pick a tag to sort the index below; click a project to jump straight to it.',
 
-  /* 05 — les projets ; o = l'objet 3D, fond = la couleur du papier [haut, milieu, bas] vers laquelle la page glisse,
+  /* 04 — les projets ; o = l'objet 3D, fond = la couleur du papier [haut, milieu, bas] vers laquelle la page glisse,
      faits = [icône, texte court] (icônes dans js/serieux.js) */
   projets: [
     { o: 'immeuble', t: 'MARKO', sous: 'The operating system for real estate debt', role: 'CTO · 2026', prive: true, cats: ['produit', 'ia', 'donnees'],
@@ -245,7 +249,7 @@ window.SERIEUX_DONNEES_EN = {
   ],
 
 
-  /* 06 — le contact (pas de téléphone sur le site) */
+  /* 08 — le contact (pas de téléphone sur le site) */
   contact: {
     titre: 'Let’s talk',
     chapo: 'An AI product to build, a team to lead, an architecture to set right: get in touch.',

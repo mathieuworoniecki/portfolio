@@ -18,11 +18,11 @@ const TX = {
   fr: { fichier: 'cv.html', pdf: 'cv-mathieu-woroniecki.pdf', autre: 'cv-en.html', autreT: 'English version', loc: 'fr-FR', lang: 'fr',
     profil: 'Profil', methode: 'Méthode', preuve: 'La preuve : MARKO', exp: 'Expérience', comp: 'Compétences', proj: 'Projets choisis', autres: 'Autres projets',
     form: 'Formation', langues: 'Langues', interactif: 'Version interactive, en 3D', telecharger: 'Télécharger en PDF', lieu: 'Paris',
-    desc: 'CV de Mathieu Woroniecki, responsable technique senior et architecte IA, CTO de MARKO : IA générative, RAG, agents, architecture, direction technique.' },
+    desc: 'CV de Mathieu Woroniecki, architecte IA et CTO de MARKO : IA générative, RAG, agents, architecture, direction technique.' },
   en: { fichier: 'cv-en.html', pdf: 'cv-mathieu-woroniecki-en.pdf', autre: 'cv.html', autreT: 'Version française', loc: 'en-US', lang: 'en',
     profil: 'Profile', methode: 'Method', preuve: 'The proof: MARKO', exp: 'Experience', comp: 'Skills', proj: 'Selected projects', autres: 'Other projects',
     form: 'Education', langues: 'Languages', interactif: 'Interactive 3D version', telecharger: 'Download as PDF', lieu: 'Paris, France',
-    desc: 'CV of Mathieu Woroniecki, Senior Technical Lead & AI Architect, CTO of MARKO: generative AI, RAG, agents, architecture, technical leadership.' }
+    desc: 'CV of Mathieu Woroniecki, AI Architect & CTO of MARKO: generative AI, RAG, agents, architecture, technical leadership.' }
 };
 
 function page(D, X) {
@@ -89,7 +89,7 @@ p{margin:0 0 6px}
 .petit{font-size:13.5px;color:var(--doux)}
 @media (max-width:640px){.feuille{margin:0;padding:24px 16px}header{grid-template-columns:1fr}.coord{text-align:left}h1{font-size:36px}.grille,.chiffres{grid-template-columns:1fr}.poste{grid-template-columns:1fr}}
 @page{size:A4;margin:10mm 13mm}
-@media print{html,body{background:#fff}body{font-size:10.5px;line-height:1.38}.feuille{max-width:none;margin:0;padding:0;box-shadow:none}.outils,.etape .d,.projet .d,.petit.source{display:none}
+@media print{html,body{background:#fff}body{font-size:10.5px;line-height:1.38}.feuille{max-width:none;margin:0;padding:0;box-shadow:none}.outils,.faits,.etape .d,.projet .d,.petit.source{display:none}
   .grille{gap:2px 22px}.poste{grid-template-columns:96px 1fr}.poste ul{margin-top:2px}p{margin-bottom:3px}h3{font-size:12px}.dates{font-size:9.5px}
   h1{font-size:30px}.role{font-size:14px}h2{margin:9px 0 4px;font-size:12px}.poste{padding:3px 0}.poste p,.poste ul,.groupe,.projet,.etape,.chapo{font-size:10.5px}.chiffre strong{font-size:17px}.chiffre span{font-size:9.5px}
   .faits{font-size:9.5px}.coord{font-size:9.5px;line-height:1.5}.petit{font-size:10px}header{padding-bottom:10px}.comps{columns:2;column-gap:22px}.groupe-bloc{break-inside:avoid}.groupe{font-size:9.8px}a{text-decoration:none}}
@@ -105,6 +105,7 @@ p{margin:0 0 6px}
 
 <h2>${esc(X.profil)}</h2>
 <p class="chapo">${esc(A.these)}</p>
+${(A.duo || []).map(c => `<p><b>${esc(c.t)}.</b> ${esc(c.d)}</p>`).join('')}
 <p>${esc(A.maintenant)}</p>
 <ul class="faits">${A.faits.map(f => `<li>${f}</li>`).join('')}</ul>
 
@@ -116,15 +117,15 @@ p{margin:0 0 6px}
 <div class="chiffres">${[P.etapes[0], P.etapes[3], P.etapes[4]].map(e => `<p class="chiffre"><strong>${esc((e.pre || '') + fmt(e.n, X.loc) + (e.suf || ''))}</strong><span>${esc(e.u)}</span></p>`).join('')}</div>
 <p class="petit source">${esc(P.chapo)}</p>
 
-<h2>${esc(X.exp)}</h2>
-${D.parcours.map(p => `<div class="poste"><p class="dates">${esc(p.dates)}</p><div><h3>${esc(p.lieu)} · ${esc(p.poste)}</h3><p>${esc(p.d)}</p>${p.l.length ? `<ul>${p.l.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</div></div>`).join('\n')}
+<h2>${esc(X.proj)}</h2>
+${D.projets.map(p => `<p class="projet"><b>${esc(p.t)}</b> · ${esc(p.sous)}.<span class="d"> ${esc(p.d)}</span>${p.lien ? ` <a href="${p.lien.href}">${esc(p.lien.href.replace(/^https?:\/\//, '').replace(/\/$/, ''))}</a>` : ''}</p>`).join('\n')}
+<p class="petit"><b>${esc(X.autres)} :</b> ${D.autres.map(p => esc(p.t)).join(' · ')}</p>
 
 <h2>${esc(X.comp)}</h2>
 <div class="comps">${D.competences.map(c => `<div class="groupe-bloc"><h3>${esc(c.t)}</h3>${c.groupes.map(g => `<p class="groupe"><span>${esc(g[0])}</span>${g[1].map(esc).join(' · ')}</p>`).join('')}</div>`).join('\n')}</div>
 
-<h2>${esc(X.proj)}</h2>
-${D.projets.map(p => `<p class="projet"><b>${esc(p.t)}</b> · ${esc(p.sous)}.<span class="d"> ${esc(p.d)}</span>${p.lien ? ` <a href="${p.lien.href}">${esc(p.lien.href.replace(/^https?:\/\//, '').replace(/\/$/, ''))}</a>` : ''}</p>`).join('\n')}
-<p class="petit"><b>${esc(X.autres)} :</b> ${D.autres.map(p => esc(p.t)).join(' · ')}</p>
+<h2>${esc(X.exp)}</h2>
+${D.parcours.map(p => `<div class="poste"><p class="dates">${esc(p.dates)}</p><div><h3>${esc(p.lieu)} · ${esc(p.poste)}</h3><p>${esc(p.d)}</p>${p.l.length ? `<ul>${p.l.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</div></div>`).join('\n')}
 
 <h2>${esc(X.form)} · ${esc(X.langues)}</h2>
 <div class="grille"><div>${D.formation.map(f => `<p><span class="dates">${esc(f.dates)}</span> <b>${esc(f.t)}</b>, ${esc(f.o)}</p>`).join('')}</div><p>${D.langues.map(esc).join(' · ')}</p></div>
