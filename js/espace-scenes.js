@@ -1029,6 +1029,12 @@ S.pilotage = (() => {
       if (pq && pq.z > zb + 0.5) dessinePortique(pq);
       E.obs.filter(o => o.z > zb + 1).sort((p, q) => q.z - p.z).forEach(o => obstacle(o, Pp, now, D));
       bus(Pp, E.bx, zb, roulis, now, E.bonk, a, camX);
+      // (vague 31, l'audit : « le bus ») : le pot d'échappement crache des petits nuages de papier, ronds, qui gonflent, montent et restent
+      // sur la route derrière (ils défilent vers nous) ; au choc, un gros nuage noirâtre et un « pouêt »
+      { const kb = G.sw < 500 ? 0.72 : 1, cote = E.bx - camX > 0 ? -1 : 1;
+        for (let j = 0; j < 7; j++) { const t = fr2(now * 1.6 + j / 7), x = E.bx + (-cote * 0.3 + (bruit(j * 3.1 + Math.floor(now * 1.6 + j / 7)) - 0.5) * 0.3) * kb, y = (0.12 + t * 0.9) * kb, z = zb - 0.1 - t * 1.6, p = Pp(x, y, z), r = (4 + t * 16) * p[2] ** -0.4 * (G.sw < 500 ? 0.7 : 1) * (now - E.bonk < 0.8 ? 1.8 : 1);
+          if (z < 0.4 || p[1] > G.caps) continue; cerne(() => { ctx.beginPath(); for (let q = 0; q < 4; q++) { const aq = q / 4 * TAU + j; ctx.moveTo(p[0] + Math.cos(aq) * r * 0.55 + r * 0.45, p[1] + Math.sin(aq) * r * 0.4); ctx.arc(p[0] + Math.cos(aq) * r * 0.55, p[1] + Math.sin(aq) * r * 0.4, r * 0.45, 0, TAU); } }, 0.6, 1 - t * 0.6); }
+        if (now - E.bonk < 0.6) { const p = Pp(E.bx, 1.5 * kb, zb + 1.2); mot(en() ? 'honk!' : 'pouêt !', p[0], p[1] - 10, Math.max(13, D * 0.06), 1 - (now - E.bonk) / 0.6); } }
       if (pq && pq.z <= zb + 0.5) dessinePortique(pq);
       E.obs.filter(o => o.z <= zb + 1).sort((p, q) => q.z - p.z).forEach(o => obstacle(o, Pp, now, D));
       E.mots = E.mots.filter(m => now - m.t0 < 0.9); E.mots.forEach(m => { const u = (now - m.t0) / 0.9, p = Pp(m.x, 1.3 + u * 0.6, m.z); mot(m.t, p[0], p[1], Math.max(14, D * 0.08), 1 - u); });
@@ -1038,6 +1044,7 @@ S.pilotage = (() => {
     }
   };
   function pick2(L, n) { return L[Math.floor(bruit(n * 5.7) * L.length)]; }
+  function fr2(v) { return v - Math.floor(v); }
   // un obstacle, à sa distance : un bug (un vrai petit insecte), un astéroïde, un cône de chantier, une horloge (la deadline) ; ou une étoile (un jalon)
   function obstacle(o, Pp, now, D) {
     const p = Pp(o.x, 0, o.z), s = D * 1.55 / o.z * 0.36, al = c01((46 - o.z) / 6), fin = o.fini ? c01((now - o.fini) / 0.5) : 0; if (s < 1.5) return;
