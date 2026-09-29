@@ -140,7 +140,8 @@ function ecran(x, y, w, h, ep, r = 6, a = 1) { const V = (u, v, d) => [x + u + (
 function rouage(x, y, r, t, a = 1) { cerne(() => { ctx.beginPath(); for (let k = 0; k < 20; k++) { const u = t + k / 20 * TAU, rr = r * (k % 2 ? 0.76 : 1); ctx.lineTo(x + Math.cos(u) * rr, y + Math.sin(u) * rr); } ctx.closePath(); }, 0.8, a);
   ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.5; ctx.beginPath(); ctx.arc(x, y, r * 0.3, 0, TAU); ctx.stroke(); }
 // un caillou de l'espace, en papier
-function caillou(x, y, r, t, n, a = 1, mechant = false) { cerne(() => { ctx.beginPath(); for (let i = 0; i < 11; i++) { const u = i / 11 * TAU + t, rr = r * (0.78 + 0.3 * bruit(n * 13 + i)); ctx.lineTo(x + Math.cos(u) * rr, y + Math.sin(u) * rr); } ctx.closePath(); }, 0.7, a);
+function caillou(x, y, r, t, n, a = 1, mechant = false) { if (!(r > 0.3)) return;   // (derrière la caméra, au téléphone : rien)
+  cerne(() => { ctx.beginPath(); for (let i = 0; i < 11; i++) { const u = i / 11 * TAU + t, rr = r * (0.78 + 0.3 * bruit(n * 13 + i)); ctx.lineTo(x + Math.cos(u) * rr, y + Math.sin(u) * rr); } ctx.closePath(); }, 0.7, a);
   ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.4; if (!mechant) { ctx.beginPath(); ctx.arc(x + Math.cos(t) * r * 0.3, y + Math.sin(t) * r * 0.3, r * 0.2, 0, TAU); ctx.stroke(); return; }
   // (un méchant : deux yeux plissés, les sourcils en V, des crocs)
   ctx.fillStyle = ENC; [-1, 1].forEach(g => { ctx.beginPath(); ctx.ellipse(x + g * r * 0.3, y - r * 0.05, r * 0.13, r * 0.17, 0, 0, TAU); ctx.fill(); ctx.lineWidth = G.lw * 0.5; ctx.beginPath(); ctx.moveTo(x + g * r * 0.55, y - r * 0.4); ctx.lineTo(x + g * r * 0.12, y - r * 0.22); ctx.stroke(); });
@@ -974,16 +975,32 @@ S.secu = (() => ({
     { const g = V(0.4, 0, 0.25), r = k * 0.075 * g[3]; chabot(g[0], g[1] - r * 1.75, r, { now, v: 2, lac: Math.sin(now * 0.6) * 0.9, travaille: true, bras: [0.9 + Math.sin(now * 4) * 0.3, -0.3] }); }
     // les menaces (vague 15 de l'audit : « quelques cailloux près du dôme ») : une pluie qui vient de tout le ciel, de loin, par dizaines
     const T = 2.4, NQ = G.cx * 2 < 700 ? 9 : 14; let bloq = 0;
+    // (vague 36 de l'audit : « sécurité, peu original ») : les menaces repoussées ne repartent plus dans le vide : elles filent dans un bocal
+    // de quarantaine posé à côté du dôme, où elles s'entassent et s'agitent ; un chat-robot au filet à papillons fait le guet devant
+    const o0 = V(0, 0, 0), J = [o0[0] - Math.min(k * 1.4, G.cx * 0.72), o0[1] + k * 0.02], jr = Math.max(14, k * 0.17), jm = [J[0], J[1] - jr * 2.1];
     for (let q = 0; q < NQ; q++) { const tt = a + q * T / NQ, t = tt % T, n = Math.floor(tt / T), th = bruit(q * 7 + n * 13) * TAU, ph = 0.2 + bruit(q * 3 + n * 5) * 1.1, dir = [Math.cos(th) * Math.cos(ph), -Math.sin(ph), Math.sin(th) * Math.cos(ph)];
       bloq += n; const pt = d => V(dir[0] * d, dir[1] * d, dir[2] * d);
       if (t < 1.2) { const d = lerp(4.2, R, sm(t / 1.2) * 0.4 + t / 1.2 * 0.6), p = pt(d), p0 = pt(d + 0.3); trait([p0, p], false, 0.9, 0.9); caillou(p[0], p[1], k * 0.08 * p[3], Math.sin(now * 3 + q) * 0.3, q * 7 + n, 1, true); }
       else if (t < 2.2) { const u = (t - 1.2) / 1, p = pt(R); eclat(p[0], p[1], 12, u, 7, th);
         // (vague 7) repoussé : le petit méchant rebondit sur le dôme et repart en tournoyant, sonné
-        if (u < 0.8) { const b = pt(R + u * 1.1), r0 = k * 0.08 * b[3] * (1 - u * 0.4); caillou(b[0], b[1] - Math.sin(u * Math.PI) * k * 0.15, r0, u * 9, q * 7 + n, 1 - u * 0.5, true); if (u < 0.35) mot(pick2(['paf', 'bonk', 'toc'], q + n), b[0], b[1] - r0 * 2.2, Math.max(10, k * 0.06), 1 - u * 2.5); }
+        if (u < 0.8) { const b0 = pt(R), e = sm(u / 0.8), r0 = k * 0.08 * b0[3] * (1 - e * 0.55), bx = lerp(b0[0], jm[0], e), by = lerp(b0[1], jm[1], e) - Math.sin(e * Math.PI) * k * 0.45;
+          caillou(bx, by, r0, u * 9, q * 7 + n, 1, true); if (u < 0.35) mot(pick2(['paf', 'bonk', 'toc'], q + n), b0[0], b0[1] - r0 * 2.2, Math.max(10, k * 0.06), 1 - u * 2.5); }
         // l'onde, à la surface du dôme
         const up = Math.abs(dir[1]) > 0.95 ? [1, 0, 0] : [0, 1, 0], cr = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], nz = v => { const l = Math.hypot(...v); return v.map(x => x / l); }, e1 = nz(cr(dir, up)), e2 = cr(dir, e1), rho = 0.06 + u * 0.55, L = [];
         for (let i = 0; i <= 28; i++) { const w = i / 28 * TAU, v = dir.map((x, j) => x * Math.cos(rho) + (e1[j] * Math.cos(w) + e2[j] * Math.sin(w)) * Math.sin(rho)); if (v[1] > 0.02) { if (L.length > 1) trait(L, false, 0.9, (1 - u) * 0.9); L.length = 0; continue; } L.push(V(v[0] * R, v[1] * R, v[2] * R)); }
         if (L.length > 1) trait(L, false, 0.9, (1 - u) * 0.9); } }
+    // le bocal : le verre (un peu bleuté), son couvercle, son étiquette ; dedans, les petits méchants capturés qui s'agitent
+    { const hB = jr * 2, n = Math.min(12, bloq), br = jr * 0.26;
+      cerne(() => { ctx.beginPath(); ctx.moveTo(J[0] - jr * 0.7, J[1] - hB); ctx.quadraticCurveTo(J[0] - jr * 1.05, J[1] - hB * 0.85, J[0] - jr, J[1] - hB * 0.6); ctx.lineTo(J[0] - jr, J[1] - jr * 0.15);
+        ctx.quadraticCurveTo(J[0] - jr, J[1], J[0] - jr * 0.8, J[1]); ctx.lineTo(J[0] + jr * 0.8, J[1]); ctx.quadraticCurveTo(J[0] + jr, J[1], J[0] + jr, J[1] - jr * 0.15); ctx.lineTo(J[0] + jr, J[1] - hB * 0.6);
+        ctx.quadraticCurveTo(J[0] + jr * 1.05, J[1] - hB * 0.85, J[0] + jr * 0.7, J[1] - hB); ctx.closePath(); }, 0.9, 1, 'rgba(200,225,255,0.22)');
+      for (let i = 0; i < n; i++) { const cx = J[0] + (bruit(i * 5.3) - 0.5) * jr * 1.3 + Math.sin(now * 9 + i * 2) * jr * 0.06, cy = J[1] - br * 1.1 - Math.floor(i / 4) * br * 1.5 - Math.abs(Math.sin(now * 7 + i * 1.7)) * jr * 0.12;
+        caillou(cx, cy, br, now * 2 + i, i * 11 + 3, 1, true); }
+      cerne(() => { ctx.beginPath(); ctx.rect(J[0] - jr * 0.82, J[1] - hB - jr * 0.28 - (n && Math.sin(now * 11) > 0.7 ? jr * 0.06 : 0), jr * 1.64, jr * 0.3); }, 0.9, 1);
+      mot(en() ? 'quarantine' : 'quarantaine', J[0], J[1] - hB * 0.45, Math.max(9, jr * 0.3), 0.85);
+      const g = [J[0] + jr * 1.7, J[1]], r = jr * 0.55, sw = Math.sin(now * 2.6); chabot(g[0], g[1] - r * 1.75, r, { now, ph: 9, lac: -0.5, casque: false, bras: [0.4 + sw * 0.5, -0.2] });
+      const hx = g[0] - r * 0.9, hy = g[1] - r * 2.3, fx = hx - r * 1.3 * Math.cos(sw * 0.6), fy = hy - r * 1.6 + Math.sin(sw * 0.6) * r * 0.6;
+      cerne(() => { ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(fx, fy); }, 1, 1, null); cerne(() => { ctx.beginPath(); ctx.ellipse(fx, fy - r * 0.35, r * 0.42, r * 0.55, sw * 0.3, 0, TAU); }, 0.8, 1, 'rgba(255,255,255,0.35)'); }
     // le compteur, en haut du dôme, sur un petit écran de papier (il était caché sous les sous-titres)
     { const o = V(0, 0, 0), w = Math.max(k * 0.52, 108), h = Math.max(k * 0.14, 28), m = [Math.min(o[0] + R * k * 1.2, G.cx * 2 - w * 0.62 - 10), o[1] - R * k * (G.cx * 2 < 700 ? 1.25 : 0.8)]; ecran(m[0] - w / 2, m[1] - h / 2, w, h, k * 0.03, 3); mot(`${en() ? 'blocked' : 'bloqués'} : ${bloq}`, m[0], m[1], Math.max(12, k * 0.075), 1); }
     ctx.restore();
