@@ -231,12 +231,14 @@ let btn = null, badge = null;
 function compte() { if (badge) badge.textContent = n() + '/' + TOUS.length; }
 const panneau = document.createElement('div'); panneau.className = 'dex'; panneau.hidden = true; panneau.setAttribute('role', 'dialog'); panneau.setAttribute('aria-modal', 'true');
 panneau.setAttribute('aria-label', T('Carnet de découvertes', 'Discovery notebook')); document.body.appendChild(panneau);
+// (un tampon penché au hasard, mais toujours le même pour une découverte donnée)
+const bruitD = id => { let h = 7; for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) % 9973; return h / 9973; };
 function ouvre() {
   const total = TOUS.length, k = n();
   panneau.innerHTML = `<div class="dex-page"><header><h2>${T('Carnet de découvertes', 'Discovery notebook')}</h2><p>${k} / ${total}</p>
     <div class="dex-barre"><span style="width:${(k / total * 100).toFixed(1)}%"></span></div><button type="button" class="dex-x" aria-label="${T('Fermer', 'Close')}">×</button></header>
-    ${FAM.map(f => `<section><h3>${f.nom} <small>${f.L.filter(d => vus[d.id]).length}/${f.L.length}</small></h3><ul>${f.L.map(d => vus[d.id]
-      ? `<li class="ok"><b>${d.t}</b><span>${d.ok || d.h}</span></li>` : `<li><b>???</b><span>${d.h}</span></li>`).join('')}</ul></section>`).join('')}
+    ${(() => { let i = 0; return FAM.map(f => `<section><h3>${f.nom} <small>${f.L.filter(d => vus[d.id]).length}/${f.L.length}</small></h3><ul>${f.L.map(d => { const st = `--i:${Math.min(40, i++)};--r:${((bruitD(d.id) - 0.5) * 16).toFixed(1)}deg`; return vus[d.id]
+      ? `<li class="ok" style="${st}"><b>${d.t}</b><span>${d.ok || d.h}</span></li>` : `<li style="${st}"><b>???</b><span>${d.h}</span></li>`; }).join('')}</ul></section>`).join(''); })()}
     <footer><button type="button" class="dex-raz">${T('Tout oublier', 'Forget everything')}</button></footer></div>`;
   panneau.hidden = false; panneau.querySelector('.dex-x').focus();
   panneau.querySelector('.dex-x').onclick = ferme;
