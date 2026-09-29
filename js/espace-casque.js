@@ -96,6 +96,17 @@ X.devant.push((ctx, now) => {
       ctx.strokeStyle = `rgba(255,${190 + 50 * k | 0},90,${0.8 * k})`; ctx.lineWidth = 2 + 12 * k * k; ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(p.x, p.y); ctx.stroke();
       ctx.strokeStyle = `rgba(${BL},${0.9 * k})`; ctx.lineWidth = 1 + 4 * k * k; ctx.stroke(); }
     ctx.restore(); }
+  // (vague 19 de l'audit : « le casque ») : pendant le décollage, un réacteur dorsal de papier (deux tuyères, ses rivets) pousse le chat ;
+  // il se déplie au « 1 », crache sa flamme, puis se replie
+  if (C.porte && C.feu && Wd.t > C.feu - 0.4 && Wd.t < C.feu + 3) { const h = tete(C.porte), u = (Wd.t - C.feu) / 2.6, a = C.dir + Math.max(0, Math.min(1, u)) * TAU * 0.9,
+      ou = Math.min(1, (Wd.t - C.feu + 0.4) / 0.3, (C.feu + 3 - Wd.t) / 0.3), r = h.r * 0.62 * ou;
+    if (r > 1) { ctx.save(); ctx.translate(h.x - Math.cos(a) * h.r * 1.25, h.y - Math.sin(a) * h.r * 1.25); ctx.rotate(a + Math.PI / 2); ctx.lineJoin = ctx.lineCap = 'round';
+      const papier = f => { ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 4.5; f(); ctx.stroke(); ctx.fillStyle = 'rgb(250,248,242)'; f(); ctx.fill(); ctx.strokeStyle = 'rgb(34,36,40)'; ctx.lineWidth = 1.6; f(); ctx.stroke(); };
+      [-1, 1].forEach(g => papier(() => { ctx.beginPath(); ctx.moveTo(g * r * 0.55 - r * 0.28, -r * 0.7); ctx.lineTo(g * r * 0.55 + r * 0.28, -r * 0.7); ctx.lineTo(g * r * 0.55 + r * 0.36, r * 0.9); ctx.lineTo(g * r * 0.55 - r * 0.36, r * 0.9); ctx.closePath(); }));
+      papier(() => { ctx.beginPath(); ctx.rect(-r * 0.42, -r * 0.9, r * 0.84, r * 1.3); });
+      ctx.fillStyle = 'rgb(34,36,40)'; [[-0.25, -0.65], [0.25, -0.65], [-0.25, 0.2], [0.25, 0.2]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x * r, y * r, Math.max(0.8, r * 0.06), 0, TAU); ctx.fill(); });
+      if (u > 0 && u < 1) [-1, 1].forEach(g => { const L = r * (1.1 + 0.5 * Math.sin(now * 40 + g)); ctx.fillStyle = '#ffd27a'; ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(g * r * 0.55 - r * 0.3, r * 0.95); ctx.quadraticCurveTo(g * r * 0.55, r * 0.95 + L * 1.6, g * r * 0.55 + r * 0.3, r * 0.95); ctx.closePath(); ctx.fill(); ctx.stroke(); });
+      ctx.restore(); } }
   if (C.porte) { const h = tete(C.porte); dessine(ctx, h.x, h.y, h.r, C.porte.spin || 0, now); }
   else dessine(ctx, C.x, C.y, C.r, C.rot, now);
 });
