@@ -751,7 +751,7 @@ function spread(dt) {
   G.forEach(c => {
     const walking = walks(c), tx = walking ? (typeof c.task.x === 'function' ? c.task.x() : c.task.x) : c.x;
     for (const it of O) {
-      if (c.balai && it.launched) continue;   // la horde fonce dans les cartons (elle les balaie, voir bump)
+      if (c.balai && (it.launched || it.balaiOK)) continue;   // la horde fonce dans les cartons (elle les balaie, voir bump)
       if (it.busy === c || c.claims.includes(it)) continue;
       const s = sOf(it.d) * (it.big || 1), hw = it.hull.w / 2 * s + sc(c) * 0.42, dx = c.x - it.x, dd = c.d - it.d;
       if (Math.abs(dd) >= 0.2) continue;
@@ -816,7 +816,7 @@ function bump() {
   // la horde au galop pousse devant elle les cartons lancés et les croquettes : ils partent hors de l'écran (un coup de balai)
   Wd.cats.forEach(c => {
     if (!c.balai || !c.task || c.task.k !== 'walk' || c.jump) return; const v = SPEED.galop * sc(c), dir = c.balai, reach = sc(c) * 0.6;
-    Wd.props.forEach(it => { if (!(it.launched || it.swept) || it.held || it.suck || Math.abs(it.d - c.d) > 0.35) return; const dx = (it.x - c.x) * dir;
+    Wd.props.forEach(it => { if (!(it.launched || it.swept || it.balaiOK) || it.held || it.suck || Math.abs(it.d - c.d) > 0.35) return; const dx = (it.x - c.x) * dir;
       if (dx < -sc(c) * 0.2 || dx > it.hull.w / 2 * it.s + reach) return;
       Wd.cats.forEach(o => { if (o.perch && o.perch.it === it) { interrupt(o); o.fall = true; o.vx = dir * v; o.vy = -sOf(it.d) * 1.2; say(o, '!!'); } });
       it.on = null; it.swept = dir; it.fall = true; it.vx = dir * v * rnd(1.25, 1.6); it.vy = Math.max(it.vy || 0, sOf(it.d) * rnd(0.6, 1.4)); it.tiltV = dir * -rnd(4, 9);
@@ -997,8 +997,28 @@ function towerFrame(dt) {
       if (window.Rares && Rares.panique) Rares.panique(xOf(T.boxes[0]));   // (la panique, comme pour le géant : js/rares.js)
       Wd.fx.push({ k: 'txt', text: 'boum !', x: xOf(T.boxes[0]), y: floorAt(T.d) - sOf(T.d) * 1.6, t0: Wd.t, life: 1.6, rot: -0.1, size: 26 });
     }
-  } else if (T.phase === 'chute' && T.t > 12) { T.phase = 'fin'; T.t = 0; T.boxes.forEach(b => { b.fadeT = 0; }); }
-  else if (T.phase === 'fin' && T.t > 1.5) { T.boxes.forEach(b => { Wd.cats.forEach(k => { if (k.perch && k.perch.it === b) interrupt(k); }); unprop(b); }); Wd.tower = null; }
+  } else if (T.phase === 'chute' && T.t > 10) {
+    // (vague 3 de l'audit : les caisses ne s'effacent plus) : l'équipe du ménage débarque au galop et les pousse hors de l'écran
+    T.phase = 'fin'; T.t = 0; const L = T.boxes.filter(b => Wd.props.includes(b)); L.forEach(b => { b.balaiOK = true; });
+    const dir = xOf(T.boxes[0]) < Wd.W / 2 ? -1 : 1, ds = [...new Set(L.map(b => Math.round(b.d * 3) / 3))].slice(0, 4);
+    ds.forEach((d, i) => later(i * 0.45, () => { if (residents().length + i > MAXC + 4) return; const k = addCat({ temp: true, d: clamp(d, 0, 1), face: dir }); k.x = dir > 0 ? -sc(k) * 2 : Wd.W + sc(k) * 2;
+      k.q = [go(dir > 0 ? Wd.W + sc(k) * 2 : -sc(k) * 2, { g: 'galop', v: 1.3 }), fn(k => { k.gone = true; })]; k.balai = dir; k.menage = T;
+      if (!i) later(0.6, () => say(k, pick(['ménage !', 'place !', 'on range !', 'poussez-vous !']))); }));
+  }
+  else if (T.phase === 'fin' && T.t <= 16) {
+    // un déménageur distrait (un saut, une pose) repart au galop vers le bord
+    Wd.cats.forEach(c => { if (c.menage === T && !c.gone && !c.task && !c.q.length) c.q = [go(c.balai > 0 ? Wd.W + sc(c) * 2 : -sc(c) * 2, { g: 'galop', v: 1.3 }), fn(k => { k.gone = true; })]; });
+    // chaque déménageur pousse toute caisse qu'il atteint (même d'un grand pas), à sa profondeur
+    Wd.cats.forEach(c => { if (!c.balai || c.gone) return; const dir = c.balai;
+      T.boxes.forEach(b => { if (!b.balaiOK || b.swept || b.held || !Wd.props.includes(b) || Math.abs(b.d - c.d) > 0.4 || (xOf(b) - c.x) * dir > sc(c) * 0.7) return;
+        drop(b, dir * SPEED.galop * sc(c) * rnd(2, 2.6), sOf(b.d) * rnd(0.5, 1.2), dir * -rnd(3, 7)); b.swept = dir; dust(xOf(b), floorAt(b.d), sOf(b.d) * 0.4, 0.8);
+        Wd.fx.push({ k: 'txt', text: pick(['hop', 'zou', 'et hop !', 'dehors !']), x: xOf(b), y: b.y - sOf(b.d) * 0.6, t0: Wd.t, life: 0.8, rot: rnd(-0.3, 0.3), size: 16 }); }); });
+  }
+  else if (T.phase === 'fin' && T.t > 16) {
+    // ce qui est sorti de l'écran s'en va ; ce qui reste devient du bazar ordinaire (l'aspirateur, la horde s'en chargeront)
+    T.boxes.forEach(b => { if (!Wd.props.includes(b)) return; const x = xOf(b); b.balaiOK = false; b.tower = null;
+      if (x < -sOf(b.d) || x > Wd.W + sOf(b.d)) { Wd.cats.forEach(k => { if (k.perch && k.perch.it === b) interrupt(k); }); unprop(b); } else b.launched = Wd.t; });
+    Wd.tower = null; }
 }
 // ce qui est tombé revient à sa place (en fondu), un moment après
 function tidy() {

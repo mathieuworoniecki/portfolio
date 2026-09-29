@@ -17,6 +17,9 @@ function arrive() {
 function met(c) {
   if (!C || C.porte) return; C.porte = c; C.vise = null; C.fin = Wd.t + rnd(18, 32); c.sp.m = 'derive'; c.sp.next = Wd.t + rnd(1, 3); if (window.Dex && Dex.vu) Dex.vu('astronaute');
   say(c, pick(en() ? ['astronaut!', 'ready for launch', 'one small step…'] : ['astronaute !', 'paré au décollage', 'un petit pas pour un chat…', 'houston ?']));
+  // vague 3 : le casque vissé, il DÉCOLLE : 3, 2, 1… une poussée, une traînée d'étincelles, une boucle
+  C.tMet = Wd.t; C.trace = []; C.feu = Wd.t + 1.1; C.dir = rnd(0, TAU);
+  const h = tete(c); ['3', '2', '1'].forEach((n, i) => setTimeout(() => { if (C && C.porte === c) Wd.fx.push({ k: 'txt', text: n, x: h.x + (i - 1) * h.r, y: h.y - h.r * 1.8, t0: Wd.t, life: 0.5, rot: rnd(-0.2, 0.2), size: 18 }); }, i * 330));
 }
 function enleve(vx, vy) {
   const c = C.porte, h = tete(c); C.porte = null; C.x = h.x; C.y = h.y; C.vx = vx ?? rnd(-60, 60); C.vy = vy ?? -rnd(70, 120); C.w = rnd(-3, 3); C.lache = Wd.t;
@@ -33,7 +36,17 @@ X.pas.push(dt => {
     // il le perd : le temps est passé, on l'aspire, on le secoue fort, ou il a disparu
     if (!Wd.cats.includes(c) || c.gone || !S || S.m === 'aspire' || Wd.t > C.fin) { enleve(); return; }
     if (c.held && c.pend && Math.abs(c.pend.w || 0) > 9) { enleve((S.vx || 0) + rnd(-150, 150), -rnd(150, 250)); say(c, pick(['mon casque !', 'hé !'])); return; }
-    const h = tete(c); C.x = h.x; C.y = h.y; C.rot = c.spin || 0; return;
+    const h = tete(c); C.x = h.x; C.y = h.y; C.rot = c.spin || 0;
+    // le décollage : poussée tournante (une boucle) pendant 2,6 s, la traînée garde les positions
+    if (C.feu && Wd.t > C.feu && Wd.t < C.feu + 2.6) {
+      const u = (Wd.t - C.feu) / 2.6, a = C.dir + u * TAU * 0.9, v = 330 * Wd.s0 / 150 * (1 - u * 0.5);
+      S.m = 'derive'; S.cible = null; S.next = Wd.t + 1; S.anim = 'apesanteur'; S.vx = Math.cos(a) * v; S.vy = Math.sin(a) * v;
+      if (h.y < O.HAUT() + h.r * 2 && S.vy < 0) C.dir += 0.2; if (h.y > O.BAS() - h.r * 2 && S.vy > 0) C.dir -= 0.2;
+      C.trace.push({ x: h.x - Math.cos(a) * h.r * 1.4, y: h.y - Math.sin(a) * h.r * 1.4, t: Wd.t, a });
+      if (Math.random() < dt * 8) Wd.fx.push({ k: 'txt', text: pick(['✦', '·', '*']), x: h.x - Math.cos(a) * h.r * 1.8 + rnd(-6, 6), y: h.y - Math.sin(a) * h.r * 1.8 + rnd(-6, 6), t0: Wd.t, life: 0.7, rot: rnd(-1, 1), size: 12 });
+    }
+    if (C.trace) C.trace = C.trace.filter(p => Wd.t - p.t < 1.4);
+    return;
   }
   // à la dérive : il tourne lentement ; il rebondit sur les bords (sauf pour entrer et sortir) et sur la Terre
   C.x += C.vx * dt; C.y += C.vy * dt; C.rot += C.w * dt; C.w *= Math.exp(-dt * 0.3);
@@ -63,6 +76,10 @@ function dessine(ctx, x, y, r, rot, now) {
   // le reflet sur le verre : deux arcs, en haut à gauche
   ctx.lineWidth = 2; ctx.strokeStyle = `rgba(${BL},0.75)`; ctx.beginPath(); ctx.arc(0, 0, r * 0.78, Math.PI * 1.08, Math.PI * 1.38); ctx.stroke();
   ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(0, 0, r * 0.78, Math.PI * 1.45, Math.PI * 1.52); ctx.stroke();
+  // l'éclat qui balaie la visière toutes les quelques secondes, et deux étoiles reflétées dans le verre
+  const bal = (now * 0.35) % 1; if (bal < 0.25) { const e = -1 + bal * 8; ctx.save(); ctx.beginPath(); ctx.arc(0, 0, r * 0.96, 0, TAU); ctx.clip();
+    ctx.strokeStyle = `rgba(${BL},0.55)`; ctx.lineWidth = r * 0.18; ctx.beginPath(); ctx.moveTo(e * r - r * 0.4, -r); ctx.lineTo(e * r + r * 0.4, r); ctx.stroke(); ctx.restore(); }
+  ctx.fillStyle = `rgba(${BL},0.8)`; [[0.42, -0.35, 0.05], [0.55, 0.1, 0.035]].forEach(([u, v, t]) => { ctx.beginPath(); ctx.arc(u * r, v * r, r * t * (0.7 + 0.3 * Math.sin(now * 3 + u * 9)), 0, TAU); ctx.fill(); });
   // le col : un anneau épais en bas
   ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.ellipse(0, r * 0.9, r * 0.62, r * 0.16, 0, 0, TAU); ctx.stroke();
   ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(0, r * 0.9, r * 0.5, r * 0.1, 0, 0, Math.PI); ctx.stroke();
@@ -73,9 +90,15 @@ function dessine(ctx, x, y, r, rot, now) {
 }
 X.devant.push((ctx, now) => {
   if (!C) return;
+  // la traînée du décollage : une flamme de papier (deux traits qui s'effilent) derrière le chat
+  if (C.trace && C.trace.length > 2) { ctx.save(); ctx.lineCap = 'round';
+    for (let i = 1; i < C.trace.length; i++) { const p = C.trace[i], q = C.trace[i - 1], k = 1 - (Wd.t - p.t) / 1.4;
+      ctx.strokeStyle = `rgba(255,${190 + 50 * k | 0},90,${0.8 * k})`; ctx.lineWidth = 2 + 12 * k * k; ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+      ctx.strokeStyle = `rgba(${BL},${0.9 * k})`; ctx.lineWidth = 1 + 4 * k * k; ctx.stroke(); }
+    ctx.restore(); }
   if (C.porte) { const h = tete(C.porte); dessine(ctx, h.x, h.y, h.r, C.porte.spin || 0, now); }
   else dessine(ctx, C.x, C.y, C.r, C.rot, now);
 });
 
-return { get C() { return C; }, arrive };
+return { get C() { return C; }, arrive, met };
 })();

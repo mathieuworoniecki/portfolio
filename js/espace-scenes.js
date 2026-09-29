@@ -480,12 +480,12 @@ S.puce = (() => {
   // les objets posés sur les couches (en 3D, avec la même caméra)
   const OBJ = {
     0(V, y, s, now, e, a) { // un écran : le pied, la dalle, l'interface qui se monte dessus
-      const h = 0.34 * e, z = 0; trait([V(-0.1, y, 0.05), V(0.1, y, 0.05)], false, 1, a); trait([V(0, y, 0.05), V(0, y - 0.08, 0.05)], false, 1, a);
+      const h = 0.26 * e, z = 0; trait([V(-0.1, y, 0.05), V(0.1, y, 0.05)], false, 1, a); trait([V(0, y, 0.05), V(0, y - 0.08, 0.05)], false, 1, a);
       const Q = [V(-0.3, y - 0.08, 0), V(0.3, y - 0.08, 0), V(0.3, y - 0.08 - h, 0), V(-0.3, y - 0.08 - h, 0)]; trait(Q, true, 1.1, a, true);
       const at = (u, v) => [lerp(lerp(Q[3][0], Q[2][0], u), lerp(Q[0][0], Q[1][0], u), v), lerp(lerp(Q[3][1], Q[2][1], u), lerp(Q[0][1], Q[1][1], u), v)];
       if (e > 0.6) { trait([at(0.08, 0.15), at(0.92, 0.15)], false, 0.5, a); [0, 1, 2].forEach(i => { const u = 0.1 + i * 0.28, v = c01((now * 0.6 + i * 0.2) % 1.4); trait([at(u, 0.3), at(u + 0.24, 0.3), at(u + 0.24, 0.8), at(u, 0.8)], true, 0.5, a * (0.5 + 0.5 * v)); }); } },
     1(V, y, s, now, e, a) { // le cœur : le chat-robot, assis sur la puce, qui travaille ; les pistes qui partent de lui s'allument
-      const p = V(0, y - 0.02, 0); chabot(p[0], p[1] - G.s * 0.2 * p[3] * e, G.s * 0.13 * p[3] * e, { now, lac: Math.sin(now * 0.7) * 0.6, travaille: true, a }); },
+      const p = V(0.26, y - 0.02, 0.3); chabot(p[0], p[1] - G.s * 0.2 * p[3] * e, G.s * 0.13 * p[3] * e, { now, lac: Math.sin(now * 0.7) * 0.6, travaille: true, a }); },
     2(V, y, s, now, e, a) { // trois serveurs : des boîtes, leurs fentes, leurs voyants
       [-0.28, 0, 0.28].forEach((x, i) => { const hh = 0.3 * e; boite3(V, x - 0.1, x + 0.1, y, y - hh, -0.12, 0.12, 0.8, a);
         for (let l = 1; l < 4; l++) { const yy = y - hh * l / 4, A = V(x - 0.08, yy, 0.12), B = V(x + 0.06, yy, 0.12); trait([A, B], false, 0.4, a * 0.8); if (bruit(i * 7 + l + Math.floor(now * 3)) > 0.5) brille(B[0], B[1], 1.6, a, false, now, i + l); } }); },
@@ -505,8 +505,11 @@ S.puce = (() => {
     dessin(a, now) {
       const [k] = large(2, 2.4), lab = LAB(), Cy = 8, c = a % Cy, ferme = c > 6 && c < 7 ? Math.sin(Math.PI * (c - 6)) : 0;
       // (en escalier : chaque couche décalée en biais, pour qu'on voie l'objet posé sur chacune)
-      const V0 = cam(0.35 + Math.sin(a * 0.2) * 0.25, -0.5, k * 1.0, -0.12, -0.02), ec = sm(a / 1.6) * (1 - ferme * 0.92), th = 0.05, ks = 0.62;
-      const ys = lab.map((l, j) => (j - 2.5) * 0.3 * ec), dxs = lab.map((l, j) => (j - 2.5) * 0.46 * ec), dzs = lab.map((l, j) => -(j - 2.5) * 0.1 * ec);
+      const V0 = cam(0.35 + Math.sin(a * 0.2) * 0.25, -0.5, k * 0.93, -0.12, 0.02), ec = sm(a / 1.6) * (1 - ferme * 0.92), th = 0.05, ks = 0.62;
+      // (vague 3) une couche après l'autre se soulève et s'allume, de haut en bas : on voit enfin ce que porte chacune
+      const act = c > 1.9 && c < 6.1 ? Math.min(5, Math.floor((c - 1.9) / 0.7)) : -1, lev = lab.map((l, j) => j === act ? Math.sin(Math.PI * c01((c - 1.9 - j * 0.7) / 0.7)) : 0);
+      // (comme un tiroir : elle glisse hors de la pile, vers nous, puis rentre)
+      const ys = lab.map((l, j) => (j - 2.5) * 0.34 * ec - lev[j] * 0.05), dxs = lab.map((l, j) => (j - 2.5) * 0.46 * ec + lev[j] * 0.55), dzs = lab.map((l, j) => -(j - 2.5) * 0.1 * ec + lev[j] * 0.45);
       // les broches du socle (sous la couche du bas), les pistes gravées
       const V = (x, y, z) => V0(dxs[5] + x * ks, y, dzs[5] + z * ks), yb = ys[5] + th, S0 = 0.62;
       for (let i = 0; i < 12; i++) { const u = -S0 + (i + 0.5) / 12 * 2 * S0; [[u, -S0, 0, -1], [u, S0, 0, 1], [-S0, u, -1, 0], [S0, u, 1, 0]].forEach(([x, z, dx, dz]) => { const A = V(x, yb, z), B = V(x + dx * 0.07, yb + 0.04, z + dz * 0.07), C = V(x + dx * 0.08, yb + 0.12, z + dz * 0.08); if (A[2] > -0.2) trait([A, B, C], false, 0.55, 0.7); }); }
@@ -515,21 +518,23 @@ S.puce = (() => {
       // une colonne commune pour les étiquettes, à droite de toutes les couches
       const xcol = Math.min(G.droite - 130, Math.max(...lab.flatMap((l, j) => [[1, 1], [1, -1], [-1, 1]].map(([u, v]) => V0(dxs[j] + u * 0.62 * ks, ys[j], dzs[j] + v * 0.62 * ks)[0]))) + k * 0.12);
       for (let j = 5; j >= 0; j--) {
-        const V = (x, y, z) => V0(dxs[j] + x * ks, y, dzs[j] + z * ks), s = j === 1 ? 0.62 : 0.54, y = ys[j], al = j === 1 ? 1 : 0.9, T = plaque(V, y, s, th, j === 1 ? 1.35 : 1, al);
+        const V = (x, y, z) => V0(dxs[j] + x * ks, y, dzs[j] + z * ks), s = j === 1 ? 0.62 : 0.54, y = ys[j], al = j === 1 ? 1 : 0.9, T = plaque(V, y, s, th, j === 1 || lev[j] > 0.3 ? 1.35 : 1, al);
+        // la couche soulevée : son contour s'illumine, un balayage de lumière traverse son dessus
+        if (lev[j] > 0.05) { const u = c01((c - 1.9 - j * 0.7) / 0.7), zz = lerp(-s, s, u); trait([V(-s, y, zz), V(s, y, zz)], false, 1.4, lev[j]); brille(V(s, y, zz)[0], V(s, y, zz)[1], 4, lev[j], true, now, j); T.forEach((q, i) => brille(q[0], q[1], 2.5 * lev[j], lev[j], false, now, i + j)); }
         // les pistes gravées sur le dessus : des lignes en équerre, une lumière qui y court
         for (let i = 0; i < 6; i++) { const z = -s * 0.8 + i * s * 0.32, x0 = -s * 0.85, x1 = -s * 0.3 + bruit(i + j * 7) * s * 0.4, L = [V(x0, y, z), V(x1, y, z), V(x1 + 0.08, y, z + 0.08 * (i % 2 ? 1 : -1))];
           trait(L, false, 0.4, al * 0.55); const v = (now * 0.5 + i * 0.17 + j * 0.3) % 1; if (v < 0.6) { const q = V(lerp(x0, x1, v / 0.6), y, z); brille(q[0], q[1], 1.5, al * 0.8, false, now, i + j * 6); } }
         // les vias qui montent jusqu'à la couche d'au-dessus
         if (j > 0) VIA.forEach(([x, z], v) => { const A = V(x * s, y, z * s), B = V0(dxs[j - 1] + x * s * ks, ys[j - 1] + th, dzs[j - 1] + z * s * ks); trait([A, B], false, 0.5, 0.5); const u = (now * 0.8 + v * 0.25 + j * 0.13) % 1, w = v % 2 ? u : 1 - u; brille(lerp(A[0], B[0], w), lerp(A[1], B[1], w), 2, 0.9, false, now, v * 7 + j); });
         // l'objet de la couche : il se monte quand la puce est ouverte
-        const e = sm(c01((a - 1.2 - (5 - j) * 0.25) / 0.6)) * (1 - ferme); if (e > 0.02) OBJ[j](V, y, s, now, e, al);
+        const e = sm(c01((a - 1.2 - (5 - j) * 0.25) / 0.6)) * (1 - ferme); if (e > 0.02) OBJ[j](V, y, s, now, e * (1 + lev[j] * 0.25), al);
         // l'étiquette : un trait jusqu'au bord, le nom en petites capitales
         EQ[j] = T.reduce((b, q) => q[0] > b[0] ? q : b, T[0]);
       }
       // les étiquettes, rangées de haut en bas sans se chevaucher
       let yl = -1e9; const gap = Math.max(15, k * 0.085);
       EQ.forEach((R, j) => { const ty = Math.max(R[1], yl + gap); yl = ty; const tx = xcol;
-        trait([R, [tx - 16, ty], [tx - 6, ty]], false, 0.45, 0.6 * (1 - ferme)); rond(R[0], R[1], 2, 0.6, 0.8 * (1 - ferme), true); mot(lab[j].toUpperCase(), tx, ty, Math.max(11, k * (j === 1 ? 0.085 : 0.065)), (j === 1 ? 1 : 0.85) * (1 - ferme), 'left'); });
+        trait([R, [tx - 16, ty], [tx - 6, ty]], false, 0.45, 0.6 * (1 - ferme)); rond(R[0], R[1], 2, 0.6, 0.8 * (1 - ferme), true); mot(lab[j].toUpperCase(), tx + lev[j] * 8, ty, Math.max(11, k * (j === 1 ? 0.085 : 0.065) * (1 + lev[j] * 0.3)), (j === 1 || lev[j] > 0.3 ? 1 : 0.7) * (1 - ferme), 'left'); });
       if (ferme > 0.9) { const C = V0(0, 0, 0); eclat(C[0], C[1], k * 0.6, (ferme - 0.9) * 10, 14, 0.3); mot('clac', C[0] + k * 0.5, C[1] - k * 0.3, Math.max(14, k * 0.1), 1); }
     }
   };
