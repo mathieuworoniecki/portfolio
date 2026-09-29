@@ -929,6 +929,14 @@ S.pilotage = (() => {
       [-1.6, 1.6].forEach(x => trait([Pp(x, 0, 1.4), Pp(x, 0, 60)], false, 1.2, 1));
       [-0.53, 0.53].forEach(x => { for (let j = 0; j < 16; j++) { const z0 = 1.6 + j * 2.4 - (E.roul * 1.2) % 2.4, z1 = z0 + 1.1; if (z0 < 1.4) continue; trait([Pp(x, 0, z0), Pp(x, 0, z1)], false, 0.9 * c01(6 / z0 + 0.3), 0.8); } });
       ctx.restore();
+      // (vague 22 de l'audit : « le bus ») : le long de la route défilent des lampadaires de papier à tête de chat, en alternance à gauche et à droite ;
+      // leurs oreilles, leurs yeux-ampoules qui s'allument : la vitesse se sent, la route a un décor
+      for (let j = 13; j >= 0; j--) { const z = 1.7 + j * 3.2 - (E.roul * 1.6) % 3.2, sd = j % 2 ? 1 : -1; if (z < 1.6 || z > 40) continue;
+        const b = Pp(sd * 2.5, 0, z), h = Pp(sd * 2.5, 1.5, z), bras = Pp(sd * 2.05, 1.5, z), r = Math.max(2, (b[1] - h[1]) * 0.16), al = c01(9 / z);
+        cerne(() => { ctx.beginPath(); ctx.moveTo(b[0], b[1]); ctx.lineTo(h[0], h[1]); ctx.lineTo(bras[0], bras[1]); }, Math.max(0.35, 0.9 * al), 1, null);
+        if (r > 3) { cerne(() => { ctx.beginPath(); ctx.arc(bras[0], bras[1] + r, r, 0, TAU); ctx.moveTo(bras[0] - r * 0.9, bras[1] + r * 0.6); ctx.lineTo(bras[0] - r * 0.7, bras[1] - r * 0.3); ctx.lineTo(bras[0] - r * 0.2, bras[1] + r * 0.1); ctx.moveTo(bras[0] + r * 0.9, bras[1] + r * 0.6); ctx.lineTo(bras[0] + r * 0.7, bras[1] - r * 0.3); ctx.lineTo(bras[0] + r * 0.2, bras[1] + r * 0.1); }, 0.7, 1);
+          [-1, 1].forEach(g => { ctx.globalAlpha = 1; ctx.fillStyle = z < 12 ? '#ffe9a8' : ENC; ctx.beginPath(); ctx.ellipse(bras[0] + g * r * 0.35, bras[1] + r * 1.05, r * 0.16, r * 0.24, 0, 0, TAU); ctx.fill(); ctx.strokeStyle = ENC; ctx.lineWidth = 1; ctx.stroke(); }); }
+        else rond(bras[0], bras[1], 1.5, 0.5, al, true); }
       // les obstacles : ils viennent de l'horizon, sur une des trois voies
       if (now > E.next) { E.next = now + 0.75 + bruit(E.n * 3.3) * 0.7; const sorte = SORTES[Math.floor(bruit(E.n * 7.1) * SORTES.length)], l = Math.floor(bruit(E.n * 1.9) * 3) - 1; E.obs.push({ x: l * 1.06, z: 46, sorte, ph: bruit(E.n) * TAU, n: E.n++ }); }
       E.obs.forEach(o => { o.z -= V * dt; });
