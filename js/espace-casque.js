@@ -70,7 +70,7 @@ const MOD = { drag(k, x, y) { C.x = x; C.y = y; }, release(k, vx, vy) { C.tenu =
 X.grab.push((x, y) => { if (!C || C.porte || Math.hypot(x - C.x, y - C.y) > C.r * 1.2) return null; C.tenu = true; C.vise = null; return { mod: MOD }; });
 
 // le dessin : la bulle, son reflet, le col, l'antenne ; posé sur un chat, par-dessus sa tête
-function dessine(ctx, x, y, r, rot, now) {
+function dessine(ctx, x, y, r, rot, now, porte) {
   ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.lineCap = ctx.lineJoin = 'round'; ctx.strokeStyle = `rgb(${BL})`;
   ctx.lineWidth = 2.4; ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke();
   // le reflet sur le verre : deux arcs, en haut à gauche
@@ -80,6 +80,15 @@ function dessine(ctx, x, y, r, rot, now) {
   const bal = (now * 0.35) % 1; if (bal < 0.25) { const e = -1 + bal * 8; ctx.save(); ctx.beginPath(); ctx.arc(0, 0, r * 0.96, 0, TAU); ctx.clip();
     ctx.strokeStyle = `rgba(${BL},0.55)`; ctx.lineWidth = r * 0.18; ctx.beginPath(); ctx.moveTo(e * r - r * 0.4, -r); ctx.lineTo(e * r + r * 0.4, r); ctx.stroke(); ctx.restore(); }
   ctx.fillStyle = `rgba(${BL},0.8)`; [[0.42, -0.35, 0.05], [0.55, 0.1, 0.035]].forEach(([u, v, t]) => { ctx.beginPath(); ctx.arc(u * r, v * r, r * t * (0.7 + 0.3 * Math.sin(now * 3 + u * 9)), 0, TAU); ctx.fill(); });
+  // (vague 30, l'audit : « le casque ») : porté, il s'embue : à chaque souffle du chat, un nuage de buée monte du bas de la visière puis s'évapore ;
+  // de temps en temps, il y dessine un cœur du bout de la patte, qui s'efface avec la buée
+  if (porte) { const cyc = (now + (porte.id || 0) * 0.7) % 3.2, b = cyc < 0.5 ? cyc / 0.5 : Math.max(0, 1 - (cyc - 0.5) / 2.2);
+    if (b > 0.01) { ctx.save(); ctx.beginPath(); ctx.arc(0, 0, r * 0.95, 0, TAU); ctx.clip(); ctx.fillStyle = `rgba(${BL},${0.3 * b})`;
+      for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.ellipse((i - 2) * r * 0.28, r * (0.72 - 0.25 * b) - Math.abs(i - 2) * r * 0.05, r * 0.3 * (0.6 + 0.4 * b), r * 0.22 * (0.5 + 0.5 * b), 0, 0, TAU); ctx.fill(); }
+      if (Math.floor((now + (porte.id || 0) * 0.7) / 3.2) % 3 === 1 && cyc > 0.7) { const u = Math.min(1, (cyc - 0.7) / 0.9), hx = -r * 0.18, hy = r * 0.5, hs = r * 0.16, P = [];
+        for (let i = 0; i <= 24 * u; i++) { const q = i / 24 * TAU; P.push([hx + 16 * Math.pow(Math.sin(q), 3) * hs / 16, hy - (13 * Math.cos(q) - 5 * Math.cos(2 * q) - 2 * Math.cos(3 * q) - Math.cos(4 * q)) * hs / 16]); }
+        ctx.strokeStyle = `rgba(7,8,12,${0.8 * b + 0.1})`; ctx.lineWidth = 1.4; ctx.beginPath(); P.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke(); }
+      ctx.restore(); } }
   // le col : un anneau épais en bas
   ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.ellipse(0, r * 0.9, r * 0.62, r * 0.16, 0, 0, TAU); ctx.stroke();
   ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(0, r * 0.9, r * 0.5, r * 0.1, 0, 0, Math.PI); ctx.stroke();
@@ -107,7 +116,7 @@ X.devant.push((ctx, now) => {
       ctx.fillStyle = 'rgb(34,36,40)'; [[-0.25, -0.65], [0.25, -0.65], [-0.25, 0.2], [0.25, 0.2]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x * r, y * r, Math.max(0.8, r * 0.06), 0, TAU); ctx.fill(); });
       if (u > 0 && u < 1) [-1, 1].forEach(g => { const L = r * (1.1 + 0.5 * Math.sin(now * 40 + g)); ctx.fillStyle = '#ffd27a'; ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(g * r * 0.55 - r * 0.3, r * 0.95); ctx.quadraticCurveTo(g * r * 0.55, r * 0.95 + L * 1.6, g * r * 0.55 + r * 0.3, r * 0.95); ctx.closePath(); ctx.fill(); ctx.stroke(); });
       ctx.restore(); } }
-  if (C.porte) { const h = tete(C.porte); dessine(ctx, h.x, h.y, h.r, C.porte.spin || 0, now); }
+  if (C.porte) { const h = tete(C.porte); dessine(ctx, h.x, h.y, h.r, C.porte.spin || 0, now, C.porte); }
   else dessine(ctx, C.x, C.y, C.r, C.rot, now);
 });
 
