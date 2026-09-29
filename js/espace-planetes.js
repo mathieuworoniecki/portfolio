@@ -301,6 +301,18 @@ function planete(ctx, now) {
     if (ring >= 1) { const e = pt(0.35, 0), sw = Math.sin(now * 1.3) * r * 0.08; ctx.beginPath(); ctx.moveTo(e[0], e[1]); ctx.bezierCurveTo(e[0] + r * 0.1, e[1] + r * 0.25, e[0] - r * 0.12 + sw, e[1] + r * 0.35, e[0] + r * 0.05 + sw, e[1] + r * 0.5); ctx.stroke();
       ctx.beginPath(); ctx.arc(e[0] + r * 0.09 + sw, e[1] + r * 0.53, r * 0.04, Math.PI, Math.PI * 2.6); ctx.stroke(); } }
   if (lune > 0 && z < 0.3 && devantL) poisson(ctx, lp[0], lp[1], r * 0.16 * lune, Math.cos(la) < 0 ? 1 : -1, now);
+  // (vague 20 de l'audit : « la planète chat ») : un tout petit chat de papier y habite : il se promène sur le haut de la tête, escalade
+  // les oreilles, s'assoit entre elles un moment pour regarder l'espace, puis repart dans l'autre sens
+  if (t >= 1 && z < 0.2) { const Tt = 26, u = (now % Tt) / Tt, tri = u < 0.5 ? u * 2 : 2 - u * 2, pause = Math.abs(tri - 0.5) < 0.08, th = -Math.PI / 2 + (sm(Math.min(1, Math.max(0, (tri - 0.08) / 0.84))) - 0.5) * 2.3, dir = u < 0.5 ? 1 : -1;
+    let k = 1; [-1, 1].forEach(sd => { const c = -Math.PI / 2 + sd * 0.62, d = Math.atan2(Math.sin(th - c), Math.cos(th - c)); if (Math.abs(d) < 0.27) k += 0.46 * ear * Math.pow(1 - Math.abs(d) / 0.27, 1.25); });
+    const px = x + Math.cos(th) * r * k, py = y + Math.sin(th) * r * k * 0.97, s = r * 0.13, pas = pause ? 0 : Math.sin(now * 14) * 0.25;
+    ctx.save(); ctx.translate(px, py); ctx.rotate(th + Math.PI / 2); ctx.scale(dir, 1);
+    const corps = () => { ctx.beginPath(); if (pause) { ctx.ellipse(0, -s * 0.75, s * 0.55, s * 0.75, 0, 0, TAU); } else { ctx.ellipse(0, -s * 0.55, s * 0.9, s * 0.45, 0, 0, TAU); }
+      const hx = pause ? 0 : s * 0.85, hy = pause ? -s * 1.65 : -s * 0.95; ctx.moveTo(hx + s * 0.45, hy); ctx.arc(hx, hy, s * 0.45, 0, TAU); ctx.moveTo(hx - s * 0.4, hy - s * 0.2); ctx.lineTo(hx - s * 0.3, hy - s * 0.7); ctx.lineTo(hx - s * 0.05, hy - s * 0.4); ctx.moveTo(hx + s * 0.4, hy - s * 0.2); ctx.lineTo(hx + s * 0.3, hy - s * 0.7); ctx.lineTo(hx + s * 0.05, hy - s * 0.4); };
+    ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 3.4; corps(); ctx.stroke(); ctx.fillStyle = 'rgb(250,248,242)'; corps(); ctx.fill(); ctx.strokeStyle = 'rgb(34,36,40)'; ctx.lineWidth = 1.2; corps(); ctx.stroke();
+    // la queue, les pattes qui trottent ; assis : la queue autour des pattes
+    ctx.beginPath(); if (pause) { ctx.moveTo(s * 0.4, -s * 0.2); ctx.quadraticCurveTo(s * 1.1, -s * 0.1, s * 0.8, -s * 0.9 + Math.sin(now * 3) * s * 0.2); } else { ctx.moveTo(-s * 0.85, -s * 0.6); ctx.quadraticCurveTo(-s * 1.4, -s * 1.3, -s * 1.2 + Math.sin(now * 4) * s * 0.2, -s * 1.6);
+      [-0.5, 0.5].forEach((o, i) => { ctx.moveTo(o * s, -s * 0.2); ctx.lineTo(o * s + (i ? pas : -pas) * s, s * 0.05); }); } ctx.stroke(); ctx.restore(); }
   // ce qui pousse dessus quand on la survole
   if (P.pousse > 0 && z < 0.3) constructions(ctx, x, y, r, now);
   // le texte qui tourne autour
