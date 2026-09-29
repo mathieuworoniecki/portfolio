@@ -301,7 +301,16 @@ H.pre.push(dt => {
       }
     } else if (L.st === 'sol') {
       // au sol : il reste un moment (les chats jouent avec), puis remonte à sa place (ou s'efface, quand on reste jouer)
-      if (Wd.t - L.t > L.life || (!TL.jeu && Wd.t - (L.out0 || Wd.t) > 22)) { if (TL.jeu) L.a = Math.max(0, L.a - dt / 1.5); else { L.st = 'back'; L.t = Wd.t; L.from = [L.dx, L.dy, L.rot % (Math.PI * 2)]; } }
+      if (Wd.t - L.t > L.life || (!TL.jeu && Wd.t - (L.out0 || Wd.t) > 22)) { if (TL.jeu) L.a = Math.max(0, L.a - dt / 1.5); else { L.st = 'marche'; L.t = Wd.t; L.rot0 = L.rot % (Math.PI * 2); L.pas = rnd(0, 6); } }
+    } else if (L.st === 'marche') {
+      // (vague 6, l'audit : « la lettre qui remonte est mécanique ») : il lui pousse deux pattes à la craie. Elle se relève d'un sursaut,
+      // trottine jusque sous sa place en sautillant (plus vite si un chat la suit de près), puis bondit là-haut
+      const u = Wd.t - L.t, rel = sm(Math.min(1, u / 0.35)); L.rot = L.rot0 * (1 - rel);
+      const home = r.left + L.cx, x = lx(L, r), e = home - x, prs = Wd.cats.some(c => !c.gone && Math.abs(c.x - x) < sc(c) * 1.2 && Math.abs(c.y - fl) < sc(c)), v = Wd.s0 * (prs ? 2.4 : 1.3);
+      if (u > 0.35) { L.pas += dt * (prs ? 22 : 14); L.dx += sgn(e) * Math.min(Math.abs(e), v * dt); L.face = sgn(e) || 1; }
+      const hop = u > 0.35 ? Math.abs(Math.sin(L.pas)) * h * 0.18 : Math.sin(rel * Math.PI) * h * 0.4, ext = h / 2;
+      L.dy += (fl - ext - hop - ly(L, r)); L.vx = L.vy = 0;
+      if ((Math.abs(e) < 3 && u > 0.5) || u > 9) { L.st = 'back'; L.t = Wd.t; L.from = [L.dx, L.dy, L.rot]; dust(x, fl, Math.max(w, 20) * 0.5, 0.6); }
     } else if (L.st === 'back') {
       const u = Math.min(1, (Wd.t - L.t) / 1.1), e = sm(u); L.dx = L.from[0] * (1 - e); L.dy = L.from[1] * (1 - e) - Math.sin(u * Math.PI) * Wd.s0 * 0.8; L.rot = L.from[2] * (1 - e);
       if (u >= 1) { L.st = ''; L.dx = L.dy = L.rot = 0; L.wob = Wd.t; L.wobA = 0.6; L.out0 = 0; }
@@ -715,8 +724,16 @@ H.draw.push(S => {
         C.stroke(P(1), draw, { w: 2.2, a: 0.85 * a, seed: f.seed + j, tip: false }); C.stroke(P(-1), draw, { w: 1.4, a: 0.7 * a, seed: f.seed + j + 5, tip: false }); }
     } else if (f.k === 'poteau') { for (let j = 0; j < 3; j++) { const x = f.x + (j - 1) * f.w; C.line(x, f.y0, x + 1, f.y1, 1, { w: 1.2, a: 0.6 * a, seed: f.seed + j, tip: false, amp: 0.4 }); } }
   });
-  drawTraps(); drawLumps(); drawTongues(); drawBodies(); drawPlume();
+  drawTraps(); drawLumps(); drawTongues(); drawBodies(); drawPlume(); drawPattesLettres();
 });
+// les petites pattes des lettres qui rentrent chez elles : deux traits qui marchent, un pied rond au bout
+function drawPattesLettres() {
+  const Ls = LETTERS(); if (!Ls || !Ls.some(L => L.st === 'marche')) return; const r = RECT();
+  Ls.forEach(L => { if (L.st !== 'marche' || L.a < 0.3) return; const w = L.x1 - L.x0, h = L.y1 - L.y0, x = lx(L, r), y = ly(L, r) + h / 2, k = Math.max(8, h * 0.34), g = sm(Math.min(1, (Wd.t - L.t) / 0.3));
+    [-1, 1].forEach(sd => { const ph = L.pas + (sd > 0 ? Math.PI : 0), bx = x + sd * Math.min(w * 0.25, k * 0.6), fx = bx + Math.sin(ph) * k * 0.45 * (L.face || 1), fy = y + k * g - Math.max(0, Math.cos(ph)) * k * 0.3;
+      Chalk.line(bx, y - 1, fx, fy, 1, { w: 2.8, a: 0.95 * L.a, seed: 70 + sd, tip: false, amp: 0.3 });
+      Chalk.line(fx, fy, fx + (L.face || 1) * k * 0.3, fy, 1, { w: 3, a: 0.95 * L.a, seed: 72 + sd, tip: false, amp: 0.2 }); }); });
+}
 
 return { ptr, plume, V, tombe, TL, puffs, tumble, LETTERS, RECT, lx, ly, rel, setRel, monteTitre, PORTEE };
 })();
