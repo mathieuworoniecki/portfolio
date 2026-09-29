@@ -195,6 +195,28 @@ function sousLaBarre() { ctx.save(); ctx.beginPath(); ctx.rect(0, G.haut - 4, G.
   const Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat; if (Pc) { ctx.moveTo(Pc.x + Pc.r * 1.25, Pc.y); ctx.arc(Pc.x, Pc.y, Pc.r * 1.25, 0, TAU, true); }
   ctx.clip('evenodd'); }
 
+// les éléments d'interface qui flottent autour de l'écran (scène « Front & interfaces »)
+const UI = Array.from({ length: 40 }, (_, i) => ({ x: (i % 2 ? 1 : -1) * (0.5 + bruit(i * 7.3) * 0.5), y: bruit(i * 3.1) * 2 - 1, z: bruit(i * 5.7), t: i % 6, ph: bruit(i * 9.1) * TAU }));
+function uiNuee(now, e) {
+  if (e <= 0) return; const HW = (G.droite - G.gauche) / 2, top = G.haut + 10, bas = G.caps, bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
+  UI.map(q => { const z = (q.z + now * 0.045) % 1, f = 0.35 + z * z * 1.6; return { q, z, f, x: G.cx + q.x * HW * (0.62 + 0.4 * z), y: (top + bas) / 2 + q.y * (bas - top) / 2 * (0.6 + 0.45 * z) }; })
+    .sort((A, B) => A.z - B.z).forEach(({ q, z, f, x, y }) => {
+      const s = G.s * 0.1 * f, al = e * Math.min(1, z * 4, (1 - z) * 5); if (al <= 0.02 || y - s < top || y + s > bas) return;
+      if (bd && x + s * 2 > bd.x && x - s * 2 < bd.x + bd.w && y + s > bd.y && y - s < bd.y + bd.h) return;
+      if (Pc && Math.hypot(x - Pc.x, y - Pc.y) < Pc.r * 1.3 + s * 2) return;
+      const t = now * 1.1 + q.ph, on = Math.sin(t) > 0, g = sm(c01(Math.sin(t) * 3 + 0.5));
+      ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(now * 0.4 + q.ph) * 0.25);
+      if (q.t === 0) { cerne(() => { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-s * 1.2, -s * 0.55, s * 2.4, s * 1.1, s * 0.55) : ctx.rect(-s * 1.2, -s * 0.55, s * 2.4, s * 1.1); }, 0.7, al, on ? '#ffe9a8' : PAP);
+        cerne(() => { ctx.beginPath(); ctx.arc(lerp(-s * 0.62, s * 0.62, g), 0, s * 0.4, 0, TAU); }, 0.7, al); }
+      else if (q.t === 1) { cerne(() => { ctx.beginPath(); ctx.moveTo(-s * 1.4, 0); ctx.lineTo(s * 1.4, 0); }, 0.9, al, null); cerne(() => { ctx.beginPath(); ctx.arc(Math.sin(t * 0.8) * s * 1.2, 0, s * 0.38, 0, TAU); }, 0.7, al); }
+      else if (q.t === 2) { cerne(() => { ctx.beginPath(); ctx.rect(-s * 0.6, -s * 0.6, s * 1.2, s * 1.2); }, 0.7, al); if (on) { ctx.globalAlpha = al; ctx.strokeStyle = ENC; ctx.lineWidth = Math.max(1.2, s * 0.18); ctx.beginPath(); ctx.moveTo(-s * 0.35, 0); ctx.lineTo(-s * 0.08, s * 0.28); ctx.lineTo(s * 0.4, -s * 0.3); ctx.stroke(); } }
+      else if (q.t === 3) { const p = 1 - 0.12 * Math.max(0, Math.sin(t * 2)) ** 8; ctx.scale(p, p); cerne(() => { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-s * 1.4, -s * 0.5, s * 2.8, s, s * 0.3) : ctx.rect(-s * 1.4, -s * 0.5, s * 2.8, s); }, 0.7, al);
+        ctx.globalAlpha = al; ctx.strokeStyle = ENC; ctx.lineWidth = Math.max(1, s * 0.12); ctx.beginPath(); ctx.moveTo(-s * 0.7, 0); ctx.lineTo(s * 0.7, 0); ctx.stroke(); }
+      else if (q.t === 4) { const n = 1 + Math.floor(((now * 0.7 + q.ph) % 5)); for (let i = 0; i < 5; i++) cerne(() => { ctx.beginPath(); for (let j = 0; j < 10; j++) { const a = -Math.PI / 2 + j * Math.PI / 5, r = j % 2 ? s * 0.2 : s * 0.46; ctx.lineTo((i - 2) * s * 1.05 + Math.cos(a) * r, Math.sin(a) * r); } ctx.closePath(); }, 0.5, al, i < n ? '#ffe9a8' : PAP); }
+      else { cerne(() => { ctx.beginPath(); ctx.arc(0, 0, s * 0.7, 0, TAU); }, 0.7, al); ctx.globalAlpha = al; ctx.fillStyle = ENC; ctx.beginPath(); ctx.arc(0, -s * 0.12, s * 0.22, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.ellipse(0, s * 0.42, s * 0.38, s * 0.22, 0, Math.PI, TAU); ctx.fill(); }
+      ctx.restore(); });
+}
+
 /* ——— les scènes ——— */
 const S = {};
 
@@ -696,6 +718,10 @@ S.front = (() => {
         return [0, 1, 2].map(i => [-W + 0.08 + (i % nc) * (cw + 0.06), top + Math.floor(i / nc) * (ch + 0.05), cw, ch]); };
       const CA = cartes(A), CB = cartes(B), CC = CA.map((q, i) => q.map((v, j) => lerp(v, CB[i][j], u)));
       // le cadre (l'écran) ; en téléphone : l'encoche
+      // (vague 15 de l'audit : « un écran plat au milieu du vide ») : tout autour, un univers d'éléments d'interface en papier (interrupteurs,
+      // curseurs, cases, boutons, étoiles d'avis, avatars) qui arrivent du fond vers nous sur toute la largeur du ciel, et vivent (ils basculent,
+      // glissent, se cochent) ; ils passent derrière l'écran, jamais sur les sous-titres ni sur la planète des chats
+      uiNuee(now, b1 ? sm(a / 1.2) : 1);
       const T = Pk(-w, -h); { // (vague 8) le chat-robot assis sur l'écran : quand l'écran se resserre, le bord se dérobe sous lui ; il saute, bras en l'air, et retombe dessus
         const P = Pk(w * 0.55, -h), r = k * 0.1, sa = u > 0 && u < 1 ? Math.sin(Math.PI * u) : 0;
         chabot(P[0], P[1] - r * 0.55 - Math.abs(Math.sin(now * 2)) * r * 0.15 * (1 - sa) - sa * r * 1.6, r, { now, v: 1, lac: sa ? 0 : Math.sin(now * 0.7) * 0.6, cligne: sa > 0.3, bras: sa ? [1.5, 1.5] : [1.2 + Math.sin(now * 6) * 0.4, -0.4] });
