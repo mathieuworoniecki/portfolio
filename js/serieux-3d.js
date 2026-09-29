@@ -425,6 +425,7 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
   [[4, 0.7, 0.35], [6, 1.05, -0.25], [8, 1.4, -0.85]].forEach(([n, r, z], rang) => { for (let i = 0; i < n; i++) {
     const a = (i / (n - 1) - 0.5) * 2.1, g = perso(FM[rang].l, false); foule.add(g); g.add(outil(CL.length % 4, FM[rang].a)); CL.push({ g, fin: V(Math.sin(a) * r, 0.02 + rang * 0.26, z), rang, ph: rnd() * TAU, d: rnd() * 0.25 });
   } });
+  const rapports = points(CL.length * 2, L[1].pa); foule.add(rapports.p);   // chaque copie renvoie son travail ; je le rassemble
   const bras = segments((CL.length + 1) * 8, L[1].l); foule.add(bras.l); const mains = points((CL.length + 1) * 4, L[1].pa); foule.add(mains.p);
   const bouge = (fig, t, s, n, e) => {   // quatre bras : deux paires, épaule → coude → main, qui tapent, attrapent, désignent
     const P = fig.position, sc = fig.scale.x;
@@ -510,6 +511,8 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
     CL.forEach((c, i) => { const e = sm((sortie - c.d) / (1 - c.d)), pop = e * (1 + 0.25 * Math.sin(Math.PI * c01(e * 1.2))); c.g.visible = e > 0.01;
       c.g.position.lerpVectors(moi.position, c.fin, e); c.g.position.y += Math.sin(Math.PI * e) * 0.25; c.g.scale.setScalar(Math.max(0.01, pop * (0.82 - c.rang * 0.1))); bouge(c.g, t, c.ph, i, e); });
     moi.scale.setScalar(1 + 0.08 * Math.sin(Math.PI * sortie)); bouge(moi, t, 0, CL.length, S === 1 ? 0.35 + 0.65 * sortie : 0.15);
+    CL.forEach((c, i) => { for (let j = 0; j < 2; j++) { const u2 = (t * 0.7 + i * 0.137 + j * 0.5) % 1, on = sortie > 0.9 && f[1] > 0.3, P = c.g.position, M = moi.position;
+      rapports.pos.set(on ? [lerp(P.x, M.x, sm(u2)), lerp(P.y + 0.45, M.y + 0.55, sm(u2)) + Math.sin(u2 * Math.PI) * 0.3, lerp(P.z, M.z, sm(u2))] : [0, -99, 0], (i * 2 + j) * 3); } }); rapports.a.needsUpdate = true;
     FM.forEach((m, r) => opac(m, o.op * f[1] * (1 - r * 0.22))); bras.a.needsUpdate = true; mains.a.needsUpdate = true;
     /* 2 : la forge ; chaque module naît d'une boucle, file vers sa prise, s'y branche ; le socle tourne lentement */
     if (S === 2) { if (t2 === null) t2 = t; } else t2 = null;
