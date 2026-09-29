@@ -244,10 +244,34 @@ function ouvre() {
       ? `<li class="ok" style="${st}"><b>${d.t}</b><span>${d.ok || d.h}</span></li>` : `<li style="${st}"><b>???</b><span>${d.h}</span></li>`; }).join('')}</ul></section>`).join(''); })()}
     <footer><button type="button" class="dex-raz">${T('Tout oublier', 'Forget everything')}</button></footer></div>`;
   panneau.hidden = false; panneau.querySelector('.dex-x').focus();
-  panneau.querySelector('.dex-x').onclick = ferme;
+  panneau.querySelector('.dex-x').onclick = ferme; guetteur();
   const raz = panneau.querySelector('.dex-raz'); raz.onclick = () => { if (raz.dataset.sur) { vus = {}; garde(); compte(); ouvre(); } else { raz.dataset.sur = 1; raz.textContent = T('Sûr ? Cliquer encore', 'Sure? Click again'); } };
 }
-function ferme() { panneau.hidden = true; if (btn) btn.focus(); }
+function ferme() { panneau.hidden = true; cancelAnimationFrame(G.raf); if (btn) btn.focus(); }
+/* (vague 7, l'audit : « le carnet est un panneau, pas un moment ») : un chat passe la tête par-dessus le bord du carnet, les pattes posées sur la tranche.
+   Il suit le pointeur le long du bord, ses yeux aussi ; il cligne ; sur une découverte faite, il dresse les oreilles, sur une case « ??? », il penche la tête. */
+const G = { raf: 0, x: 0, tx: 0, ex: 0, ey: 0, mode: '' };
+function guetteur() {
+  const pg = panneau.querySelector('.dex-page'); if (!pg) return;
+  const el = document.createElement('div'); el.className = 'dex-chat'; el.setAttribute('aria-hidden', 'true');
+  el.innerHTML = `<svg viewBox="0 0 120 64"><g class="dc-tete"><path d="M18 64 C16 44 20 30 28 24 L24 3 L44 17 C52 14 68 14 76 17 L96 3 L92 24 C100 30 104 44 102 64"/>
+    <path class="dc-in" d="M30 20 L28 9 L39 17 M90 20 L92 9 L81 17"/><g class="dc-yeux"><ellipse cx="45" cy="42" rx="7" ry="9.5"/><ellipse cx="75" cy="42" rx="7" ry="9.5"/>
+    <circle class="dc-ref" cx="42.5" cy="38" r="2.6"/><circle class="dc-ref" cx="72.5" cy="38" r="2.6"/><circle class="dc-ref" cx="47.5" cy="46" r="1.2"/><circle class="dc-ref" cx="77.5" cy="46" r="1.2"/></g>
+    <path class="dc-nez" d="M57 53 Q60 51 63 53 Q61 56 60 56 Q59 56 57 53 M60 56 Q57 60 54 58 M60 56 Q63 60 66 58"/></g>
+    <path class="dc-patte" d="M22 64 C22 55 36 55 36 64 M84 64 C84 55 98 55 98 64 M27 61 v3 M31 61 v3 M89 61 v3 M93 61 v3"/></svg>`;
+  panneau.appendChild(el);
+  const place = () => { const r = pg.getBoundingClientRect(); G.l = r.left + 70; G.r = r.right - 70; G.top = r.top; if (!G.x) G.x = G.tx = r.left + r.width * 0.3; };
+  place(); G.mode = '';
+  panneau.onpointermove = e => { G.tx = e.clientX; G.px = e.clientX; G.py = e.clientY; const li = e.target.closest && e.target.closest('.dex-page li'); G.mode = li ? (li.classList.contains('ok') ? 'ok' : 'q') : ''; };
+  cancelAnimationFrame(G.raf);
+  const pas = () => { if (panneau.hidden || !el.isConnected) return; place();
+    G.x += (Math.min(G.r, Math.max(G.l, G.tx)) - G.x) * 0.06; const dx = (G.px ?? G.x) - G.x, dy = (G.py ?? G.top + 200) - (G.top - 20), d = Math.hypot(dx, dy) || 1;
+    G.ex += (dx / d * 3.2 - G.ex) * 0.2; G.ey += (dy / d * 3.2 - G.ey) * 0.2;
+    el.style.transform = `translate(${G.x - 75}px, ${G.top - 78}px)`; el.dataset.mode = G.mode;
+    el.querySelector('.dc-yeux').setAttribute('transform', `translate(${G.ex.toFixed(2)} ${G.ey.toFixed(2)})`);
+    G.raf = requestAnimationFrame(pas); };
+  G.raf = requestAnimationFrame(pas);
+}
 panneau.addEventListener('click', e => { if (e.target === panneau) ferme(); });
 addEventListener('keydown', e => { if (e.key === 'Escape' && !panneau.hidden) ferme(); });
 ['pointerdown', 'click', 'wheel', 'touchstart'].forEach(t => panneau.addEventListener(t, e => e.stopPropagation(), { passive: t === 'wheel' || t === 'touchstart' }));
