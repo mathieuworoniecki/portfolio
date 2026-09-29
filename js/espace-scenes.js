@@ -193,50 +193,68 @@ function boite3(V, x0, x1, y0, y1, z0, z1, w = 0.9, a = 1) {
 /* ——— les scènes ——— */
 const S = {};
 
-// 1 dev = 1 équipe : lui, seul sous un projecteur ; pop, pop, pop : des dizaines de gens jaillissent de sa silhouette et remplissent des gradins
+// 1 dev = 1 équipe : lui, seul sous un projecteur ; pop, pop, pop : des dizaines de chats-robots jaillissent de lui et remplissent des gradins
 // jusqu'au fond ; mains en l'air, une ola passe ; puis tout le monde est aspiré en tourbillon et rentre en lui : ×10 ; et ça recommence
+// (vague 14 de l'audit : « la foule reste une bande au milieu ») : les gradins font maintenant le tour de lui, en arène, sur toute la largeur
+// du ciel : quatre rangs en ellipse, les plus loin plus hauts ; l'arène tourne lentement, la ola en fait le tour ; plus d'une centaine d'agents
 S.equipe = (() => {
-  const F = [];
-  [7, 9, 11, 13].forEach((n, r) => { const z = -0.3 - r * 0.62, lx = 0.75 + r * 0.7; for (let i = 0; i < n; i++) F.push({ x: (i / (n - 1) - 0.5) * 2 * lx, z, r, u: i / (n - 1), i: F.length, ph: bruit(F.length * 3.1) * TAU }); });
-  const N = F.length; F.slice().sort((p, q) => Math.hypot(p.x, p.z) - Math.hypot(q.x, q.z)).forEach((f, j) => f.o = j / (N - 1));
-  const DOS = F.slice().sort((p, q) => p.z - q.z);
+  let F = null, cle = '';
+  // les places : quatre rangs d'ellipses autour de lui (calculés à la taille de l'écran)
+  function places() {
+    const pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat, k = [G.cx, G.haut, G.caps, G.droite].map(Math.round).join();
+    if (F && k === cle) return F; cle = k; F = [];
+    const HW = (G.droite - G.gauche) / 2 * 0.96, bot = Math.max(7, Math.min(15, G.s * 0.055)), top = G.haut + bot * 3.4, bas = G.caps - bot * 0.3;
+    // (un bol : chaque rang est plus large et plus haut que le précédent ; le devant de tous les rangs longe le bas du ciel, le fond du dernier touche le haut)
+    const RX = [0.26, 0.47, 0.7, 0.95].map(f => HW * f), ry3 = Math.max(12, (bas - top) / 2), RY = [0, 1, 2, 3].map(i => ry3 * (1 + 0.45 * i) / 2.35), cyA = bas - RY[0];
+    RX.forEach((rx, i) => { const ry = RY[i], n = Math.min(40, Math.floor(Math.PI * (rx + ry) / (bot * 2.1)));
+      for (let j = 0; j < n; j++) F.push({ i, j, n, th: (j + (i % 2) * 0.5) / n * TAU, rx, ry, dy: (bas - ry) - cyA, ph: bruit(F.length * 3.1) * TAU, id: F.length }); });
+    F.cyA = cyA; F.bot = bot; F.pc = pc; F.N = F.length;
+    F.forEach(f => { f.o = (f.i + f.j / f.n) / 4; }); return F;
+  }
   return {
-    cles: () => [[0, 0.1], [0, -0.35], [-0.9, -0.5], [0.9, -0.5], [-1.2, 0.1], [1.2, 0.1]],
+    cles: () => [[0, 0.1], [0, -0.35], [-0.9, -0.3], [0.9, -0.3], [-0.6, 0.35], [0.6, 0.35]],
     dessin(a, now) {
-      const [k] = large(1.6, 2), V = cam(Math.sin(now * 0.15) * 0.05, -0.42, k * 0.8, 0, -0.5), c = Math.min(a + 0.3, 9.2);   // (07:49, Mathieu : « le premier élément se rejoue deux fois » : l'histoire se joue une fois, puis reste sur ×10)
-      // (29/09, 09:57, Mathieu : « des objets 3D pas assez élaborés ») : la foule n'est plus faite de ronds : des chats-robots de papier, et lui, dessiné comme les chats
-      const bot = (q, kk, o) => { const r = G.s * kk * 0.19; if (q[1] < G.haut + r * 2.2) return; chabot(q[0], q[1] - r * 1.75, r, Object.assign({ casque: r > 9 }, o)); };
-      const pied = V(0, 0.84, 0.7), km = 1.25 * pied[3] * k / G.s, coeur = [pied[0], pied[1] - G.s * km * 0.62];
-      let rentres = 0; const vol = [];
-      // les gradins : des lignes au sol, rang par rang
-      [0, 1, 2, 3].forEach(r => { const z = -0.3 - r * 0.62 + 0.2, lx = 0.95 + r * 0.7; trait([V(-lx, 0.84, z), V(lx, 0.84, z)], false, 0.5, prof(z, 0.3 * c01((c - 0.6) / 0.8))); });
-      DOS.forEach(f => {
+      const P = places(), c = Math.min(a + 0.3, 9.2), N = P.N, rot = now * 0.06, pied = [G.cx, P.cyA], pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
+      const rr0 = Math.max(18, P.bot * 2.6), podH = P.bot * 1.4, coeur = [pied[0], pied[1] - podH - rr0 * 1.9];
+      let rentres = 0; const derriere = [], devant = [];
+      // les gradins : chaque rang, son ellipse au sol (sa moitié du fond, puis sa moitié de devant, par-dessus lui)
+      const al0 = c01((c - 0.6) / 0.8);
+      [0, 1, 2, 3].forEach(i => { const f = P.find(q => q.i === i); if (!f) return; const L0 = [], L1 = [];
+        for (let u = 0; u <= 64; u++) { const t = u / 64 * TAU, q = [pied[0] + Math.cos(t) * f.rx * 1.04, pied[1] + Math.sin(t) * f.ry * 1.04 + f.dy + P.bot * 0.2]; (Math.sin(t) < 0 ? L0 : L1).push(q); }
+        derriere.push({ z: -10 - i, f: () => trait(L0, false, 0.5, 0.25 * al0) }); devant.push({ z: 10 + i, f: () => trait(L1, false, 0.5, 0.3 * al0) }); });
+      P.forEach(f => {
         const t1 = 0.7 + f.o * 1.9, t2 = 6.1 + (1 - f.o) * 1.5; if (c < t1) return;
-        const p = V(f.x, 0.84, f.z), kk = 0.5 * p[3] * k / G.s, al = 1;   // (13 h 27 : opaques ; en transparence, les rangs se mélangeaient en gris)
+        const th = f.th + rot, sn = Math.sin(th), x = pied[0] + Math.cos(th) * f.rx, y = pied[1] + sn * f.ry + f.dy, prof2 = 0.72 + 0.28 * (sn + 1) / 2 + f.i * 0.05, r = P.bot * prof2;
+        // (ils ne passent ni sur la planète des chats ni hors du ciel)
+        if (pc && Math.hypot(x - pc.x, y - r - pc.y) < pc.r * 1.3 + r) return;
+        const L = sn < 0 ? derriere : devant, z = sn * (1 + f.i);
         if (c < t1 + 0.55) { const e = sm((c - t1) / 0.55), pop = 1 + 0.35 * Math.sin(Math.PI * e);
-          vol.push(() => { const q = [lerp(coeur[0], p[0], e), lerp(coeur[1], p[1], e) - Math.sin(Math.PI * e) * G.s * 0.5]; bot(q, lerp(0.12, kk, e) * pop, { now, ph: f.i, bras: [1.4, 1.4] });
-            if (e > 0.8) eclat(q[0], q[1] - G.s * kk * 0.7, G.s * 0.05, (e - 0.8) / 0.2, 6, f.i); });
+          devant.push({ z: 99, f: () => { const q = [lerp(coeur[0], x, e), lerp(coeur[1], y, e) - Math.sin(Math.PI * e) * G.s * 0.45]; chabot(q[0], q[1] - r * 1.75, lerp(r * 0.3, r, e) * pop, { now, ph: f.id, bras: [1.4, 1.4], casque: r > 9 });
+            if (e > 0.8) eclat(q[0], q[1] - r * 1.5, r * 0.7, (e - 0.8) / 0.2, 6, f.id); } });
           return; }
         if (c >= t2) { const e = sm((c - t2) / 0.7); if (e >= 1) { rentres++; return; }
-          const sg = f.x < 0 ? 1 : -1, dx = p[0] - coeur[0], dy = p[1] - coeur[1], at = u => { const an = u * 4.4 * sg, r = 1 - u; return [coeur[0] + (dx * Math.cos(an) - dy * Math.sin(an)) * r, coeur[1] + (dx * Math.sin(an) + dy * Math.cos(an)) * r]; };
-          vol.push(() => { const L = [0.18, 0.12, 0.06, 0].map(d => at(Math.max(0, e - d))); trait(L, false, 0.6, 0.5); bot(L[3], kk * (1 - e * 0.75), { now, ph: f.i, bras: [1.5, 1.5] }); });
+          const sg = Math.cos(th) < 0 ? 1 : -1, dx = x - coeur[0], dy = y - coeur[1], at = u => { const an = u * 4.4 * sg, rr = 1 - u; return [coeur[0] + (dx * Math.cos(an) - dy * Math.sin(an)) * rr, coeur[1] + (dx * Math.sin(an) + dy * Math.cos(an)) * rr]; };
+          devant.push({ z: 98, f: () => { const Lq = [0.18, 0.12, 0.06, 0].map(d => at(Math.max(0, e - d))); trait(Lq, false, 0.6, 0.5); chabot(Lq[3][0], Lq[3][1] - r * 1.75, r * (1 - e * 0.7), { now, ph: f.id, bras: [1.5, 1.5], casque: r > 9 }); } });
           return; }
-        // à sa place : les mains s'agitent ; la ola passe deux fois
-        const ola = c > 3.3 && c < 5.9 ? Math.exp(-(((f.u - ((c - 3.3) / 1.3) % 1) * 5) ** 2)) : 0, ag = c01((c - t1 - 0.55) / 0.3);
-        const b = [0.9 + Math.sin(now * 7 + f.ph) * 0.45 * ag + ola * 0.8, 0.9 + Math.sin(now * 7.6 + f.ph + 1.3) * 0.45 * ag + ola * 0.8];
-        bot([p[0], p[1] - (ola * 0.16 + Math.abs(Math.sin(now * 5 + f.ph)) * 0.03 * ag) * G.s * kk], kk, { bras: b.map(v => v - 0.3), a: al, now, ph: f.i, lac: Math.sin(now * 0.5 + f.ph) * 0.5, cligne: Math.sin(now * 1.3 + f.ph * 3) > 0.985 });
+        // à sa place : les mains s'agitent ; la ola fait le tour de l'arène, deux fois (tous les rangs ensemble)
+        const u = ((th / TAU) % 1 + 1) % 1, v = ((c - 3.3) / 1.3) % 1, dd = Math.min(Math.abs(u - v), 1 - Math.abs(u - v)), ola = c > 3.3 && c < 5.9 ? Math.exp(-((dd * 7) ** 2)) : 0, ag = c01((c - t1 - 0.55) / 0.3);
+        const b = [0.6 + Math.sin(now * 7 + f.ph) * 0.45 * ag + ola * 1.1, 0.6 + Math.sin(now * 7.6 + f.ph + 1.3) * 0.45 * ag + ola * 1.1];
+        L.push({ z, f: () => chabot(x, y - r * 1.75 - (ola * 0.9 + Math.abs(Math.sin(now * 5 + f.ph)) * 0.12 * ag) * r, r, { bras: b, now, ph: f.id, casque: r > 9, lac: Math.cos(th) * -0.6 + Math.sin(now * 0.5 + f.ph) * 0.3, cligne: Math.sin(now * 1.3 + f.ph * 3) > 0.985 }) });
       });
-      // lui : le projecteur (seul au début, seul à la fin) ; il dirige pendant que tout le monde s'agite ; il grossit de tous ceux qui rentrent
-      const spot = Math.max(1 - c01((c - 0.7) / 0.5), c01((c - 7.9) / 0.4));
-      if (spot > 0) { const h = [pied[0], G.haut + 4]; style(0.6, spot * 0.5); ctx.beginPath(); ctx.moveTo(h[0] - G.s * 0.04, h[1]); ctx.lineTo(pied[0] - G.s * 0.55, pied[1]); ctx.moveTo(h[0] + G.s * 0.04, h[1]); ctx.lineTo(pied[0] + G.s * 0.55, pied[1]); ctx.stroke();
-        ctx.beginPath(); ctx.ellipse(pied[0], pied[1], G.s * 0.55, G.s * 0.09, 0, 0, TAU); ctx.stroke(); }
-      const dirige = c > 2.6 && c < 6.2, b = dirige ? [1.2 + Math.sin(now * 3.2) * 0.45, 1.2 + Math.sin(now * 3.2 + Math.PI) * 0.45] : c > 8.1 ? [1.6, 1.6] : null;
-      // (07:49, Mathieu : « quand les humains jaillissent, ils passent devant le premier profil au lieu de derrière » : ceux qui volent passent derrière lui)
-      vol.forEach(f => f());
-      { const rr = G.s * km * (1 + 0.14 * rentres / N) * (c > 7.9 ? 1 + 0.06 * Math.sin(Math.PI * c01((c - 7.9) / 0.5)) : 1) * 0.2;
-        lui(pied[0], pied[1] - rr * 2.4, rr, { now, hoche: dirige ? Math.sin(now * 6) : 0, tp: dirige ? 0.25 + 0.25 * Math.sin(now * 3.2) : c > 8.1 ? 0 : 0.1 }); }
-      if (c > 0.7 && c < 2.6) { const j = Math.floor((c - 0.7) / 0.45), u = ((c - 0.7) % 0.45) / 0.45; mot('pop !', coeur[0] + (j % 2 ? -1 : 1) * G.s * (0.5 + 0.2 * bruit(j)), coeur[1] - G.s * (0.2 + 0.3 * bruit(j * 3)) - u * 12, Math.max(13, G.s * 0.1), 1 - u); }
-      if (c > 7.9) { const u = sm((c - 7.9) / 0.5); eclat(coeur[0], coeur[1], G.s * 0.35, (c - 7.9) / 0.7, 12, 0.2); mot('×10', pied[0] + G.s * 0.8, coeur[1] - G.s * 0.15, Math.max(22, G.s * 0.26) * (0.6 + 0.4 * u), u); }
+      derriere.sort((p, q) => p.z - q.z).forEach(d => d.f()); devant.sort((p, q) => p.z - q.z); devant.filter(d => d.z < 90).forEach(d => d.f());
+      // lui, debout sur un petit podium de papier au milieu de l'arène (au-dessus de tous) : le projecteur (seul au début, seul à la fin) ;
+      // il dirige pendant que tout le monde s'agite ; il grossit de tous ceux qui rentrent
+      const spot = Math.max(1 - c01((c - 0.7) / 0.5), c01((c - 7.9) / 0.4)), pw = rr0 * 1.5, pt = pied[1] - podH;
+      if (spot > 0) { const h = [pied[0], G.haut + 4]; style(0.6, spot * 0.5); ctx.beginPath(); ctx.moveTo(h[0] - G.s * 0.04, h[1]); ctx.lineTo(pied[0] - pw * 1.6, pied[1]); ctx.moveTo(h[0] + G.s * 0.04, h[1]); ctx.lineTo(pied[0] + pw * 1.6, pied[1]); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(pied[0], pied[1], pw * 1.6, pw * 0.3, 0, 0, TAU); ctx.stroke(); }
+      cerne(() => { ctx.beginPath(); ctx.moveTo(pied[0] - pw, pt); ctx.lineTo(pied[0] - pw, pied[1]); ctx.ellipse(pied[0], pied[1], pw, pw * 0.26, 0, Math.PI, 0, true); ctx.lineTo(pied[0] + pw, pt); ctx.closePath(); }, 0.9, 1);
+      cerne(() => { ctx.beginPath(); ctx.ellipse(pied[0], pt, pw, pw * 0.26, 0, 0, TAU); }, 0.9, 1);
+      const dirige = c > 2.6 && c < 6.2;
+      { const rr = rr0 * (1 + 0.3 * rentres / N) * (c > 7.9 ? 1 + 0.06 * Math.sin(Math.PI * c01((c - 7.9) / 0.5)) : 1);
+        lui(pied[0], pt - rr * 2.4, rr, { now, hoche: dirige ? Math.sin(now * 6) : 0, tp: dirige ? 0.25 + 0.25 * Math.sin(now * 3.2) : c > 8.1 ? 0 : 0.1 }); }
+      devant.filter(d => d.z >= 90).forEach(d => d.f());
+      if (c > 0.7 && c < 2.6) { const j = Math.floor((c - 0.7) / 0.45), u = ((c - 0.7) % 0.45) / 0.45; mot('pop !', coeur[0] + (j % 2 ? -1 : 1) * G.s * (0.4 + 0.2 * bruit(j)), coeur[1] - G.s * (0.25 + 0.2 * bruit(j * 3)) - u * 12, Math.max(13, G.s * 0.1), 1 - u); }
+      if (c > 7.9) { const u = sm((c - 7.9) / 0.5); eclat(coeur[0], coeur[1], G.s * 0.35, (c - 7.9) / 0.7, 12, 0.2); mot('×10', pied[0] + G.s * 0.55, coeur[1] - G.s * 0.2, Math.max(22, G.s * 0.26) * (0.6 + 0.4 * u), u); }
     }
   };
 })();
