@@ -327,8 +327,15 @@ X.fond.push((ctx, now) => {
     if (e < 1 && qq) {   // (vague 10) l'étoile attend la plume, file vers sa pointe, puis tombe sur sa lettre
       const [cx2, cy2] = plumeXY(pts, qq[2]), v = 1 - e, x0 = F[j], y0 = F[j + 1];
       x = v * v * x0 + 2 * v * e * cx2 + e * e * x; y = v * v * y0 + 2 * v * e * (cy2 - (pts.px || 40) * 0.6) + e * e * y; s = lerp(F[j + 2], s, e); al = lerp(F[j + 3] * 0.8, al, e); tl = null; }
-    else if (e < 1) { const x0 = F[j], y0 = F[j + 1], lx = lerp(x0, x, e) - mx, ly = lerp(y0, y, e) - my, b = Math.sin(Math.PI * e), an = b * (0.5 + r.a * 0.7) * rot, gr = 1 + b * 0.18 * r.b;
-      x = mx + (lx * Math.cos(an) - ly * Math.sin(an)) * gr; y = my + (lx * Math.sin(an) + ly * Math.cos(an)) * gr; s = lerp(F[j + 2], s, e); al = lerp(F[j + 3], al, e); tl = null; }
+    else if (e < 1) {
+      // (vague 26, l'audit : « la nuée ») : le passage d'une forme à l'autre est un vol à travers la nuée : en chemin, chaque étoile vient vers nous
+      // (elle grossit, s'écarte du centre), laisse une traînée de vitesse derrière elle, et s'allume en se posant
+      const x0 = F[j], y0 = F[j + 1], x1 = x, y1 = y, vol = ee => { const lx = lerp(x0, x1, ee) - mx, ly = lerp(y0, y1, ee) - my, b = Math.sin(Math.PI * ee), an = b * (0.5 + r.a * 0.7) * rot, gr = 1 + b * (0.2 + 0.6 * r.b * r.b);
+        return [mx + (lx * Math.cos(an) - ly * Math.sin(an)) * gr, my + (lx * Math.sin(an) + ly * Math.cos(an)) * gr]; };
+      [x, y] = vol(e); s = lerp(F[j + 2], s, e) * (1 + Math.sin(Math.PI * e) * 1.3 * r.b * r.b); al = lerp(F[j + 3], al, e);
+      // (la traînée : là où l'étoile était un peu plus tôt sur son chemin, pas à l'image d'avant : nette même si l'écran rame)
+      if (e > 0.06 && e < 0.9) { const q = vol(e - 0.035), d2 = (q[0] - x) ** 2 + (q[1] - y) ** 2; tl = d2 > 16 ? q : null; }
+      if (e > 0.82) al *= 1 + 1.6 * Math.sin(Math.PI * (e - 0.82) / 0.18); }
     // (le doigt ou la souris : les étoiles s'écartent sur son passage, et tout le ciel penche un peu vers lui, les proches plus que les lointaines)
     if (pt) { const dx = x - pt.x, dy = y - pt.y, d2 = dx * dx + dy * dy; if (d2 < RP * RP) { const dd = Math.sqrt(d2) || 1, q = 1 - dd / RP; x += dx / dd * q * q * RP * 0.5; y += dy / dd * q * q * RP * 0.5; al *= 1 + q * 0.8; }
       x -= pax * Math.min(2, fz) * 18; y -= pay * Math.min(2, fz) * 12; }
