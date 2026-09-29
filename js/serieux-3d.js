@@ -232,7 +232,7 @@ function puce(nom, cfg) {
   /* compétences : au-dessus de la couche qu'on lit, son univers se construit (réseau de neurones, fenêtre, bases, boucle, bouclier, équipe) */
   const EM = {};
   if (cfg.univers) {
-    const Y = 1.2, nv = (id, f) => { const p = piece(o, [0, 2.4, 0]), g = new T.Group(); g.position.y = Y; g.scale.setScalar(0.85); p.g.add(g); const m = C[id].m; f(g, m); EM[id] = { g, L: pieces(g), b: 0, imp: null }; return EM[id]; };
+    const Y = 1.2, nv = (id, f) => { const p = piece(o, [0, 2.4, 0]), g = new T.Group(); g.position.y = Y; g.scale.setScalar(1.05); p.g.add(g); const m = C[id].m; f(g, m); EM[id] = { g, L: pieces(g), b: 0, imp: null }; return EM[id]; };
     { const e = nv('ia', (g, m) => { const P = [[-0.6, [-0.3, 0, 0.3]], [0, [-0.45, -0.15, 0.15, 0.45]], [0.6, [-0.2, 0.2]]], s2 = [], N = [];
         P.forEach(([x, ys]) => ys.forEach(y => { const n = new T.Group(); n.position.set(x, y + 0.45, 0); g.add(n); solide(n, new T.OctahedronGeometry(0.06), m.l, 1); N.push([x, y + 0.45]); }));
         P[0][1].forEach(a => P[1][1].forEach(b => s2.push([-0.6, a + 0.45, 0], [0, b + 0.45, 0]))); P[1][1].forEach(a => P[2][1].forEach(b => s2.push([0, a + 0.45, 0], [0.6, b + 0.45, 0]))); g.add(traits(s2, m.s)); });
@@ -269,6 +269,13 @@ function puce(nom, cfg) {
     });
     C.ia.cores.material.opacity = o.op * (0.6 + 0.4 * Math.sin(t * 2.2));
     const dtt = o._t === undefined ? 0.05 : Math.min(0.2, Math.max(0, t - o._t)); o._t = t;   /* au temps, pas à l'image */
+    if (!o.faisceau) { o.faisceau = { l: segments(4, o.m.s), p: points(16, o.m.pa), a: V(), b: V() }; o.g.add(o.faisceau.l.l, o.faisceau.p.p); }
+    { const F = o.faisceau, id = COUCHES[hl], e = EM[id]; let k = 0;   // le faisceau : l'univers sort de la couche qu'on lit
+      if (e && C[id]) { C[id].g.getWorldPosition(F.a); o.g.worldToLocal(F.a); e.g.getWorldPosition(F.b); o.g.worldToLocal(F.b); k = sm(e.b * 1.6); }
+      const c4 = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+      c4.forEach(([x, z], i) => F.l.pos.set(k > 0.02 ? [F.a.x + x * 0.32, F.a.y + 0.03, F.a.z + z * 0.32, lerp(F.a.x, F.b.x, k) + x * 0.12, lerp(F.a.y, F.b.y, k), lerp(F.a.z, F.b.z, k) + z * 0.12] : [0, -99, 0, 0, -99, 0], i * 6));
+      for (let i = 0; i < 16; i++) { const [x, z] = c4[i % 4], u = (t * 0.7 + i * 0.29) % 1, w = 0.32 + (0.12 - 0.32) * u; F.p.pos.set(k > 0.5 ? [lerp(F.a.x, F.b.x, u * k) + x * w, lerp(F.a.y + 0.03, F.b.y, u * k), lerp(F.a.z, F.b.z, u * k) + z * w] : [0, -99, 0], i * 3); }
+      F.l.a.needsUpdate = true; F.p.a.needsUpdate = true; }
     for (const id in EM) { const e = EM[id], on = COUCHES[hl] === id; e.b = on ? Math.min(1, e.b + dtt * 0.8) : Math.max(0, e.b - dtt * 2.5); construit(e.L, sm(e.b * 1.4), 0.6);
       e.g.visible = e.b > 0.01; e.g.rotation.y = -o.g.rotation.y * 0.6 + Math.sin(t * 0.4) * 0.15; if (e.imp) { if (e.b > 0.6) e.mv(t, e.imp.pos); else e.imp.pos.fill(-99); e.imp.a.needsUpdate = true; } }
     const imp = C.lead.imp, rails = C.lead.rails, n = cfg.impulsions ? cfg.impulsions(t, v) : 0;
