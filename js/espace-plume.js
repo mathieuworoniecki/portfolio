@@ -314,6 +314,11 @@ X.entre.push(() => { M = null; pret = false; fin1 = false;
 X.retour.push(() => { M = null; pret = false; });
 // (20:39, Mathieu : « réduis la taille des chats, on ne voit pas bien le texte ») : pendant la présentation, les chats rapetissent un peu
 X.echelle = c => M && M.sc ? (c.rare === 'geant' ? 0.4 : 0.66) : 1;
+// (29/09, 07:49, Mathieu : « fais gaffe, en petit les chats ne sont pas bien faits ») : le trait (en pixels) ne rapetissait pas avec eux ;
+// les détails se bouchaient. Le trait suit maintenant leur taille (un peu moins vite : racine carrée), jusqu'à la moitié
+X.pas.push((dt, cats) => cats.forEach(c => { if (!c.mats) return; const k = Math.max(0.5, Math.min(1, Math.sqrt((X.echelle(c)) * (X.loin ? X.loin(c) : 1))));
+  if (Math.abs((c.trEp || 1) - k) < 0.01) return; { const e0 = c.trEp || 1; c.trEp = e0 + (k - e0) * Math.min(1, dt * 4); }
+  c.mats.forEach(m => ['line', 'soft', 'out', 'out2'].forEach(n => { const x = m[n], u = x && x.uniforms && x.uniforms.width; if (!u) return; if (x.userData.w0 == null) x.userData.w0 = u.value; u.value = x.userData.w0 * c.trEp; })); }));
 
 X.pas.push((dt, cats) => {
   if (!M) return;

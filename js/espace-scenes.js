@@ -84,6 +84,70 @@ function chabot(x, y, r, o = {}) {
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 function robot(x, y, r, a = 1, cligne = 0, o = {}) { chabot(x, y - r * 0.15, r * 0.82, Object.assign({ a, cligne }, o)); }
 
+// un objet extrudé en 3D (un profil plat, une épaisseur), dans le style des chats : cerné de blanc, rempli de papier, au trait d'encre ;
+// V(u, v, d) : du repère de l'objet vers l'écran ; on peint la face du fond, les flancs du fond vers nous, puis la face de devant (rendue)
+function prisme(V, P2, ep, a = 1, w = 0.8) {
+  const F = P2.map(([u, v]) => V(u, v, -ep / 2)), B = P2.map(([u, v]) => V(u, v, ep / 2)), n = P2.length, zm = L => L.reduce((t, p) => t + p[2], 0) / L.length;
+  const [P0, P1] = zm(F) < zm(B) ? [F, B] : [B, F], poly = L => { ctx.beginPath(); L.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); };
+  const cotes = []; for (let i = 0; i < n; i++) { const j = (i + 1) % n; cotes.push({ L: [F[i], F[j], B[j], B[i]], z: zm([F[i], F[j], B[i], B[j]]) }); }
+  ctx.globalAlpha = a; ctx.lineJoin = ctx.lineCap = 'round'; ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = G.lw * w * 2.3; [P0, P1, ...cotes.map(c => c.L)].forEach(L => { poly(L); ctx.stroke(); });
+  const face = L => { ctx.fillStyle = PAP; poly(L); ctx.fill(); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.9; ctx.stroke(); };
+  face(P0); cotes.sort((p, q) => p.z - q.z).forEach(c => face(c.L)); face(P1); return P1;
+}
+// un repère local : centre (x, y, z), lacet r, taille s → V(u, v, d)
+const repere = (V, x, y, z, r, s, t = 0) => (u, v, d) => { const u1 = u * Math.cos(t) - v * Math.sin(t), v1 = u * Math.sin(t) + v * Math.cos(t); return V(x + (u1 * Math.cos(r) + d * Math.sin(r)) * s, y + v1 * s, z + (-u1 * Math.sin(r) + d * Math.cos(r)) * s); };
+// un mot à l'encre, posé sur une face (il tient dans sa largeur)
+function encre(t, P, a = 1, echelle = 0.34) { const xs = P.map(p => p[0]), ys = P.map(p => p[1]), W = Math.max(...xs) - Math.min(...xs), H = Math.max(...ys) - Math.min(...ys), px = Math.min(H * echelle, W * 1.5 / Math.max(3, t.length));
+  if (px < 6) return; ctx.globalAlpha = a; ctx.fillStyle = ENC; ctx.font = `700 ${px}px "Space Grotesk",system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, xs.reduce((q, x) => q + x, 0) / xs.length, ys.reduce((q, y) => q + y, 0) / ys.length); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; }
+
+// un bloc de papier en 3D (x0..x1, y0..y1, z0..z1)
+function bloc(V, x0, x1, y0, y1, z0, z1, a = 1, w = 0.8) { const zc = (z0 + z1) / 2; return prisme((u, v, d) => V(u, v, zc + d), [[x0, y0], [x1, y0], [x1, y1], [x0, y1]], z1 - z0, a, w); }
+// un cylindre de papier : son flanc (la moitié qui nous regarde), son couvercle ; cerné de blanc
+function cylindre(V, x, z, r, y0, y1, a = 1, w = 0.9) {
+  const B = anneau(V, r, y0, 32, x, z).slice(0, 32), H = anneau(V, r, y1, 32, x, z).slice(0, 32), l = B.reduce((m, p, j) => p[0] < B[m][0] ? j : m, 0), rr = B.reduce((m, p, j) => p[0] > B[m][0] ? j : m, 0);
+  const seg = d => { const L = []; for (let t = l; ; t = (t + d + 32) % 32) { L.push(B[t]); if (t === rr) break; } return L; }, zz = L => L.reduce((q, p) => q + p[2], 0) / L.length, s1 = seg(1), s2 = seg(-1), av = zz(s1) > zz(s2) ? s1 : s2;
+  const path = L => () => { ctx.beginPath(); L.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); };
+  cerne(path([H[l], ...av, H[rr]]), w, a); cerne(path(H), w, a); return { B, H, av }; }
+// un écran de papier épais (son épaisseur part en haut à droite) ; dedans : la nuit
+function ecran(x, y, w, h, ep, r = 6, a = 1) { const V = (u, v, d) => [x + u + (d + ep / 2) * 0.6, y + v - (d + ep / 2) * 0.4, -d, 1];
+  prisme(V, [[0, 0], [w, 0], [w, h], [0, h]], ep, a, 0.9); const i = Math.min(w, h) * 0.04; boite(x + i, y + i, w - 2 * i, h - 2 * i, r, 0.9, a, true); }
+// un engrenage de papier
+function rouage(x, y, r, t, a = 1) { cerne(() => { ctx.beginPath(); for (let k = 0; k < 20; k++) { const u = t + k / 20 * TAU, rr = r * (k % 2 ? 0.76 : 1); ctx.lineTo(x + Math.cos(u) * rr, y + Math.sin(u) * rr); } ctx.closePath(); }, 0.8, a);
+  ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.5; ctx.beginPath(); ctx.arc(x, y, r * 0.3, 0, TAU); ctx.stroke(); }
+// un caillou de l'espace, en papier
+function caillou(x, y, r, t, n, a = 1) { cerne(() => { ctx.beginPath(); for (let i = 0; i < 11; i++) { const u = i / 11 * TAU + t, rr = r * (0.78 + 0.3 * bruit(n * 13 + i)); ctx.lineTo(x + Math.cos(u) * rr, y + Math.sin(u) * rr); } ctx.closePath(); }, 0.7, a);
+  ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.4; ctx.beginPath(); ctx.arc(x + Math.cos(t) * r * 0.3, y + Math.sin(t) * r * 0.3, r * 0.2, 0, TAU); ctx.stroke(); }
+
+// lui, dans le style des chats (29/09, 07:49, Mathieu : « ta forme d'humain pour la dernière étape de la partie 1, c'est vraiment super basique ») :
+// un seul contour à l'encre, rempli de papier, cerné de blanc ; un visage long, les cheveux en épis, la moustache en guidon, deux grands yeux noirs
+// à reflets ; un t-shirt (une petite montagne dessus) ; o.tp (0 → 1) : le bras abat le tampon sur o.cible ; o.hoche : la tête hoche
+function lui(x, y, r, o = {}) {
+  const a = o.a ?? 1, w = clamp01(r / 30) * 0.7 + 0.45, hy = y + (o.hoche || 0) * r * 0.1, by = y + r * 0.95, bw = r * 1.2, bh = r * 1.45, g = o.cote || -1, tp = o.tp || 0;
+  // le bras qui ne tamponne pas, derrière le corps
+  cerne(() => { ctx.beginPath(); ctx.moveTo(x - g * bw * 0.8, by + r * 0.35); ctx.quadraticCurveTo(x - g * bw * 1.25, by + bh * 0.55, x - g * bw * 0.7, by + bh * 0.85); }, w * 1.9, a, null);
+  // le buste : des épaules rondes, le col, une petite montagne sur la poitrine
+  cerne(() => { ctx.beginPath(); ctx.moveTo(x - bw, by + bh); ctx.quadraticCurveTo(x - bw * 1.08, by + r * 0.1, x - r * 0.3, by); ctx.lineTo(x + r * 0.3, by); ctx.quadraticCurveTo(x + bw * 1.08, by + r * 0.1, x + bw, by + bh); ctx.closePath(); }, w, a);
+  ctx.globalAlpha = a; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.7; ctx.beginPath(); ctx.moveTo(x - r * 0.32, by + r * 0.02); ctx.quadraticCurveTo(x, by + r * 0.32, x + r * 0.32, by + r * 0.02); ctx.stroke();
+  const mx = x + r * 0.45, my = by + bh * 0.45; ctx.beginPath(); ctx.moveTo(mx - r * 0.28, my + r * 0.12); ctx.lineTo(mx - r * 0.1, my - r * 0.1); ctx.lineTo(mx, my); ctx.lineTo(mx + r * 0.08, my - r * 0.06); ctx.lineTo(mx + r * 0.26, my + r * 0.12); ctx.stroke();
+  // le cou, la tête : un visage long ; les cheveux en épis par-dessus
+  cerne(() => { ctx.beginPath(); ctx.rect(x - r * 0.22, by - r * 0.35, r * 0.44, r * 0.45); }, w * 0.8, a);
+  cerne(() => { ctx.beginPath(); ctx.ellipse(x, hy, r * 0.7, r * 0.98, 0, 0, TAU); }, w, a);
+  cerne(() => { ctx.beginPath(); const n = 7; for (let i = 0; i <= n; i++) { const t = Math.PI + 0.25 + i / n * (Math.PI - 0.5), R = i % 2 ? 1.14 + 0.08 * Math.sin(i * 3.7) : 0.97, j = i % 2 ? 0.12 * Math.sin(i * 2.1) : 0; ctx.lineTo(x + Math.cos(t + j) * r * 0.72 * R, hy - r * 0.18 + Math.sin(t + j) * r * 0.95 * R); }
+    for (let i = 8; i >= 0; i--) { const t = Math.PI + 0.25 + i / 8 * (Math.PI - 0.5); ctx.lineTo(x + Math.cos(t) * r * 0.7, hy - r * 0.05 + Math.sin(t) * r * 0.72); } ctx.closePath(); }, w, a);
+  // les yeux : deux grands ovales noirs, deux reflets (ils clignent)
+  const cl = Math.sin((o.now || 0) * 1.1 + 1) > 0.985 ? 0.12 : 1;
+  [-1, 1].forEach(s => { const ex = x + s * r * 0.28, ey = hy + r * 0.08; ctx.globalAlpha = a; ctx.fillStyle = ENC; ctx.beginPath(); ctx.ellipse(ex, ey, r * 0.12, r * 0.17 * cl, 0, 0, TAU); ctx.fill();
+    if (cl > 0.5) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex - r * 0.04, ey - r * 0.06, r * 0.045, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(ex + r * 0.04, ey + r * 0.06, r * 0.022, 0, TAU); ctx.fill(); } });
+  // la moustache en guidon (les pointes relevées), le sourire dessous
+  ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.95; ctx.beginPath(); [-1, 1].forEach(s => { ctx.moveTo(x, hy + r * 0.42); ctx.quadraticCurveTo(x + s * r * 0.2, hy + r * 0.56, x + s * r * 0.38, hy + r * 0.42); ctx.quadraticCurveTo(x + s * r * 0.46, hy + r * 0.34, x + s * r * 0.4, hy + r * 0.28); }); ctx.stroke();
+  ctx.lineWidth = G.lw * w * 0.6; ctx.beginPath(); ctx.moveTo(x - r * 0.12, hy + r * 0.64); ctx.quadraticCurveTo(x, hy + r * 0.72, x + r * 0.12, hy + r * 0.64); ctx.stroke();
+  // le bras qui tamponne : de l'épaule à la main, le tampon (sa poignée ronde, son bloc) ; au repos, levé ; abattu : sur la cible
+  const ep = [x + g * bw * 0.8, by + r * 0.35], repos = [x + g * bw * 1.35, by - r * 0.7], ci = o.cible || repos, st = r * 0.55, main = [lerp(repos[0], ci[0], tp), lerp(repos[1], ci[1] - st * 1.1, tp)];
+  cerne(() => { ctx.beginPath(); ctx.moveTo(...ep); ctx.quadraticCurveTo(lerp(ep[0], main[0], 0.5) + g * r * 0.3, lerp(ep[1], main[1], 0.5) + r * 0.3, main[0], main[1]); }, w * 1.9, a, null);
+  cerne(() => { ctx.beginPath(); ctx.rect(main[0] - st * 0.55, main[1] + st * 0.35, st * 1.1, st * 0.45); }, w, a); cerne(() => { ctx.beginPath(); ctx.rect(main[0] - st * 0.12, main[1] - st * 0.1, st * 0.24, st * 0.48); }, w * 0.8, a);
+  cerne(() => { ctx.beginPath(); ctx.arc(main[0], main[1] - st * 0.2, st * 0.22, 0, TAU); }, w, a);
+}
+
 // (28/09, 20:40, Mathieu : « revois toutes tes animations, c'est vraiment super basique » : tout passe en 3D, sur toute la largeur de l'écran du ciel)
 // une caméra : lacet, tangage (négatif : on regarde d'en haut), échelle ; → (x, y, z) : [x, y à l'écran, profondeur, grossissement]
 function cam(lac, tan, k = G.s, ox = 0, oy = 0, d = 3.6) {
@@ -219,30 +283,53 @@ S.agents = (() => {
 // des skills et des plugins sur mesure : un noyau (un cube dans un octaèdre, qui tournent) ; les outils arrivent du fond et se mettent en orbite ;
 // l'un après l'autre, chacun plonge vers le noyau et s'y branche (câble, flash, étincelles), puis reprend son orbite
 S.skills = (() => {
+  // (29/09, 07:49, Mathieu : « tout n'est pas dans le style espace, exemple tes labels skill, MCP ») : plus d'étiquettes ; chaque outil est un
+  // vrai module en 3D, en papier, cerné de blanc comme les chats : une cartouche (skill), une touche de clavier (/commande), un petit chat-robot
+  // (agent), une prise à broches (MCP), une pièce de puzzle (plugin). Ils gravitent autour d'une station en anneau où travaille l'agent principal ;
+  // tour à tour, un rayon tracteur en attrape un et l'arrime : l'agent lève les bras, la station s'allume
   const LAB = () => en() ? ['skill', '/command', 'agent', 'MCP', 'plugin', 'skill'] : ['skill', '/commande', 'agent', 'MCP', 'plugin', 'skill'];
-  const CU = [[-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1], [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]], AC = [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7]];
-  const OC = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]], AO = [[0, 2], [0, 3], [0, 4], [0, 5], [1, 2], [1, 3], [1, 4], [1, 5], [2, 4], [4, 3], [3, 5], [5, 2]];
+  const KIND = ['skill', 'cmd', 'agent', 'mcp', 'plugin', 'skill'];
+  const puzzle = (() => { const L = [[-0.8, -0.8], [-0.3, -0.8]]; for (let i = 0; i <= 10; i++) { const t = Math.PI * (1 - i / 10); L.push([0.3 * Math.cos(t), -0.8 - 0.32 * Math.sin(t)]); }
+    L.push([0.8, -0.8], [0.8, -0.3]); for (let i = 0; i <= 10; i++) { const t = Math.PI * i / 10; L.push([0.8 + 0.32 * Math.sin(t), -0.3 * Math.cos(t)]); } L.push([0.8, 0.8], [-0.8, 0.8]); return L; })();
+  const PROF = { skill: [[-0.8, -1], [0.45, -1], [0.8, -0.65], [0.8, 1], [-0.8, 1]], cmd: [[-0.9, -0.65], [-0.65, -0.9], [0.65, -0.9], [0.9, -0.65], [0.9, 0.65], [0.65, 0.9], [-0.65, 0.9], [-0.9, 0.65]],
+    mcp: [[-0.75, -0.35], [0.75, -0.35], [0.75, 0.6], [0.35, 1], [-0.35, 1], [-0.75, 0.6]], plugin: puzzle };
+  function module(V, q, now, k) {
+    const [x, y, z] = q.w, s = 0.15 * (1 + q.e * 0.25), al = prof(q.p[2], 1), rot = lerp(now * 0.7 + q.i * 1.3, 0.5, q.e), tl = Math.sin(now * 0.9 + q.i) * 0.25 * (1 - q.e);
+    if (q.kind === 'agent') { chabot(q.p[0], q.p[1], k * 0.07 * q.p[3], { now, ph: q.i, lac: Math.sin(now * 0.8 + q.i) * 0.7, a: al, bras: q.e > 0.3 ? [1.4, 1.4] : null }); return; }
+    const R = repere(V, x, y, z, rot, s, tl);
+    if (q.kind === 'mcp') [-0.4, 0.4].forEach(u => prisme((uu, v, d) => R(u + uu, v, d), [[-0.12, -0.9], [0.12, -0.9], [0.12, -0.35], [-0.12, -0.35]], 0.18, al, 0.6));
+    const F = prisme(R, PROF[q.kind], q.kind === 'cmd' ? 0.7 : 0.36, al, 0.8);
+    ctx.globalAlpha = al; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35;
+    if (q.kind === 'skill') { const zF = F[0][2] > R(0, 0, 0)[2] ? 0.18 : -0.18; for (let l = 0; l < 4; l++) { const A = R(-0.6, 0.55 + l * 0.1, zF), B = R(0.6, 0.55 + l * 0.1, zF); ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke(); } }
+    if (q.kind === 'cmd') { const zF = F[0][2] > R(0, 0, 0)[2] ? 0.35 : -0.35, I = [[-0.6, -0.6], [0.6, -0.6], [0.6, 0.6], [-0.6, 0.6]].map(([u, v]) => R(u, v, zF)); ctx.beginPath(); I.forEach((p, j) => j ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.stroke(); }
+    encre(q.l, F, al, q.kind === 'cmd' ? 0.3 : 0.28);
+  }
   return {
     cles: () => [0, 1, 2, 3, 4, 5].map(i => { const t = i / 6 * TAU; return [Math.cos(t) * 0.35, Math.sin(t) * 0.35]; }),
     dessin(a, now) {
-      const lab = LAB(), [k, lx] = large(1.5, 2), V = cam(0, -0.34, k, 0, 0.02), Rr = Math.min(1.6, lx * 0.85), rot = now * 0.3;
+      const lab = LAB(), [k, lx] = large(1.5, 2), V = cam(0, -0.26, k, 0, -0.13), Rr = Math.min(1.6, lx * 0.85), rot = now * 0.25;
       let flash = 0, nb = 0;
       const it = lab.map((l, i) => { const e0 = sm((a - 0.2 - i * 0.35) / 0.8), u = a > 2.6 ? (a - 2.6 - i * 1.25) % 7.5 : -1, e = u > 0 && u < 1.3 ? Math.sin(Math.PI * u / 1.3) : 0;
         if (u > 0.55 && u < 1.1) flash = Math.max(flash, 1 - (u - 0.55) / 0.55); if (e0 >= 1) nb++;
-        const t = i / 6 * TAU + rot, r = lerp(3.4, lerp(Rr, 0.45, e), e0), y = lerp(-1.4, Math.sin(now * 1.2 + i) * 0.06, e0);
-        return { l, i, e, p: V(Math.cos(t) * r, y, Math.sin(t) * r) }; });
-      trait3(anneau(V, Rr, 0, 60), 0.6, 0.55); trait3(anneau(V, Rr * 0.72, 0.02, 48), 0.4, 0.3);
-      const C = V(0, 0, 0);
-      const carte = q => { const [x, y, z, f] = q.p, al = prof(z), px = Math.max(10, k * 0.085 * f), w = q.l.length * 0.58 * px + px * 1.6, h = px * 2;
-        if (q.e > 0.05) { trait([[x, y], C], false, 1, q.e); const v = (now * 1.5) % 1; brille(lerp(x, C[0], v), lerp(y, C[1], v), 2.8, q.e, true, now, q.i); }
-        boite(x - w / 2, y - h / 2, w, h, h * 0.3, 0.95, al, true); mot(q.l, x, y + 1, px, al); };
-      it.filter(q => q.p[2] < 0).sort((p, q) => p.p[2] - q.p[2]).forEach(carte);
-      const Cm = cam(now * 0.7, now * 0.45, k * (1 + flash * 0.2), 0, 0.02), Co = cam(-now * 0.4, 0.5, k * (1 + flash * 0.12), 0, 0.02);
-      const cu = CU.map(([x, y, z]) => Cm(x * 0.2, y * 0.2, z * 0.2)), oc = OC.map(([x, y, z]) => Co(x * 0.42, y * 0.42, z * 0.42));
-      AO.forEach(([i, j]) => trait([oc[i], oc[j]], false, 0.8, 0.7)); AC.forEach(([i, j]) => trait([cu[i], cu[j]], false, 1.15, 1));
-      for (let j = 0; j < nb; j++) { style(0.5, 0.2 + 0.05 * j); ctx.beginPath(); ctx.ellipse(C[0], C[1], k * (0.55 + j * 0.06), k * (0.55 + j * 0.06) * 0.34, 0, 0, TAU); ctx.stroke(); }
-      brille(C[0], C[1], 3 + flash * 6, 1, flash > 0.3, now, 0); if (flash > 0) eclat(C[0], C[1], k * 0.3, 1 - flash, 10, now);
-      it.filter(q => q.p[2] >= 0).sort((p, q) => p.p[2] - q.p[2]).forEach(carte);
+        const t = i / 6 * TAU + rot, r = lerp(3.4, lerp(Rr, 0.62, e), e0), y = lerp(-1.4, Math.sin(now * 1.2 + i) * 0.08 - e * 0.12, e0), w = [Math.cos(t) * r, y, Math.sin(t) * r];
+        return { l, i, e, kind: KIND[i], w, p: V(...w) }; });
+      // les orbites
+      trait3(anneau(V, Rr, 0, 72), 0.6, 0.55); trait3(anneau(V, Rr * 0.72, 0.02, 60), 0.4, 0.3);
+      const C = V(0, 0, 0), avant = q => q.p[2] >= 0;
+      // les rayons tracteurs (sous les modules)
+      it.forEach(q => { if (q.e > 0.05) { const H = V(0, -0.02, 0); ctx.globalAlpha = q.e * 0.18; ctx.fillStyle = `rgb(${BL})`; const d = Math.hypot(q.p[0] - H[0], q.p[1] - H[1]) || 1, nx = -(q.p[1] - H[1]) / d, ny = (q.p[0] - H[0]) / d, lw = k * 0.08 * q.p[3];
+        ctx.beginPath(); ctx.moveTo(H[0] + nx * 3, H[1] + ny * 3); ctx.lineTo(q.p[0] + nx * lw, q.p[1] + ny * lw); ctx.lineTo(q.p[0] - nx * lw, q.p[1] - ny * lw); ctx.lineTo(H[0] - nx * 3, H[1] - ny * 3); ctx.fill();
+        for (let j = 0; j < 3; j++) { const v = (now * 1.6 + j / 3) % 1; brille(lerp(q.p[0], H[0], v), lerp(q.p[1], H[1], v), 2.4, q.e, true, now, q.i * 3 + j); } } });
+      it.filter(q => !avant(q)).sort((p, q) => p.p[2] - q.p[2]).forEach(q => module(V, q, now, k));
+      // la station : un anneau épais (deux cercles, des rayons, des hublots qui s'allument), l'agent principal au milieu
+      const Ra = 0.5, h0 = -0.04, h1 = 0.05, A0 = anneau(V, Ra, h0, 48), A1 = anneau(V, Ra, h1, 48), I0 = anneau(V, Ra * 0.82, h0, 48);
+      for (let j = 0; j < 48; j += 4) { trait([A0[j], A1[j]], false, 0.6, prof(A0[j][2], 0.8)); }
+      trait3(I0, 0.6, 0.6); trait3(A1, 1, 1); trait3(A0, 1.2, 1);
+      [0, 1, 2, 3].forEach(j => { const t = j / 4 * TAU + now * 0.1; trait([V(Math.cos(t) * Ra * 0.82, h0, Math.sin(t) * Ra * 0.82), V(Math.cos(t) * 0.1, 0, Math.sin(t) * 0.1)], false, 0.5, 0.6); });
+      for (let j = 0; j < 12; j++) { if (j >= nb * 2 && flash < 0.3) continue; const t = j / 12 * TAU + 0.13, q = V(Math.cos(t) * Ra, (h0 + h1) / 2, Math.sin(t) * Ra); if (q[2] > -0.2) brille(q[0], q[1], 2.2, 0.9, flash > 0.3, now, j); }
+      const rb = k * 0.14 * (1 + flash * 0.08); chabot(C[0], C[1] - rb * 1.1, rb, { now, lac: Math.sin(now * 0.5) * 0.5, travaille: true, bras: flash > 0.2 ? [1.5, 1.5] : null });
+      if (flash > 0) eclat(C[0], C[1] - rb * 1.1, k * 0.3, 1 - flash, 10, now);
+      it.filter(avant).sort((p, q) => p.p[2] - q.p[2]).forEach(q => module(V, q, now, k));
     }
   };
 })();
@@ -317,7 +404,7 @@ S.gardefous = (() => {
   return {
     cles: () => [[-0.95, -0.2], [-0.35, -0.2], [0.25, -0.2], [1.2, -0.3]],
     dessin(a, now) {
-      const [k, lx] = large(1.55, 2.1), V = cam(-0.3, -0.42, k * 1.15, -0.05, 0.12), yT = 0.3, x0 = -lx, xS = lx * 0.5, xs = [-lx * 0.62, -lx * 0.28, lx * 0.06], lab = LAB(), vit = 0.36, T = 1.0;
+      const [k, lx] = large(1.55, 2.1), V = cam(-0.3, -0.42, k * 1.1, -0.08, -0.04), yT = 0.3, x0 = -lx, xS = lx * 0.5, xs = [-lx * 0.62, -lx * 0.28, lx * 0.06], lab = LAB(), vit = 0.36, T = 1.0;
       [-0.2, 0.2].forEach(z => trait([V(x0, yT, z), V(xS + 0.1, yT, z)], false, 0.9, prof(z)));
       for (let j = 0; j < 26; j++) { const x = x0 + ((j * 0.13 + a * vit) % (xS + 0.1 - x0)); trait([V(x, yT, -0.2), V(x, yT, 0.2)], false, 0.35, 0.4); }
       const carte = (x, y, z, al, rt = 0) => { const R = (u, w) => [x + u * Math.cos(rt) - w * Math.sin(rt), z + u * Math.sin(rt) + w * Math.cos(rt)], Q = [[-0.09, -0.13], [0.09, -0.13], [0.09, 0.13], [-0.09, 0.13]].map(([u, w]) => { const [px, pz] = R(u, w); return V(px, y, pz); });
@@ -332,15 +419,15 @@ S.gardefous = (() => {
         if (x > g + 0.03) { const d = (x - g - 0.03) / vit, px = g + 0.03 + d * 0.12, pz = d * 1.0, py = yT - Math.sin(Math.min(d, 0.5) * Math.PI) * 0.2 + Math.max(0, d - 0.25) ** 2 * 3; if (py > 1.4) continue;
           carte(px, py, pz, 1, d * 4); if (d < 0.8) { const c = V(px + 0.12, py - 0.2, pz); trait([[c[0] - 6, c[1] - 6], [c[0] + 6, c[1] + 6]], false, 1.1, 1); trait([[c[0] + 6, c[1] - 6], [c[0] - 6, c[1] + 6]], false, 1.1, 1); } continue; }
         const xa = xS - 0.05; if (x < xa) { carte(x, yT - 0.015, 0, 1); continue; }
-        const ts = (x - xa) / vit; if (ts < 0.6) { carte(xa, yT - 0.015, 0, 1); if (ts > 0.2) { tampon = 1; const c = V(xa, yT - 0.1, 0); coche(c[0], c[1], k * 0.05, (ts - 0.2) / 0.25, 1.1); } continue; }
+        const ts = (x - xa) / vit; if (ts < 0.6) { carte(xa, yT - 0.015, 0, 1); tampon = Math.max(tampon, ts < 0.25 ? sm(ts / 0.25) : 1 - sm((ts - 0.3) / 0.3)); if (ts > 0.2) { const c = V(xa, yT - 0.1, 0); coche(c[0], c[1], k * 0.05, (ts - 0.2) / 0.25, 1.1); } continue; }
         const m = sm((ts - 0.6) / 0.8); if (m >= 1) continue; carte(lerp(xa, xP, m), lerp(yT, yT - Math.min(14, pile) * 0.03, m) - Math.sin(Math.PI * m) * 0.3, lerp(0, zP, m), 1); }
       // les portiques : l'arche, son nom, son faisceau qui balaie
       xs.forEach((g, i) => { const A = [V(g, yT, -0.3), V(g, yT - 0.5, -0.3), V(g, yT - 0.5, 0.3), V(g, yT, 0.3)]; trait(A, false, 1.1, 1); trait([V(g - 0.04, yT - 0.5, -0.3), V(g - 0.04, yT - 0.5, 0.3)], false, 0.5, 0.6);
         const v = (now * 1.3 + i * 0.3) % 1, y = yT - 0.46 + v * 0.44; trait([V(g, y, -0.28), V(g, y, 0.28)], false, 0.8, 0.9); brille(V(g, y, 0.28)[0], V(g, y, 0.28)[1], 2.2, 0.8, false, now, i);
         const L = V(g, yT - 0.64, 0); mot(lab[i], L[0], L[1], Math.max(10, k * 0.07), 0.9); });
       // l'humain : il regarde, hoche la tête, tamponne
-      const hp = V(xS + 0.18, yT, 0.35), kk = 0.62 * hp[3] * k / G.s, hoche = Math.max(0, Math.sin(now * 2.2)) ** 6;
-      gens([hp[0], hp[1] + hoche * 3], kk, { w: 1, bras: tampon ? [1.5, -0.2] : null }); mot(lab[3], hp[0], hp[1] + k * 0.1, Math.max(10, k * 0.07), 0.85);
+      const hp = V(xS + 0.34, yT, -0.28), rr = k * 0.15 * hp[3], hoche = Math.max(0, Math.sin(now * 2.2)) ** 6, ci = V(xS - 0.05, yT - 0.02, 0);
+      lui(hp[0], hp[1] - rr * 2.5, rr, { now, hoche, tp: tampon, cible: ci, cote: -1 }); mot(lab[3], hp[0], hp[1] + k * 0.06, Math.max(10, k * 0.07), 0.85);
     }
   };
 })();
@@ -426,8 +513,9 @@ S.ia = (() => {
     dessin(a, now) {
       const [k, lx] = large(1.5, 2.1), Pk = (x, y) => [G.cx + x * k, G.cy + y * k], xd = -lx * 0.8, xa = lx * 0.78, Cy = 7, c = a % Cy, R = 0.66, V = cam(now * 0.28, -0.25, k);
       // les documents, en éventail ; le faisceau de lecture
-      [2, 1, 0].forEach(j => { const p = Pk(xd + j * 0.08, -0.05 - j * 0.04); ctx.save(); ctx.translate(p[0], p[1]); ctx.rotate(-0.09 * j); boite(-0.2 * k, -0.34 * k, 0.4 * k, 0.68 * k, 4, 1, j ? 0.7 : 1, true);
-        if (!j) for (let l = 0; l < 7; l++) trait([[-0.13 * k, (-0.23 + l * 0.08) * k], [(0.13 - (l % 3) * 0.05) * k, (-0.23 + l * 0.08) * k]], false, 0.55, 0.8); ctx.restore(); });
+      [2, 1, 0].forEach(j => { const p = Pk(xd + j * 0.08, -0.05 - j * 0.04); ctx.save(); ctx.translate(p[0], p[1]); ctx.rotate(-0.09 * j); ctx.translate(j * k * 0.02, -j * k * 0.02); cerne(() => { ctx.beginPath(); ctx.moveTo(-0.2 * k, -0.34 * k); ctx.lineTo(0.1 * k, -0.34 * k); ctx.lineTo(0.2 * k, -0.24 * k); ctx.lineTo(0.2 * k, 0.34 * k); ctx.lineTo(-0.2 * k, 0.34 * k); ctx.closePath(); }, 0.9, 1);
+        ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.5; ctx.beginPath(); ctx.moveTo(0.1 * k, -0.34 * k); ctx.lineTo(0.1 * k, -0.24 * k); ctx.lineTo(0.2 * k, -0.24 * k); ctx.stroke();
+        if (!j) { ctx.lineWidth = G.lw * 0.4; ctx.beginPath(); for (let l = 0; l < 7; l++) { ctx.moveTo(-0.13 * k, (-0.2 + l * 0.08) * k); ctx.lineTo((0.13 - (l % 3) * 0.05) * k, (-0.2 + l * 0.08) * k); } ctx.stroke(); } ctx.restore(); });
       const lb = -0.32 + ((now * 0.35) % 1) * 0.6, A0 = Pk(xd - 0.25, lb), A1 = Pk(xd + 0.25, lb); trait([A0, A1], false, 1.1, 1); brille(A1[0], A1[1], 3, 1, false, now, 1);
       // le nuage : il tourne ; ses liens ; il se remplit
       const Q = Vs.map(([x, y, z]) => V(x * R, y * R, z * R)), nb = Math.min(Nn, 30 + Math.floor(a * 16));
@@ -441,12 +529,12 @@ S.ia = (() => {
       if (c > 0.6 && c < 2.2) { mot('?', qA[0], qA[1], Math.max(18, k * 0.18), 1); if (qu > 0 && qu < 1) brille(lerp(qA[0], Qc[0], qu), lerp(qA[1], Qc[1], qu), 3.5, 1, true, now, 2); }
       if (on) { rond(Qc[0], Qc[1], 6, 1, 1); PR.forEach((i, j) => { const q = Q[i], u = c01((c - 1.8 - j * 0.12) / 0.3); trait([Qc, [lerp(Qc[0], q[0], u), lerp(Qc[1], q[1], u)]], false, 0.8, 0.9); if (u >= 1) brille(q[0], q[1], 3, 1, false, now, i); }); }
       // la réponse s'écrit, puis va à l'agent ; il agit
-      const R0 = Pk(xa, -0.5), wr = 0.52 * k, hr = 0.34 * k; boite(R0[0] - wr / 2, R0[1] - hr / 2, wr, hr, 6, 1, 1, true);
+      const R0 = Pk(xa, -0.5), wr = 0.52 * k, hr = 0.34 * k; ecran(R0[0] - wr / 2, R0[1] - hr / 2, wr, hr, k * 0.06, 6);
       const ec = c01((c - 2.6) / 1.2); for (let l = 0; l < 3; l++) { const u = c01(ec * 3 - l); if (u > 0) trait([[R0[0] - wr * 0.38, R0[1] - hr * 0.22 + l * hr * 0.22], [R0[0] - wr * 0.38 + wr * (0.76 - (l === 2 ? 0.3 : 0)) * u, R0[1] - hr * 0.22 + l * hr * 0.22]], false, 0.6, 0.9); }
       if (c > 2.2 && c < 2.9) { const v = (c - 2.2) / 0.7; brille(lerp(Qc[0], R0[0] - wr / 2, v), lerp(Qc[1], R0[1], v), 3.2, 1, true, now, 3); }
-      const ag = Pk(xa, 0.2); robot(ag[0], ag[1], k * 0.13, 1, Math.sin(now * 1.5) > 0.97, { now, lac: Math.sin(now * 0.8) * 0.5, travaille: c > 4.5 && c < 5.5 });
+      const ag = Pk(xa, 0.16); robot(ag[0], ag[1], k * 0.17, 1, Math.sin(now * 1.5) > 0.97, { now, lac: Math.sin(now * 0.8) * 0.5, travaille: c > 4.5 && c < 5.5 });
       if (c > 3.9 && c < 4.6) { const v = (c - 3.9) / 0.7; brille(lerp(R0[0], ag[0], v), lerp(R0[1] + hr / 2, ag[1] - k * 0.1, v), 3, 1, true, now, 4); }
-      roue(ag[0], ag[1] + k * 0.3, k * 0.075, c > 4.5 ? (c - 4.5) * 4 : 0, 0.9, 1);
+      rouage(ag[0] + k * 0.22, ag[1] + k * 0.22, k * 0.06, c > 4.5 ? (c - 4.5) * 4 : 0);
       if (c > 5) coche(ag[0] + k * 0.2, ag[1] - k * 0.16, k * 0.05, (c - 5) / 0.4, 1);
     }
   };
@@ -468,7 +556,8 @@ S.front = (() => {
         return [0, 1, 2].map(i => [-W + 0.08 + (i % nc) * (cw + 0.06), top + Math.floor(i / nc) * (ch + 0.05), cw, ch]); };
       const CA = cartes(A), CB = cartes(B), CC = CA.map((q, i) => q.map((v, j) => lerp(v, CB[i][j], u)));
       // le cadre (l'écran) ; en téléphone : l'encoche
-      const T = Pk(-w, -h); boite(T[0], T[1], 2 * w * k, 2 * h * k, k * lerp(0.1, 0.03, large01), 1.2, 1, true);
+      const T = Pk(-w, -h); { const P = Pk(w * 0.55, -h), r = k * 0.1; chabot(P[0], P[1] - r * 0.55 - Math.abs(Math.sin(now * 2)) * r * 0.15, r, { now, lac: Math.sin(now * 0.7) * 0.6, bras: [1.2 + Math.sin(now * 6) * 0.4, -0.4] }); }
+      ecran(T[0], T[1], 2 * w * k, 2 * h * k, k * 0.1, k * lerp(0.1, 0.03, large01));
       if (large01 < 1) { const n = Pk(0, -h + 0.05); boite(n[0] - k * 0.07, n[1] - k * 0.015, k * 0.14, k * 0.03, k * 0.015, 0.7, 1 - large01); }
       trait([Pk(-w, -h + 0.16), Pk(w, -h + 0.16)], false, 0.8, 0.9);
       [0, 1, 2].forEach(i => { const p = Pk(-w + 0.09 + i * 0.07, -h + 0.08); rond(p[0], p[1], 2.2, 0.6, large01, true); });
@@ -484,12 +573,12 @@ S.front = (() => {
       const eb = b1 ? sm((a - 1.6) / 0.4) : 1, bw = Math.min(0.4, w * 1.1), bx = large01 * w * 0.5, by = h - 0.15; if (eb > 0) { const p = Pk(bx - bw / 2, by - 0.06); boite(p[0], p[1], bw * k * eb, 0.12 * k, 6, 0.95, 1, true); }
       // le curseur : il va au bouton, clique ; l'onde ; le cube jaillit
       const vc = sm((c - 1.8) / 1), cu = Pk(lerp(-0.2, bx, vc), lerp(h + 0.2, by, vc)), clic = c - 2.8;
-      if (c > 1.8 && c < 4.4) trait([cu, [cu[0], cu[1] + k * 0.12], [cu[0] + k * 0.035, cu[1] + k * 0.085], [cu[0] + k * 0.08, cu[1] + k * 0.08]], true, 0.9, 1, true);
+      if (c > 1.8 && c < 4.4) cerne(() => { ctx.beginPath(); ctx.moveTo(cu[0], cu[1]); ctx.lineTo(cu[0], cu[1] + k * 0.13); ctx.lineTo(cu[0] + k * 0.035, cu[1] + k * 0.095); ctx.lineTo(cu[0] + k * 0.06, cu[1] + k * 0.14); ctx.lineTo(cu[0] + k * 0.08, cu[1] + k * 0.13); ctx.lineTo(cu[0] + k * 0.055, cu[1] + k * 0.085); ctx.lineTo(cu[0] + k * 0.095, cu[1] + k * 0.085); ctx.closePath(); }, 0.8, 1);
       if (clic > 0 && clic < 0.6) { style(0.8, 1 - clic / 0.6); ctx.beginPath(); ctx.arc(cu[0], cu[1], k * 0.25 * clic / 0.6, 0, TAU); ctx.stroke(); }
       const ec = clic > 0.2 ? Math.sin(Math.PI * c01((clic - 0.2) / 3.2)) : 0;
       if (ec > 0.01) { const s = 0.12 + ec * 0.3, Cm = cam(now * 1.1, now * 0.7, k), o = Pk(0, -0.05 - ec * 0.12);
-        const Vv = [[-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1], [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]].map(([x, y, z]) => { const q = Cm(x * s, y * s, z * s); return [q[0] + o[0] - G.cx, q[1] + o[1] - G.cy]; });
-        [[0, 1, 2, 3], [4, 5, 6, 7]].forEach(f => trait(f.map(i => Vv[i]), true, 1.1, 1, true)); [0, 1, 2, 3].forEach(i => trait([Vv[i], Vv[i + 4]], false, 1.1, 1)); Vv.forEach((v, i) => brille(v[0], v[1], 2, ec, false, now, i)); }
+        const Vc = (u, v, d) => { const q = Cm(u * s, v * s, d * s); return [q[0] + o[0] - G.cx, q[1] + o[1] - G.cy, q[2], q[3]]; }, F = prisme(Vc, [[-1, -1], [1, -1], [1, 1], [-1, 1]], 2, 1, 1); encre('</>', F, 1, 0.3);
+        [[-1, -1, -1], [1, 1, 1], [1, -1, 1], [-1, 1, -1]].forEach(([x, y, z], i) => { const q = Vc(x, y, z); brille(q[0], q[1], 2, ec, false, now, i); }); }
       const nom = NOMS()[u < 0.5 ? A : B], al = u > 0 ? Math.abs(u - 0.5) * 2 : 1, L = Pk(0, h + 0.12); if (c > 4) mot(nom, L[0], L[1], Math.max(10, k * 0.07), al * 0.85);
     }
   };
@@ -500,25 +589,24 @@ S.front = (() => {
 S.back = (() => ({
   cles: () => [[-0.62, -0.5], [-0.62, 0.5], [0.85, -0.45], [0.85, 0.45]],
   dessin(a, now) {
-    const [k, lx] = large(1.5, 2.1), V = cam(0.42, -0.62, k * 0.95, 0, 0.16), xA = -lx * 0.7, xW = lx * 0.05, xD = lx * 0.68, zs = [-0.6, 0, 0.6], yS = 0.3;
+    const [k, lx] = large(1.5, 2.1), V = cam(0.42, -0.62, k * 0.95, 0, 0.04), xA = -lx * 0.7, xW = lx * 0.05, xD = lx * 0.68, zs = [-0.6, 0, 0.6], yS = 0.3;
     // les murs entre les bases
     [-0.3, 0.3].forEach(z => { const Q = [V(xD - 0.32, yS, z), V(xD + 0.32, yS, z), V(xD + 0.32, yS - 0.42, z), V(xD - 0.32, yS - 0.42, z)]; trait(Q, true, 0.7, 0.6);
       for (let j = 1; j < 4; j++) trait([V(xD - 0.32, yS - j * 0.105, z), V(xD + 0.32, yS - j * 0.105, z)], false, 0.35, 0.4); });
     // les files : deux rails ; l'engrenage
     zs.forEach((z, i) => { [-0.07, 0.07].forEach(o => trait([V(xA + 0.14, yS, z + o), V(xW - 0.14, yS, z + o)], false, 0.5, 0.5)); trait([V(xW + 0.14, yS - 0.05, z), V(xD - 0.2, yS - 0.3, z)], false, 0.4, 0.35);
-      const g = V(xW, yS - 0.1, z); roue(g[0], g[1], k * 0.085 * g[3], now * 2 * (i % 2 ? -1 : 1), 0.9, 1); });
+      const g = V(xW, yS - 0.1, z); rouage(g[0], g[1], k * 0.085 * g[3], now * 2 * (i % 2 ? -1 : 1)); });
     // la passerelle
-    boite3(V, xA - 0.1, xA + 0.1, yS, yS - 0.45, -0.75, 0.75, 1, 1); const la = V(xA, yS - 0.64, 0); mot('API', la[0], la[1], Math.max(11, k * 0.09), 1);
+    bloc(V, xA - 0.1, xA + 0.1, yS, yS - 0.45, -0.75, 0.75, 1, 0.9); zs.forEach(z => { const d = [V(xA + 0.1, yS, z - 0.08), V(xA + 0.1, yS, z + 0.08), V(xA + 0.1, yS - 0.14, z + 0.08), V(xA + 0.1, yS - 0.14, z - 0.08)]; ctx.globalAlpha = 1; ctx.fillStyle = ENC; ctx.beginPath(); d.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.fill(); });
+    { const t = V(xA, yS - 0.45, 0.2), r = k * 0.075 * t[3]; chabot(t[0], t[1] - r * 1.75, r, { now, lac: Math.sin(now * 0.9) * 0.9, travaille: true }); } const la = V(xA, yS - 0.45, -0.45); mot('API', la[0], la[1] - k * 0.08, Math.max(11, k * 0.09), 1);
     // les bases : des cylindres qui se remplissent
-    zs.forEach((z, i) => { const r = 0.17, hh = 0.36, B = anneau(V, r, yS, 28, xD, z), H = anneau(V, r, yS - hh, 28, xD, z), l = B.reduce((m, p, j) => p[0] < B[m][0] ? j : m, 0), rr = B.reduce((m, p, j) => p[0] > B[m][0] ? j : m, 0);
-      ctx.beginPath(); ctx.moveTo(H[l][0], H[l][1]); ctx.lineTo(B[l][0], B[l][1]); B.slice(Math.min(l, rr), Math.max(l, rr) + 1).forEach(p => ctx.lineTo(p[0], p[1])); ctx.lineTo(H[rr][0], H[rr][1]); ctx.globalAlpha = 1; ctx.fillStyle = NUIT; ctx.fill();
-      trait([B[l], H[l]], false, 1, 1); trait([B[rr], H[rr]], false, 1, 1); trait(B, true, 1, 1); trait(H, true, 1, 1, true);
-      const nv = Math.floor((a * 1.2 + i * 1.7) % 5); for (let j = 1; j <= nv; j++) trait(anneau(V, r, yS - j * hh / 6, 28, xD, z), true, 0.45, 0.55);
+    zs.forEach((z, i) => { const r = 0.17, hh = 0.36; cylindre(V, xD, z, r, yS, yS - hh);
+      const nv = Math.floor((a * 1.2 + i * 1.7) % 5); ctx.globalAlpha = 0.7; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.45; for (let j = 1; j <= 3; j++) { const C = cylindre.av || null; const L = anneau(V, r, yS - j * hh / 4, 28, xD, z), D = L.filter(p => p[2] >= V(xD, yS - j * hh / 4, z)[2] - 1e-3); if (j <= nv) { ctx.beginPath(); D.forEach((p, q) => q ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke(); } }
       const t = V(xD, yS - hh - 0.14, z); mot(['A', 'B', 'C'][i], t[0], t[1], Math.max(10, k * 0.08), 0.9); });
     // les requêtes : elles arrivent, sont triées, traitées, rangées
     for (let q = 0; q < 18; q++) { const t = (now * 0.3 + q / 18) % 1, cl = Math.floor(bruit(q * 3.3) * 3), z = zs[cl], z0 = (bruit(q * 9.1) - 0.5) * 1.6; let p;
       if (t < 0.25) p = V(lerp(-lx * 1.15, xA - 0.12, t / 0.25), yS - 0.1, z0); else if (t < 0.6) p = V(lerp(xA + 0.14, xW - 0.14, (t - 0.25) / 0.35), yS - 0.03, z); else if (t < 0.7) p = V(xW, yS - 0.1 - Math.sin((t - 0.6) / 0.1 * Math.PI) * 0.08, z); else { const u = (t - 0.7) / 0.3; p = V(lerp(xW + 0.14, xD, u), yS - 0.05 - u * 0.36 - Math.sin(Math.PI * u) * 0.25, z); }
-      const s = k * 0.04 * p[3]; boite(p[0] - s, p[1] - s * 0.7, s * 2, s * 1.4, 2, 0.7, prof(p[2]), true); }
+      const s = k * 0.04 * p[3]; cerne(() => { ctx.beginPath(); ctx.rect(p[0] - s, p[1] - s * 0.7, s * 2, s * 1.4); }, 0.6, prof(p[2])); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath(); ctx.moveTo(p[0] - s, p[1] - s * 0.7); ctx.lineTo(p[0], p[1]); ctx.lineTo(p[0] + s, p[1] - s * 0.7); ctx.stroke(); }
   }
 }))();
 
@@ -534,15 +622,17 @@ S.devops = (() => ({
     trait3(bord(0.08), 1, 1); trait3(bord(-0.08), 1, 1);
     const lab = en() ? ['build', 'test', 'deploy', 'monitor'] : ['build', 'test', 'déploie', 'surveille'], ST = [0.35, 1.25, 3.5, 4.4];
     const conts = []; for (let q = 0; q < 12; q++) conts.push((now * 0.5 + q / 12 * TAU) % TAU);
-    ST.forEach((t, i) => { const p = at(t), [tx, tz] = nor(t), A = V(p[0] - tz * 0.13, p[1], p[2] + tx * 0.13), B = V(p[0] + tz * 0.13, p[1], p[2] - tx * 0.13), A1 = V(p[0] - tz * 0.13, p[1] - 0.22, p[2] + tx * 0.13), B1 = V(p[0] + tz * 0.13, p[1] - 0.22, p[2] - tx * 0.13);
-      const vif = conts.some(u => Math.abs(Math.atan2(Math.sin(u - t), Math.cos(u - t))) < 0.12); trait([A, A1, B1, B], false, vif ? 1.3 : 0.9, 1); if (vif) brille((A1[0] + B1[0]) / 2, (A1[1] + B1[1]) / 2, 3.5, 1, true, now, i);
+    ST.forEach((t, i) => { const p = at(t), [tx, tz] = nor(t), G3 = (u, v, d) => V(p[0] - tz * u + tx * d, p[1] + v, p[2] + tx * u + tz * d);
+      const vif = conts.some(u => Math.abs(Math.atan2(Math.sin(u - t), Math.cos(u - t))) < 0.12);
+      [[-0.15, -0.12], [0.12, 0.15]].forEach(([u0, u1]) => prisme(G3, [[u0, 0], [u1, 0], [u1, -0.24], [u0, -0.24]], 0.04, 1, 0.7)); prisme(G3, [[-0.16, -0.22], [0.16, -0.22], [0.16, -0.28], [-0.16, -0.28]], 0.05, 1, 0.7);
+      if (vif) { const q = G3(0, -0.25, 0); brille(q[0], q[1], 4, 1, true, now, i); }
       const m = V(p[0], p[1] - 0.34, p[2]); mot(lab[i], m[0], m[1], Math.max(10, k * 0.075), 0.9); });
     // les conteneurs : de vraies petites boîtes, orientées dans le sens de la marche
-    conts.map(t => ({ t, p: at(t) })).sort((p, q) => p.p[2] - q.p[2]).forEach(({ t, p }) => { const [tx, tz] = nor(t), c = (u, w, y) => V(p[0] + tx * u - tz * w, p[1] + y, p[2] + tz * u + tx * w);
-      const C = [[-0.08, -0.05], [0.08, -0.05], [0.08, 0.05], [-0.08, 0.05]].map(([u, w]) => [c(u, w, 0), c(u, w, -0.09)]);
-      C.forEach(q => trait(q, false, 0.8, 1)); trait(C.map(q => q[1]), true, 0.8, 1, true); trait([c(-0.03, -0.05, -0.09), c(-0.03, 0.05, -0.09)], false, 0.4, 0.8); trait([c(0.03, -0.05, -0.09), c(0.03, 0.05, -0.09)], false, 0.4, 0.8); });
+    conts.map((t, q) => ({ t, q, p: at(t) })).sort((p, q) => p.p[2] - q.p[2]).forEach(({ t, q, p }) => { const [tx, tz] = nor(t), c = (u, w, y) => V(p[0] + tx * u - tz * w, p[1] + y, p[2] + tz * u + tx * w);
+      prisme((u, v, d) => c(u, d, v), [[-0.08, 0], [0.08, 0], [0.08, -0.09], [-0.08, -0.09]], 0.1, prof(c(0, 0, 0)[2], 1), 0.6);
+      if (q === 0) { const h = c(0, 0, -0.09), r = k * 0.05 * h[3]; chabot(h[0], h[1] - r * 1.7, r, { now, lac: 0.5, bras: [1.3, 1.3] }); } });
     // le monitoring : un écran, son pouls qui défile
-    const mw = Math.min(1.1, lx * 0.6) * k, mh = 0.24 * k, mc = [G.cx, G.cy + k * 0.66]; boite(mc[0] - mw / 2, mc[1] - mh / 2, mw, mh, 5, 0.9, 1, true);
+    const mw = Math.min(1.1, lx * 0.6) * k, mh = 0.24 * k, mc = [G.cx, G.cy + k * 0.66]; ecran(mc[0] - mw / 2, mc[1] - mh / 2, mw, mh, k * 0.06, 5);
     const M = []; for (let i = 0; i <= 70; i++) { const u = i / 70, t = u * 3.5 - now * 0.8, f = t - Math.floor(t), b = f > 0.4 && f < 0.5 ? Math.sin((f - 0.4) / 0.1 * TAU) * 0.35 : 0; M.push([mc[0] - mw * 0.45 + u * mw * 0.9, mc[1] - b * mh]); } trait(M, false, 0.8, 1);
   }
 }))();
@@ -552,7 +642,7 @@ S.devops = (() => ({
 S.secu = (() => ({
   cles: () => [0, 1, 2, 3, 4, 5].map(i => [Math.cos(i / 6 * TAU) * 0.6, Math.sin(i / 6 * TAU) * 0.6]),
   dessin(a, now) {
-    const [k, lx] = large(1.2, 2), V = cam(now * 0.2, -0.42, k, 0, 0.3), R = 0.82, sw = now * 1.3;
+    const [k, lx] = large(1.2, 2), V = cam(now * 0.2, -0.42, k, 0, 0.14), R = 0.82, sw = now * 1.3;
     trait3(anneau(V, Math.min(1.8, lx * 0.9), 0, 64), 0.5, 0.35); trait3(anneau(V, R * 1.3, 0, 64), 0.5, 0.5);
     for (let j = 0; j < 9; j++) { const t = sw - j * 0.05; trait([V(0, 0, 0), V(Math.cos(t) * R * 1.3, 0, Math.sin(t) * R * 1.3)], false, 0.9 - j * 0.07, 0.9 - j * 0.1); }
     // le dôme
@@ -560,12 +650,14 @@ S.secu = (() => ({
     for (let j = 0; j < 10; j++) { const t = j / 10 * TAU, L = []; for (let i = 0; i <= 12; i++) { const f = i / 12 * Math.PI / 2; L.push(V(Math.cos(t) * R * Math.cos(f), -R * Math.sin(f), Math.sin(t) * R * Math.cos(f))); } trait3(L, 0.7, 0.9); }
     trait3(anneau(V, R, 0, 48), 1.3, 1);
     // le cadenas
-    const c0 = V(0, -0.12, 0), s = k * 0.12; boite(c0[0] - s, c0[1] - s * 0.1, 2 * s, 1.5 * s, 4, 1, 1, true); style(1, 1); ctx.beginPath(); ctx.arc(c0[0], c0[1] - s * 0.1, s * 0.65, Math.PI, 0); ctx.stroke(); rond(c0[0], c0[1] + s * 0.6, 2.4, 0.8, 1, true);
+    const c0 = V(0, -0.12, 0), s = k * 0.12; cerne(() => { ctx.beginPath(); ctx.arc(c0[0], c0[1] - s * 0.1, s * 0.62, Math.PI, 0); }, 1.6, 1, null); cerne(() => { ctx.beginPath(); ctx.rect(c0[0] - s, c0[1] - s * 0.1, 2 * s, 1.5 * s); }, 1, 1);
+    ctx.fillStyle = ENC; ctx.beginPath(); ctx.arc(c0[0], c0[1] + s * 0.5, s * 0.16, 0, TAU); ctx.fill(); ctx.fillRect(c0[0] - s * 0.06, c0[1] + s * 0.5, s * 0.12, s * 0.4);
+    { const g = V(0.4, 0, 0.25), r = k * 0.075 * g[3]; chabot(g[0], g[1] - r * 1.75, r, { now, lac: Math.sin(now * 0.6) * 0.9, travaille: true, bras: [0.9 + Math.sin(now * 4) * 0.3, -0.3] }); }
     // les menaces
     const T = 2.4; let bloq = 0;
     for (let q = 0; q < 6; q++) { const tt = a + q * T / 6, t = tt % T, n = Math.floor(tt / T), th = bruit(q * 7 + n * 13) * TAU, ph = 0.2 + bruit(q * 3 + n * 5) * 1.1, dir = [Math.cos(th) * Math.cos(ph), -Math.sin(ph), Math.sin(th) * Math.cos(ph)];
       bloq += n; const pt = d => V(dir[0] * d, dir[1] * d, dir[2] * d);
-      if (t < 1.2) { const d = lerp(2.6, R, t / 1.2), p = pt(d), p0 = pt(d + 0.3); trait([p0, p], false, 0.9, 0.9); rond(p[0], p[1], 3, 0.6, 1, true); }
+      if (t < 1.2) { const d = lerp(2.6, R, t / 1.2), p = pt(d), p0 = pt(d + 0.3); trait([p0, p], false, 0.9, 0.9); caillou(p[0], p[1], k * 0.035 * p[3], now * 2 + q, q * 7 + n, 1); }
       else if (t < 2.2) { const u = (t - 1.2) / 1, p = pt(R); eclat(p[0], p[1], 12, u, 7, th);
         // l'onde, à la surface du dôme
         const up = Math.abs(dir[1]) > 0.95 ? [1, 0, 0] : [0, 1, 0], cr = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], nz = v => { const l = Math.hypot(...v); return v.map(x => x / l); }, e1 = nz(cr(dir, up)), e2 = cr(dir, e1), rho = 0.06 + u * 0.55, L = [];
