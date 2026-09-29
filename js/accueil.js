@@ -19,7 +19,7 @@ addEventListener('resize', () => { taille = null; });   // { id, txt, at: () => 
 function montre(b) {
   if (!b) { if (courant) { bulle.classList.remove('on'); setTimeout(() => { if (!courant) bulle.hidden = true; }, 300); } courant = null; return; }
   if (courant && courant.id === b.id) { courant.at = b.at; return; }
-  courant = b; bulle.textContent = b.txt; bulle.hidden = false; taille = null; requestAnimationFrame(() => bulle.classList.add('on'));
+  courant = b; bulle.textContent = b.txt; bulle.style.minWidth = ''; bulle.hidden = false; bulle.style.minWidth = bulle.offsetWidth + 'px'; taille = null; requestAnimationFrame(() => bulle.classList.add('on'));
 }
 function place() {
   if (!courant) return; const p = courant.at(); if (!p || Wd.a < 0.6) { bulle.style.opacity = 0; return; } bulle.style.opacity = '';
@@ -84,6 +84,27 @@ H.draw.push(() => {
     for (let i = 0; i < 3; i++) { const a = t + i * 2.1, r = R * (1 + 0.15 * Math.sin(t * 1.7 + i)), x0 = p[0] + Math.cos(a) * r, y0 = p[1] + 10 + Math.sin(a) * r * 0.55, x1 = p[0] + Math.cos(a + 0.7) * r, y1 = p[1] + 10 + Math.sin(a + 0.7) * r * 0.55;
       Chalk.line(x0, y0, x1, y1, 1, { w: 1.4, a: 0.45 * Wd.a * (0.6 + 0.4 * Math.sin(t * 3 + i)), seed: 40 + i }); } });
 });
+
+/* ——— (vague 4 de l'audit : « une bulle plate posée sur la scène ») : le geste montré. Une main fantôme, à la craie, fait le geste de l'étape
+   en boucle, là où il faut le faire : elle attrape et tire, elle caresse, elle tape dans le vide (onde), elle lance (l'arc et sa flèche) ;
+   et la bulle s'écrit à la main, lettre après lettre ——— */
+function main(x, y, a, appuie) {   // le curseur : une flèche au trait ; appuyée, un petit rond dessous
+  const s = Math.max(0.8, Wd.s0 / 150), Q = [[0, 0], [0, 19], [5, 15], [9, 23], [13, 21], [9, 13], [15, 13], [0, 0]].map(([u, v]) => [x + u * s, y + v * s]);
+  Chalk.stroke(Q, 1, { w: 2.2, a, seed: 71, tip: false }); if (appuie) Chalk.circle(x, y, 7 * s, 5 * s, 1, { w: 1.6, a: a * 0.8, seed: 72 });
+}
+H.draw.push(() => {
+  if (!etape || !courant || courant.id !== etape.id || Wd.a < 0.6 || !window.Chalk) return; const p = etape.at(); if (!p) return;
+  const t = (Wd.t * 0.55) % 1, a = 0.75 * Wd.a * Math.min(1, t * 8, (1 - t) * 8), s0 = Wd.s0 / 150, x = p[0] + 26 * s0, y = p[1] + 34 * s0;
+  if (etape.id === 'attrape') { const u = Math.max(0, (t - 0.3) / 0.6), dy = -Math.sin(Math.min(1, u) * Math.PI / 2) * 70 * s0; if (u > 0) Chalk.stroke([[x, y], [x + 4 * s0, y + dy * 0.5], [x, y + dy]], 1, { w: 1.2, a: a * 0.5, seed: 73, dash: [4, 6] }); main(x, y + dy, a, t > 0.25); }
+  else if (etape.id === 'caresse') { const dx = Math.sin(t * Math.PI * 6) * 40 * s0; main(x - 20 * s0 + dx, y + 8 * s0, a, false); if (Math.sin(t * Math.PI * 6) > 0.9) Chalk.text('♥', p[0] + dx * 0.5, p[1] - 10 * s0 - t * 20, 1, { size: 16, align: 'center', a }); }
+  else if (etape.id === 'clic') { main(p[0], p[1], a, t > 0.3 && t < 0.45); if (t > 0.35) { const r = (t - 0.35) / 0.65; Chalk.circle(p[0], p[1], 50 * r * s0, 30 * r * s0, 1, { w: 1.4, a: a * (1 - r), seed: 74 }); } }
+  else if (etape.id === 'lance') { const u = Math.max(0, (t - 0.25) / 0.5), P = []; for (let i = 0; i <= 10; i++) { const v = i / 10; P.push([p[0] + v * 160 * s0, p[1] - Math.sin(v * Math.PI) * 90 * s0 + v * 30 * s0]); }
+    main(P[Math.min(10, Math.round(u * 10))][0], P[Math.min(10, Math.round(u * 10))][1], a, t > 0.2 && t < 0.75); if (u > 0) Chalk.arrow(P, Math.min(1, u * 1.2), { w: 1.3, a: a * 0.6, seed: 75 }); }
+});
+// la bulle s'écrit à la main
+let ecrit = null;
+H.post.push(() => { if (!courant) { ecrit = null; return; } const txt = courant.txt || ''; if (!ecrit || ecrit.txt !== txt) ecrit = { txt, t0: Wd.t, n: -1 };
+  const n = Math.min(txt.length, Math.floor((Wd.t - ecrit.t0) * 38)); if (n !== ecrit.n) { ecrit.n = n; bulle.textContent = txt.slice(0, n) || ' '; if (n === txt.length) taille = null; } });
 
 H.post.push(() => {
   if (Wd.a < 0.6 || Wd.fuite) { montre(null); return; }   // (pendant la fuite vers le mode sérieux, js/fuite.js : plus de tuto)
