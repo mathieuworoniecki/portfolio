@@ -870,6 +870,8 @@ function drawFx(S) {
       else C.text(f.text, f.x, f.y - u * 14, c01(u * 4), { size: f.size, align: 'center', rot: f.rot, a: 0.75 * fade });
     } else if (f.k === 'z') C.text(u < 0.5 ? 'z' : 'Z', f.x + f.dx * u * 18 + Math.sin(u * 7) * 5, f.y - u * 40, 1, { size: 12 + u * 10, a: 0.6 * fade });
     else if (f.k === 'dust') { for (let i = -1; i <= 1; i += 2) for (let j = 0; j < 2; j++) { const a0 = f.r * (0.5 + u * 0.8), h = (j + 1) * 5; C.line(f.x + i * a0, f.y - h * 0.4, f.x + i * (a0 + 8 + u * 8), f.y - h, 1, { w: 1.6, a: 0.5 * f.a * (1 - u), seed: f.seed + i + j }); } }
+    else if (f.k === 'calage') calage(f, t, K);
+    else if (f.k === 'vague') vaguePoussiere(f, u, K);
     else if (f.k === 'bagarre') fightCloud(f, u, fade, K);
     else if (f.k === 'heart') heart(f.x, f.y - u * 26, f.r * K, fade);
   });
@@ -884,6 +886,28 @@ function drawFil(C) {
   fc.setTransform(1, 0, 0, 1, 0, 0); fc.clearRect(0, 0, filCv.width, filCv.height); fc.setTransform(main.getTransform());
   const L = Wd.props.filter(it => it.trail && it.trail.length >= 2 && it.a > 0.01); if (!L.length) return;
   C.ctx = fc; try { L.forEach(it => C.stroke(it.trail.concat([[it.x, it.y]]), 1, { w: 1.3, a: 0.6 * it.a, amp: 0.4, seed: 7, tip: false })); } finally { C.ctx = main; }
+}
+// (vague 26, l'audit : « la tour de cartons ») : les chips de calage. Chaque caisse qui s'ouvre en tombant en crache une poignée :
+// des petits S qui volent, rebondissent sur le sol, glissent et restent là, en bazar, jusqu'à ce que l'équipe du ménage les balaie au passage
+function calage(f, t, K) {
+  const g = 1400 * (f.k0 || 1), dt = t - f.t0;
+  if (!f.th) { const a = g / 2, b = f.vy, c = f.y - f.sol; f.th = (-b + Math.sqrt(Math.max(0, b * b - 4 * a * c))) / (2 * a); }
+  let x, y, rot;
+  if (dt < f.th) { x = f.x + f.vx * dt; y = f.y + f.vy * dt + g / 2 * dt * dt; rot = f.r0 + f.w * dt; }
+  else { const d2 = dt - f.th, vb = (f.vy + g * f.th) * 0.28, gl = (1 - Math.exp(-d2 * 3)) / 3; x = f.x + f.vx * f.th + f.vx * 0.5 * gl; y = f.sol - Math.max(0, vb * d2 - g / 2 * d2 * d2); rot = f.r0 + f.w * f.th + f.w * 0.3 * gl; }
+  // balayé : un chat du ménage passe dessus, le chips repart en l'air devant lui
+  if (!f.kick && dt > f.th) { const c = Wd.cats.find(c => c.balai && !c.gone && Math.abs(c.x - x) < sc(c) * 0.7 && Math.abs(floorAt(c.d) - f.sol) < sOf(c.d) * 0.6); if (c) { f.kick = t; f.kx = x; f.ky = y; f.kd = c.balai; } }
+  if (f.kick) { const d3 = t - f.kick; x = f.kx + f.kd * d3 * 900; y = f.ky - 500 * d3 + g / 2 * d3 * d3; rot += d3 * 20; if (x < -40 || x > Wd.W + 40 || y > Wd.H + 40) { f.life = 0; return; } }
+  const r = f.sz * K * Math.min(1, (f.life - dt) / 2), c = Math.cos(rot), s = Math.sin(rot), P = [[-1, -0.5], [-0.4, 0.4], [0.4, -0.4], [1, 0.5]].map(([a, b]) => [x + (a * c - b * s) * r, y + (a * s + b * c) * r]);
+  Chalk.stroke(P, 1, { w: 1.5, a: 0.8 * Wd.a, seed: f.seed, tip: false });
+}
+// la vague de poussière : un rouleau de nuages au ras du sol, qui part des deux côtés du pied de la tour jusqu'aux bords de l'écran, monte et se défait en volutes
+function vaguePoussiere(f, u, K) {
+  const e = 1 - Math.pow(1 - u, 2.2), n = 13;
+  for (let sd = -1; sd <= 1; sd += 2) { const reach = (sd > 0 ? Wd.W - f.x : f.x) + 60;
+    for (let i = 0; i < n; i++) { const q = i / (n - 1), xp = f.x + sd * reach * e * q, front = Math.pow(q, 1.5), rr = f.r * (0.35 + 0.65 * front) * (0.6 + 0.8 * u) * (1 - 0.55 * u * (1 - front)), yp = f.y - rr * 0.7 - u * f.r * 0.5 * (1 - front);
+      if (rr < 2) continue; const P = []; for (let k = 0; k <= 12; k++) { const a = k / 12 * Math.PI * 2, bump = 1 + 0.18 * Math.sin(a * 3 + i + sd + u * 6); P.push([xp + Math.cos(a) * rr * bump, yp + Math.sin(a) * rr * 0.62 * bump]); }
+      Chalk.stroke(P, 1 - 0.5 * u, { w: 1.4, a: 0.55 * (1 - u) * Wd.a, seed: f.seed + i * 3 + sd, tip: false }); } }
 }
 function heart(x, y, r, a) {
   const P = []; for (let i = 0; i <= 24; i++) { const q = i / 24 * Math.PI * 2; P.push([x + 16 * Math.pow(Math.sin(q), 3) * r / 16, y - (13 * Math.cos(q) - 5 * Math.cos(2 * q) - 2 * Math.cos(3 * q) - Math.cos(4 * q)) * r / 16]); }
@@ -1039,6 +1063,7 @@ function towerFrame(dt) {
         if (T.grand) later((n - 1 - i) * 0.1, part); else part(); });
       const b = T.boxes[T.boxes.length - 1]; dust(xOf(b), b.y, sOf(b.d) * 0.8, 1);
       Wd.shake = { t0: Wd.t, a: T.grand ? 14 : 7 };
+      if (T.grand) later(0.35, () => Wd.fx.push({ k: 'vague', x: xOf(T.boxes[0]), y: floorAt(T.d), r: sOf(T.d) * 0.9, t0: Wd.t, life: 2.6, seed: Math.floor(Math.random() * 99) }));
       if (T.grand) Wd.fx.push({ k: 'txt', text: 'PATATRAS !', x: clamp(xOf(T.boxes[0]) + dir * 60, 150, Wd.W - 150), y: floorAt(T.d) - sOf(T.d) * 2.6, t0: Wd.t, life: 2.2, rot: -0.12 * dir, size: 52 });
       if (window.Rares && Rares.panique) Rares.panique(xOf(T.boxes[0]));   // (la panique, comme pour le géant : js/rares.js)
       Wd.fx.push({ k: 'txt', text: 'boum !', x: xOf(T.boxes[0]), y: floorAt(T.d) - sOf(T.d) * 1.6, t0: Wd.t, life: 1.6, rot: -0.1, size: 26 });
@@ -1047,6 +1072,7 @@ function towerFrame(dt) {
     // à l'impact, une caisse de la grande tour fait BAM, et parfois s'ouvre : un chat caché dedans en jaillit (« coucou ! ») et détale
     if (T.grand) T.boxes.forEach(b => { if (b.deTour && b.wasFall && !b.fall && !b.impact && Wd.props.includes(b)) { b.impact = true; const s = sOf(b.d);
       dust(xOf(b), floorAt(b.d), s * 0.5, 0.9); Wd.shake = { t0: Wd.t, a: 3 };
+      { const nc = Wd.mode === 'large' ? 9 : 5; for (let q = 0; q < nc; q++) Wd.fx.push({ k: 'calage', x: xOf(b) + rnd(-0.2, 0.2) * s, y: b.y - s * 0.3, vx: rnd(-1, 1) * s * 4, vy: -rnd(1.5, 4) * s, sol: floorAt(clamp(b.d + rnd(-0.15, 0.15), 0, 1)), r0: rnd(0, 6.28), w: rnd(-12, 12), sz: clamp(s * 0.05, 3, 7), t0: Wd.t, life: 40, seed: Math.floor(Math.random() * 99) }); }
       Wd.fx.push({ k: 'txt', text: pick(['BAM', 'boum', 'CRAC', 'pouf', 'bonk']), x: xOf(b) + rnd(-20, 20), y: b.y - s * 0.5, t0: Wd.t, life: 0.9, rot: rnd(-0.3, 0.3), size: 20 });
       if ((T.caches || 0) < 2 && Math.random() < 0.4 && residents().length < MAXC + 3) { T.caches = (T.caches || 0) + 1; const f = Math.random() < 0.5 ? -1 : 1, k = addCat({ temp: true, d: b.d, face: f });
         k.x = xOf(b); k.y = b.y - s * 0.3; k.fall = true; k.vx = f * s * rnd(1, 2.5); k.vy = -s * rnd(3.5, 5); k.spin = f * 6.28;
