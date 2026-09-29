@@ -58,6 +58,12 @@ function chabot(x, y, r, o = {}) {
   const bras = o.bras ?? [Math.sin(now * 3 + ph) * 0.25, -Math.sin(now * 3 + ph) * 0.25];
   [-1, 1].forEach((g, i) => { const b = bras[i], ex = x + g * bw * 0.86, ey = by - bh * 0.35, mx = ex + g * Math.cos(b) * r * 0.42, my = ey - Math.sin(b) * r * 0.42;
     cerne(() => { ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(mx, my); }, w * 1.5, a, null); cerne(() => { ctx.beginPath(); ctx.arc(mx, my, r * 0.13, 0, TAU); }, w, a); });
+  // (vague 32, l'audit : « le chat-robot ») : une queue de chat mécanique, en anneaux qui rapetissent, qui ondule derrière lui ; le bout, une petite boule
+  if (r >= 6) { const cq = sl > 0.05 ? -1 : sl < -0.05 ? 1 : (bruit(ph * 3.3) < 0.5 ? -1 : 1), n = 6, P = [];
+    for (let i = 0; i <= n; i++) { const u = i / n, on = Math.sin(now * 3.2 + ph * 2 - u * 2.6) * 0.5 * u; P.push([x + cq * (bw * 0.7 + Math.sin(u * 1.9 + on) * r * 0.95), by + bh * 0.55 - Math.sin(u * 2.4) * r * 0.9 * (1 - on * 0.3) - u * r * 0.2]); }
+    cerne(() => { ctx.beginPath(); P.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); }, w * 1.6, a, null);
+    ctx.globalAlpha = a; ctx.strokeStyle = ENC; ctx.lineWidth = Math.max(0.6, G.lw * w * 0.45); for (let i = 1; i < n; i++) { const [qx, qy] = P[i], [px, py] = P[i - 1], d = Math.hypot(qx - px, qy - py) || 1, nx = -(qy - py) / d, ny = (qx - px) / d, e = r * 0.1 * (1 - i / n * 0.5); ctx.beginPath(); ctx.moveTo(qx - nx * e, qy - ny * e); ctx.lineTo(qx + nx * e, qy + ny * e); ctx.stroke(); }
+    cerne(() => { ctx.beginPath(); ctx.arc(P[n][0], P[n][1], r * 0.1, 0, TAU); }, w, a); }
   cerne(() => { ctx.beginPath(); ctx.ellipse(x - sl * r * 0.9, by - bh * 0.1, r * 0.34, bh * 0.62, 0, 0, TAU); }, w, a * (Math.abs(sl) > 0.15 ? 1 : 0));
   cerne(() => { ctx.beginPath(); ctx.moveTo(x - bw, by - bh * 0.55); ctx.quadraticCurveTo(x - bw * 1.05, by + bh, x, by + bh); ctx.quadraticCurveTo(x + bw * 1.05, by + bh, x + bw, by - bh * 0.55); ctx.quadraticCurveTo(x, by - bh * 0.95, x - bw, by - bh * 0.55); ctx.closePath(); }, w, a);
   // le voyant de poitrine (il clignote quand il travaille), la ceinture
@@ -73,7 +79,7 @@ function chabot(x, y, r, o = {}) {
     ctx.ellipse(hx, y, r * 0.95, r * 0.78, 0, -0.35, Math.PI + 0.35); ctx.closePath(); }, w, a);
   hach(hx, y, r * 0.93, r * 0.76, 3);
   // les yeux : deux grands ovales noirs, deux reflets ; ils suivent le regard ; parfois il cligne
-  const cl = o.cligne ? 0.12 : 1;
+  const cl = o.cligne || (now * 0.31 + bruit(ph * 5.1) * 4) % 4 < 0.1 ? 0.12 : 1;   // (il cligne tout seul, chacun à son heure)
   [-1, 1].forEach(g => { const ex = hx + (g * 0.36 + sl * 0.3) * r, ey = y + r * 0.02, sq = 1 - Math.max(0, g * -sl) * 0.35;
     ctx.globalAlpha = a; ctx.fillStyle = ENC; ctx.beginPath(); ctx.ellipse(ex, ey, r * 0.15 * sq, r * 0.21 * cl, 0, 0, TAU); ctx.fill();
     if (cl > 0.5) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex - r * 0.05, ey - r * 0.08, r * 0.055, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(ex + r * 0.05, ey + r * 0.07, r * 0.028, 0, TAU); ctx.fill(); } });
