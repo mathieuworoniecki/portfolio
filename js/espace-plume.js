@@ -341,7 +341,7 @@ X.pas.push((dt, cats) => {
   cats.forEach(c => { const S = c.sp; if (!S || c.held || !(S.m === 'derive' || (S.m === 'nage' && !(S.cible && S.cible.siege != null)))) return; const [x, y] = centreDe(c), r = rayon(c);
     const dx = x - L.cx, dy = y - L.cy, d = Math.hypot(dx, dy) || 1, R = L.s * 1.2 + r;
     if (d < R) { const f = 320 * (1 - d / R) + 60; S.vx += dx / d * f * dt; S.vy += dy / d * f * dt; }
-    if (bd && x > bd.x - r && x < bd.x + bd.w + r && y > bd.y - r && y < bd.y + bd.h + r) { const ex = x - (bd.x + bd.w / 2), ey = y - (bd.y + bd.h / 2), q = Math.hypot(ex, ey) || 1; S.vx += ex / q * 300 * dt; S.vy += ey / q * 300 * dt; } });
+    if (bd && x > bd.x - r && x < bd.x + bd.w + r && y > bd.y - r && y < bd.y + bd.h + r) { const ex = x - (bd.x + bd.w / 2), ey = y - (bd.y + bd.h / 2), q = Math.hypot(ex, ey) || 1; S.vx += ex / q * 700 * dt; S.vy += ey / q * 700 * dt; } });
 });
 
 /* ——— le dessin ——— */
