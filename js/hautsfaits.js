@@ -117,13 +117,28 @@ function vole() {
   const v = b.cloneNode(true); v.classList.add('hf-vol'); v.style.cssText = `position:fixed;left:0;top:0;width:${r0.width}px;height:${r0.height}px;z-index:36;pointer-events:none;color:${getComputedStyle(scene).color}`;
   v.style.setProperty('--c', scene.style.getPropertyValue('--c')); document.body.appendChild(v); b.style.visibility = 'hidden';
   const x0 = r0.left + r0.width / 2, y0 = r0.top + r0.height / 2, x1 = r1.left + r1.width / 2, y1 = r1.top + r1.height / 2;
-  const cx = (x0 + x1) / 2, cy = Math.min(y0, y1) - Math.min(260, Math.abs(x1 - x0) * 0.35) - 40, k1 = r1.width * 0.8 / r0.width, D = 900, t0 = performance.now();
-  let pe = 0;
-  const pas = now => { const u = Math.min(1, (now - t0) / D), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2, a = 1 - e;
-    const x = a * a * x0 + 2 * a * e * cx + e * e * x1, y = a * a * y0 + 2 * a * e * cy + e * e * y1, sc = (1 + Math.sin(u * Math.PI) * 0.25) * (1 + (k1 - 1) * e);
-    v.style.transform = `translate(${x - r0.width / 2}px,${y - r0.height / 2}px) scale(${sc}) rotate(${e * 720}deg)`;
+  const k1 = r1.width * 0.8 / r0.width;
+  // (vague 10, l'audit : « le déblocage ») : un chat de la pièce saute et fait une tête au badge, qui rebondit dans le bouton des hauts faits
+  // (s'il n'y a personne de libre, le badge file tout droit, en arc, comme avant)
+  const libres = !Wd.espace && !Wd.trou && !Wd.fuite ? Wd.cats.filter(c => !c.gone && !c.temp && !c.rare && !c.fall && !c.held && !c.perch && K.free4(c) && c.x > 60 && c.x < Wd.W - 60) : [];
+  const ch = libres.sort((a, b) => Math.abs(a.x - Wd.W * 0.55) - Math.abs(b.x - Wd.W * 0.55))[0], sC = ch && K.sc(ch), Hh = ch && sC * 1.1;
+  const tete = ch && [ch.x + (ch.face || 1) * sC * 0.12, ch.y - Hh - sC * 0.78];
+  const segs = tete ? [[x0, y0, tete[0], tete[1], 700, 0.5], [tete[0], tete[1], x1, y1, 800, 1]] : [[x0, y0, x1, y1, 900, 1]];
+  if (ch) { const D0 = segs[0][4]; K.interrupt(ch); ch.face = ch.x < x0 ? 1 : -1; ch.q = [K.pose('affut', 0.4)];
+    setTimeout(() => { if (ch.gone || ch.held || ch.fall) return; K.interrupt(ch); ch.q = [K.hop(() => K.groundAt(ch.x, ch.d), { h: Hh, dur: 0.5 }), K.pose('assis', 1.2)]; }, D0 - 260);
+    setTimeout(() => { if (ch.gone) return; K.say(ch, T(['but !', 'tête !', 'hop là'][Math.floor(Math.random() * 3)], ['goal!', 'header!', 'hup!'][Math.floor(Math.random() * 3)]));
+      Wd.fx.push({ k: 'txt', text: 'boing', x: ch.x + 30, y: ch.y - sC * 0.9, t0: Wd.t, life: 0.8, rot: -0.2, size: 17 }); }, D0); }
+  let pe = 0, si = 0, t0 = performance.now(), tour = 0;
+  // (la tête du chat se lit à chaque image : si la pièce rame, le badge vise quand même sa tête, où qu'elle soit)
+  const vise = () => { if (!ch || si || ch.gone) return; segs[0][2] = ch.x + (ch.face || 1) * sC * 0.12; segs[0][3] = ch.y - sC * 0.78; segs[1][0] = segs[0][2]; segs[1][1] = segs[0][3]; };
+  const pas = now => { vise(); const [xa, ya, xb, yb, D, fin] = segs[si], u = Math.min(1, (now - t0) / D), e = si === 0 && segs.length > 1 ? u * u : u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2, a = 1 - e;
+    const cx = (xa + xb) / 2, cy = Math.min(ya, yb) - Math.min(260, Math.abs(xb - xa) * 0.35) - 40, g = si === 0 && segs.length > 1 ? 0 : 1;
+    const x = a * a * xa + 2 * a * e * cx + e * e * xb, y = a * a * ya + 2 * a * e * (g ? cy : Math.min(ya, yb) - 40) + e * e * yb;
+    const kk = segs.length > 1 ? (si ? 0.7 + (k1 - 0.7) * e : 1 - 0.3 * e) : 1 + (k1 - 1) * e, sc = (1 + Math.sin(u * Math.PI) * 0.25) * kk;
+    v.style.transform = `translate(${x - r0.width / 2}px,${y - r0.height / 2}px) scale(${sc}) rotate(${tour + e * 360 * (si ? -1.5 : 1)}deg)`;
     if (now - pe > 40 && u < 0.95) { pe = now; const f = document.createElement('i'); f.className = 'hf-etin'; f.style.left = x + 'px'; f.style.top = y + 'px'; document.body.appendChild(f); setTimeout(() => f.remove(), 700); }
     if (u < 1) requestAnimationFrame(pas);
+    else if (!fin) { si++; t0 = now; tour += 360; const G = window.Scenarios && Scenarios.gerbe; if (G && Wd.W) G(x, y, 8, 160); requestAnimationFrame(pas); }
     else { v.remove(); btn.classList.remove('hf-avale'); void btn.offsetWidth; btn.classList.add('hf-avale'); setTimeout(() => btn.classList.remove('hf-avale'), 700);
       const G = window.Scenarios && Scenarios.gerbe; if (G && Wd.W) G(x1, y1, 10, 180); } };
   requestAnimationFrame(pas);
