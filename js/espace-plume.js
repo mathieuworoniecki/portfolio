@@ -494,7 +494,7 @@ X.envie.push(c => {
    et la barre des chapitres (un clic sur une encoche : cette scène). Une scène choisie à la main se forme plus vite. */
 function pas(dir, j) {
   if (!M || !M.sc || !Wd.espace) return false;
-  if (Wd.t - (M.pasT ?? -9) < 0.3) return true; M.pasT = Wd.t;
+  const t = performance.now(); if (t - (M.pasT ?? -1e9) < 280) return true; M.pasT = t;
   aller(j != null ? j : M.sc.i + dir); M.sc.t0 -= reduit ? 0 : 1.1; return true;
 }
 const chevrons = () => { const L = M.lay, k = L.L ? 13 : 10, x = L.L ? 34 : 16; return [[-1, x, L.G.cy, k], [1, L.W - x, L.G.cy, k]]; };
