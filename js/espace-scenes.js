@@ -124,13 +124,13 @@ S.terminaux = (() => {
       const k = G.sw / 1.75, lac = -0.62, tan = 0.5, off = a * 0.32, i0 = Math.floor(off / GY), fr = off / GY - i0, cr = a * 4.5;
       const Tl = 3.4, nl = Math.floor(a / Tl), ul = (a % Tl) / Tl, cible = (Math.floor(nl * Tl * 0.32 / GY) + 1) * COL + 3 + (nl * 2) % 3, lev = Math.sin(Math.PI * c01((ul - 0.1) / 0.8)) * c01(a - 1);
       const L = [];
-      for (let r = -7; r <= 8; r++) for (let c = 0; c < COL; c++) {
+      for (let r = -11; r <= 10; r++) for (let c = 0; c < COL; c++) {
         const x = (c - (COL - 1) / 2) * GX, y = (r - fr) * GY, d = Math.hypot(c - (COL - 1) / 2, r - fr), id = (r + i0) * COL + c;
         if (d > cr) continue;   // (elles naissent du centre vers les bords)
         const lv = id === cible ? lev : 0, zl = lv * 1.1;
         const Q = [[x - W0 / 2, y - H0 / 2], [x + W0 / 2, y - H0 / 2], [x + W0 / 2, y + H0 / 2], [x - W0 / 2, y + H0 / 2]].map(([u, v]) => p3(u, v, zl, lac, tan, k));
         const z = (Q[0][2] + Q[2][2]) / 2, m = [(Q[0][0] + Q[2][0]) / 2, (Q[0][1] + Q[2][1]) / 2];
-        if (m[0] < G.gauche || m[0] > G.droite || m[1] < G.haut - 20 || m[1] > G.bas + 20) continue;
+        if (m[0] < G.gauche - 80 || m[0] > G.droite + 80 || m[1] < -80 || m[1] > G.bas + 60) continue;
         L.push({ Q, z: z + lv * 9, id, lv, pop: c01((cr - d) / 0.8), B: lv > 0.01 ? [[x - W0 / 2, y - H0 / 2], [x + W0 / 2, y - H0 / 2], [x + W0 / 2, y + H0 / 2], [x - W0 / 2, y + H0 / 2]].map(([u, v]) => p3(u, v, 0, lac, tan, k)) : null });
       }
       L.sort((a, b) => a.z - b.z);
@@ -240,11 +240,11 @@ S.bench = (() => ({
 // une grue grimpe avec lui ; les fenêtres s'allument ; au dernier étage, le drapeau, et un feu d'artifice
 S.flotte = (() => {
   const E = Array.from({ length: 40 }, (_, i) => ({ r: 0.55 + bruit(i) * 0.9, v: (0.45 + bruit(i * 3) * 0.7) * (i % 3 ? 1 : -1), ph: bruit(i * 7) * TAU, h: -0.8 + bruit(i * 5) * 1.55, i }));
-  const NE = 11, EH = 0.13, B0 = 0.86, LW = 0.24;
+  const NE = 11, EH = 0.105, B0 = 0.84, LW = 0.22;
   return {
     cles: () => [[-0.24, 0.86], [0.24, 0.86], [-0.24, -0.5], [0.24, -0.5]],
     dessin(a, now) {
-      const [k, lx] = large(1.3, 1.9), V = cam(0.5 + a * 0.12, -0.3, k), Cy = NE * 0.55 + 4.5, c = a % Cy;
+      const [k, lx] = large(1.3, 1.9), V = cam(0.5 + a * 0.12, -0.3, k * 0.92, 0, 0.06), Cy = NE * 0.55 + 4.5, c = a % Cy;
       const tas = 1 - sm((c - Cy + 0.6) / 0.6), n = Math.min(NE, Math.floor(c / 0.55) + 1), f = c01((c % 0.55) / 0.35), top = B0 - (n - 1 + (n < NE ? f : 1)) * EH * tas;
       trait([[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, z]) => V(x * 0.62, B0, z * 0.62)), true, 0.7, 0.5);
       // l'essaim : chacun son orbite ; de temps en temps, l'un plonge vers le sommet avec son bloc
@@ -317,7 +317,7 @@ S.puce = (() => {
       const [k] = large(1.5, 2), lac = 0.7 + a * 0.18, tan = 0.55, lab = LAB(), Cy = 7, c = a % Cy, ferme = c > 4.6 && c < 5.6 ? Math.sin(Math.PI * (c - 4.6)) : 0;
       const ec = sm(a / 1.4) * (0.2 + 0.04 * Math.sin(now * 0.9)) * (1 - ferme * 0.9), q3 = (x, y, z) => p3(x, y, z, lac, tan, k * 1.05);
       const Qs = lab.map((l, j) => { const s = j === 1 ? 0.62 : 0.52, y = (j - 2.5) * ec; return { l, j, s, y, Q: [[-s, -s], [s, -s], [s, s], [-s, s]].map(([x, z]) => q3(x, y, z)) }; });
-      const tx = Math.max(...Qs.map(q => Math.max(...q.Q.map(p => p[0])))) + 26;
+      const tx = Math.min(Math.max(...Qs.map(q => Math.max(...q.Q.map(p => p[0])))) + 26, G.droite - Math.max(11, k * 0.11) * 5.6);
       // les vias : quatre colonnes qui traversent toutes les couches ; les données y courent
       [[-0.32, -0.32], [0.32, -0.32], [0.32, 0.32], [-0.32, 0.32]].forEach(([x, z], v) => { const A = q3(x, -2.5 * ec - 0.05, z), B = q3(x, 2.5 * ec + 0.05, z); trait([A, B], false, 0.5, 0.45);
         for (let d = 0; d < 2; d++) { const u = (now * 0.5 + v * 0.25 + d * 0.5) % 1, w = v % 2 ? u : 1 - u; brille(lerp(A[0], B[0], w), lerp(A[1], B[1], w), 2.2, 0.9, false, now, v * 2 + d); } });
@@ -356,7 +356,7 @@ S.ia = (() => {
       for (let m = 0; m < 6; m++) { const v = (now * 0.55 + m / 6) % 1, i = Math.floor(bruit(m * 5 + Math.floor(now * 0.55 + m / 6)) * nb), B = Q[i]; brille(lerp(A1[0], B[0], sm(v)), lerp(A1[1], B[1], sm(v)) - Math.sin(Math.PI * v) * k * 0.2, 1.9, 1 - v * 0.4, false, now, m);
         style(0.6, 1 - v); ctx.strokeRect(lerp(A1[0], B[0], sm(v)) - 4, lerp(A1[1], B[1], sm(v)) - Math.sin(Math.PI * v) * k * 0.2 - 3, 8, 6); }
       // la question ; ses voisins s'allument et se relient
-      const qA = Pk(0.15, -0.92), Qc = V(Qp[0] * R, Qp[1] * R, Qp[2] * R), qu = c01((c - 1) / 0.8), on = c > 1.8 && c < 5.2;
+      const qA = Pk(0.15, -0.78), Qc = V(Qp[0] * R, Qp[1] * R, Qp[2] * R), qu = c01((c - 1) / 0.8), on = c > 1.8 && c < 5.2;
       if (c > 0.6 && c < 2.2) { mot('?', qA[0], qA[1], Math.max(18, k * 0.18), 1); if (qu > 0 && qu < 1) brille(lerp(qA[0], Qc[0], qu), lerp(qA[1], Qc[1], qu), 3.5, 1, true, now, 2); }
       if (on) { rond(Qc[0], Qc[1], 6, 1, 1); PR.forEach((i, j) => { const q = Q[i], u = c01((c - 1.8 - j * 0.12) / 0.3); trait([Qc, [lerp(Qc[0], q[0], u), lerp(Qc[1], q[1], u)]], false, 0.8, 0.9); if (u >= 1) brille(q[0], q[1], 3, 1, false, now, i); }); }
       // la réponse s'écrit, puis va à l'agent ; il agit
@@ -419,7 +419,7 @@ S.front = (() => {
 S.back = (() => ({
   cles: () => [[-0.62, -0.5], [-0.62, 0.5], [0.85, -0.45], [0.85, 0.45]],
   dessin(a, now) {
-    const [k, lx] = large(1.5, 2.1), V = cam(0.42, -0.62, k * 1.1, 0, 0.1), xA = -lx * 0.7, xW = lx * 0.05, xD = lx * 0.68, zs = [-0.6, 0, 0.6], yS = 0.3;
+    const [k, lx] = large(1.5, 2.1), V = cam(0.42, -0.62, k * 0.95, 0, 0.16), xA = -lx * 0.7, xW = lx * 0.05, xD = lx * 0.68, zs = [-0.6, 0, 0.6], yS = 0.3;
     // les murs entre les bases
     [-0.3, 0.3].forEach(z => { const Q = [V(xD - 0.32, yS, z), V(xD + 0.32, yS, z), V(xD + 0.32, yS - 0.42, z), V(xD - 0.32, yS - 0.42, z)]; trait(Q, true, 0.7, 0.6);
       for (let j = 1; j < 4; j++) trait([V(xD - 0.32, yS - j * 0.105, z), V(xD + 0.32, yS - j * 0.105, z)], false, 0.35, 0.4); });
@@ -427,7 +427,7 @@ S.back = (() => ({
     zs.forEach((z, i) => { [-0.07, 0.07].forEach(o => trait([V(xA + 0.14, yS, z + o), V(xW - 0.14, yS, z + o)], false, 0.5, 0.5)); trait([V(xW + 0.14, yS - 0.05, z), V(xD - 0.2, yS - 0.3, z)], false, 0.4, 0.35);
       const g = V(xW, yS - 0.1, z); roue(g[0], g[1], k * 0.085 * g[3], now * 2 * (i % 2 ? -1 : 1), 0.9, 1); });
     // la passerelle
-    boite3(V, xA - 0.1, xA + 0.1, yS, yS - 0.55, -0.85, 0.85, 1, 1); const la = V(xA, yS - 0.64, 0); mot('API', la[0], la[1], Math.max(11, k * 0.09), 1);
+    boite3(V, xA - 0.1, xA + 0.1, yS, yS - 0.45, -0.75, 0.75, 1, 1); const la = V(xA, yS - 0.64, 0); mot('API', la[0], la[1], Math.max(11, k * 0.09), 1);
     // les bases : des cylindres qui se remplissent
     zs.forEach((z, i) => { const r = 0.17, hh = 0.36, B = anneau(V, r, yS, 28, xD, z), H = anneau(V, r, yS - hh, 28, xD, z), l = B.reduce((m, p, j) => p[0] < B[m][0] ? j : m, 0), rr = B.reduce((m, p, j) => p[0] > B[m][0] ? j : m, 0);
       ctx.beginPath(); ctx.moveTo(H[l][0], H[l][1]); ctx.lineTo(B[l][0], B[l][1]); B.slice(Math.min(l, rr), Math.max(l, rr) + 1).forEach(p => ctx.lineTo(p[0], p[1])); ctx.lineTo(H[rr][0], H[rr][1]); ctx.globalAlpha = 1; ctx.fillStyle = NUIT; ctx.fill();
