@@ -190,6 +190,11 @@ function boite3(V, x0, x1, y0, y1, z0, z1, w = 0.9, a = 1) {
   const C = [[x0, z0], [x1, z0], [x1, z1], [x0, z1]].map(([x, z]) => [V(x, y0, z), V(x, y1, z)]);
   trait(C.map(c => c[1]), true, w, a, true); C.forEach(c => trait(c, false, w, a)); trait(C.map(c => c[0]), true, w, a, true); return C; }
 
+// (vague 14) les scènes étalées sur tout le ciel passent sous la barre des chapitres et derrière la planète des chats
+function sousLaBarre() { ctx.save(); ctx.beginPath(); ctx.rect(0, G.haut - 4, G.droite + 40, 1e4);
+  const Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat; if (Pc) { ctx.moveTo(Pc.x + Pc.r * 1.25, Pc.y); ctx.arc(Pc.x, Pc.y, Pc.r * 1.25, 0, TAU, true); }
+  ctx.clip('evenodd'); }
+
 /* ——— les scènes ——— */
 const S = {};
 
@@ -319,7 +324,10 @@ S.agents = (() => {
   return {
     cles: () => [[0, -0.82], [-0.5, -0.3], [0.5, -0.3], [0, 0.62]],
     dessin(a, now) {
-      const [k] = large(1.45, 2), V0 = cam(now * 0.22, -0.36, k * 0.8, 0, -0.26), V = (x, y, z) => V0(x * 0.85, y * 0.62, z * 0.55), Cy = 6, c = a > 2.3 ? (a - 2.3) % Cy : -1;
+      const [k] = large(1.45, 2), V0 = cam(now * 0.22, -0.36, k * 0.8, 0, -0.26), Cy = 6, c = a > 2.3 ? (a - 2.3) % Cy : -1;
+      // (vague 14 de l'audit : « l'arbre reste un petit bouquet au milieu ») : il s'étale sur toute la largeur du ciel, comme un lustre qui tourne
+      const hx = Math.max(1, ((G.droite - G.gauche) / 2 * 0.84) / (1.35 * 0.85 * k * 0.8 * 1.2)), V = (x, y, z) => { const p = V0(x * 0.85, y * 0.62, z * 0.55); p[0] = G.cx + (p[0] - G.cx) * hx; return p; };
+      sousLaBarre();
       const pos = N.map(q => V(Math.cos(q.t) * q.r, q.y, Math.sin(q.t) * q.r)), nait = q => sm((a - q.n * 0.55 - bruit(q.i) * 0.25) / 0.45);
       trait3(anneau(V, 1.45, 0.88), 0.5, 0.35); trait3(anneau(V, 0.5, 0.88, 24), 0.5, 0.25);
       N.forEach(q => { if (q.p < 0) return; const e = nait(q); if (e <= 0) return; const A = pos[q.p], B = pos[q.i], al = prof(B[2]);
@@ -328,8 +336,8 @@ S.agents = (() => {
           if (d > 0 && d < 1) brille(lerp(A[0], B[0], d), lerp(A[1], B[1], d), 2.6 * B[3], al, false, now, q.i);
           if (u > 0 && u < 1) brille(lerp(B[0], A[0], u), lerp(B[1], A[1], u), 3.2 * B[3], al, true, now, q.i); } });
       N.slice().sort((p, q) => pos[p.i][2] - pos[q.i][2]).forEach(q => { const e = nait(q); if (e <= 0) return; const [x, y, z, f] = pos[q.i], pop = e < 1 ? 1 + 0.35 * Math.sin(Math.PI * e) : 1, al = 1;
-        if (q.n < 3) robot(x, y, k * [0.14, 0.09, 0.06][q.n] * f * pop, al, Math.sin(now * 1.5 + q.i) > 0.97, { now, ph: q.i, lac: Math.sin(now * 0.6 + q.i * 1.7) * 0.7, travaille: c > 1.3 && c < 2.9 });
-        else { const r = k * 0.028 * f * pop; if (r > 5) { chabot(x, y, r * 1.25, { now, ph: q.i, a: al, casque: false, lac: Math.sin(now * 0.8 + q.i) * 0.6, travaille: c > 1.3 && c < 2.9 }); } else rond(x, y, r, 0.8, al, 'nuit'); if (c > 1.3 && c < 2.9) { style(0.6, al); ctx.beginPath(); ctx.arc(x, y, r * 1.9, now * 6 + q.i, now * 6 + q.i + 2); ctx.stroke(); } } });
+        if (q.n < 3) robot(x, y, k * [0.14, 0.09, 0.06][q.n] * f * pop * (q.n ? Math.min(1.4, hx * 0.55) : 1), al, Math.sin(now * 1.5 + q.i) > 0.97, { now, ph: q.i, lac: Math.sin(now * 0.6 + q.i * 1.7) * 0.7, travaille: c > 1.3 && c < 2.9 });
+        else { const r = k * 0.028 * f * pop * Math.min(1.6, hx * 0.6); if (r > 5) { chabot(x, y, r * 1.25, { now, ph: q.i, a: al, casque: false, lac: Math.sin(now * 0.8 + q.i) * 0.6, travaille: c > 1.3 && c < 2.9 }); } else rond(x, y, r, 0.8, al, 'nuit'); if (c > 1.3 && c < 2.9) { style(0.6, al); ctx.beginPath(); ctx.arc(x, y, r * 1.9, now * 6 + q.i, now * 6 + q.i + 2); ctx.stroke(); } } });
       // (vague 8, l'audit : le dessin doit servir le texte) : chaque sous-agent porte son métier, celui des sous-titres
       const MET = en() ? ['explore', 'code', 'tests', 'review'] : ['exploration', 'code', 'tests', 'revue'];
       const L1 = N.filter(q => q.n === 1), dev = L1.slice().sort((p, q) => pos[q.i][2] - pos[p.i][2]).slice(0, 2);   // (les deux de devant : les autres sont cachés derrière)
@@ -338,6 +346,7 @@ S.agents = (() => {
         ctx.globalAlpha = (e - 0.5) * 2; ctx.fillStyle = '#07080C'; ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx0, ly0, w, px * 1.6, px * 0.5) : ctx.rect(lx0, ly0, w, px * 1.6); ctx.fill(); ctx.stroke();
         mot(MET[j], lx0 + w / 2, ly0 + px * 0.8, px, (e - 0.5) * 2); });
       if (c > 4.1 && c < 5.6) { const [x, y] = pos[0]; coche(x + k * 0.24, y - k * 0.12, k * 0.06, (c - 4.1) / 0.4, 1); eclat(x, y, k * 0.2, (c - 4.1) / 0.6, 10); }
+      ctx.restore();
     }
   };
 })();
@@ -355,10 +364,10 @@ S.skills = (() => {
     L.push([0.8, -0.8], [0.8, -0.3]); for (let i = 0; i <= 10; i++) { const t = Math.PI * i / 10; L.push([0.8 + 0.32 * Math.sin(t), -0.3 * Math.cos(t)]); } L.push([0.8, 0.8], [-0.8, 0.8]); return L; })();
   const PROF = { skill: [[-0.8, -1], [0.45, -1], [0.8, -0.65], [0.8, 1], [-0.8, 1]], cmd: [[-0.9, -0.65], [-0.65, -0.9], [0.65, -0.9], [0.9, -0.65], [0.9, 0.65], [0.65, 0.9], [-0.65, 0.9], [-0.9, 0.65]],
     mcp: [[-0.75, -0.35], [0.75, -0.35], [0.75, 0.6], [0.35, 1], [-0.35, 1], [-0.75, 0.6]], plugin: puzzle };
-  function module(V, q, now, k) {
+  function module(V, q, now, k, Vs, hx) {
     const [x, y, z] = q.w, s = 0.15 * (1 + q.e * 0.25), al = 1, rot = lerp(now * 0.7 + q.i * 1.3, 0.5, q.e), tl = Math.sin(now * 0.9 + q.i) * 0.25 * (1 - q.e);
     if (q.kind === 'agent') { chabot(q.p[0], q.p[1], k * 0.07 * Math.min(1.25, q.p[3]), { now, ph: q.i, lac: Math.sin(now * 0.8 + q.i) * 0.7, a: al, bras: q.e > 0.3 ? [1.4, 1.4] : null }); return; }
-    const R = repere(V, x, y, z, rot, s, tl);
+    const sh = (hx - 1) * (Vs(x, y, z)[0] - G.cx), Vm = (X, Y, Z) => { const p = Vs(X, Y, Z); p[0] += sh; return p; }, R = repere(Vm, x, y, z, rot, s, tl);
     if (q.kind === 'mcp') [-0.4, 0.4].forEach(u => prisme((uu, v, d) => R(u + uu, v, d), [[-0.12, -0.9], [0.12, -0.9], [0.12, -0.35], [-0.12, -0.35]], 0.18, al, 0.6));
     const F = prisme(R, PROF[q.kind], q.kind === 'cmd' ? 0.7 : 0.36, al, 0.8);
     ctx.globalAlpha = al; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35;
@@ -373,8 +382,11 @@ S.skills = (() => {
   return {
     cles: () => [0, 1, 2, 3, 4, 5].map(i => { const t = i / 6 * TAU; return [Math.cos(t) * 0.35, Math.sin(t) * 0.35]; }),
     dessin(a, now) {
-      const lab = LAB(), [k, lx] = large(1.5, 2), V0 = cam(0, -0.3, k * 0.88, 0, -0.34), V = (x, y, z) => V0(x, y, z * 0.5), Rr = Math.min(1.5, lx * 0.8), rot = now * 0.25;
-      let flash = 0, nb = 0;
+      const lab = LAB(), [k, lx] = large(1.5, 2), V0 = cam(0, -0.3, k * 0.88, 0, -0.34), Vs = (x, y, z) => V0(x, y, z * 0.5), Rr = Math.min(1.5, lx * 0.8), rot = now * 0.25;
+      // (vague 14 de l'audit : « l'orbite reste petite au milieu ») : l'orbite s'étire sur toute la largeur du ciel (les modules gardent leur forme :
+      // seul leur centre est écarté)
+      const hx = Math.max(1, ((G.droite - G.gauche) / 2 * 0.8) / (Rr * k * 0.88 * 1.05)), V = (x, y, z) => { const p = Vs(x, y, z); p[0] = G.cx + (p[0] - G.cx) * hx; return p; };
+      let flash = 0, nb = 0; sousLaBarre();
       const it = lab.map((l, i) => { const e0 = sm((a - 0.2 - i * 0.35) / 0.8), u = a > 2.6 ? (a - 2.6 - i * 1.25) % 7.5 : -1, e = u > 0 && u < 1.3 ? Math.sin(Math.PI * u / 1.3) : 0;
         if (u > 0.55 && u < 1.1) flash = Math.max(flash, 1 - (u - 0.55) / 0.55); if (e0 >= 1) nb++;
         const t = i / 6 * TAU + rot, r = lerp(2.4, lerp(Rr, 0.62, e), e0), y = lerp(-1.4, Math.sin(now * 1.2 + i) * 0.08 - e * 0.12, e0), w = [Math.cos(t) * r, y, Math.sin(t) * r];
@@ -386,7 +398,7 @@ S.skills = (() => {
       it.forEach(q => { if (q.e > 0.05) { const H = V(0, -0.02, 0); ctx.globalAlpha = q.e * 0.18; ctx.fillStyle = `rgb(${BL})`; const d = Math.hypot(q.p[0] - H[0], q.p[1] - H[1]) || 1, nx = -(q.p[1] - H[1]) / d, ny = (q.p[0] - H[0]) / d, lw = k * 0.08 * q.p[3];
         ctx.beginPath(); ctx.moveTo(H[0] + nx * 3, H[1] + ny * 3); ctx.lineTo(q.p[0] + nx * lw, q.p[1] + ny * lw); ctx.lineTo(q.p[0] - nx * lw, q.p[1] - ny * lw); ctx.lineTo(H[0] - nx * 3, H[1] - ny * 3); ctx.fill();
         for (let j = 0; j < 3; j++) { const v = (now * 1.6 + j / 3) % 1; brille(lerp(q.p[0], H[0], v), lerp(q.p[1], H[1], v), 1.8, q.e * 0.8, false, now, q.i * 3 + j); } } });
-      it.filter(q => !avant(q)).sort((p, q) => p.p[2] - q.p[2]).forEach(q => module(V, q, now, k));
+      it.filter(q => !avant(q)).sort((p, q) => p.p[2] - q.p[2]).forEach(q => module(V, q, now, k, Vs, hx));
       // la station : un anneau épais (deux cercles, des rayons, des hublots qui s'allument), l'agent principal au milieu
       const Ra = 0.5, h0 = -0.04, h1 = 0.05, A0 = anneau(V, Ra, h0, 48), A1 = anneau(V, Ra, h1, 48), I0 = anneau(V, Ra * 0.82, h0, 48);
       for (let j = 0; j < 48; j += 4) { trait([A0[j], A1[j]], false, 0.6, prof(A0[j][2], 0.8)); }
@@ -395,7 +407,8 @@ S.skills = (() => {
       for (let j = 0; j < 12; j++) { if (j >= nb * 2 && flash < 0.3) continue; const t = j / 12 * TAU + 0.13, q = V(Math.cos(t) * Ra, (h0 + h1) / 2, Math.sin(t) * Ra); if (q[2] > -0.2) brille(q[0], q[1], 2.2, 0.9, flash > 0.3, now, j); }
       const rb = k * 0.14 * (1 + flash * 0.08); chabot(C[0], C[1] - rb * 1.1, rb, { now, v: 3, lac: Math.sin(now * 0.5) * 0.5, travaille: true, bras: flash > 0.2 ? [1.5, 1.5] : null });
       if (flash > 0) eclat(C[0], C[1] - rb * 1.1, k * 0.3, 1 - flash, 10, now);
-      it.filter(avant).sort((p, q) => p.p[2] - q.p[2]).forEach(q => module(V, q, now, k));
+      it.filter(avant).sort((p, q) => p.p[2] - q.p[2]).forEach(q => module(V, q, now, k, Vs, hx));
+      ctx.restore();
     }
   };
 })();
