@@ -1392,7 +1392,23 @@ function step(S, dt) {
   tidy();
 }
 const ail = () => Wd.ail && Wd.ail.on();
-function draw(S) { if (ail()) { Wd.ail.draw(S); drawFx(S); return; } drawWater(S); drawPattes(); drawKib(S); drawVac(S); H.draw.forEach(f => f(S)); drawFx(S); }
+function draw(S) { if (ail()) { Wd.ail.draw(S); drawFx(S); return; } drawWater(S); drawPattes(); drawKib(S); drawVac(S); H.draw.forEach(f => f(S)); vitesse(); drawFx(S); }
+// (vague 28, l'audit : « les chats 3D au trait ») : les traits de vitesse de la bande dessinée. Un chat qui galope, qu'on lance ou qui tombe
+// laisse derrière lui trois ou quatre traits de craie le long de sa course, plus longs quand il va vite ; ils tremblent un peu
+function vitesse() {
+  if (Wd.a < 0.05) return; const t = Wd.t;
+  Wd.cats.forEach(c => {
+    if (c.gone || c.hidden || c.held || !c.D) { c.vit = null; return; }
+    const s = sc(c), cy = c.y - c.D.stand * s, v = c.vit;
+    if (!v || t - v.t > 0.2) { c.vit = { t, x: c.x, y: cy, vx: 0, vy: 0 }; return; }
+    const dt = t - v.t; if (dt < 1e-3) return;
+    const k = 1 - Math.exp(-dt * 12); v.vx += ((c.x - v.x) / dt - v.vx) * k; v.vy += ((cy - v.y) / dt - v.vy) * k; v.t = t; v.x = c.x; v.y = cy;
+    const sp = Math.hypot(v.vx, v.vy), seuil = s * 1.15; if (sp < seuil) return;   // (le trot : 0,62 ; le galop : 1,5)
+    const ux = v.vx / sp, uy = v.vy / sp, nx = -uy, ny = ux, L = Math.min(s * 1.8, (sp - seuil) * 0.3 + s * 0.3), R = Math.max(c.D.a || 0.4, c.D.h || 0.4) * s * 0.55, al = Math.min(1, (sp - seuil) / (s * 0.5)) * 0.7 * Wd.a;
+    for (let i = 0; i < 4; i++) { const o = (i - 1.5) * R * 0.45, dec = R * (0.9 + (i % 2) * 0.35), x0 = c.x - ux * dec + nx * o, y0 = cy - uy * dec + ny * o, l = L * (0.6 + 0.4 * ((i * 7 + Math.floor(t * 12)) % 3) / 2);
+      Chalk.line(x0, y0, x0 - ux * l, y0 - uy * l, 1, { w: 1.5, a: al * (i % 3 ? 0.8 : 1), seed: (c.id || 0) * 13 + i + Math.floor(t * 10) }); }
+  });
+}
 function hideAll() { Wd.cats.forEach(c => { c.root.visible = false; }); Wd.props.forEach(it => { it.root.visible = false; }); }
 
 /* ——— les mains : cliquer, attraper ——— */
