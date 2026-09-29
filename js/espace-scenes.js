@@ -892,9 +892,20 @@ S.back = (() => ({
     zs.forEach((z, i) => { const r = 0.15, hh = 0.36; cylindre(V, xD, z, r, yS, yS - hh);
       const nv = Math.floor((a * 1.2 + i * 1.7) % 5); ctx.globalAlpha = 0.7; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.45; for (let j = 1; j <= 3; j++) { const C = cylindre.av || null; const L = anneau(V, r, yS - j * hh / 4, 28, xD, z), D = L.filter(p => p[2] >= V(xD, yS - j * hh / 4, z)[2] - 1e-3); if (j <= nv) { ctx.beginPath(); D.forEach((p, q) => q ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke(); } }
       const t = V(xD, yS - hh - 0.14, z); mot(['A', 'B', 'C'][i], t[0], t[1], Math.max(10, k * 0.08), 0.9); });
+    // le cordon de velours devant la passerelle : deux potelets, la corde qui pend ; le videur, bras croisés, qui hoche la tête
+    { const p0 = V(xA - 0.32, yS, -0.5), p1 = V(xA - 0.32, yS, 0.5), h0 = k * 0.2 * p0[3], h1 = k * 0.2 * p1[3];
+      [[p0, h0], [p1, h1]].forEach(([p, h]) => { cerne(() => { ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(p[0], p[1] - h); }, 1.1, 1, null); cerne(() => { ctx.beginPath(); ctx.arc(p[0], p[1] - h, h * 0.12, 0, TAU); }, 0.7, 1); });
+      cerne(() => { ctx.beginPath(); ctx.moveTo(p0[0], p0[1] - h0 * 0.9); ctx.quadraticCurveTo((p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2 - (h0 + h1) * 0.2, p1[0], p1[1] - h1 * 0.9); }, 1.3, 1, null);
+      const v = V(xA - 0.34, yS, -0.05), r = k * 0.07 * v[3]; chabot(v[0], v[1] - r * 1.75, r, { now, ph: 12, lac: 0.7 + Math.sin(now * 0.8) * 0.2, casque: false, bras: [-0.9, -0.9] }); }
     // les requêtes : elles arrivent, sont triées, traitées, rangées
     // (vague 15 de l'audit : « la file reste une ligne à gauche ») : les requêtes arrivent de tout le ciel, par dizaines, et convergent en essaim vers la passerelle
     for (let q = 0; q < 42; q++) { const t = (now * 0.3 + q / 42) % 1, cl = Math.floor(bruit(q * 3.3) * 3), z = zs[cl], z0 = (bruit(q * 9.1) - 0.5) * 1.6; let p;
+      // (vague 38 de l'audit : « back-end, peu original ») : le videur de la passerelle : une requête sur sept est refoulée au cordon (« 429 »),
+      // renvoyée en tournoyant vers le ciel, un tampon sur le front
+      const refus = bruit(q * 5.9) < 0.15;
+      if (refus && t >= 0.25) { if (t > 0.55) continue; const e = (t - 0.25) / 0.3, b = V(xA - 0.3 - e * 0.9, yS - 0.12 - Math.sin(Math.PI * Math.min(1, e * 1.4)) * 0.45 - e * 0.3, z0), sb = k * 0.045 * b[3];
+        ctx.save(); ctx.translate(b[0], b[1]); ctx.rotate(-e * 9); cerne(() => { ctx.beginPath(); ctx.rect(-sb, -sb * 0.7, sb * 2, sb * 1.4); }, 0.6, 1); ctx.restore();
+        mot('429', b[0], b[1] - sb * 1.6, Math.max(9, k * 0.055), 1 - e); continue; }
       if (t < 0.25) { const e = sm(t / 0.25), x0 = (bruit(q * 4.7) * 2 - 1) * lx * 1.45, y0 = yS - 0.35 - bruit(q * 2.2) * 1.1; p = V(lerp(x0, xA - 0.12, e), lerp(y0, yS - 0.1, e) - Math.sin(Math.PI * e) * 0.15, lerp(z0 * 1.4, z, e)); } else if (t < 0.6) p = V(lerp(xA + 0.14, xW - 0.14, (t - 0.25) / 0.35), yS - 0.03, z); else if (t < 0.7) p = V(xW, yS - 0.1 - Math.sin((t - 0.6) / 0.1 * Math.PI) * 0.08, z); else { const u = (t - 0.7) / 0.3; p = V(lerp(xW + 0.14, xD, u), yS - 0.05 - u * 0.36 - Math.sin(Math.PI * u) * 0.25, z); }
       // (vague 8, l'audit : « des enveloppes qui flottent, grises ») : opaques ; en file vers la passerelle ; l'engrenage les ouvre : elles
       // ressortent en fiches de données (des lignes) et plongent dans leur base, qui fait « +1 »
