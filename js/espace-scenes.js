@@ -804,6 +804,17 @@ S.devops = (() => ({
     const at = t => { const d = 1 + Math.sin(t) ** 2; return [sx * Math.cos(t) / d, -0.16 * Math.sin(t), 1.35 * Math.sin(t) * Math.cos(t) / d]; };
     const nor = t => { const p = at(t - 0.01), q = at(t + 0.01), dx = q[0] - p[0], dz = q[2] - p[2], l = Math.hypot(dx, dz) || 1; return [dx / l, dz / l]; };
     const bord = o => { const L = []; for (let i = 0; i <= 120; i++) { const t = i / 120 * TAU, p = at(t), [tx, tz] = nor(t); L.push(V(p[0] - tz * o, p[1], p[2] + tx * o)); } return L; };
+    // (vague 16 de l'audit : « le circuit tourne seul au milieu ») : au-dessus, tout le ciel est le cloud : des nuages de papier (chacun ses serveurs)
+    // dérivent d'un bord à l'autre ; à chaque déploiement, une étincelle part du portique « déploie » vers l'un d'eux, qui s'allume et coche
+    sousLaBarre();
+    { const top = G.haut + 18, y1 = Math.max(top + 10, G.cy - k * 0.6), mw = Math.min(0.9, lx * 0.5) * k * 0.62 + k * 0.1, my = G.cy - k * 0.72, Wn = G.droite - G.gauche, Tq = 1.1, n = Math.floor(now / Tq), u = (now % Tq) / Tq, cible = Math.floor(bruit(n * 3.7) * 16), dep = V(...at(3.5));
+      for (let j = 0; j < 16; j++) { const x = G.gauche + ((bruit(j * 4.1) + now * 0.012 * (0.6 + bruit(j))) % 1) * Wn, y = lerp(top, y1, bruit(j * 6.3)), r = k * (0.07 + bruit(j * 2.9) * 0.06), on = j === cible && u > 0.55 ? 1 - (u - 0.55) / 0.45 : 0, pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
+        if (pc && Math.hypot(x - pc.x, y - pc.y) < pc.r * 1.3 + r * 2) continue; if (Math.abs(x - G.cx) < mw + r * 1.5 && Math.abs(y - my) < k * 0.2 + r) continue;
+        cerne(() => { ctx.beginPath(); ctx.arc(x - r * 0.9, y + r * 0.2, r * 0.6, Math.PI * 0.5, Math.PI * 1.5); ctx.arc(x, y - r * 0.2, r * 0.85, Math.PI, 0); ctx.arc(x + r * 0.95, y + r * 0.2, r * 0.55, Math.PI * 1.5, Math.PI * 0.5); ctx.closePath(); }, 0.7, 1, on > 0 ? '#ffe9a8' : PAP);
+        ctx.fillStyle = ENC; for (let l = 0; l < 3; l++) { ctx.globalAlpha = 1; ctx.fillRect(x - r * 0.5 + l * r * 0.38, y + r * 0.05, r * 0.26, r * 0.4); }
+        if (on > 0) { coche(x + r * 1.1, y - r * 0.9, r * 0.35, 1, 0.9); eclat(x, y, r * 1.2, 1 - on, 8, j); }
+        if (j === cible && u < 0.55) { const e = sm(u / 0.55), sx = lerp(dep[0], x, e), sy = lerp(dep[1], y, e) - Math.sin(Math.PI * e) * k * 0.4; brille(sx, sy, 3, 1, true, now, j); } } }
+    ctx.restore();
     trait3(bord(0.08), 1, 1); trait3(bord(-0.08), 1, 1);
     const lab = en() ? ['build', 'test', 'deploy', 'monitor'] : ['build', 'test', 'déploie', 'surveille'], ST = [0.35, 1.25, 3.5, 4.4];
     const conts = []; for (let q = 0; q < 12; q++) conts.push((now * 0.5 + q / 12 * TAU) % TAU);
