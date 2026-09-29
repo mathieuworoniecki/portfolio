@@ -39,7 +39,7 @@ H.pre.push(() => {
   const lx = L => r.left + L.cx + L.dx, ly = L => r.top + L.cy + L.dy;
   for (const L of Ls) {
     if (L.st === 'nage') {
-      const b = L.nage; if (!Bassin.bassins().includes(b) || b.held || b.fall || Wd.t - L.t > L.life) { L.st = 'back'; L.t = Wd.t; L.from = [L.dx, L.dy, L.rot % (Math.PI * 2)]; L.nage = null; continue; }
+      const b = L.nage; if (!Bassin.bassins().includes(b) || b.held || b.fall || Wd.t - L.t > L.life || Wd.t - (L.out0 || Wd.t) > 30) { L.st = 'back'; L.t = Wd.t; L.from = [L.dx, L.dy, L.rot % (Math.PI * 2)]; L.nage = null; continue; }
       const S = S2(b), tx = S.x + L.u * S.rx + Math.sin(Wd.t * 0.5 + L.ph) * S.rx * 0.12, ty = S.y + Math.sin(Wd.t * 2 + L.ph) * 2 - (L.y1 - L.y0) * 0.25;
       L.dx += tx - lx(L); L.dy += ty - ly(L); L.rot = Math.sin(Wd.t * 1.3 + L.ph) * 0.25;
       continue;

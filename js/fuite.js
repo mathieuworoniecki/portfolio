@@ -91,7 +91,13 @@ function retour() {
     it.lift = 0; it.big = it.big || 1; it.trou = { t0: Wd.t, retour: true, big: it.big, sens: Math.random() < 0.5 ? -1 : 1 }; it.big *= 0.05;
     later(0.25, () => word(pick(['pop !', 'plop', 'tadaa']), it.fx * Wd.W, floorAt(it.d) - s * 0.8, 18));
   }));
-  Wd.nextIn = Wd.t + 1.2 + L.length * 0.1;
+  // (29/09, l'audit : au retour, la pièce restait vide de chats) : deux chats jaillissent des derniers trous avec les objets, en criant,
+  // deux autres rentrent en courant par les côtés
+  const n = L.length, tr = [L[n - 1], L[Math.max(0, n - 3)]].filter(Boolean);
+  tr.forEach((it, i) => later(0.55 + (n - 1) * 0.1 + i * 0.35, () => { if (K.residents().length >= K.MAXC) return; const d = it.d ?? 0.3, c = K.addCat({ x: it.fx * Wd.W, d }), s = sc(c);
+    c.y = floorAt(d) - s * 0.3; c.fall = true; c.vy = -s * rnd(5.5, 7); c.vx = s * rnd(1, 2.4) * (i ? -1 : 1); c.face = sgn(c.vx) || 1; later(0.2, () => say(c, pick(en() ? ['woohoo!', 'I’m back!', 'hi!', 'hop!'] : ['youhou !', 'me revoilà !', 'coucou !', 'hop !']))); }));
+  [0, 1].forEach(i => later(1.4 + n * 0.1 + i * 0.7, () => { if (K.residents().length < K.MAXC) { const c = K.enter(); c.q.unshift(go(c.x + (c.x < Wd.W / 2 ? 1 : -1) * sc(c) * 3, { g: 'galop', v: 1.5 })); } }));
+  Wd.nextIn = Wd.t + 6 + n * 0.1;
 }
 addEventListener('serieux:ferme', retour);
 return { go: go0, get actif() { return !!F; } };

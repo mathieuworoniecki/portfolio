@@ -929,7 +929,9 @@ function rue() {
   const R = Wd.rue; if (!R) return; const L = Wd.cats.filter(c => c.rue && !c.gone && c.x > -sc(c) && c.x < Wd.W + sc(c));
   if (Wd.t > R.fin || (!L.length && Wd.t - R.t0 > 2)) { Wd.rue = null; return; }
   if (L.length) { Wd.shake = { t0: Wd.t, a: 3 + Math.min(4, L.length * 0.4) };
-    const c = pick(L); if (!c.fall) dust(c.x - c.face * sc(c) * 0.5, floorAt(c.d), sc(c) * 0.5, 0.8);
+    // (29/09, l'audit : on ne lisait pas une ruée) : un vrai nuage de poussière roule derrière la horde, trois bouffées par image
+    for (let j = 0; j < 3; j++) { const c = pick(L); if (!c.fall) dust(c.x - c.face * sc(c) * rnd(0.4, 1.4), floorAt(c.d), sc(c) * rnd(0.5, 0.9), 0.9); }
+    const c = pick(L);
     if (Wd.t > R.dit) { R.dit = Wd.t + rnd(0.5, 0.9); Wd.fx.push({ k: 'txt', text: pick(['VROOOM', 'tagada tagada', 'BRRRM', 'place !', 'ZOOOM', 'mia mia mia']), x: c.x, y: c.y - sc(c) * 1.3, t0: Wd.t, life: 1.1, rot: rnd(-0.2, 0.2), size: rnd(20, 30) }); } }
 }
 function runMice(dt) {
@@ -1038,6 +1040,11 @@ function machines(dt) {
         for (let i = 0; i < 3; i++) Wd.kib.push({ x: m[0], y: m[1], vx: rnd(-750, 750) * k, vy: -rnd(300, 1050) * k, d: rnd(0, 0.15), t0: Wd.t, rest: false, spin: Math.random() * 6 }); }
       if (Wd.t > F.say) { F.say = Wd.t + rnd(0.6, 1); const m = Univers.at(g, g.bec); Wd.fx.push({ k: 'txt', text: pick(['BZZT !', 'ding ding ding', '!!!', 'croquettes !!!', 'brrrrr']), x: m[0] + rnd(-40, 40), y: m[1] - g.s * rnd(0.4, 0.8), t0: Wd.t, life: 1.2, rot: rnd(-0.3, 0.3), size: 19 }); }
       if (!F.fest && Wd.t > F.t0 + 1.2) { F.fest = true; feast(); }
+      // (29/09, l'audit : il manquait un vrai moment) : le bouquet final. Il se tasse, tremble plus fort… et JACKPOT : un geyser de croquettes
+      // qui monte jusqu'au plafond et retombe en pluie sur toute la pièce, la pièce tremble
+      if (!F.boum && Wd.t > F.end - 1.6) { F.boum = true; g.wob = Wd.t; g.wobA = 2.2; const m = Univers.at(g, g.bec), k = Wd.s0 / 160; Wd.shake = { t0: Wd.t, a: 7 };
+        Wd.fx.push({ k: 'txt', text: 'JACKPOT !!!', x: m[0], y: m[1] - g.s * 1.1, t0: Wd.t, life: 2, rot: -0.08, size: 44 }); dust(m[0], m[1], g.s * 0.6, 1);
+        for (let i = 0; i < 70 && Wd.kib.length < KIBMAX() + 60; i++) Wd.kib.push({ x: m[0], y: m[1], vx: rnd(-1, 1) * rnd(200, 1500) * k, vy: -rnd(900, 1900) * k, d: rnd(0, 0.5), t0: Wd.t, rest: false, spin: Math.random() * 6 }); }
       if (Wd.t > F.end) { g.folle = null; const m = Univers.at(g, [0, 0.8, 0]); dust(m[0], m[1], g.s * 0.3, 1); Wd.fx.push({ k: 'txt', text: 'pfff…', x: m[0], y: m[1] - 20, t0: Wd.t, life: 1.6, rot: -0.1, size: 18 }); g.clk = 0; }
     }
   });

@@ -15,7 +15,7 @@ const word = (text, x, y, size) => Wd.fx.push({ k: 'txt', text, x, y, t0: Wd.t, 
 const T = [];   // les traces : { k: 'pipi' | 'caca' | 'vomi' | 'patte', x, y, r, t0, life, seed }
 
 /* ——— ce qui devient arc-en-ciel : son trait change de couleur, puis revient ——— */
-function colore(o, dur) { if (!o) return; o.arcT = Math.max(o.arcT || 0, Wd.t + (dur || 25)); o.arcH = o.arcH ?? Math.random(); }
+function colore(o, dur) { if (!o) return; o.arcT = Math.max(o.arcT || 0, Wd.t + (dur || 16)); o.arcH = o.arcH ?? Math.random(); }
 const traits = M => [M.line, M.soft, M.out, M.out2].filter(x => x && x.color);
 H.post.push(() => {
   const dark = document.documentElement.dataset.theme === 'dark' || (!document.documentElement.dataset.theme && SOMBRE.matches);
@@ -24,7 +24,7 @@ H.post.push(() => {
     if (o.arcT > Wd.t) {
       if (!o.arc0) o.arc0 = o.mats.map(M => traits(M).map(x => x.color.getHex()));
       const h = (o.arcH + Wd.t * 0.35) % 1, fin = Math.min(1, (o.arcT - Wd.t) / 3);   // (les trois dernières secondes, ça pâlit)
-      o.mats.forEach((M, i) => traits(M).forEach((x, j) => { const c0 = o.arc0[i] && o.arc0[i][j]; x.color.setHSL((h + j * 0.08) % 1, 0.85, dark ? 0.66 : 0.5); if (fin < 1 && c0 != null) x.color.lerp(TMP.setHex(c0), 1 - fin); }));
+      o.mats.forEach((M, i) => traits(M).forEach((x, j) => { const c0 = o.arc0[i] && o.arc0[i][j]; x.color.setHSL((h + j * 0.08) % 1, 0.62, dark ? 0.7 : 0.5); if (fin < 1 && c0 != null) x.color.lerp(TMP.setHex(c0), 1 - fin); }));
     } else if (o.arc0) { o.mats.forEach((M, i) => traits(M).forEach((x, j) => { const c0 = o.arc0[i] && o.arc0[i][j]; if (c0 != null) x.color.setHex(c0); })); o.arc0 = null; }
   };
   for (const o of Wd.cats) teinte(o); for (const o of Wd.props) teinte(o);   // (sans recopier les deux listes à chaque image)

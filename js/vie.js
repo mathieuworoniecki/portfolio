@@ -281,7 +281,9 @@ const TL = { jeu: false };
 const LETTERS = () => window.Titles && titleEl ? Titles.letters(titleEl) : null, RECT = () => Titles.rect(titleEl);
 const LOURDS = { boule: 1, miche: 1, rose: 1, grincheux: 1, gros: 1, nuage: 1 };
 const lx = (L, r) => r.left + L.cx + L.dx, ly = (L, r) => r.top + L.cy + L.dy;
-function tumble(L, vx, vy, vr) { L.st = 'fall'; L.vx = vx; L.vy = vy; L.vr = vr; L.t = Wd.t; }
+// (29/09, l'audit : après trois événements, le titre ne disait plus que « m c’ t ath » : les chats relançaient sans fin les lettres tombées ;
+// une lettre ne reste pas plus de 22 s loin de sa place, quoi qu'il arrive)
+function tumble(L, vx, vy, vr) { if (!L.out0) L.out0 = Wd.t; L.st = 'fall'; L.vx = vx; L.vy = vy; L.vr = vr; L.t = Wd.t; }
 H.pre.push(dt => {
   const Ls = LETTERS(); if (!Ls) return; const r = RECT(), g = K.grav() * 0.9, fl = Wd.floor - 2;
   Ls.forEach(L => {
@@ -299,10 +301,10 @@ H.pre.push(dt => {
       }
     } else if (L.st === 'sol') {
       // au sol : il reste un moment (les chats jouent avec), puis remonte à sa place (ou s'efface, quand on reste jouer)
-      if (Wd.t - L.t > L.life) { if (TL.jeu) L.a = Math.max(0, L.a - dt / 1.5); else { L.st = 'back'; L.t = Wd.t; L.from = [L.dx, L.dy, L.rot % (Math.PI * 2)]; } }
+      if (Wd.t - L.t > L.life || (!TL.jeu && Wd.t - (L.out0 || Wd.t) > 22)) { if (TL.jeu) L.a = Math.max(0, L.a - dt / 1.5); else { L.st = 'back'; L.t = Wd.t; L.from = [L.dx, L.dy, L.rot % (Math.PI * 2)]; } }
     } else if (L.st === 'back') {
       const u = Math.min(1, (Wd.t - L.t) / 1.1), e = sm(u); L.dx = L.from[0] * (1 - e); L.dy = L.from[1] * (1 - e) - Math.sin(u * Math.PI) * Wd.s0 * 0.8; L.rot = L.from[2] * (1 - e);
-      if (u >= 1) { L.st = ''; L.dx = L.dy = L.rot = 0; L.wob = Wd.t; L.wobA = 0.6; }
+      if (u >= 1) { L.st = ''; L.dx = L.dy = L.rot = 0; L.wob = Wd.t; L.wobA = 0.6; L.out0 = 0; }
     }
   });
 });
