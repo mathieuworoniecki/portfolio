@@ -545,6 +545,16 @@ S.gardefous = (() => {
     cles: () => [[-0.95, -0.2], [-0.35, -0.2], [0.25, -0.2], [1.2, -0.3]],
     dessin(a, now) {
       const [k, lx] = large(1.55, 2.1), V = cam(-0.3, -0.42, k * 1.02, -0.08, -0.14), yT = 0.3, x0 = -lx, xS = lx * 0.5, xs = [-lx * 0.62, -lx * 0.28, lx * 0.06], lab = LAB(), vit = 0.36, T = 1.0;
+      // (vague 17 de l'audit : « le tapis part du bord gauche, le reste du ciel est vide ») : les changements arrivent de tout le ciel, par dizaines,
+      // comme des feuilles de papier qui planent, et se posent au début du tapis
+      sousLaBarre();
+      { const A = V(x0 + 0.05, yT - 0.02, 0), Wn = G.droite - G.gauche, n = G.cx * 2 < 700 ? 8 : 16, pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
+        for (let j = 0; j < n; j++) { const v = (now * 0.12 + j / n) % 1, cyc = Math.floor(now * 0.12 + j / n), sx = G.gauche + bruit(j * 3.1 + cyc * 7) * Wn, sy = G.haut + 10 + bruit(j * 5.3 + cyc) * (G.caps - G.haut) * 0.35, e = sm(v);
+          const x = lerp(sx, A[0], e) + Math.sin(v * 9 + j) * k * 0.06 * (1 - v), y = lerp(sy, A[1], e * e), w = k * lerp(0.05, 0.035, e), h = w * 1.35;
+          if (pc && Math.hypot(x - pc.x, y - pc.y) < pc.r * 1.3) continue;
+          ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(v * 7 + j * 2) * 0.6 * (1 - e)); cerne(() => { ctx.beginPath(); ctx.rect(-w, -h, 2 * w, 2 * h); }, 0.5, 1);
+          ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.3; ctx.beginPath(); ctx.moveTo(-w * 0.55, -h * 0.4); ctx.lineTo(w * 0.55, -h * 0.4); ctx.moveTo(-w * 0.55, 0); ctx.lineTo(w * 0.3, 0); ctx.stroke(); ctx.restore(); } }
+      ctx.restore();
       [-0.2, 0.2].forEach(z => trait([V(x0, yT, z), V(xS + 0.1, yT, z)], false, 0.9, prof(z)));
       for (let j = 0; j < 26; j++) { const x = x0 + ((j * 0.13 + a * vit) % (xS + 0.1 - x0)); trait([V(x, yT, -0.2), V(x, yT, 0.2)], false, 0.35, 0.4); }
       const carte = (x, y, z, al, rt = 0) => { const R = (u, w) => [x + u * Math.cos(rt) - w * Math.sin(rt), z + u * Math.sin(rt) + w * Math.cos(rt)], Q = [[-0.09, -0.13], [0.09, -0.13], [0.09, 0.13], [-0.09, 0.13]].map(([u, w]) => { const [px, pz] = R(u, w); return V(px, y, pz); });
