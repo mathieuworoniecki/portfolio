@@ -420,7 +420,7 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
   const FILS = segments(NS, L[2].a), ETIN = segments(NS, L[2].d); R.add(FILS.l); R.add(ETIN.l); const ETC = []; for (let i = 0; i < NS; i++) { const r = trait(cercleH(0.08, 24), L[2].a, true); ceinture.add(r); ETC.push(r); }
 
   /* 3 · le banc d'essai : dix couloirs, dix outils qui courent ; un seul franchit la ligne en tête */
-  const piste = new T.Group(); piste.position.set(-0.5, -0.35, 0.2); piste.rotation.y = -0.2; piste.scale.setScalar(0.98); R.add(piste); const NL = 10, CO = [];
+  const piste = new T.Group(); piste.position.set(-0.22, -0.35, 0.2); piste.rotation.y = -0.2; piste.scale.setScalar(0.82); R.add(piste); const NL = 10, CO = [];
   for (let i = 0; i < NL; i++) { const z = (i - (NL - 1) / 2) * 0.16; piste.add(trait([[-1.5, 0, z - 0.08], [1.5, 0, z - 0.08]], L[3].s)); }
   piste.add(trait([[1.2, 0, -0.85], [1.2, 0, 0.85]], L[3].a)); piste.add(trait([[1.2, 0.18, -0.85], [1.2, 0.18, 0.85]], L[3].d));
   for (let i = 0; i < NL; i++) { const g = new T.Group(); piste.add(g); solide(g, new T.BoxGeometry(0.1, 0.08, 0.08).translate(0, 0.04, 0), i === 6 ? L[3].a : L[3].l); CO.push({ g, z: (i - (NL - 1) / 2) * 0.16, v: i === 6 ? 1 : 0.55 + rnd() * 0.35 }); }
@@ -487,8 +487,8 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
     FILS.a.needsUpdate = true; ETIN.a.needsUpdate = true; ceinture.rotation.y = 0;
     /* 3 : la course, qui recommence */
     piste.visible = f[3] > 0.01; const tc = (t * 0.28) % 1;
-    CO.forEach((c, i) => { const x = -1.4 + Math.min(2.7, 2.9 * tc * c.v * 1.1), va = x < 1.3 ? c.v : 0; c.g.position.set(x, 0, c.z); c.g.scale.y = x > 1.2 && c.v === 1 ? 1.6 : 1;
-      for (let j = 0; j < 2; j++) { const dy = 0.02 + j * 0.04, l = va * (0.35 + 0.25 * Math.sin(t * 20 + i + j)); sillages.pos.set([x - 0.06 - l, dy, c.z + (j - 0.5) * 0.03, x - 0.06, dy, c.z + (j - 0.5) * 0.03], (i * 2 + j) * 6); } });
+    CO.forEach((c, i) => { const x = -1.4 + Math.min(2.7, 2.9 * tc * c.v * 1.1), va = x < 1.3 ? c.v : 0; const chute = c.v === 1 ? 0 : c01((tc - 0.8 - i * 0.012) / 0.16); c.g.position.set(x + chute * 0.25, -chute * chute * 1.6, c.z); c.g.rotation.set(chute * 1.5 * (i % 2 ? 1 : -1), 0, -chute * 2.2); c.g.scale.y = x > 1.2 && c.v === 1 ? 1.6 : 1;   // un seul reste : les autres basculent hors de la piste
+      for (let j = 0; j < 2; j++) { const dy = 0.02 + j * 0.04, l = va * (1 - chute) * (0.35 + 0.25 * Math.sin(t * 20 + i + j)); sillages.pos.set([x - 0.06 - l, dy, c.z + (j - 0.5) * 0.03, x - 0.06, dy, c.z + (j - 0.5) * 0.03], (i * 2 + j) * 6); } });
     CO.forEach((c, i) => { const arr = 2.9 * tc * c.v * 1.1 >= 2.6, cible = arr ? 0.12 + 0.75 * Math.pow(c.v, 3) : 0.001; BAR[i].scale.y = Math.max(0.001, lerp(BAR[i].scale.y, cible, arr ? 0.12 : 0.4)); BAR[i].visible = f[3] > 0.01; });
     sillages.a.needsUpdate = true; { const w = CO.find(c => c.v === 1), xg = -1.4 + 2.9 * tc * 1.1, k = c01((xg - 1.2) / 0.9); eclat.position.set(1.2, 0.02, w.z); eclat.scale.setScalar(0.2 + k * 5); eclat.visible = k > 0 && k < 1; }
     /* 4 : le produit, étage par étage, nourri par le mur */
