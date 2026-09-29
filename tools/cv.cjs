@@ -35,7 +35,7 @@ function page(D, X) {
     mainEntityOfPage: { '@type': 'ProfilePage', '@id': `${SITE}/${X.fichier.replace('.html', '')}#page`, url: `${SITE}/${X.fichier.replace('.html', '')}`, inLanguage: X.lang },
     email: mail ? mail.v : undefined, sameAs: liens.map(l => l.href), address: { '@type': 'PostalAddress', addressLocality: 'Paris', addressCountry: 'FR' },
     worksFor: { '@type': 'Organization', name: 'MARKO', url: 'https://marko.fr' }, knowsAbout: savoir, knowsLanguage: X.lang === 'fr' ? ['fr', 'en'] : ['fr', 'en'] };
-  const titre = `${D.nom} · ${A.titre}`;
+  const titre = `${D.nom} · ${A.titre} · CV`;
   return `<!doctype html>
 <html lang="${X.lang}">
 <head>
@@ -44,7 +44,7 @@ function page(D, X) {
 <title>${esc(titre)}</title>
 <meta name="description" content="${esc(X.desc)}">
 <link rel="canonical" href="${SITE}/${X.fichier.replace('.html', '')}">
-<link rel="alternate" hreflang="fr" href="${SITE}/cv"><link rel="alternate" hreflang="en" href="${SITE}/cv-en">
+<link rel="alternate" hreflang="fr" href="${SITE}/cv"><link rel="alternate" hreflang="en" href="${SITE}/cv-en"><link rel="alternate" hreflang="x-default" href="${SITE}/cv-en">
 <meta property="og:type" content="profile"><meta property="og:title" content="${esc(titre)}"><meta property="og:description" content="${esc(X.desc)}">
 <meta property="og:url" content="${SITE}/${X.fichier.replace('.html', '')}"><meta property="profile:first_name" content="Mathieu"><meta property="profile:last_name" content="Woroniecki">
 <meta property="og:image" content="${IMG}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">

@@ -13,6 +13,7 @@ fr: {
   'meta.desc': 'Mathieu Woroniecki, architecte IA et CTO de MARKO à Paris : IA générative, RAG, agents, architecture et direction technique. Son univers en 3D et son CV animé.',
   'gate.kick': 'Accès réservé', 'gate.label': 'Code d’accès', 'gate.ph': 'code', 'gate.go': 'Entrer', 'gate.bad': 'Ce n’est pas le bon code.',
   'lang': 'Langue', 'home': 'Mathieu, retour au début', 'grab': 'Glisser pour tourner',
+  'cvtexte': 'Le CV de Mathieu Woroniecki, architecte IA & CTO, en version texte', 'cvtexte.href': '/cv',
   // la ligne du temps (js/film.js)
   'film.chapters': 'Chapitres', 'film.chapter': 'Chapitre {0} : {1}', 'film.play': 'Lecture', 'film.pause': 'Pause', 'film.replay': 'Rejouer',
   'film.sound': 'Son', 'film.hint': 'Molette ou flèches : chapitre suivant',
@@ -37,6 +38,7 @@ en: {
   'meta.desc': 'Mathieu Woroniecki, AI Architect and CTO of MARKO in Paris: generative AI, RAG, agents, architecture and technical leadership. His 3D world and animated CV.',
   'gate.kick': 'Private access', 'gate.label': 'Access code', 'gate.ph': 'code', 'gate.go': 'Enter', 'gate.bad': 'That’s not the right code.',
   'lang': 'Language', 'home': 'Mathieu, back to the start', 'grab': 'Drag to turn',
+  'cvtexte': 'Mathieu Woroniecki’s CV, AI Architect & CTO, as plain text', 'cvtexte.href': '/cv-en',
   'film.chapters': 'Chapters', 'film.chapter': 'Chapter {0}: {1}', 'film.play': 'Play', 'film.pause': 'Pause', 'film.replay': 'Replay',
   'film.sound': 'Sound', 'film.hint': 'Wheel or arrows: next chapter',
   'ch.1': 'Hi', 'ch.2': 'Space', 'ch.3': 'Playground',
