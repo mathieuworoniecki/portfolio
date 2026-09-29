@@ -95,7 +95,7 @@ function chabot(x, y, r, o = {}) {
   // le casque de verre : un rond au trait blanc, un reflet
   if (o.casque !== false) { style(0.55 * w, a * 0.8); ctx.beginPath(); ctx.arc(hx, y - r * 0.08, r * 1.32, 0, TAU); ctx.stroke(); style(0.9 * w, a * 0.7); ctx.beginPath(); ctx.arc(hx, y - r * 0.08, r * 1.16, -2.5, -1.9); ctx.stroke(); }
 }
-const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v, pick2 = (L, i) => L[Math.abs(i) % L.length];
 function robot(x, y, r, a = 1, cligne = 0, o = {}) { chabot(x, y - r * 0.15, r * 0.82, Object.assign({ a, cligne }, o)); }
 
 // un objet extrudé en 3D (un profil plat, une épaisseur), dans le style des chats : cerné de blanc, rempli de papier, au trait d'encre ;
@@ -761,13 +761,16 @@ S.secu = (() => ({
     const T = 2.4; let bloq = 0;
     for (let q = 0; q < 6; q++) { const tt = a + q * T / 6, t = tt % T, n = Math.floor(tt / T), th = bruit(q * 7 + n * 13) * TAU, ph = 0.2 + bruit(q * 3 + n * 5) * 1.1, dir = [Math.cos(th) * Math.cos(ph), -Math.sin(ph), Math.sin(th) * Math.cos(ph)];
       bloq += n; const pt = d => V(dir[0] * d, dir[1] * d, dir[2] * d);
-      if (t < 1.2) { const d = lerp(2.6, R, t / 1.2), p = pt(d), p0 = pt(d + 0.3); trait([p0, p], false, 0.9, 0.9); caillou(p[0], p[1], k * 0.055 * p[3], Math.sin(now * 3 + q) * 0.3, q * 7 + n, 1, true); }
+      if (t < 1.2) { const d = lerp(2.6, R, t / 1.2), p = pt(d), p0 = pt(d + 0.3); trait([p0, p], false, 0.9, 0.9); caillou(p[0], p[1], k * 0.08 * p[3], Math.sin(now * 3 + q) * 0.3, q * 7 + n, 1, true); }
       else if (t < 2.2) { const u = (t - 1.2) / 1, p = pt(R); eclat(p[0], p[1], 12, u, 7, th);
+        // (vague 7) repoussé : le petit méchant rebondit sur le dôme et repart en tournoyant, sonné
+        if (u < 0.8) { const b = pt(R + u * 1.1), r0 = k * 0.08 * b[3] * (1 - u * 0.4); caillou(b[0], b[1] - Math.sin(u * Math.PI) * k * 0.15, r0, u * 9, q * 7 + n, 1 - u * 0.5, true); if (u < 0.35) mot(pick2(['paf', 'bonk', 'toc'], q + n), b[0], b[1] - r0 * 2.2, Math.max(10, k * 0.06), 1 - u * 2.5); }
         // l'onde, à la surface du dôme
         const up = Math.abs(dir[1]) > 0.95 ? [1, 0, 0] : [0, 1, 0], cr = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], nz = v => { const l = Math.hypot(...v); return v.map(x => x / l); }, e1 = nz(cr(dir, up)), e2 = cr(dir, e1), rho = 0.06 + u * 0.55, L = [];
         for (let i = 0; i <= 28; i++) { const w = i / 28 * TAU, v = dir.map((x, j) => x * Math.cos(rho) + (e1[j] * Math.cos(w) + e2[j] * Math.sin(w)) * Math.sin(rho)); if (v[1] > 0.02) { if (L.length > 1) trait(L, false, 0.9, (1 - u) * 0.9); L.length = 0; continue; } L.push(V(v[0] * R, v[1] * R, v[2] * R)); }
         if (L.length > 1) trait(L, false, 0.9, (1 - u) * 0.9); } }
-    const m = V(R * 1.25, 0.12, R * 0.6); mot(`${en() ? 'blocked' : 'bloqués'} : ${bloq}`, m[0], m[1] + k * 0.1, Math.max(10, k * 0.07), 0.8);
+    // le compteur, en haut du dôme, sur un petit écran de papier (il était caché sous les sous-titres)
+    { const o = V(0, 0, 0), w = Math.max(k * 0.52, 108), h = Math.max(k * 0.14, 28), m = [Math.min(o[0] + R * k * 1.2, G.cx * 2 - w * 0.62 - 10), o[1] - R * k * (G.cx * 2 < 700 ? 1.25 : 0.8)]; ecran(m[0] - w / 2, m[1] - h / 2, w, h, k * 0.03, 3); mot(`${en() ? 'blocked' : 'bloqués'} : ${bloq}`, m[0], m[1], Math.max(12, k * 0.075), 1); }
   }
 }))();
 
