@@ -416,16 +416,19 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
     }
   };
 
-  /* 2 · l'outillage : des modules (skills, plugins, serveurs MCP) arrivent de partout et se branchent un à un dans les prises d'un socle autour de moi ; chaque prise allume un fil jusqu'à moi */
-  const NS = 10, SK = [], ceinture = new T.Group(); ceinture.position.set(0, -0.36, 0.9); R.add(ceinture); ceinture.add(trait(cercleH(0.62, 72), L[2].s, true)); ceinture.add(trait(cercleH(0.48, 72), L[2].s, true));
-  const PR = []; for (let i = 0; i < NS; i++) { const a = i / NS * TAU, x = Math.cos(a) * 0.55, z = Math.sin(a) * 0.55; PR.push([x, z]); ceinture.add(trait(cercleH(0.065, 4).map(p => [p[0] + x, 0.002, p[2] + z]), L[2].d, true)); }
+  /* 2 · l'outillage : dès qu'une tâche revient, elle devient un outil. Une boucle tourne à côté de moi (la tâche répétée), trois tours, puis elle se fige en module
+     (skill, plugin, serveur MCP) qui file se brancher dans une prise du socle ; chaque prise allume un fil jusqu'à moi */
+  const NS = 10, SK = [], RS = 0.7, ceinture = new T.Group(); ceinture.position.set(0, -0.36, 0.9); R.add(ceinture); ceinture.add(trait(cercleH(0.82, 96), L[2].s, true)); ceinture.add(trait(cercleH(0.58, 96), L[2].s, true));
+  const PR = []; for (let i = 0; i < NS; i++) { const a = i / NS * TAU, x = Math.cos(a) * RS, z = Math.sin(a) * RS; PR.push([x, z]); ceinture.add(trait(cercleH(0.075, 4).map(p => [p[0] + x, 0.002, p[2] + z]), L[2].d, true)); }
   for (let i = 0; i < NS; i++) { const g = new T.Group(); R.add(g); const f3 = i % 3;
-    if (f3 === 0) solide(g, new T.BoxGeometry(0.11, 0.11, 0.11), L[2].l);                                                   // un skill
-    else if (f3 === 1) { solide(g, new T.BoxGeometry(0.14, 0.03, 0.1), L[2].l); g.add(trait([[-0.05, 0.016, 0], [0.04, 0.016, 0]], L[2].s)); }   // une carte, un plugin
-    else { solide(g, new T.OctahedronGeometry(0.075), L[2].a, 1); }                                                            // un serveur MCP
-    g.add(traits([[-0.025, -0.06, 0], [-0.025, -0.1, 0], [0.025, -0.06, 0], [0.025, -0.1, 0]], L[2].l));                      // ses broches
-    SK.push({ g, dep: V((rnd() - 0.5) * 4, 1.2 + rnd() * 1.2, (rnd() - 0.5) * 3), i }); }
-  const FILS = segments(NS, L[2].a), ETIN = segments(NS, L[2].d); R.add(FILS.l); R.add(ETIN.l); const ETC = []; for (let i = 0; i < NS; i++) { const r = trait(cercleH(0.08, 24), L[2].a, true); ceinture.add(r); ETC.push(r); }
+    if (f3 === 0) solide(g, new T.BoxGeometry(0.13, 0.13, 0.13), L[2].l);                                                   // un skill
+    else if (f3 === 1) { solide(g, new T.BoxGeometry(0.17, 0.035, 0.12), L[2].l); g.add(trait([[-0.06, 0.019, 0], [0.05, 0.019, 0]], L[2].s)); }   // une carte, un plugin
+    else { solide(g, new T.OctahedronGeometry(0.09), L[2].a, 1); }                                                            // un serveur MCP
+    g.add(traits([[-0.03, -0.07, 0], [-0.03, -0.12, 0], [0.03, -0.07, 0], [0.03, -0.12, 0]], L[2].l));                        // ses broches
+    SK.push({ g, i }); }
+  const FILS = segments(NS, L[2].a), ETIN = segments(NS, L[2].d); R.add(FILS.l); R.add(ETIN.l); const ETC = []; for (let i = 0; i < NS; i++) { const r = trait(cercleH(0.09, 24), L[2].a, true); ceinture.add(r); ETC.push(r); }
+  const FORGE = V(-0.72, 0.55, 0.9), NB = 40, boucle = segments(NB, L[2].a), tete2 = points(1, L[2].pa); R.add(boucle.l); R.add(tete2.p);   // la boucle de la tâche qui se répète
+  const tours2 = segments(3, L[2].l); R.add(tours2.l); let t2 = null;   // trois crans : une, deux, trois fois
 
   /* 3 · le banc d'essai : dix couloirs, dix outils qui courent ; un seul franchit la ligne en tête */
   const piste = new T.Group(); piste.position.set(-0.22, -0.35, 0.2); piste.rotation.y = -0.2; piste.scale.setScalar(0.82); R.add(piste); const NL = 10, CO = [];
@@ -457,7 +460,7 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
   const juge = perso(L[5].l, true); juge.position.set(0.58, -0.3, 0.3); juge.scale.setScalar(0.72); R.add(juge);
 
   /* la caméra de chaque étape : [rx, ry, zoom, décalage x, décalage y] */
-  const VUE = [[0.05, -0.05, 0.8, 0.1, 0], [0.12, 0, 0.85, -0.05, 0.05], [0.3, 0.1, 1.05, 0, 0.05], [0.55, -0.1, 0.95, 0, 0.1], [0.2, -0.1, 0.9, 0, 0], [0.1, -0.05, 1.05, 0, -0.05], [0.2, 0, 0.9, 0, 0]];
+  const VUE = [[0.05, -0.05, 0.8, 0.1, 0], [0.12, 0, 0.85, -0.05, 0.05], [0.3, 0.1, 1.0, -0.1, 0.08], [0.55, -0.1, 0.95, 0, 0.1], [0.2, -0.1, 0.9, 0, 0], [0.1, -0.05, 1.05, 0, -0.05], [0.2, 0, 0.9, 0, 0]];
   const cam = { rx: 0.1, ry: 0, z: 0.8, x: 0, y: 0 }; let t0 = null;
   o.tick = (t, v) => {
     const pas = v.pas === undefined ? 6 : v.pas, S = Math.min(5, Math.floor(pas)), k = i => c01(pas - i);
@@ -486,16 +489,26 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
       c.g.position.lerpVectors(moi.position, c.fin, e); c.g.position.y += Math.sin(Math.PI * e) * 0.25; c.g.scale.setScalar(Math.max(0.01, pop * (0.82 - c.rang * 0.1))); bouge(c.g, t, c.ph, i, e); });
     moi.scale.setScalar(1 + 0.08 * Math.sin(Math.PI * sortie)); bouge(moi, t, 0, CL.length, S === 1 ? 0.35 + 0.65 * sortie : 0.15);
     FM.forEach((m, r) => opac(m, o.op * f[1] * (1 - r * 0.22))); bras.a.needsUpdate = true; mains.a.needsUpdate = true;
-    /* 2 : les modules arrivent un à un et se branchent ; chaque branchement fait une étincelle et tire un fil jusqu'à moi */
-    const k2 = S >= 2 ? k(2) : 0; ceinture.visible = f[2] > 0.01; const bat = (t * 0.9) % NS, cb = ceinture.position;
-    SK.forEach((sk, i) => { const e = c01(k2 * 1.6 - i * 0.06) >= 1 ? 1 : sm(c01(k2 * 1.6 - i * 0.06) * 1.0), P2 = PR[i], fin = V(cb.x + P2[0], cb.y + 0.1 + (1 - Math.min(1, e * 1.4)) * 0.3, cb.z + P2[1]);
-      const pos = V().lerpVectors(sk.dep, fin, Math.min(1, e * 1.15)); pos.y += Math.sin(Math.min(1, e * 1.15) * Math.PI) * 0.45; sk.g.position.copy(pos);
-      const pose = e > 0.85; sk.g.rotation.set(pose ? 0 : (1 - e) * t * 3, pose ? -i / NS * TAU : t * 2, pose ? 0 : (1 - e) * t); sk.g.visible = f[2] > 0.01;
-      const on = e > 0.85 && f[2] > 0.05, pouls = on && Math.floor(bat) === i ? sm((bat % 1) * 2) : 0;
+    /* 2 : la forge ; chaque module naît d'une boucle, file vers sa prise, s'y branche ; le socle tourne lentement */
+    if (S === 2) { if (t2 === null) t2 = t; } else t2 = null;
+    const el = t2 === null ? 99 : t - t2, DUR = 1.05, rot = t * 0.12; ceinture.visible = f[2] > 0.01; ceinture.rotation.y = -rot; const bat = (t * 0.9) % NS, cb = ceinture.position;
+    const cur = Math.floor(el / DUR), ph = (el % DUR) / DUR;   // le module en cours de forge, et où il en est
+    SK.forEach((sk, i) => { const a = i / NS * TAU + rot, fin = V(cb.x + Math.cos(a) * RS, cb.y + 0.13, cb.z + Math.sin(a) * RS);
+      const e = i < cur ? 1 : i > cur ? -1 : ph < 0.55 ? 0 : sm((ph - 0.55) / 0.45);
+      sk.g.visible = f[2] > 0.01 && e >= 0 && (e > 0 || ph > 0.5);
+      if (e >= 0) { const pos = V().lerpVectors(FORGE, fin, e); pos.y += Math.sin(e * Math.PI) * 0.4; sk.g.position.copy(pos); const s0 = e === 0 ? sm((ph - 0.5) / 0.05) : 1; sk.g.scale.setScalar(Math.max(0.01, s0 * (1 + 0.3 * Math.sin(Math.PI * c01(e * 1.5)))));
+        const pose = e >= 1; sk.g.rotation.set(pose ? 0 : (1 - e) * 3, pose ? -a : e * 6, 0); }
+      const on = e >= 1 && f[2] > 0.05, pouls = on && Math.floor(bat) === i ? sm((bat % 1) * 2) : 0;
       FILS.pos.set(on && pouls > 0 ? [fin.x, fin.y, fin.z, lerp(fin.x, moi.position.x, pouls), lerp(fin.y, moi.position.y + 0.1, pouls), lerp(fin.z, moi.position.z, pouls)] : [0, -99, 0, 0, -99, 0], i * 6);
       ETIN.pos.set(on ? [fin.x, fin.y, fin.z, moi.position.x, moi.position.y + 0.1, moi.position.z] : [0, -99, 0, 0, -99, 0], i * 6);
-      const ec2 = c01((e - 0.85) / 0.15); ETC[i].position.set(P2[0], 0, P2[1]); ETC[i].scale.setScalar(1 + ec2 * 2.5 * (1 - ec2) + pouls * 0.8); ETC[i].visible = on; });
-    FILS.a.needsUpdate = true; ETIN.a.needsUpdate = true; ceinture.rotation.y = 0;
+      const ec2 = i === cur - 1 ? c01(ph / 0.4) : i < cur ? 1 : 0; ETC[i].position.set(PR[i][0], 0, PR[i][1]); ETC[i].scale.setScalar(1 + ec2 * 2.5 * (1 - ec2) + pouls * 0.8); ETC[i].visible = on; });
+    FILS.a.needsUpdate = true; ETIN.a.needsUpdate = true;
+    { const fg = f[2] > 0.05 && S === 2, lp = cur < NS ? Math.min(1, ph / 0.5) : ((el * 0.6) % 1), ang = lp * 3 * TAU, ferme = cur < NS ? sm((ph - 0.45) / 0.1) : 0, r = 0.2 * (1 - ferme);
+      for (let j = 0; j < NB; j++) { const a0 = ang - j * 0.14, a1 = ang - (j + 1) * 0.14, vu = fg && a1 > 0 && r > 0.005;
+        boucle.pos.set(vu ? [FORGE.x + Math.cos(a0) * r, FORGE.y + Math.sin(a0) * r, FORGE.z, FORGE.x + Math.cos(a1) * r, FORGE.y + Math.sin(a1) * r, FORGE.z] : [0, -99, 0, 0, -99, 0], j * 6); }
+      tete2.pos.set(fg && r > 0.005 ? [FORGE.x + Math.cos(ang) * r, FORGE.y + Math.sin(ang) * r, FORGE.z] : [0, -99, 0], 0);
+      for (let j = 0; j < 3; j++) { const vu = fg && ang >= (j + 1) * TAU - 0.01 && cur < NS, x = FORGE.x - 0.42 + j * 0.06; tours2.pos.set(vu ? [x, FORGE.y - 0.05, FORGE.z, x, FORGE.y + 0.05, FORGE.z] : [0, -99, 0, 0, -99, 0], j * 6); }
+      boucle.a.needsUpdate = true; tete2.a.needsUpdate = true; tours2.a.needsUpdate = true; }
     /* 3 : la course, qui recommence */
     piste.visible = f[3] > 0.01; const tc = (t * 0.28) % 1;
     CO.forEach((c, i) => { const x = -1.4 + Math.min(2.7, 2.9 * tc * c.v * 1.1), va = x < 1.3 ? c.v : 0; const chute = c.v === 1 ? 0 : c01((tc - 0.8 - i * 0.012) / 0.16); c.g.position.set(x + chute * 0.25, -chute * chute * 1.6, c.z); c.g.rotation.set(chute * 1.5 * (i % 2 ? 1 : -1), 0, -chute * 2.2); c.g.scale.y = x > 1.2 && c.v === 1 ? 1.6 : 1;   // un seul reste : les autres basculent hors de la piste
