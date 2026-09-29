@@ -642,6 +642,31 @@ S.puce = (() => {
       const t = now * 0.8, R = 0.32; trait(anneau(V, R, y, 40), false, 0.5, a * 0.6); const p = V(Math.cos(t) * R, y, Math.sin(t) * R), r = G.s * 0.05 * p[3] * e;
       cerne(() => { ctx.beginPath(); ctx.rect(p[0] - r * 1.4, p[1] - r * 1.6, r * 2.8, r * 1.4); }, 0.7, a); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.5; for (let k = 0; k < 3; k++) { ctx.strokeRect(p[0] - r * 1.1 + k * r * 0.8, p[1] - r * 1.35, r * 0.55, r * 0.5); } }
   };
+  // (vague 27, l'audit : « la puce reste une pile au milieu ») : elle est posée sur une carte mère qui couvre tout le ciel, jusqu'à l'horizon ;
+  // des pistes partent de chacune de ses broches, tournent en équerre et à 45°, filent vers des composants ; des paquets de lumière y courent
+  const PISTES = Array.from({ length: 76 }, (_, i) => { const cote = i % 4, u = (bruit(i * 3.7) - 0.5) * 1.7, d = [[0, -1], [1, 0], [0, 1], [-1, 0]][cote], t = [-d[1], d[0]], sg = bruit(i * 5.3) < 0.5 ? -1 : 1;
+    const x0 = d[0] * 0.62 + t[0] * u * 0.62, z0 = d[1] * 0.62 + t[1] * u * 0.62, l1 = 0.15 + bruit(i * 2.1) * 0.5, l2 = 0.2 + bruit(i * 4.9) * 0.6, l3 = cote === 2 ? 0.3 + bruit(i * 6.1) * 0.6 : 1 + bruit(i * 6.1) * 5.5;
+    const P = [[x0, z0]], a = () => P[P.length - 1], pas = (dx, dz, l) => P.push([a()[0] + dx * l, a()[1] + dz * l]);
+    pas(d[0], d[1], l1); pas((d[0] + t[0] * sg) * 0.7071, (d[1] + t[1] * sg) * 0.7071, l2); pas(d[0], d[1], l3);
+    let L = 0; const cum = [0]; for (let k = 1; k < P.length; k++) { L += Math.hypot(P[k][0] - P[k - 1][0], P[k][1] - P[k - 1][1]); cum.push(L); }
+    return { P, L, cum, comp: bruit(i * 8.3) < 0.45 ? 1 : 0, v: 0.25 + bruit(i * 1.9) * 0.5, ph: bruit(i * 7.7) }; });
+  function carte(V0, yP, a, now, ferme) {
+    const pousse = sm(a / 2.2) * (1 - ferme * 0.9); if (pousse < 0.01) return;
+    sousLaBarre(); ctx.beginPath(); ctx.rect(-1e4, G.haut - 4, 2e4, (G.caps || G.bas) - G.haut + 4); ctx.clip();
+    const au = (R, l) => { let k = 1; while (k < R.cum.length - 1 && R.cum[k] < l) k++; const q = c01((l - R.cum[k - 1]) / ((R.cum[k] - R.cum[k - 1]) || 1)); return [lerp(R.P[k - 1][0], R.P[k][0], q), lerp(R.P[k - 1][1], R.P[k][1], q)]; };
+    const ok = z => z < 1.3;
+    PISTES.forEach((R, i) => {
+      const lv = R.L * pousse, pts = []; for (let k = 0; k < R.P.length; k++) { if (R.cum[k] > lv) { pts.push(au(R, lv)); break; } pts.push(R.P[k]); }
+      const S = pts.filter(q => ok(q[1])).map(([x, z]) => V0(x, yP, z)); if (S.length < 2) return; const al = prof(S[S.length - 1][2], 0.95);
+      trait(S, false, 0.75, al); const b = V0(R.P[0][0], yP, R.P[0][1]); rond(b[0], b[1], 1.2, 0.4, al, true);
+      // le composant au bout : une petite puce (une boîte) ou une pastille
+      if (lv >= R.L - 1e-3) { const [ex, ez] = R.P[R.P.length - 1]; if (!ok(ez)) return; if (R.comp) boite3(V0, ex - 0.09, ex + 0.09, yP, yP - 0.05, ez - 0.07, ez + 0.07, 0.6, al); else { const q = V0(ex, yP, ez); rond(q[0], q[1], 2.2 * q[3], 0.5, al, true); } }
+      // les paquets : du bout vers la puce (les données qui arrivent), un sur deux dans l'autre sens
+      const v = fr(now * R.v / Math.max(0.6, R.L) + R.ph), l = (i % 2 ? v : 1 - v) * lv, [px, pz] = au(R, l); if (!ok(pz)) return; const q = V0(px, yP, pz); brille(q[0], q[1], 1.3 + q[3], al * 1.2, false, now, i);
+    });
+    ctx.restore();
+  }
+  const fr = v => v - Math.floor(v);
   return {
     cles: () => [[-0.45, 0], [0.45, 0], [0, -0.3], [0, 0.3]],
     dessin(a, now) {
@@ -654,6 +679,7 @@ S.puce = (() => {
       const ys = lab.map((l, j) => (j - 2.5) * 0.34 * ec - lev[j] * 0.05), dxs = lab.map((l, j) => (j - 2.5) * 0.46 * ec + lev[j] * 0.55), dzs = lab.map((l, j) => -(j - 2.5) * 0.1 * ec + lev[j] * 0.45);
       // les broches du socle (sous la couche du bas), les pistes gravées
       const V = (x, y, z) => V0(dxs[5] + x * ks, y, dzs[5] + z * ks), yb = ys[5] + th, S0 = 0.62;
+      carte((x, y, z) => V0(dxs[5] + x * ks, y, dzs[5] + z * ks), yb + 0.12, a, now, ferme);
       for (let i = 0; i < 12; i++) { const u = -S0 + (i + 0.5) / 12 * 2 * S0; [[u, -S0, 0, -1], [u, S0, 0, 1], [-S0, u, -1, 0], [S0, u, 1, 0]].forEach(([x, z, dx, dz]) => { const A = V(x, yb, z), B = V(x + dx * 0.07, yb + 0.04, z + dz * 0.07), C = V(x + dx * 0.08, yb + 0.12, z + dz * 0.08); if (A[2] > -0.2) trait([A, B, C], false, 0.55, 0.7); }); }
       // les vias : quatre colonnes qui traversent toutes les couches ; les données y courent
       const VIA = [[-0.4, -0.4], [0.4, -0.4], [0.4, 0.4], [-0.4, 0.4]], EQ = [];
