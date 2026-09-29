@@ -300,6 +300,9 @@ function batir() {
     leg.forEach(x => x.setAttribute('aria-pressed', String(x.dataset.c === c)));
   }));
   defile = el.querySelector('.sx-defile'); grille = el.querySelector('.sx-grille'); gx = grille.getContext('2d');
+  el.querySelectorAll('.sx-duo-c').forEach((c, i) => {   // survoler une carte de l'accueil pilote la scène : « j'intègre » fait descendre le cœur, « je travaille avec » réveille les agents
+    const on = () => { Serieux3D.duo = i; }, off = () => { if (Serieux3D.duo === i) Serieux3D.duo = -1; };
+    c.addEventListener('pointerenter', on); c.addEventListener('pointerleave', off); c.addEventListener('focus', on); c.addEventListener('blur', off); });
   etiqs = [...el.querySelectorAll('.sx-etiq')].map(e => ({ e, nom: e.dataset.nom, i: +e.dataset.i }));
   secs = [...el.querySelectorAll('.sx-sec')];
   pins = [...el.querySelectorAll('.sx-pin')].map(s => ({ s, n: +s.dataset.pas, obj: s.dataset.obj, et: [...s.querySelectorAll('.sx-etape')], pt: [...s.querySelectorAll('.sx-points li')], k: -1 }));

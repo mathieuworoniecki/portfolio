@@ -19,7 +19,7 @@ let R = null, scene, cam, W = 1, H = 1, PR = 1, ok = false, DIST = 1000;
 const FOV = 32;
 /* le trait : un pixel de WebGL, c'est trop fin (Mathieu, 28/09 : « épaissis le trait, prends le même que pour les chats »).
    On dessine la scène dans une image, puis on la repasse en l'élargissant (chaque pixel prend le plus fort de ses voisins, sur un petit disque) :
-   un trait de stylo, d'épaisseur égale partout, bouts ronds. */
+   un trait de stylo, bouts ronds. Deux graisses, comme sur un vrai plan : le trait principal est épais, les traits pâles (quadrillages, fenêtres, orbites) restent fins. */
 let IMG = null, passe = null, ecran = null, camE = null;
 const EPAIS = 1.9;   // le rayon ajouté de chaque côté du trait, en pixels CSS (Mathieu, 29/09 : « comme pour les chats », plus épais)
 const ENCRE = new T.Color(0xeef5ff), ACCENT = new T.Color(0xffd98a);
@@ -112,6 +112,76 @@ function nuage(n) {
   g.setAttribute('position', new T.BufferAttribute(P, 3)); g.setAttribute('a', new T.BufferAttribute(A, 1)); g.setAttribute('h', new T.BufferAttribute(Hh, 1));
   const m = nuageMat(), p = new T.Points(g, m); p.frustumCulled = false; p.renderOrder = 2;
   return { p, m, P, A, H: Hh, n, maj() { g.attributes.position.needsUpdate = true; g.attributes.a.needsUpdate = true; g.attributes.h.needsUpdate = true; } };
+}
+
+/* ——— l'accueil : l'orchestre. Au centre le cœur IA ; autour, dix agents en orbite ; en dessous, le produit qu'ils bâtissent module par module.
+   Puis le cœur descend dans le produit : l'IA y est intégrée. Les deux cartes de l'accueil le pilotent (survol : « j'intègre » / « je travaille avec »). ——— */
+function orchestre(d) {
+  const o = objet('accueil', { s: 0.95, pl: { x: 0.25, y: 0.03, s: 0.7 }, plT: { y: 0.26, s: 0.85 } });
+  const CY = 0.85, SY = -1.2;
+  sol(o, SY, 2.3, 0.3);
+  /* le cœur : un icosaèdre, un octaèdre qui tourne à l'envers dedans */
+  const pc = piece(o, [0, 2.2, 0.4]), coeur = new T.Group(); coeur.position.y = CY; pc.g.add(coeur);
+  const ico = new T.Group(); coeur.add(ico); solide(ico, new T.IcosahedronGeometry(0.36, 0), o.m.l, 1);
+  const noyau = new T.Group(); coeur.add(noyau); solide(noyau, new T.OctahedronGeometry(0.14), o.m.a, 1);
+  /* les orbites : trois anneaux inclinés, dix agents */
+  const ORB = [[0.95, 0.25, 0.2], [1.25, 0.6, -0.35], [1.55, -0.12, 0.45]].map(([r, rx, rz], j) => {
+    const g = new T.Group(); g.position.y = CY; g.rotation.set(Math.PI / 2 + rx, 0, rz); const p = piece(o, [(j - 1) * 2, 1.4, -1]); p.g.add(g);
+    const l = trait(cercle(r, 160), o.m.s, true); g.add(l); return { g, r, l };
+  });
+  const FORMES = [() => new T.TetrahedronGeometry(0.085), () => new T.OctahedronGeometry(0.075), () => new T.BoxGeometry(0.1, 0.1, 0.1)];
+  const AG = []; for (let i = 0; i < 10; i++) { const j = i % 3, g = new T.Group(); o.g.add(g); solide(g, FORMES[j](), o.m.l, 1); AG.push({ g, j, ph: i / 10 * TAU + j * 0.7, v: [0.42, -0.33, 0.26][j] }); }
+  const surOrbite = (a, t, out) => { const R0 = ORB[a.j]; vv.set(Math.cos(a.ph + t * a.v) * R0.r, Math.sin(a.ph + t * a.v) * R0.r, 0); vv.applyEuler(R0.g.rotation); return out.set(vv.x, vv.y + CY, vv.z); };
+  /* le produit : douze modules, une architecture en gradins */
+  const SLOTS = []; const HM = [[0.3, 0.55, 0.42, 0.25], [0.5, 0.9, 0.7, 0.38], [0.28, 0.62, 0.48, 0.3]];
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) SLOTS.push({ x: (c - 1.5) * 0.4, z: (r - 1) * 0.4, h: HM[r][c] * 1.15 });
+  const ordre = [5, 6, 1, 2, 9, 10, 4, 7, 0, 3, 8, 11];
+  const MOD = SLOTS.map((s, k) => { const g = new T.Group(); o.g.add(g); solide(g, new T.BoxGeometry(0.32, s.h, 0.32).translate(0, s.h / 2, 0), o.m.l);
+    const f = []; for (let y = 0.14; y < s.h - 0.05; y += 0.14) f.push([-0.161, y, 0.161], [0.161, y, 0.161], [0.161, y, 0.161], [0.161, y, -0.161]); if (f.length) g.add(traits(f, o.m.s));
+    const toit = trait([[-0.16, s.h + 0.004, -0.16], [0.16, s.h + 0.004, -0.16], [0.16, s.h + 0.004, 0.16], [-0.16, s.h + 0.004, 0.16]], o.m.a, true); g.add(toit);
+    return { g, s, toit, n: ordre.indexOf(k) }; });
+  const scan = trait([[-0.85, 0, -0.65], [0.85, 0, -0.65], [0.85, 0, 0.65], [-0.85, 0, 0.65]], o.m.d, true); o.g.add(scan);
+  const flux = points(24, o.m.p); o.g.add(flux.p); const FX = Array.from({ length: 24 }, (_, i) => ({ j: i % 3, ph: rnd() * TAU, v: 0.6 + rnd() * 0.5 }));   // des données qui circulent sur les orbites
+  const rayons = segments(12, o.m.d); o.g.add(rayons.l); const liens = segments(10, o.m.a); o.g.add(liens.l);
+  const E = d === window.SERIEUX_DONNEES_EN ? ['AI core', '10 agents in orbit', 'The product'] : ['Cœur IA', '10 agents en orbite', 'Le produit'];
+  etiquette(o, coeur, [0.4, -0.1, 0], E[0], { cls: 'ia' }); etiquette(o, ORB[2].g, [ORB[2].r * 0.72, ORB[2].r * 0.69, 0], E[1]); etiquette(o, o.g, [0.78, SY + 0.35, 0.45], E[2]);
+  o.etq.forEach(e => { e.on = true; });
+  const P0 = V(0, 0, 0), P1 = V(0, 0, 0); let t0 = null, duo = -1, hDuo = [0, 0];
+  const CYC = 17, PAS = 0.85;
+  o.tick = (t, v) => {
+    if (v.w < 0.03) t0 = null; if (t0 === null) t0 = t;
+    const ec = t - t0, T0 = ec % CYC, dt = Math.min(0.2, Math.max(0, t - (o._t ?? t))); o._t = t;
+    duo = window.Serieux3D && window.Serieux3D.duo !== undefined ? window.Serieux3D.duo : -1; hDuo = hDuo.map((h, i) => lerp(h, duo === i ? 1 : 0, 1 - Math.exp(-dt * 6)));
+    /* l'arrivée : les orbites se tracent */
+    ORB.forEach((R0, j) => R0.l.geometry.setDrawRange(0, Math.ceil(161 * c01((ec - j * 0.25) / 1.4))));
+    ico.rotation.set(t * 0.21, t * 0.33, 0); noyau.rotation.set(-t * 0.5, -t * 0.7, 0);
+    const nPose = T0 < 12 * PAS ? Math.floor(T0 / PAS) : 12, fin = T0 > 16;
+    const integre = sm((T0 - 12 * PAS - 1.3) / 1.2) * (1 - sm((T0 - 15.4) / 0.6)) + hDuo[0] * 0.8;
+    coeur.position.y = CY - integre * 0.35; coeur.scale.setScalar(1 + 0.05 * Math.sin(t * 2.2) + integre * 0.1);
+    /* les agents : sur leur orbite, sauf celui qui porte un module */
+    AG.forEach((a, i) => { surOrbite(a, t * (1 + hDuo[1] * 1.2), P0); a.g.rotation.set(t * 1.3 + i, t * 0.9, 0); a.g.position.copy(P0); a.g.scale.setScalar(1 + hDuo[1] * 0.35); });
+    MOD.forEach((m, k) => {
+      const debut = m.n * PAS, u = c01((T0 - debut) / PAS), a = AG[m.n % 10], cible = V(m.s.x, SY, m.s.z);
+      let vis = T0 >= debut, y = SY, x = m.s.x, z = m.s.z, sc = 1;
+      if (vis && u < 1) {   // l'agent quitte son orbite, descend, pose le module, remonte
+        surOrbite(a, t * (1 + hDuo[1] * 1.2), P1); const aller = sm(u / 0.55), retour = sm((u - 0.6) / 0.4);
+        const px = lerp(P1.x, cible.x, aller), py = lerp(P1.y, cible.y + m.s.h + 0.12, aller), pz = lerp(P1.z, cible.z, aller);
+        a.g.position.set(lerp(px, P1.x, retour), lerp(py, P1.y, retour), lerp(pz, P1.z, retour));
+        if (u < 0.55) { x = px; y = py - m.s.h - 0.1; z = pz; sc = 0.55 + 0.45 * aller; } else { const p = sm((u - 0.55) / 0.12); y = SY + (1 - p) * 0.02 - Math.sin(p * Math.PI) * 0.015; }
+        liens.pos.set([a.g.position.x, a.g.position.y, a.g.position.z, x, y + m.s.h, z], (m.n % 10) * 6);
+      }
+      if (fin) { const r = sm((T0 - 16 - (11 - m.n) * 0.05) / 0.8); x = lerp(m.s.x, 0, r); y = lerp(SY, coeur.position.y - m.s.h / 2, r); z = lerp(m.s.z, 0, r); sc = 1 - r * 0.9; vis = r < 0.98; }   // tout remonte dans le cœur, et on recommence
+      m.g.visible = vis; m.g.position.set(x, y, z); m.g.scale.set(sc, sc, sc);
+      m.toit.visible = integre > 0.3 && !fin; const on = vis && integre > 0.05 && !fin;
+      rayons.pos.set(on ? [coeur.position.x, coeur.position.y - 0.3, coeur.position.z, lerp(coeur.position.x, x, integre), lerp(coeur.position.y - 0.3, y + m.s.h, integre), lerp(coeur.position.z, z, integre)] : [0, -99, 0, 0, -99, 0], k * 6);
+    });
+    for (let i = 0; i < 10; i++) { const m = MOD.find(mm => mm.n % 10 === i && T0 >= mm.n * PAS && T0 < (mm.n + 1) * PAS); if (!m) liens.pos.set([0, -99, 0, 0, -99, 0], i * 6); }
+    liens.a.needsUpdate = true; rayons.a.needsUpdate = true; rayons.l.computeLineDistances();
+    const sk = c01((T0 - 12 * PAS) / 1.2); scan.visible = sk > 0 && sk < 1; scan.position.y = SY + sk * 1.0;
+    ORB.forEach(R0 => { R0.l.material = hDuo[1] > 0.5 ? o.m.l : o.m.s; });
+    FX.forEach((f, i) => { const R0 = ORB[f.j]; vv.set(Math.cos(f.ph + t * f.v) * R0.r, Math.sin(f.ph + t * f.v) * R0.r, 0).applyEuler(R0.g.rotation); flux.pos.set(ec > 1.6 ? [vv.x, vv.y + CY, vv.z] : [0, -99, 0], i * 3); }); flux.a.needsUpdate = true;
+  };
+  o.rot = t => [0.52, -0.55 + Math.sin(t * 0.14) * 0.28];
 }
 
 /* ——— la puce : l'objet fil rouge ; ses six couches sont les six familles de compétences ———
@@ -987,14 +1057,11 @@ function init(toile, d) {
     fragmentShader: `uniform sampler2D img; uniform vec2 px; uniform float r; varying vec2 u;
       void main(){ vec4 m = texture2D(img, u);
         for (int i = 0; i < 16; i++) { float a = float(i) * 0.3926991; vec2 d = vec2(cos(a), sin(a)) * px;
-          vec4 c = texture2D(img, u + d * r); if (c.a > m.a) m = c; c = texture2D(img, u + d * r * 0.66); if (c.a > m.a) m = c; c = texture2D(img, u + d * r * 0.33); if (c.a > m.a) m = c; }
+          vec4 c = texture2D(img, u + d * r); if (c.a > m.a && c.a > 0.62) m = c; c = texture2D(img, u + d * r * 0.66); if (c.a > m.a && c.a > 0.4) m = c; c = texture2D(img, u + d * r * 0.33); if (c.a > m.a) m = c; }
         gl_FragColor = vec4(m.rgb / max(m.a, 0.0001), m.a); }` });   /* l'image est dessinée sur du noir transparent : on rend au trait sa vraie couleur */
   ecran = new T.Scene(); ecran.add(new T.Mesh(new T.PlaneGeometry(2, 2), passe)); camE = new T.Camera(); cam = new T.PerspectiveCamera(FOV, 1, 20, 40000);
   /* la puce, quatre fois : l'accueil (en éclaté léger, annotée), les compétences (une couche par étape), le contact (refermée, les signaux partent) */
-  puce('accueil', { s: 0.95, pl: { x: 0.235, y: 0.05, s: 0.74 }, rot: t => [0.62, -0.62 + Math.sin(t * 0.18) * 0.35],
-    ex: (t, v) => 0.85 + Math.sin(t * 0.7) * 0.06 - 0.4 * sm(v.loc * 2), etiqToutes: true, impulsions: () => 8,
-    etiq: d === window.SERIEUX_DONNEES_EN ? [['front', 'Front · Vue, Nuxt, React'], ['ia', 'Core · generative AI, RAG, agents'], ['devops', 'Base · Docker, CI/CD, cloud']]
-      : [['front', 'Front · Vue, Nuxt, React'], ['ia', 'Cœur · IA générative, RAG, agents'], ['devops', 'Socle · Docker, CI/CD, cloud']] });
+  orchestre(d);
   puce('couches', { s: 0.9, pl: { x: 0.25, y: 0.02, s: 0.82 }, rot: t => [0.55, -0.7 + Math.sin(t * 0.16) * 0.12],
     ex: (t, v) => 0.6 + 0.4 * sm((v.pas || 0) * 0.8), hl: (t, v) => v.pas === undefined || v.pas >= 6 ? -1 : [4, 5, 2, 0, 3, 1][Math.floor(v.pas)], impulsions: (t, v) => Math.floor(v.pas || 0) === 5 ? 24 : 0,
     etiq: d.competences.map(c => [c.couche, c.court]), univers: true });
