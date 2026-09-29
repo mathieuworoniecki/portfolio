@@ -256,15 +256,17 @@ FORMES.pilotage = (a, now) => {
 let TXT = { cle: '', pts: [] };
 const LETTRES = '"Space Grotesk","Barlow",system-ui,sans-serif';
 function titre(txt, W, H, y1, y2) {
-  const cy = (y1 + y2) / 2, cle = txt + '|' + W + 'x' + H + '|' + N; if (TXT.cle === cle) return TXT.pts;
+  // (vague 6) le titre ne passe plus derrière la planète des chats : il tient entre le bord gauche et elle (sur grand écran, elle est en haut à droite)
+  const Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat, xr = Pc && Pc.x > W * 0.6 && Pc.y - Pc.r * 1.3 < y2 ? Math.round(Math.max(W * 0.6, Pc.x - Pc.r * 1.6)) : W, xl = xr < W ? W * 0.04 : 0, Wt = xr - xl;
+  const cy = (y1 + y2) / 2, cle = txt + '|' + W + 'x' + H + '|' + N + '|' + xr; if (TXT.cle === cle) return TXT.pts;
   const k = 0.5, w = Math.round(W * k), hh = Math.round(H * k), cv = document.createElement('canvas'); cv.width = w; cv.height = hh;
   const x = cv.getContext('2d', { willReadFrequently: true }), mots = txt.split(' ');
   let px = Math.min(H * 0.15, W < 700 ? 60 : 108) * k, L = [];
   for (;;) { x.font = `700 ${px}px ${LETTRES}`; L = []; let cur = '';
-    mots.forEach(m => { const t = cur ? cur + ' ' + m : m; if (cur && x.measureText(t).width > w * 0.86) { L.push(cur); cur = m; } else cur = t; }); L.push(cur);
-    if ((L.length <= 3 && L.every(l => x.measureText(l).width <= w * 0.9) && L.length * px * 1.15 <= (y2 - y1) * k) || px < 12) break; px *= 0.92; }
+    mots.forEach(m => { const t = cur ? cur + ' ' + m : m; if (cur && x.measureText(t).width > Wt * k * 0.86) { L.push(cur); cur = m; } else cur = t; }); L.push(cur);
+    if ((L.length <= 3 && L.every(l => x.measureText(l).width <= Wt * k * 0.9) && L.length * px * 1.15 <= (y2 - y1) * k) || px < 12) break; px *= 0.92; }
   x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle'; const lh = px * 1.15, y0 = cy * k - (L.length - 1) * lh / 2;
-  L.forEach((l, i) => x.fillText(l, w / 2, y0 + i * lh));
+  L.forEach((l, i) => x.fillText(l, (xl + Wt / 2) * k, y0 + i * lh));
   const d = x.getImageData(0, 0, w, hh).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 128) n++;
   const pas = Math.max(1, Math.sqrt(n / (N * 0.95))), pts = [];
   for (let yy = 0; yy < hh; yy += pas) for (let xx = 0; xx < w; xx += pas) if (d[(Math.floor(yy) * w + Math.floor(xx)) * 4 + 3] > 128) pts.push([xx / k, yy / k]);

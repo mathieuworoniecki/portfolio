@@ -220,7 +220,14 @@ function planete(ctx, now) {
   const Cp = P.chat, t = trace(0.8, 1.5), A = P.aspire, z = A ? A.zoom : 0, pur = 1 + P.survol * 0.025 * Math.sin(now * 32);
   const r = Cp.r * pur * (1 + z * (Math.hypot(O.W, O.H) * 1.3 / Cp.r)), x = Cp.x + (O.W / 2 - Cp.x) * z * 0.6, y = Cp.y + (O.H / 2 - Cp.y) * z * 0.6;
   ctx.save(); ctx.lineCap = ctx.lineJoin = 'round'; ctx.strokeStyle = `rgb(${BL})`;
-  const ring = trace(2.1, 0.8), ear = trace(1.4, 0.5), lune = trace(2.6, 0.6), la = now * 0.45;
+  const ring = trace(2.1, 0.8), lune = trace(2.6, 0.6), la = now * 0.45;
+  // (vague 6, l'audit : « elle ne fait que regarder ») : elle a ses humeurs, de temps en temps : elle bâille (les oreilles se couchent,
+  // la gueule s'ouvre grand), tire la langue au poisson-lune quand il passe devant elle, fait un clin d'œil ; sans curseur, elle suit les chats des yeux
+  const Hm = P.hum || (P.hum = { k: null, next: now + 5 });
+  if (!Hm.k && now > Hm.next && z === 0 && t >= 1 && !reduit) { Hm.k = Math.sin(la) > 0.2 && Math.abs(Math.cos(la)) < 0.7 ? 'langue' : pick(['baille', 'baille', 'clin']); Hm.t0 = now; Hm.d = { baille: 2.6, langue: 1.6, clin: 0.9 }[Hm.k]; }
+  if (Hm.k && now - Hm.t0 > Hm.d) { Hm.k = null; Hm.next = now + rnd(6, 12); }
+  const hu = Hm.k ? Math.sin(Math.min(1, (now - Hm.t0) / Hm.d) * Math.PI) : 0, bai = Hm.k === 'baille' ? sm(hu * 1.4) : 0, lan = Hm.k === 'langue' ? sm(hu * 1.6) : 0, cli = Hm.k === 'clin' && hu > 0.3;
+  const ear = trace(1.4, 0.5) * (1 - bai * 0.45);
   // un halo, très léger (deux fins cercles, comme l'atmosphère de la Terre)
   if (z === 0 && t > 0.5) [[1.12, 0.1], [1.24, 0.05]].forEach(([k, al]) => { ctx.strokeStyle = `rgba(${BL},${al * t})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r * k, 0, TAU); ctx.stroke(); });
   ctx.strokeStyle = `rgb(${BL})`;
@@ -252,10 +259,12 @@ function planete(ctx, now) {
     ctx.strokeStyle = `rgba(${BL},0.55)`; [[-0.55, -0.45, 0.09], [0.52, -0.52, 0.06], [-0.62, 0.3, 0.07], [0.2, 0.62, 0.05]].forEach(([u, v, k]) => { ctx.lineWidth = 1.4; ctx.beginPath(); ctx.ellipse(x + u * r, y + v * r, r * k, r * k * 0.8, 0.3, 0, TAU); ctx.stroke(); ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(x + u * r + r * k * 0.15, y + v * r + r * k * 0.1, r * k * 0.7, r * k * 0.55, 0.3, 0.2, 2.2); ctx.stroke(); });
     ctx.restore(); ctx.strokeStyle = ctx.fillStyle = z > 0 ? ctx.strokeStyle : `rgb(${BL})`;
     // les yeux : de grands ovales pleins, deux reflets (comme la miche), qui suivent le curseur ; fermés quand elle ronronne
-    const Q = Wd.ptr, lx = Q && Q.on ? clamp((Q.x - x) / O.W * 4, -1, 1) : Math.sin(now * 0.5) * 0.4, ly = Q && Q.on ? clamp((Q.y - y) / O.H * 4, -1, 1) : 0;
+    const Q = Wd.ptr, vc = !(Q && Q.on) && voisin(x, y), vp = vc && centreDe(vc);
+    const lx = Q && Q.on ? clamp((Q.x - x) / O.W * 4, -1, 1) : vp ? clamp((vp[0] - x) / O.W * 5, -1, 1) : Math.sin(now * 0.5) * 0.4, ly = Q && Q.on ? clamp((Q.y - y) / O.H * 4, -1, 1) : vp ? clamp((vp[1] - y) / O.H * 5, -1, 1) : 0;
     const cl = (now % 4.2) < 0.13 || (P.survol > 0.5 && P.pousse > 0.9), ink = z > 0 ? ctx.fillStyle : `rgb(${BL})`;
     [-1, 1].forEach(s => { const ex = x + s * r * 0.33 + lx * r * 0.05, ey = y + r * 0.02 + ly * r * 0.05;
-      if (cl) { ctx.lineWidth = 2.6; ctx.beginPath(); ctx.arc(ex, ey - r * 0.02, r * 0.1, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke(); }
+      if (bai > 0.35) { ctx.lineWidth = 2.6; ctx.beginPath(); ctx.moveTo(ex - s * r * 0.09, ey - r * 0.06); ctx.lineTo(ex + s * r * 0.05, ey); ctx.lineTo(ex - s * r * 0.09, ey + r * 0.05); ctx.stroke(); }   // plissés, > <
+      else if (cl || (cli && s > 0)) { ctx.lineWidth = 2.6; ctx.beginPath(); ctx.arc(ex, ey - r * 0.02, r * 0.1, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke(); }
       else { ctx.fillStyle = ink; ctx.beginPath(); ctx.ellipse(ex, ey, r * 0.115, r * 0.155, 0, 0, TAU); ctx.fill(); ctx.fillStyle = '#07080C';
         ctx.beginPath(); ctx.arc(ex - r * 0.035 + lx * r * 0.02, ey - r * 0.055, r * 0.042, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(ex + r * 0.04, ey + r * 0.06, r * 0.02, 0, TAU); ctx.fill(); } });
     // les joues : trois petits traits (la plume ne rougit pas)
@@ -263,7 +272,16 @@ function planete(ctx, now) {
     // le nez (arrondi), la bouche en w, les moustaches (courbes, qui dépassent)
     ctx.lineWidth = 2.2; const ny = y + r * 0.2;
     ctx.beginPath(); ctx.moveTo(x - r * 0.055, ny - r * 0.02); ctx.quadraticCurveTo(x, ny - r * 0.05, x + r * 0.055, ny - r * 0.02); ctx.quadraticCurveTo(x + r * 0.02, ny + r * 0.045, x, ny + r * 0.045); ctx.quadraticCurveTo(x - r * 0.02, ny + r * 0.045, x - r * 0.055, ny - r * 0.02); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x, ny + r * 0.045); ctx.lineTo(x, ny + r * 0.08); ctx.arc(x - r * 0.06, ny + r * 0.08, r * 0.06, 0, Math.PI * 0.85); ctx.moveTo(x, ny + r * 0.08); ctx.arc(x + r * 0.06, ny + r * 0.08, r * 0.06, Math.PI, Math.PI * 0.15, true); ctx.stroke();
+    if (bai > 0.12) { // la gueule grande ouverte : un ovale noir, la langue au fond, deux crocs
+      const my = ny + r * (0.1 + bai * 0.1), rx = r * (0.07 + bai * 0.06), ry = r * (0.03 + bai * 0.13); ctx.fillStyle = '#07080C';
+      ctx.beginPath(); ctx.moveTo(x, ny + r * 0.045); ctx.lineTo(x, my - ry); ctx.stroke(); ctx.beginPath(); ctx.ellipse(x, my, rx, ry, 0, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.lineWidth = 1.6; ctx.beginPath(); ctx.ellipse(x, my + ry * 0.55, rx * 0.6, ry * 0.35, 0, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke();
+      [-1, 1].forEach(q => { ctx.beginPath(); ctx.moveTo(x + q * rx * 0.55, my - ry * 0.85); ctx.lineTo(x + q * rx * 0.45, my - ry * 0.5); ctx.lineTo(x + q * rx * 0.35, my - ry * 0.9); ctx.stroke(); }); ctx.lineWidth = 2.2; }
+    else { ctx.beginPath(); ctx.moveTo(x, ny + r * 0.045); ctx.lineTo(x, ny + r * 0.08); ctx.arc(x - r * 0.06, ny + r * 0.08, r * 0.06, 0, Math.PI * 0.85); ctx.moveTo(x, ny + r * 0.08); ctx.arc(x + r * 0.06, ny + r * 0.08, r * 0.06, Math.PI, Math.PI * 0.15, true); ctx.stroke(); }
+    if (lan > 0) { // la langue tirée vers le poisson : une goutte ronde, un trait au milieu
+      const dx = Math.cos(la) * r * 0.05 * lan, ty = ny + r * 0.1, L = r * 0.24 * lan; ctx.fillStyle = '#07080C';
+      ctx.beginPath(); ctx.moveTo(x - r * 0.045, ty); ctx.quadraticCurveTo(x - r * 0.05 + dx, ty + L, x + dx, ty + L); ctx.quadraticCurveTo(x + r * 0.05 + dx, ty + L, x + r * 0.045, ty); ctx.fill(); ctx.stroke();
+      ctx.lineWidth = 1.3; ctx.beginPath(); ctx.moveTo(x, ty + r * 0.01); ctx.lineTo(x + dx * 0.7, ty + L * 0.6); ctx.stroke(); ctx.lineWidth = 2.2; }
     ctx.lineWidth = 1.5; [-1, 1].forEach(s => [-1, 0, 1].forEach(k => { const w = 1.12 + P.survol * 0.1 + Math.sin(now * 2 + k) * 0.015; ctx.beginPath(); ctx.moveTo(x + s * r * 0.36, ny + r * (0.03 + k * 0.05)); ctx.quadraticCurveTo(x + s * r * 0.75, ny + r * (k * 0.07 - 0.02), x + s * r * w, ny + r * (k * 0.16 + 0.02)); ctx.stroke(); }));
     // les rayures du front
     ctx.lineWidth = 2; [-0.13, 0, 0.13].forEach(k => { ctx.beginPath(); ctx.moveTo(x + k * r, y - r * 0.9); ctx.quadraticCurveTo(x + k * r * 0.9, y - r * 0.78, x + k * r * 0.75, y - r * 0.64); ctx.stroke(); });
