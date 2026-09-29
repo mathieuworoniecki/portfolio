@@ -348,6 +348,7 @@ const prof = d => 0.42 + 0.58 * c01((d + 1.1) / 2.2);
 function etoile(ctx, x, y, R, k, br, now, ph) { O.brille(ctx, x, y, R, k, br, now, ph); ctx.globalAlpha = Math.min(1, k * 1.1); ctx.fillStyle = `rgb(${BL})`; ctx.beginPath(); ctx.arc(x, y, R * 0.42, 0, TAU); ctx.fill(); }
 function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 
+let HC = null; const horsChamp = cv => { if (!HC) HC = document.createElement('canvas'); if (HC.width !== cv.width || HC.height !== cv.height) { HC.width = cv.width; HC.height = cv.height; } return HC; };
 X.fond.push((ctx, now) => {
   if (!M) return; const L = M.lay, th = Wd.t - M.t0;
   ctx.save(); ctx.lineCap = ctx.lineJoin = 'round'; ctx.strokeStyle = ctx.fillStyle = `rgb(${BL})`;
@@ -368,7 +369,17 @@ X.fond.push((ctx, now) => {
     const tl = tps(), { A, B } = DUREE, Cd = DUREE.C, Q = C.Q = C.cs ? clesDe(C) : projette(C, tl), f = C.f, u = sm(c01((tl - A - B) / Cd)), ne = f.e.length;
     // une scène dessinée (js/espace-scenes.js) : elle se dévoile en cercle depuis le centre, dès que les étoiles se sont posées
     // (celle d'avant se referme de même, pendant que ses étoiles repartent)
-    const joue = (D, a, r) => { if (r <= 0.01) return; const G = L.G; ctx.save(); ctx.beginPath(); ctx.rect(0, G.haut - 12, L.W, G.bas - G.haut + 24); ctx.clip(); ctx.beginPath(); ctx.arc(G.cx, G.cy, r * Math.hypot(L.W, L.H) * 0.6, 0, TAU); ctx.clip(); EspaceScenes.pose(ctx, G, O); D.cs.dessin(reduit ? 3 : a, now); ctx.restore(); ctx.globalAlpha = 1; };
+    // (29/09, Mathieu : « les terminaux apparaissent coupés : il faudrait qu'ils apparaissent et disparaissent en fondu au bord de l'animation,
+    // et que ça continue jusqu'en haut de l'écran ») : la scène se dessine à part, puis ses bords s'estompent (en haut jusqu'au bord de l'écran,
+    // en bas juste au-dessus des sous-titres, et sur les côtés)
+    const joue = (D, a, r) => { if (r <= 0.01) return; const G = L.G, c2 = horsChamp(ctx.canvas), o = c2.getContext('2d');
+      o.setTransform(1, 0, 0, 1, 0, 0); o.clearRect(0, 0, c2.width, c2.height); o.setTransform(ctx.getTransform()); o.save();
+      o.beginPath(); o.arc(G.cx, G.cy, r * Math.hypot(L.W, L.H) * 0.7, 0, TAU); o.clip(); EspaceScenes.pose(o, G, O); D.cs.dessin(reduit ? 3 : a, now); o.restore();
+      o.globalAlpha = 1; o.globalCompositeOperation = 'destination-in';
+      const gv = o.createLinearGradient(0, 0, 0, L.H), y1 = c01(G.haut * 0.75 / L.H), y2 = c01((G.bas - 24) / L.H), y3 = c01((G.bas + 22) / L.H);
+      gv.addColorStop(0, 'rgba(0,0,0,0)'); gv.addColorStop(y1, '#000'); gv.addColorStop(Math.max(y1, y2), '#000'); gv.addColorStop(Math.max(y1, y3), 'rgba(0,0,0,0)'); gv.addColorStop(1, 'rgba(0,0,0,0)'); o.fillStyle = gv; o.fillRect(0, 0, L.W, L.H);
+      const bh = Math.min(90, L.W * 0.1), gh = o.createLinearGradient(0, 0, L.W, 0); gh.addColorStop(0, 'rgba(0,0,0,0)'); gh.addColorStop(bh / L.W, '#000'); gh.addColorStop(1 - bh / L.W, '#000'); gh.addColorStop(1, 'rgba(0,0,0,0)'); o.fillStyle = gh; o.fillRect(0, 0, L.W, L.H);
+      o.globalCompositeOperation = 'source-over'; ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(c2, 0, 0); ctx.restore(); ctx.globalAlpha = 1; };
     const V0 = M.vieux; if (V0 && V0.sc && V0.sc.cs && Wd.t - V0.t0 < 0.6) joue(V0.sc, V0.tl - A + (Wd.t - V0.t0), 1 - sm((Wd.t - V0.t0) / 0.6));
     if (C.cs) joue(C, tl - A + 0.2, sm((tl - A + 0.25) / 0.9));
     // les traits : la constellation se relie, trait après trait ; puis le trait s'affirme (le dessin)
@@ -478,5 +489,29 @@ X.envie.push(c => {
   return true;
 });
 
-return { get M() { return M; }, pointe: () => null, get planete() { return M && M.lay.planete; }, set onFini(f) { onFini = f; }, get fini() { return !!(M && M.fin); }, aller };
+/* ——— avancer plus vite (29/09, Mathieu : « pour cette partie, on devrait pouvoir avancer plus vite, avec le scroll ou des boutons ») ———
+   la molette, les flèches du clavier, le geste (js/film.js les envoie ici quand on est dans l'espace), deux chevrons de part et d'autre de l'écran du ciel,
+   et la barre des chapitres (un clic sur une encoche : cette scène). Une scène choisie à la main se forme plus vite. */
+function pas(dir, j) {
+  if (!M || !M.sc || !Wd.espace) return false;
+  if (Wd.t - (M.pasT ?? -9) < 0.3) return true; M.pasT = Wd.t;
+  aller(j != null ? j : M.sc.i + dir); M.sc.t0 -= reduit ? 0 : 1.1; return true;
+}
+const chevrons = () => { const L = M.lay, k = L.L ? 13 : 10, x = L.L ? 34 : 16; return [[-1, x, L.G.cy, k], [1, L.W - x, L.G.cy, k]]; };
+const NAV = { drag() {}, release(k) { pas(k.d, k.j); } };
+X.grab.push((x, y) => {
+  if (!M || !M.sc) return null; const L = M.lay, B = L.barre;
+  for (const [d, cx, cy, k] of chevrons()) if (Math.abs(x - cx) < k * 2.4 && Math.abs(y - cy) < k * 3) return { mod: NAV, d };
+  if (y > B.y - 16 && y < B.bas + 10) { let k0 = 0; for (const g of B.seg) { if (x >= g.x - 4 && x <= g.x + g.w + 4) return { mod: NAV, d: 0, j: k0 + clamp(Math.floor((x - g.x) / g.w * g.n), 0, g.n - 1) }; k0 += g.n; } }
+  return null;
+});
+X.devant.push((ctx, now) => {
+  if (!M || !M.sc) return; const P = Wd.ptr, ap = reduit ? 1 : c01((Wd.t - M.t0) / 1.2);
+  ctx.save(); ctx.lineCap = ctx.lineJoin = 'round'; ctx.strokeStyle = `rgb(${BL})`;
+  chevrons().forEach(([d, x, y, k]) => { const sur = P && P.on && Math.abs(P.x - x) < k * 2.4 && Math.abs(P.y - y) < k * 3, bat = sur ? Math.sin(now * 8) * 2 : 0;
+    ctx.globalAlpha = (sur ? 1 : 0.55) * ap; ctx.lineWidth = sur ? 2.8 : 2.2; ctx.beginPath(); ctx.moveTo(x - d * k * 0.45 + d * bat, y - k); ctx.lineTo(x + d * k * 0.45 + d * bat, y); ctx.lineTo(x - d * k * 0.45 + d * bat, y + k); ctx.stroke(); });
+  ctx.restore(); ctx.globalAlpha = 1;
+});
+
+return { get M() { return M; }, pas, pointe: () => null, get planete() { return M && M.lay.planete; }, set onFini(f) { onFini = f; }, get fini() { return !!(M && M.fin); }, aller };
 })();
