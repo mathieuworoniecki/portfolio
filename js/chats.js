@@ -1202,7 +1202,10 @@ function vacFrame(dt) {
     // ce qui traîne sous la bouche s'envole vers elle
     Wd.props.forEach(it => { if (it.suck || it.held || it.run || it.mur || Math.abs(it.x - V.x) > R) return;
       const temp = V.grand ? !LOURD[it.kind] && !it.tower && !it.pivot && it.kind !== 'eau' && !it.ventre : it.launched || it.tmp || (it.away && Wd.t - it.away > 2 && !it.tower); if (!temp) return;   // (it.tmp : la feuille arrachée)
-      it.suck = { t0: Wd.t, fx: it.fx, lift: it.lift }; it.on = null; it.fall = false; });
+      it.suck = { t0: Wd.t, fx: it.fx, lift: it.lift, big: it.big || 1 }; it.on = null; it.fall = false; });
+    // (vague 5 : « l'aspiration manque de souffle ») : ce qui est tout près mais trop lourd penche vers la bouche et tremble
+    Wd.props.forEach(it => { if (it.suck || it.held || it.mur || it.pivot || it.fall) return; const dx = V.x - it.x; if (Math.abs(dx) > R * 2.2) return; const f = 1 - Math.abs(dx) / (R * 2.2);
+      it.tilt = (it.tilt || 0) * 0.8 + (sgn(dx) * 0.12 * f + Math.sin(Wd.t * 40 + it.x) * 0.02 * f) * 0.2; });
     Wd.kib.forEach(k => { if (!k.suck && Math.abs(k.x - V.x) < R) { k.suck = Wd.t; k.sx = k.x; k.sy = k.y; if (k.who) k.who = null; } });
     // les chats : ils filent de l'autre côté ; un curieux s'approche trop… aspiré, puis recraché
     Wd.cats.forEach(c => { if (c.rare || c.held || c.fall || c.hidden || c.perch || Math.abs(c.x - V.x) > R * 1.8 || Wd.t - (c.fled || -9) < 4) return;
@@ -1218,9 +1221,9 @@ function vacFrame(dt) {
   // l'aspiration : vers la bouche, de plus en plus petit, puis disparu
   const mx = V.x, my = V.y + s0 * 0.05;
   Wd.props.slice().forEach(it => { if (!it.suck) return; const q = Math.min(1, (Wd.t - it.suck.t0) / 0.7), e = q * q;
-    it.fx = it.suck.fx + (mx / Wd.W - it.suck.fx) * e; it.lift = it.suck.lift + (floorAt(it.d) - my - it.suck.lift) * e; it.tilt = (it.tilt || 0) + dt * 9; it.fade = it.fadeT = 1 - e;
+    it.fx = it.suck.fx + (mx / Wd.W - it.suck.fx) * e; it.lift = it.suck.lift + (floorAt(it.d) - my - it.suck.lift) * e; it.tilt = (it.tilt || 0) + dt * 9; it.big = it.suck.big * (1 - 0.8 * e); it.fade = it.fadeT = 1;   // (il rapetisse en s'engouffrant, il ne s'efface pas)
     Wd.cats.forEach(c => { if (c.perch && c.perch.it === it) { interrupt(c); c.fall = true; c.vy = -sOf(it.d); say(c, '!!'); } });
-    if (q >= 1) { it.suck = null; if (V.grand) { it.ventre = true; V.ventre.push(it); } else if (it.launched || !it.home) unprop(it); else goHome(it); } });
+    if (q >= 1) { it.big = it.suck.big; it.suck = null; if (V.grand) { it.ventre = true; V.ventre.push(it); } else if (it.launched || !it.home) unprop(it); else goHome(it); } });
   Wd.kib.forEach(k => { if (!k.suck) return; const q = Math.min(1, (Wd.t - k.suck) / 0.45); k.rest = true; k.x = k.sx + (mx - k.sx) * q * q; k.y = k.sy + (my - k.sy) * q * q; if (q >= 1) k.gone = true; });
 }
 // le hoquet : tout ce qu'il a avalé retombe du ciel, à peu près chez soi, en tournant ; les chats curieux avec
@@ -1248,6 +1251,11 @@ function drawVac(S) {
   C.stroke([[x - w * 0.32, y - s0 * 0.35], [x - w, y], [x + w, y], [x + w * 0.32, y - s0 * 0.35]], 1, { w: 2.4, a, seed: 70, tip: false , color: col(5) });
   C.circle(x, y - s0 * 0.5, w * 0.7, w * 0.16, 1, { w: 1.6, a: a * 0.8, seed: 71 , color: col(6) });
   // l'aspiration : des petits traits qui montent vers la bouche
+  // le tourbillon : des traits en spirale qui s'enroulent dans la bouche, la poussière du sol qui monte en cône
+  if (V.ph === 'balaye') { for (let i = 0; i < 12; i++) { const ph = (Wd.t * 1.6 + i / 12) % 1, a0 = i / 12 * Math.PI * 2 + Wd.t * 4, r0 = s0 * 1.1 * (1 - ph), P = [];
+      for (let j = 0; j <= 4; j++) { const v = ph + j * 0.05, rr = s0 * 1.1 * Math.max(0, 1 - v), aa = a0 + v * 5; P.push([x + Math.cos(aa) * rr, Wd.floor - (Wd.floor - y) * Math.min(1, v) + Math.sin(aa) * rr * 0.18]); }
+      if (r0 > 4) C.stroke(P, 1, { w: 1.3, a: a * 0.55 * Math.sin(Math.PI * ph), seed: 90 + i, tip: false, color: col(i) }); }
+    for (let i = 0; i < 5; i++) { const ph = (Wd.t * 2.6 + i / 5) % 1, px = x + (i - 2) * s0 * 0.3 * (1 - ph); C.dot(px, Wd.floor - (Wd.floor - y) * ph * 0.9, 2 + 2 * (1 - ph), a * 0.5 * (1 - ph)); } }
   if (V.ph === 'balaye') for (let i = 0; i < 7; i++) { const ph = (Wd.t * 2.2 + i / 7) % 1, sx = x + (i - 3) * s0 * 0.22 * (1 - ph), sy = Wd.floor - (Wd.floor - y) * ph; C.line(sx, sy + 8, sx + (x - sx) * 0.1, sy, 1, { w: 1.2, a: a * 0.5 * (1 - ph), seed: 80 + i, tip: false , color: col(7) }); }
 }
 
