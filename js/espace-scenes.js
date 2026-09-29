@@ -178,32 +178,34 @@ const S = {};
 // jusqu'au fond ; mains en l'air, une ola passe ; puis tout le monde est aspiré en tourbillon et rentre en lui : ×10 ; et ça recommence
 S.equipe = (() => {
   const F = [];
-  [9, 13, 15, 19, 23].forEach((n, r) => { const z = -0.3 - r * 0.62, lx = 0.6 + r * 0.62; for (let i = 0; i < n; i++) F.push({ x: (i / (n - 1) - 0.5) * 2 * lx, z, r, u: i / (n - 1), i: F.length, ph: bruit(F.length * 3.1) * TAU }); });
+  [7, 9, 11, 13].forEach((n, r) => { const z = -0.3 - r * 0.62, lx = 0.75 + r * 0.7; for (let i = 0; i < n; i++) F.push({ x: (i / (n - 1) - 0.5) * 2 * lx, z, r, u: i / (n - 1), i: F.length, ph: bruit(F.length * 3.1) * TAU }); });
   const N = F.length; F.slice().sort((p, q) => Math.hypot(p.x, p.z) - Math.hypot(q.x, q.z)).forEach((f, j) => f.o = j / (N - 1));
   const DOS = F.slice().sort((p, q) => p.z - q.z);
   return {
     cles: () => [[0, 0.1], [0, -0.35], [-0.9, -0.5], [0.9, -0.5], [-1.2, 0.1], [1.2, 0.1]],
     dessin(a, now) {
-      const [k] = large(1.6, 2), V = cam(Math.sin(now * 0.15) * 0.05, -0.42, k * 0.82, 0, 0.02), c = Math.min(a + 0.3, 9.2);   // (07:49, Mathieu : « le premier élément se rejoue deux fois » : l'histoire se joue une fois, puis reste sur ×10)
-      const pied = V(0, 0.84, 0.7), km = 0.9 * pied[3] * k / G.s, coeur = [pied[0], pied[1] - G.s * km * 0.62];
+      const [k] = large(1.6, 2), V = cam(Math.sin(now * 0.15) * 0.05, -0.42, k * 0.82, 0, -0.34), c = Math.min(a + 0.3, 9.2);   // (07:49, Mathieu : « le premier élément se rejoue deux fois » : l'histoire se joue une fois, puis reste sur ×10)
+      // (29/09, 09:57, Mathieu : « des objets 3D pas assez élaborés ») : la foule n'est plus faite de ronds : des chats-robots de papier, et lui, dessiné comme les chats
+      const bot = (q, kk, o) => { const r = G.s * kk * 0.19; if (q[1] < G.haut + r * 2.2) return; chabot(q[0], q[1] - r * 1.75, r, Object.assign({ casque: r > 9 }, o)); };
+      const pied = V(0, 0.84, 0.7), km = 1.25 * pied[3] * k / G.s, coeur = [pied[0], pied[1] - G.s * km * 0.62];
       let rentres = 0; const vol = [];
       // les gradins : des lignes au sol, rang par rang
-      [0, 1, 2, 3, 4].forEach(r => { const z = -0.3 - r * 0.62 + 0.2, lx = 0.8 + r * 0.62; trait([V(-lx, 0.84, z), V(lx, 0.84, z)], false, 0.5, prof(z, 0.3 * c01((c - 0.6) / 0.8))); });
+      [0, 1, 2, 3].forEach(r => { const z = -0.3 - r * 0.62 + 0.2, lx = 0.95 + r * 0.7; trait([V(-lx, 0.84, z), V(lx, 0.84, z)], false, 0.5, prof(z, 0.3 * c01((c - 0.6) / 0.8))); });
       DOS.forEach(f => {
         const t1 = 0.7 + f.o * 1.9, t2 = 6.1 + (1 - f.o) * 1.5; if (c < t1) return;
-        const p = V(f.x, 0.84, f.z), kk = 0.6 * p[3] * k / G.s, al = 0.4 + 0.6 * (1 - f.r / 5);
+        const p = V(f.x, 0.84, f.z), kk = 0.5 * p[3] * k / G.s, al = 0.45 + 0.55 * (1 - f.r / 4);
         if (c < t1 + 0.55) { const e = sm((c - t1) / 0.55), pop = 1 + 0.35 * Math.sin(Math.PI * e);
-          vol.push(() => { const q = [lerp(coeur[0], p[0], e), lerp(coeur[1], p[1], e) - Math.sin(Math.PI * e) * G.s * 0.5]; gens(q, lerp(0.12, kk, e) * pop, { w: 0.8 });
+          vol.push(() => { const q = [lerp(coeur[0], p[0], e), lerp(coeur[1], p[1], e) - Math.sin(Math.PI * e) * G.s * 0.5]; bot(q, lerp(0.12, kk, e) * pop, { now, ph: f.i, bras: [1.4, 1.4] });
             if (e > 0.8) eclat(q[0], q[1] - G.s * kk * 0.7, G.s * 0.05, (e - 0.8) / 0.2, 6, f.i); });
           return; }
         if (c >= t2) { const e = sm((c - t2) / 0.7); if (e >= 1) { rentres++; return; }
           const sg = f.x < 0 ? 1 : -1, dx = p[0] - coeur[0], dy = p[1] - coeur[1], at = u => { const an = u * 4.4 * sg, r = 1 - u; return [coeur[0] + (dx * Math.cos(an) - dy * Math.sin(an)) * r, coeur[1] + (dx * Math.sin(an) + dy * Math.cos(an)) * r]; };
-          vol.push(() => { const L = [0.18, 0.12, 0.06, 0].map(d => at(Math.max(0, e - d))); trait(L, false, 0.6, 0.5); gens(L[3], kk * (1 - e * 0.75), { w: 0.8 }); });
+          vol.push(() => { const L = [0.18, 0.12, 0.06, 0].map(d => at(Math.max(0, e - d))); trait(L, false, 0.6, 0.5); bot(L[3], kk * (1 - e * 0.75), { now, ph: f.i, bras: [1.5, 1.5] }); });
           return; }
         // à sa place : les mains s'agitent ; la ola passe deux fois
         const ola = c > 3.3 && c < 5.9 ? Math.exp(-(((f.u - ((c - 3.3) / 1.3) % 1) * 5) ** 2)) : 0, ag = c01((c - t1 - 0.55) / 0.3);
         const b = [0.9 + Math.sin(now * 7 + f.ph) * 0.45 * ag + ola * 0.8, 0.9 + Math.sin(now * 7.6 + f.ph + 1.3) * 0.45 * ag + ola * 0.8];
-        gens([p[0], p[1] - (ola * 0.16 + Math.abs(Math.sin(now * 5 + f.ph)) * 0.03 * ag) * G.s * kk], kk, { bras: b, w: 0.8, a: al });
+        bot([p[0], p[1] - (ola * 0.16 + Math.abs(Math.sin(now * 5 + f.ph)) * 0.03 * ag) * G.s * kk], kk, { bras: b.map(v => v - 0.3), a: al, now, ph: f.i, lac: Math.sin(now * 0.5 + f.ph) * 0.5, cligne: Math.sin(now * 1.3 + f.ph * 3) > 0.985 });
       });
       // lui : le projecteur (seul au début, seul à la fin) ; il dirige pendant que tout le monde s'agite ; il grossit de tous ceux qui rentrent
       const spot = Math.max(1 - c01((c - 0.7) / 0.5), c01((c - 7.9) / 0.4));
@@ -212,7 +214,8 @@ S.equipe = (() => {
       const dirige = c > 2.6 && c < 6.2, b = dirige ? [1.2 + Math.sin(now * 3.2) * 0.45, 1.2 + Math.sin(now * 3.2 + Math.PI) * 0.45] : c > 8.1 ? [1.6, 1.6] : null;
       // (07:49, Mathieu : « quand les humains jaillissent, ils passent devant le premier profil au lieu de derrière » : ceux qui volent passent derrière lui)
       vol.forEach(f => f());
-      gens(pied, km * (1 + 0.14 * rentres / N) * (c > 7.9 ? 1 + 0.06 * Math.sin(Math.PI * c01((c - 7.9) / 0.5)) : 1), { moi: true, bras: b, w: 1.25 });
+      { const rr = G.s * km * (1 + 0.14 * rentres / N) * (c > 7.9 ? 1 + 0.06 * Math.sin(Math.PI * c01((c - 7.9) / 0.5)) : 1) * 0.2;
+        lui(pied[0], pied[1] - rr * 2.4, rr, { now, hoche: dirige ? Math.sin(now * 6) : 0, tp: dirige ? 0.25 + 0.25 * Math.sin(now * 3.2) : c > 8.1 ? 0 : 0.1 }); }
       if (c > 0.7 && c < 2.6) { const j = Math.floor((c - 0.7) / 0.45), u = ((c - 0.7) % 0.45) / 0.45; mot('pop !', coeur[0] + (j % 2 ? -1 : 1) * G.s * (0.5 + 0.2 * bruit(j)), coeur[1] - G.s * (0.2 + 0.3 * bruit(j * 3)) - u * 12, Math.max(13, G.s * 0.1), 1 - u); }
       if (c > 7.9) { const u = sm((c - 7.9) / 0.5); eclat(coeur[0], coeur[1], G.s * 0.35, (c - 7.9) / 0.7, 12, 0.2); mot('×10', pied[0] + G.s * 0.8, coeur[1] - G.s * 0.15, Math.max(22, G.s * 0.26) * (0.6 + 0.4 * u), u); }
     }
@@ -391,12 +394,12 @@ S.bench = (() => {
 // une flotte d'agents sur un même produit : un chantier en 3D. L'essaim tourne autour de l'immeuble (MARKO) et l'élève étage après étage ;
 // une grue grimpe avec lui ; les fenêtres s'allument ; au dernier étage, le drapeau, et un feu d'artifice
 S.flotte = (() => {
-  const E = Array.from({ length: 40 }, (_, i) => ({ r: 0.55 + bruit(i) * 0.9, v: (0.45 + bruit(i * 3) * 0.7) * (i % 3 ? 1 : -1), ph: bruit(i * 7) * TAU, h: -0.8 + bruit(i * 5) * 1.55, i }));
+  const E = Array.from({ length: 30 }, (_, i) => ({ r: 0.55 + bruit(i) * 0.9, v: (0.45 + bruit(i * 3) * 0.7) * (i % 3 ? 1 : -1), ph: bruit(i * 7) * TAU, h: -0.8 + bruit(i * 5) * 1.55, i }));
   const NE = 11, EH = 0.105, B0 = 0.84, LW = 0.22;
   return {
     cles: () => [[-0.24, 0.86], [0.24, 0.86], [-0.24, -0.5], [0.24, -0.5]],
     dessin(a, now) {
-      const [k, lx] = large(1.3, 1.9), V = cam(0.5 + a * 0.12, -0.3, k * 0.86, 0, -0.2), Cy = NE * 0.55 + 4.5, c = a % Cy;
+      const [k, lx] = large(1.3, 1.9), V = cam(0.5 + a * 0.12, -0.3, k * 0.74, 0, -0.3), Cy = NE * 0.55 + 4.5, c = a % Cy;
       const tas = 1 - sm((c - Cy + 0.6) / 0.6), n = Math.min(NE, Math.floor(c / 0.55) + 1), f = c01((c % 0.55) / 0.35), top = B0 - (n - 1 + (n < NE ? f : 1)) * EH * tas;
       trait([[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, z]) => V(x * 0.62, B0, z * 0.62)), true, 0.7, 0.5);
       // l'essaim : chacun son orbite ; de temps en temps, l'un plonge vers le sommet avec son bloc
@@ -404,24 +407,33 @@ S.flotte = (() => {
         return { p: V(Math.cos(t) * r, y, Math.sin(t) * r), pp: V(Math.cos(t - 0.14 * Math.sign(q.v)) * r, y, Math.sin(t - 0.14 * Math.sign(q.v)) * r), porte: porte && e > 0.05, i: q.i }; });
       // (29/09, l'audit : « les agents sont des points minuscules ») : les quatorze premiers sont des chats-robots à réacteur, qui portent leur bloc
       // de papier ; les autres restent des étincelles (la nuée derrière eux)
-      const agent = q => { const al = prof(q.p[2]); trait([q.pp, q.p], false, 0.5, al * 0.5);
-        if (q.i >= 14) { rond(q.p[0], q.p[1], k * 0.02 * q.p[3], 0.7, al, true); return; }
+      const agent = q => { const al = prof(q.p[2]); if (q.i < 14) trait([q.pp, q.p], false, 0.5, al * 0.5);
+        // (09:57, Mathieu : « pas assez élaboré ») : les autres ne sont plus des ronds à queue : de petits blocs de papier qui tournent sur eux-mêmes, en route
+        if (q.i >= 14) { const s2 = k * 0.022 * q.p[3], t = now * 2 + q.i; ctx.save(); ctx.translate(q.p[0], q.p[1]); ctx.rotate(t); cerne(() => { ctx.beginPath(); ctx.rect(-s2, -s2 * 0.7, s2 * 2, s2 * 1.4); }, 0.5, al); ctx.restore(); return; }
         const r = k * 0.045 * q.p[3], dx = q.p[0] - q.pp[0]; brille(q.p[0] - Math.sign(dx) * r * 0.9, q.p[1] + r * 1.3, 2.2, al, true, now, q.i);
         chabot(q.p[0], q.p[1], r, { now, ph: q.i, a: Math.max(0.55, al), lac: Math.sign(dx) * 0.7, casque: false, bras: q.porte ? [1.3, 1.3] : null, travaille: q.porte });
         if (q.porte) { const s2 = r * 0.8; cerne(() => { ctx.beginPath(); ctx.rect(q.p[0] - s2, q.p[1] - r * 2.3 - s2 * 1.4, s2 * 2, s2 * 1.4); }, 0.6, Math.max(0.55, al)); } };
       Q.filter(q => q.p[2] < -0.2).forEach(agent);
       // l'immeuble : ses étages ; les fenêtres qui s'allument
-      for (let j = 0; j < n; j++) { const y1 = B0 - j * EH * tas, y0 = j === n - 1 && n < NE ? y1 - EH * f * tas : y1 - EH * tas;
-        bloc(V, -LW, LW, y1, y0, -LW, LW, 1, 0.75);
-        [[-LW, 0, 1, 0], [0, LW, 0, 1], [LW, 0, -1, 0], [0, -LW, 0, -1]].forEach(([fx, fz, ux, uz], s) => [-0.5, 0, 0.5].forEach((o, w) => {
-          const p = V(fx + ux * o * LW, (y0 + y1) / 2, fz + uz * o * LW); if (p[2] < V(0, (y0 + y1) / 2, 0)[2]) return;
-          const on = bruit(j * 17 + s * 5 + w + Math.floor(now * 0.8 + j)) > 0.6, fw = Math.max(2, k * 0.018 * p[3]), fh = Math.max(3, (V(0, y1, 0)[1] - V(0, y0, 0)[1]) * 0.28); ctx.globalAlpha = 1; ctx.fillStyle = on ? '#ffe9a8' : ENC; ctx.fillRect(p[0] - fw / 2, p[1] - fh / 2, fw, fh); if (on) brille(p[0], p[1], 1.6, 0.6, false, now, j + w); })); }
+      // (la grue passe devant ou derrière l'immeuble, selon où elle est quand la caméra tourne)
+      const grue = () => {
       // la grue : son mât en treillis monte avec l'immeuble ; la flèche tourne ; le crochet monte et descend
-      const mx = 0.62, mz = -0.25, mt = Math.min(B0 - 0.3, top - 0.32), M0 = V(mx, B0, mz), M1 = V(mx, mt, mz); trait([M0, M1], false, 1, 1);
-      const Z = []; for (let j = 0; j <= 14; j++) Z.push(V(mx + (j % 2 ? 0.05 : -0.05), lerp(B0, mt, j / 14), mz)); trait(Z, false, 0.5, 0.7);
+      const mx = 0.62, mz = -0.25, mt = Math.min(B0 - 0.3, top - 0.32), M0 = V(mx, B0, mz), M1 = V(mx, mt, mz);
+      // (le mât : un pilier de papier carré, son treillis gravé à l'encre sur la face qui nous regarde)
+      const Fm = bloc(V, mx - 0.035, mx + 0.035, B0, mt, mz - 0.035, mz + 0.035, 1, 0.6); ctx.globalAlpha = 1; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath();
+      for (let j = 0; j < 12; j++) { const A = [lerp(Fm[0][0], Fm[3][0], j / 12), lerp(Fm[0][1], Fm[3][1], j / 12)], B = [lerp(Fm[1][0], Fm[2][0], (j + 1) / 12), lerp(Fm[1][1], Fm[2][1], (j + 1) / 12)]; ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); } ctx.stroke();
       const ja = now * 0.45, J = V(mx + Math.cos(ja) * 0.85, mt, mz + Math.sin(ja) * 0.85), Jc = V(mx - Math.cos(ja) * 0.28, mt, mz - Math.sin(ja) * 0.28); trait([Jc, M1, J], false, 1, 1); boite(Jc[0] - 5, Jc[1] - 3, 10, 8, 1, 0.7, 1, true);
       const hk = lerp(mt + 0.08, Math.min(B0 - 0.05, top + 0.1), 0.5 + 0.5 * Math.sin(now * 1.3)), Hj = V(mx + Math.cos(ja) * 0.72, mt, mz + Math.sin(ja) * 0.72), H = V(mx + Math.cos(ja) * 0.72, hk, mz + Math.sin(ja) * 0.72);
       trait([Hj, H], false, 0.5, 0.8); boite(H[0] - 6, H[1], 12, 9, 2, 0.8, 1, true);
+      }, derriere = V(0.62, B0, -0.25)[2] < V(0, B0, 0)[2]; if (derriere) grue();
+      // (une tour en gradins : un socle large, puis elle s'affine tous les quatre étages ; une corniche à chaque retrait)
+      for (let j = 0; j < n; j++) { const y1 = B0 - j * EH * tas, y0 = j === n - 1 && n < NE ? y1 - EH * f * tas : y1 - EH * tas, LW = j === 0 ? 0.3 : j < 5 ? 0.24 : j < 9 ? 0.2 : 0.16;
+        bloc(V, -LW, LW, y1, y0, -LW, LW, 1, 0.75);
+        if ((j === 0 || j === 4 || j === 8) && j < n - 1) bloc(V, -LW - 0.02, LW + 0.02, y0 + 0.012, y0, -LW - 0.02, LW + 0.02, 1, 0.6);
+        [[-LW, 0, 1, 0], [0, LW, 0, 1], [LW, 0, -1, 0], [0, -LW, 0, -1]].forEach(([fx, fz, ux, uz], s) => (j === 0 ? [-0.55, 0.55] : [-0.6, -0.2, 0.2, 0.6]).forEach((o, w) => {
+          const p = V(fx + ux * o * LW, (y0 + y1) / 2, fz + uz * o * LW); if (p[2] < V(0, (y0 + y1) / 2, 0)[2]) return;
+          const on = bruit(j * 17 + s * 5 + w + Math.floor(now * 0.8 + j)) > 0.6, fw = Math.max(2, k * (j === 0 ? 0.05 : 0.014) * p[3]), fh = Math.max(3, (V(0, y1, 0)[1] - V(0, y0, 0)[1]) * 0.28); ctx.globalAlpha = 1; ctx.fillStyle = on ? '#ffe9a8' : ENC; ctx.fillRect(p[0] - fw / 2, p[1] - fh / 2, fw, fh); if (on) brille(p[0], p[1], 1.6, 0.6, false, now, j + w); })); }
+      if (!derriere) grue();
       Q.filter(q => q.p[2] >= -0.2).forEach(agent);
       if (n >= NE && tas > 0.5) { const t = V(0, top, 0), m = [t[0], t[1] - k * 0.3]; trait([t, m], false, 1, 1); trait([m, [m[0] + k * 0.16, m[1] + k * (0.05 + Math.sin(now * 5) * 0.015)], [m[0], m[1] + k * 0.11]], true, 0.9, 1, true);
         mot('MARKO', t[0], t[1] - k * 0.38, Math.max(11, k * 0.08), 1);
