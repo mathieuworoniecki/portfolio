@@ -21,7 +21,7 @@ const FOV = 32;
    On dessine la scène dans une image, puis on la repasse en l'élargissant (chaque pixel prend le plus fort de ses voisins, sur un petit disque) :
    un trait de stylo, bouts ronds. Deux graisses, comme sur un vrai plan : le trait principal est épais, les traits pâles (quadrillages, fenêtres, orbites) restent fins. */
 let IMG = null, passe = null, ecran = null, camE = null;
-const EPAIS = 1.9;   // le rayon ajouté de chaque côté du trait, en pixels CSS (Mathieu, 29/09 : « comme pour les chats », plus épais)
+const EPAIS = +(new URLSearchParams(location.search).get('epais') || 1.15);   // (?epais=1.4 pour comparer) le rayon ajouté de chaque côté du trait, en pixels CSS (Mathieu, 29/09 : 1,9 était trop épais, « ça rend pas bien »)
 const ENCRE = new T.Color(0xeef5ff), ACCENT = new T.Color(0xffd98a);
 const CACHE = new T.MeshBasicMaterial({ colorWrite: false, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
 const OBJ = {}, q = new T.Quaternion(), vv = new T.Vector3(), ETQ = [];
