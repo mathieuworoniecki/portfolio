@@ -550,6 +550,19 @@ function boucleEspace(id) {
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r * 1.2, 0, TAU); ctx.fill(); ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(0, 0, r * 1.6, 0, TAU); ctx.stroke();
     ctx.restore();
   }
+  // (vague 29, l'audit : « l'arrivée dans l'espace ») : le trou blanc, c'est le trou noir à l'envers. À son ouverture, une onde de choc
+  // (deux anneaux au stylo) court jusqu'aux bords de l'écran ; une gerbe d'étincelles jaillit dans toutes les directions, avec sa traînée
+  if (u < 2.2 && !reduit) { const D = Math.hypot(W, H) * 0.62;
+    ctx.save(); ctx.translate(cx, cy); ctx.strokeStyle = '#F4F4EE'; ctx.lineCap = 'round';
+    [0, 0.18].forEach((d0, j) => { const e = c01((u - d0) / 1.3); if (e <= 0 || e >= 1) return; const rr = D * (1 - Math.pow(1 - e, 2.4)); ctx.globalAlpha = (1 - e) * (j ? 0.45 : 0.8); ctx.lineWidth = (j ? 1.2 : 2.4) * (1 - e * 0.5);
+      ctx.setLineDash(j ? [4, 9] : []); ctx.beginPath(); ctx.ellipse(0, 0, rr, rr * 0.82, 0, 0, TAU); ctx.stroke(); });
+    ctx.setLineDash([]);
+    if (!E.gerbe) E.gerbe = Array.from({ length: 70 }, (_, i) => ({ a: rnd(0, TAU), v: rnd(0.25, 1), d: rnd(0, 0.35), s: rnd(0.8, 2.4) }));
+    E.gerbe.forEach(q => { const e = c01((u - q.d) / 1.5); if (e <= 0 || e >= 1) return; const f = 1 - Math.pow(1 - e, 3), rr = D * q.v * f, rq = D * q.v * (1 - Math.pow(1 - Math.max(0, e - 0.06), 3));
+      const x = Math.cos(q.a) * rr, y = Math.sin(q.a) * rr * 0.82, xt = Math.cos(q.a) * rq, yt = Math.sin(q.a) * rq * 0.82;
+      ctx.globalAlpha = 0.7 * (1 - e); ctx.lineWidth = q.s * 0.7; ctx.beginPath(); ctx.moveTo(xt, yt); ctx.lineTo(x, y); ctx.stroke(); brille(ctx, x, y, q.s, 1 - e, q.s > 2, now, q.a); });
+    ctx.restore(); }
+  else E.gerbe = null;
   // les petits trous blancs d'un clic : ils s'ouvrent en un point, recrachent un chat, et se referment en un point
   E.pops = E.pops.filter(o => now - o.t0 < 0.75);
   E.pops.forEach(o => { const u = (now - o.t0) / 0.75, k = Math.sin(Math.PI * Math.min(1, u)), r = Wd.s0 * 0.16 * k + 1.5;

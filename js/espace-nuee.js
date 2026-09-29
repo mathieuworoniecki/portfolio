@@ -334,7 +334,7 @@ X.fond.push((ctx, now) => {
         return [mx + (lx * Math.cos(an) - ly * Math.sin(an)) * gr, my + (lx * Math.sin(an) + ly * Math.cos(an)) * gr]; };
       [x, y] = vol(e); s = lerp(F[j + 2], s, e) * (1 + Math.sin(Math.PI * e) * 1.3 * r.b * r.b); al = lerp(F[j + 3], al, e);
       // (la traînée : là où l'étoile était un peu plus tôt sur son chemin, pas à l'image d'avant : nette même si l'écran rame)
-      if (e > 0.06 && e < 0.9) { const q = vol(e - 0.035), d2 = (q[0] - x) ** 2 + (q[1] - y) ** 2; tl = d2 > 16 ? q : null; }
+      if (e > 0.06 && e < 0.9) { const q = vol(e - 0.035), d2 = (q[0] - x) ** 2 + (q[1] - y) ** 2; tl = d2 > 16 && d2 < 14400 ? q : null; }
       if (e > 0.82) al *= 1 + 1.6 * Math.sin(Math.PI * (e - 0.82) / 0.18); }
     // (le doigt ou la souris : les étoiles s'écartent sur son passage, et tout le ciel penche un peu vers lui, les proches plus que les lointaines)
     if (pt) { const dx = x - pt.x, dy = y - pt.y, d2 = dx * dx + dy * dy; if (d2 < RP * RP) { const dd = Math.sqrt(d2) || 1, q = 1 - dd / RP; x += dx / dd * q * q * RP * 0.5; y += dy / dd * q * q * RP * 0.5; al *= 1 + q * 0.8; }
