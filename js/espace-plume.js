@@ -415,8 +415,8 @@ X.fond.push((ctx, now) => {
   const txt = (D, q) => { const ox = L.W / 2, oy = L.yCap - D.h; D.L.forEach(l => { const r = c01(q(l)); if (r <= 0) return; ctx.save(); ctx.beginPath(); ctx.rect(ox + l.x - 4, oy + l.y - 60, (l.w + 8) * r, 90); ctx.clip();
     ctx.globalAlpha = l.a; ctx.font = l.font; espace(ctx, l.esp || '0px'); ctx.fillStyle = `rgb(${BL})`; ctx.fillText(l.txt, ox + l.x, oy + l.y); ctx.restore(); }); };
   if (cap) { M.bande = { x: L.W / 2 - cap.w / 2 - 12, y: L.yCap - cap.h - 12, w: cap.w + 24, h: cap.h + 24 };
-    // le voile : la scène continue dessous, les mots restent lisibles
-    { const b = M.bande, cxv = b.x + b.w / 2, cyv = b.y + b.h / 2, rx = b.w * 0.7, ry = b.h * 1.05; ctx.save(); ctx.translate(cxv, cyv); ctx.scale(1, ry / rx);
+    // le voile : la scène continue dessous, les mots restent lisibles (vague 12 : il ne déborde plus loin au-dessus du texte, où il éteignait le bas des scènes)
+    { const b = M.bande, cxv = b.x + b.w / 2, cyv = b.y + b.h / 2, rx = b.w * 0.7, ry = b.h * 0.74; ctx.save(); ctx.translate(cxv, cyv); ctx.scale(1, ry / rx);
       const gv = ctx.createRadialGradient(0, 0, 0, 0, 0, rx); gv.addColorStop(0, 'rgba(9,11,16,0.94)'); gv.addColorStop(0.72, 'rgba(9,11,16,0.86)'); gv.addColorStop(1, 'rgba(9,11,16,0)');
       ctx.globalAlpha = 1; ctx.fillStyle = gv; ctx.fillRect(-rx, -rx, rx * 2, rx * 2); ctx.restore(); ctx.fillStyle = ctx.strokeStyle = `rgb(${BL})`; }
     if (V && vu < 1) txt(V.cap, l => 1 - vu);

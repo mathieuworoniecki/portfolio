@@ -589,9 +589,11 @@ S.puce = (() => {
         EQ[j] = T.reduce((b, q) => q[0] > b[0] ? q : b, T[0]);
       }
       // les étiquettes, rangées de haut en bas sans se chevaucher
-      let yl = -1e9; const gap = Math.max(15, k * 0.085);
-      EQ.forEach((R, j) => { const ty = Math.max(R[1], yl + gap); yl = ty; const tx = xcol;
-        trait([R, [tx - 16, ty], [tx - 6, ty]], false, 0.45, 0.6 * (1 - ferme)); rond(R[0], R[1], 2, 0.6, 0.8 * (1 - ferme), true); mot(lab[j].toUpperCase(), tx + lev[j] * 8, ty, Math.max(11, k * (j === 1 ? 0.085 : 0.065) * (1 + lev[j] * 0.3)), (j === 1 || lev[j] > 0.3 ? 1 : 0.7) * (1 - ferme), 'left'); });
+      let yl = -1e9; const gap = Math.max(15, k * 0.085), TY = EQ.map(R => (yl = Math.max(R[1], yl + gap)));
+      // (vague 12) la colonne ne descend jamais sous le haut des sous-titres : si elle déborde, elle remonte d'un bloc
+      const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, lim = bd ? bd.y - gap * 0.6 : G.bas, dep = Math.max(0, TY[5] - lim); if (dep) TY.forEach((y, j) => { TY[j] = y - dep; });
+      EQ.forEach((R, j) => { const ty = TY[j]; const tx = xcol;
+        trait([R, [tx - 16, ty], [tx - 6, ty]], false, 0.45, 0.6 * (1 - ferme)); rond(R[0], R[1], 2, 0.6, 0.8 * (1 - ferme), true); mot(lab[j].toUpperCase(), tx + lev[j] * 8, ty, Math.max(11, k * (j === 1 ? 0.085 : 0.065) * (1 + lev[j] * 0.3)), (j === 1 || lev[j] > 0.3 ? 1 : 0.85) * (1 - ferme), 'left'); });
       if (ferme > 0.9) { const C = V0(0, 0, 0); eclat(C[0], C[1], k * 0.6, (ferme - 0.9) * 10, 14, 0.3); mot('clac', C[0] + k * 0.5, C[1] - k * 0.3, Math.max(14, k * 0.1), 1); }
     }
   };
