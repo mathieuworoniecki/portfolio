@@ -4,7 +4,7 @@
     python3 tools/mathieu/build.py <photo de face> [dossier de sortie : media/mathieu]
 
 La photo n'est pas gardée dans le dépôt : seulement ce qu'on en tire.
-  logo.png     le logo du site : le même dessin, plus simple et plus épais (la tête seule compte)
+  logo2.png    le logo du site (un nouveau nom à chaque version : /media est gardé un an en cache) : le même dessin, plus simple et plus épais (la tête seule compte)
   visage3d.png le même dessin, la tête seule et sans sa silhouette (pour la vraie 3D)
   visage.png   le dessin au trait (gris dans r,g,b ; la silhouette dans a : 1 la tête, 0,78 le buste) : la tête et le cou redessinés d'après la photo (trait.py) ; le buste redessiné en t-shirt (Patagonia) ; 1024 × 1024
   dos.png      le dos (quand il tourne) : les cheveux sur toute la tête, le dos du t-shirt ; même cadre
@@ -165,7 +165,7 @@ av = np.where(head, 1.0, np.where(torso, 0.78, 0.0))
 rgba(front, av).save(out / 'visage.png', optimize=True)
 # le logo du site (29 septembre) : le même dessin, simplifié et plus épais (trait.simple(logo=True)), la tête seule
 inkl, _ = trait.simple(im, person, L[:, :2], g, head, logo=True)
-rgba(np.where(head, inkl, 1.0), av).save(out / 'logo.png', optimize=True)
+rgba(np.where(head, inkl, 1.0), av).save(out / 'logo2.png', optimize=True)
 # pour la vraie 3D (js/mathieu.js) : la tête seule, sans sa silhouette (les contours viennent du volume, selon la vue)
 ink3, _ = trait.tete(im, person, L[:, :2], g, head=head, contour=False)
 rgba(np.where(head, ink3, 1.0), head).save(out / 'visage3d.png', optimize=True)

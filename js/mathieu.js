@@ -36,8 +36,8 @@ function load() {
   const webp = k => M[k] ? img(M[k]) : img(BASE + k + '.webp').catch(() => img(src(k)));
   const tex = i => { const t = new T.Texture(i); t.minFilter = T.LinearFilter; t.generateMipmaps = false; t.needsUpdate = true; return t; };
   const meta = M.meta ? Promise.resolve(M.meta) : fetch(BASE + 'relief.json').then(r => r.json());
-  // le logo du site : son propre dessin, plus simple et plus épais (29/09) ; à défaut, le visage
-  assets = Promise.all([webp('visage'), webp('dos'), img(src('relief')), meta, webp('logo').catch(() => null)]).then(([v, d, r, meta, lg]) => {
+  // le logo du site : son propre dessin, plus simple, plus épais et souriant (29/09 ; logo2 : un nouveau nom par version, /media est en cache un an) ; à défaut, le visage
+  assets = Promise.all([webp('visage'), webp('dos'), img(src('relief')), meta, webp('logo2').catch(() => null)]).then(([v, d, r, meta, lg]) => {
     const c = document.createElement('canvas'); c.width = G; c.height = G; const x = c.getContext('2d'); x.drawImage(r, 0, 0, G, G);
     const data = x.getImageData(0, 0, G, G).data; x.clearRect(0, 0, G, G); x.drawImage(v, 0, 0, G, G);
     return { front: tex(v), back: tex(d), logo: lg ? tex(lg) : null, data, alpha: x.getImageData(0, 0, G, G).data, meta };

@@ -216,6 +216,9 @@ def simple(im, m, L, g, head, logo=False):
       if runs: r = max(runs, key=len); brush(d, p[r][::3], W, INK, (0.2, 0.2), 0.3)     # la forme seule : une ligne, pas de mèches
 
     # ——— les sourcils : un trait, épais vers le nez, effilé vers la tempe ———
+    if logo:   # des sourcils ronds, haut sur le front : un air content
+      for iris in (468, 473):
+        c = L[iris]; brush(d, np.array([[c[0] + 0.1 * fw * np.cos(t), c[1] - 0.11 * fw - 0.05 * fw * np.sin(t)] for t in np.linspace(0.35, np.pi - 0.35, 20)]), W * 0.55, INK, (0.3, 0.3), 0.3)
     for up, lo in ([] if logo else [([107, 66, 105, 63, 70], [55, 65, 52, 53, 46]), ([336, 296, 334, 293, 300], [285, 295, 282, 283, 276])]):
       M = (curve(up, 30) + curve(lo, 30)) / 2
       brush(d, M, W * 1.5, INK, (0.1, 0.6), 0.25)
@@ -225,7 +228,7 @@ def simple(im, m, L, g, head, logo=False):
                          ([263, 466, 388, 387, 386, 385, 384, 398, 362], [263, 249, 390, 373, 374, 380, 381, 382, 362], 473)]:
       Up = curve(up, 40); Lo = curve(lo, 40); c = L[iris]
       if not logo: brush(d, Up[2:-2] + [0, -0.015 * fw], W * 0.9, INK, (0.3, 0.3), 0.3)
-      r = max(np.linalg.norm(L[iris + 1] - L[iris + 3]) / 2 * 0.85, 0.055 * fw) * (1.3 if logo else 1)
+      r = max(np.linalg.norm(L[iris + 1] - L[iris + 3]) / 2 * 0.85, 0.055 * fw) * (1.05 if logo else 1)
       d.ellipse([c[0] - r, c[1] - r, c[0] + r, c[1] + r], fill=INK)
       if not logo: d.ellipse([c[0] + r * 0.05, c[1] - r * 0.7, c[0] + r * 0.55, c[1] - r * 0.2], fill=255)
 
@@ -249,6 +252,9 @@ def simple(im, m, L, g, head, logo=False):
     MID = [78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308]
     Mq = curve(MID, 50); u = np.linspace(-1, 1, 50); Mq[:, 1] -= 0.03 * fw * u ** 4 - 0.01 * fw * (1 - u ** 2)
     if not logo: brush(d, Mq, W, INK, (0.2, 0.2), 0.3)
+    else:   # le logo (29 septembre : « rends-moi plus heureux, là je fais peur ») : un grand sourire franc sous la moustache, les coins qui remontent
+      a, b, c = L[61] + [-0.045 * fw, 0.035 * fw], (L[14] + L[17]) / 2 + [0, 0.09 * fw], L[291] + [0.045 * fw, 0.035 * fw]
+      brush(d, curve(None, 40, s=0, pts=[a, (a + b) / 2 + [0, 0.035 * fw], b, (b + c) / 2 + [0, 0.035 * fw], c]), W * 0.65, INK, (0.35, 0.35), 0.3)
     jaw = [234, 93, 132, 58, 172, 136, 150, 149, 176, 148, 152, 377, 400, 378, 379, 365, 397, 288, 361, 323, 454]
     brush(d, curve(jaw, 160)[46:-46], W, INK, (0.2, 0.2), 0.3)
 
