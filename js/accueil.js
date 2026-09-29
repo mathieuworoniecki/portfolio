@@ -34,9 +34,36 @@ function bienvenue() {
   arrive = true; if (Wd.cats.length >= 12) return;
   const T = window.Vie && Vie.LETTERS && Vie.LETTERS(), r = T && Vie.RECT(), L = T && T.filter(l => !l.st && l.a > 0.8);
   const x = L && L.length ? Vie.lx(pick(L.slice(1, -1).length ? L.slice(1, -1) : L), r) : Wd.W / 2;
-  const k = hote = K.addCat({ x }); k.y = -sc(k) * 1.2; k.fall = true; k.vy = 0; k.vx = 0; k.spin = Math.PI; k.stay = rnd(90, 160);
+  // (vague 9, l'audit : la toute première image) : le chat ne tombe plus d'on ne sait où. Une plume le dessine d'abord dans l'air,
+  // au-dessus du titre, d'un seul trait (la tête et ses oreilles, le corps, la queue, les yeux) ; le dessin prend vie et tombe sur le titre
+  const top = r ? r.top + (L && L.length ? L[0].y0 : 0) : Wd.H * 0.3, s = Wd.s0 * 0.75, y0 = Math.max(s * 1.4, top - s * 1.5);
+  if (!reduit && y0 > s) { D = { x, y: y0, s, t0: Wd.t, P: croquis(x, y0, s) }; K.later(1.25, () => { D = null; naitre(x, y0 + s * 0.55); }); }
+  else naitre(x, null);
+}
+const reduit = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+function naitre(x, y) {
+  const k = hote = K.addCat({ x }); k.y = y ?? -sc(k) * 1.2; k.fall = true; k.vy = y != null ? -sc(k) * 1.5 : 0; k.vx = 0; k.spin = y != null ? 0 : Math.PI; k.stay = rnd(90, 160);
+  if (y != null) { K.dust(x, y, sc(k) * 0.5, 0.9); Wd.fx.push({ k: 'txt', text: 'pop', x: x + sc(k) * 0.5, y: y - sc(k) * 0.6, t0: Wd.t, life: 0.9, rot: 0.15, size: 18 }); }
   K.later(1.3, () => { if (Wd.cats.includes(k)) say(k, pick([L_('tuto.coucou'), '♥'])); });
 }
+// le croquis : une seule ligne continue (comme on dessine un chat sans lever la plume), puis les deux yeux
+let D = null;
+function croquis(x, y, s) {
+  const P = [], at = (u, v) => P.push([x + u * s, y + v * s]);
+  // la queue, qui remonte en crochet ; le dos ; la tête avec ses deux oreilles ; le poitrail ; les pattes ; retour à la queue
+  for (let i = 0; i <= 8; i++) { const t = i / 8; at(0.55 + Math.sin(t * 2.6) * 0.25, 0.55 - t * 0.55 - Math.sin(t * 3.1) * 0.05); }
+  for (let i = 0; i <= 10; i++) { const t = i / 10; at(0.5 - t * 0.55, 0.05 - Math.sin(t * Math.PI) * 0.1); }
+  const hx = -0.18, hy = -0.32, hr = 0.3;
+  for (let i = 0; i <= 28; i++) { const a = Math.PI * 0.35 - i / 28 * Math.PI * 2.1; let k = 1; [-1, 1].forEach(sd => { const c = -Math.PI / 2 + sd * 0.62, d = Math.atan2(Math.sin(a - c), Math.cos(a - c)); if (Math.abs(d) < 0.3) k += 0.5 * Math.pow(1 - Math.abs(d) / 0.3, 1.2); }); at(hx + Math.cos(a) * hr * k * 1.1, hy + Math.sin(a) * hr * k); }
+  for (let i = 0; i <= 10; i++) { const t = i / 10; at(-0.35 + t * 0.05 - Math.sin(t * Math.PI) * 0.12, -0.05 + t * 0.6); }
+  for (let i = 0; i <= 10; i++) { const t = i / 10; at(-0.3 + t * 0.85, 0.55 + Math.sin(t * Math.PI * 3) * 0.03); }
+  return P;
+}
+H.draw.push(() => {
+  if (!D) return; const u = Math.min(1, (Wd.t - D.t0) / 1.0);
+  Chalk.stroke(D.P, u, { w: 3, a: 0.95 * Wd.a, seed: 11, tip: u < 1 });
+  if (u > 0.85) [-1, 1].forEach(sd => Chalk.circle(D.x + (-0.18 + sd * 0.11) * D.s, D.y - 0.3 * D.s, D.s * 0.05, D.s * 0.075, (u - 0.85) / 0.15, { w: 3.4, a: 0.95 * Wd.a, seed: 12 + sd }));
+});
 const L_ = k => (window.L ? L(k) : k);
 const vivant = c => c && Wd.cats.includes(c) && !c.gone && c.hp && !c.hidden;
 const unChat = () => (vivant(hote) && !hote.held ? hote : null) || Wd.cats.filter(c => vivant(c) && !c.rare && !c.held && !c.fall).sort((a, b) => Math.abs(a.x - Wd.W / 2) - Math.abs(b.x - Wd.W / 2))[0];
