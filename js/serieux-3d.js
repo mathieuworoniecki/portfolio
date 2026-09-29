@@ -592,7 +592,7 @@ function impact() {
       const hi2 = y > y0 + H + 0.001; f.p.set([cx + px, y, cz + pz], i * 3);
       f.h[i] = hi2 ? 1 : 0; f.a[i] = 1; } return f; }); }
   /* 25 pays : vingt-cinq foyers, posés comme des graines (137,5°) */
-  { const f = mk(), c = []; for (let j = 0; j < 25; j++) { const r = 0.24 * Math.sqrt(j + 0.5), a = j * 2.39996; c.push([Math.cos(a) * r, Math.sin(a) * r]); }
+  const PAYS = []; { const f = mk(), c = PAYS; for (let j = 0; j < 25; j++) { const r = 0.24 * Math.sqrt(j + 0.5), a = j * 2.39996; c.push([Math.cos(a) * r, Math.sin(a) * r]); }
     F.push(u => { const nj = Math.max(1, Math.ceil(sm(u * 1.3) * 25)), vif = Math.floor(TT * 2.5) % nj;   // les pays s'allument un à un, puis chacun à son tour
       for (let i = 0; i < N; i++) { const j = i % 25, w = R[i][0] * TAU + TT * 0.8, cz = R[i][1] * 2 - 1, r = 0.07 * Math.cbrt(R[i][2]) * (j === vif ? 1.35 : 1), s = Math.sqrt(1 - cz * cz), on = j < nj;
         f.p.set(on ? [c[j][0] + Math.cos(w) * s * r, cz * r, c[j][1] + Math.sin(w) * s * r] : [c[j][0] * 0.2, 0, c[j][1] * 0.2], i * 3); f.a[i] = on ? 1 : 0.03; f.h[i] = j === vif ? 1 : 0; } return f; }); }
@@ -605,6 +605,9 @@ function impact() {
   /* les repères en pointillés : l'ancienne longueur (−40 %), le niveau d'avant (+35 %) */
   const g40 = trait([[1.3, -0.95, 0], [1.3, 0.95, 0]], o.m.d); fant.add(g40);
   const g35 = trait(cercleH(0.72, 64, 0, -0.75, 0), o.m.d, true); fant.add(g35);
+  /* 25 pays, une seule base de code : le noyau au centre, un fil vers chaque pays, et les mises en ligne qui partent ensemble */
+  const base = new T.Group(); fant.add(base); solide(base, new T.BoxGeometry(0.12, 0.12, 0.12), o.m.a); const filsP = traits(PAYS.flatMap(c => [[0, 0, 0], [c[0], 0, c[1]]]), o.m.s); base.add(filsP);
+  const envoi = points(25 * 3, o.m.pa); base.add(envoi.p);
   const ROT = [[1.05, 0], [0.25, 0], [1.1, 0], [0.12, -0.3], [0.38, 0], [1.0, 0], [0.18, -0.25]];
   const cur = { rx: 0.9 };
   o.tick = (t, v) => {
@@ -618,6 +621,8 @@ function impact() {
     if (s === 2) nu.H[0] = (Math.sin(t * 6) > 0 ? 1 : 0.2) * (1 - m);
     nu.maj(); nu.m.uniforms.op.value = o.op; nu.m.uniforms.sz.value = 3.1 * PR;
     g40.visible = s === 3 && u > 0.1 && m < 0.5; g35.visible = s === 4 && m < 0.9;
+    base.visible = s === 5 && u > 0.15 && m < 0.6; if (base.visible) { base.children[0].rotation.y = t; const nj = Math.max(1, Math.ceil(sm(Math.min(1, u / 0.7) * 1.3) * 25));
+      for (let i = 0; i < 75; i++) { const j = i % 25, q2 = (t * 0.5 + Math.floor(i / 25) / 3) % 1; envoi.pos.set(j < nj ? [PAYS[j][0] * q2, 0, PAYS[j][1] * q2] : [0, -99, 0], i * 3); } envoi.a.needsUpdate = true; }
     const rr = ROT[s], rn = ROT[Math.min(F.length - 1, s + 1)]; cur.rx = lerp(rr[0], rn[0], sm(m)); cur.ry = lerp(rr[1], rn[1], sm(m));
     const tourne = rr[1] === 0 && rn[1] === 0; pc.g.rotation.y = tourne ? t * 0.15 : cur.ry + Math.sin(t * 0.3) * 0.12;   // les formes rondes tournent sur elles-mêmes
   };
