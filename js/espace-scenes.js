@@ -262,6 +262,10 @@ S.terminaux = (() => {
         L.push({ Q, Qb, z: z + lv * 9, id, lv, pop: c01((cr - d) / 0.8), B: lv > 0.01 ? [[x - W0 / 2, y - H0 / 2], [x + W0 / 2, y - H0 / 2], [x + W0 / 2, y + H0 / 2], [x - W0 / 2, y + H0 / 2]].map(([u, v]) => p3(u, v, 0, lac, tan, k)) : null });
       }
       L.sort((a, b) => a.z - b.z);
+      // (vague 13, l'audit : « le mur passe sur la barre des chapitres et sur la planète ») : il s'arrête sous la barre, et fait le tour de la planète des chats
+      ctx.save(); ctx.beginPath(); ctx.rect(0, G.haut - 4, G.droite + 40, 1e4);
+      { const Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat; if (Pc) { ctx.moveTo(Pc.x + Pc.r * 1.25, Pc.y); ctx.arc(Pc.x, Pc.y, Pc.r * 1.25, 0, TAU, true); } }
+      ctx.clip('evenodd');
       L.forEach(({ Q, Qb, z, id, pop, lv, B }) => {
         const al = lv > 0.01 ? 1 : (0.35 + 0.65 * c01((z + 2.2) / 3.2)) * pop, at = (u, v) => [lerp(lerp(Q[0][0], Q[1][0], u), lerp(Q[3][0], Q[2][0], u), v), lerp(lerp(Q[0][1], Q[1][1], u), lerp(Q[3][1], Q[2][1], u), v)];
         if (B) { trait(B, true, 0.5, 0.35); B.forEach((b, j) => trait([b, Q[j]], false, 0.5, 0.5 * lv)); }
@@ -281,6 +285,7 @@ S.terminaux = (() => {
         if (cyc > 2.4) { const p = at(0.86, 0.72); coche(p[0], p[1], (lv > 0.01 ? 9 : 5) * pop, (cyc - 2.4) / 0.3, 0.7); }
         if (lv > 0.5) brille(Q[1][0], Q[1][1], 3, lv, true, now, 1);
       });
+      ctx.restore();
     }
   };
 })();
