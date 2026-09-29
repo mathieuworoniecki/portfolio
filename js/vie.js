@@ -283,6 +283,21 @@ const LOURDS = { boule: 1, miche: 1, rose: 1, grincheux: 1, gros: 1, nuage: 1 };
 const lx = (L, r) => r.left + L.cx + L.dx, ly = (L, r) => r.top + L.cy + L.dy;
 // (29/09, l'audit : après trois événements, le titre ne disait plus que « m c’ t ath » : les chats relançaient sans fin les lettres tombées ;
 // une lettre ne reste pas plus de 22 s loin de sa place, quoi qu'il arrive)
+// (vague 36 de l'audit : « les lettres ») : la première chute d'une lettre fait « BAM » : le plancher tremble un peu, les chats tout près sursautent,
+// les croquettes voisines sautillent ; et là-haut, sa place vide reste marquée d'un contour en pointillés, comme sur une scène de crime
+function impact(L, x, fl, w, h) {
+  L.boum = true; Wd.shake = { t0: Wd.t, a: Math.min(5, 1.5 + h / 20) };
+  Wd.fx.push({ k: 'txt', text: pick(['BAM', 'TOC', 'BOUM', 'PAF']), x, y: fl - h * 1.3, t0: Wd.t, life: 0.9, rot: rnd(-0.2, 0.2), size: Math.max(18, h * 0.6) });
+  const R = Math.max(w, h) * 4;
+  Wd.cats.forEach(c => { if (c.gone || c.hidden || c.held || c.fall || c.rare || Math.abs(c.x - x) > R + sc(c) || Math.abs(c.y - fl) > sc(c) * 1.2) return;
+    const k = c; if (Wd.t - (k.sursautT || -9) < 3) return; k.sursautT = Wd.t; k.fall = true; k.perch = null; k.vy = -sc(k) * rnd(2.2, 3); k.vx = (sgn(k.x - x) || 1) * sc(k) * rnd(0.3, 0.8); say(k, pick(['!', '?!', 'hé !', 'ouh'])); });
+  Wd.kib.forEach(k => { if (k.rest && !k.who && Math.abs(k.x - x) < R) { k.rest = false; k.vy = -rnd(80, 180); k.vx = rnd(-40, 40); } });
+}
+H.draw.push(() => {
+  const Ls = LETTERS(); if (!Ls || Wd.a < 0.3) return; const r = RECT();
+  Ls.forEach(L => { if (!L.st || L.st === 'back' || L.a < 0.5 || TL.jeu) return; const x0 = r.left + L.x0 - 3, x1 = r.left + L.x1 + 3, y0 = r.top + L.y0 - 3, y1 = r.top + L.y1 + 3, g = Math.min(1, (Wd.t - (L.out0 || Wd.t)) / 0.4);
+    Chalk.stroke([[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]], g, { w: 1.5, a: 0.5 * Wd.a, seed: 70 + (L.x0 | 0) % 50, tip: false, dash: [5, 5] }); });
+});
 function tumble(L, vx, vy, vr) { if (!L.out0) L.out0 = Wd.t; L.st = 'fall'; L.vx = vx; L.vy = vy; L.vr = vr; L.t = Wd.t; }
 H.pre.push(dt => {
   const Ls = LETTERS(); if (!Ls) return; const r = RECT(), g = K.grav() * 0.9, fl = Wd.floor - 2;
@@ -298,7 +313,7 @@ H.pre.push(dt => {
       const ext = Math.abs(h / 2 * Math.cos(L.rot)) + Math.abs(w / 2 * Math.sin(L.rot)), bot = ly(L, r) + ext;
       if (bot >= fl && L.vy > 0) {
         L.dy -= bot - fl;
-        if (L.vy > 260) { if (L.vy > 700) dust(lx(L, r), fl, Math.max(w, 20) * 0.6, 0.7); L.vy = -L.vy * 0.3; L.vx *= 0.6; L.vr = L.vr * 0.5 + rnd(-2, 2); }
+        if (L.vy > 260) { if (L.vy > 700) dust(lx(L, r), fl, Math.max(w, 20) * 0.6, 0.7); if (!L.boum && L.vy > 500) impact(L, lx(L, r), fl, w, h); L.vy = -L.vy * 0.3; L.vx *= 0.6; L.vr = L.vr * 0.5 + rnd(-2, 2); }
         else { L.vy = 0; L.vx *= Math.exp(-dt * 6); const q = Math.round(L.rot / (Math.PI / 2)) * Math.PI / 2; L.rot += (q - L.rot) * Math.min(1, dt * 8); L.vr = 0;
           if (Math.abs(L.vx) < 6 && Math.abs(q - L.rot) < 0.02) { L.st = 'sol'; L.t = Wd.t; L.life = TL.jeu ? rnd(8, 12) : rnd(12, 18); } }
       }
@@ -316,7 +331,7 @@ H.pre.push(dt => {
       if ((Math.abs(e) < 3 && u > 0.5) || u > 9) { L.st = 'back'; L.t = Wd.t; L.from = [L.dx, L.dy, L.rot]; dust(x, fl, Math.max(w, 20) * 0.5, 0.6); }
     } else if (L.st === 'back') {
       const u = Math.min(1, (Wd.t - L.t) / 1.1), e = sm(u); L.dx = L.from[0] * (1 - e); L.dy = L.from[1] * (1 - e) - Math.sin(u * Math.PI) * Wd.s0 * 0.8; L.rot = L.from[2] * (1 - e);
-      if (u >= 1) { L.st = ''; L.dx = L.dy = L.rot = 0; L.wob = Wd.t; L.wobA = 0.6; L.out0 = 0;
+      if (u >= 1) { L.st = ''; L.dx = L.dy = L.rot = 0; L.wob = Wd.t; L.wobA = 0.6; L.out0 = 0; L.boum = false;
         // (vague 24 de l'audit : « les lettres ») : quand elle retrouve sa place, ses voisines lui font la fête : une vague de petits sauts
         // part d'elle et court le long du titre, de plus en plus petite (les lettres encore dehors ne bougent pas)
         const i0 = Ls.indexOf(L), hh = L.y1 - L.y0; Ls.forEach((M, j) => { if (M === L || M.st || M.a < 0.3) return; const d = Math.abs(j - i0); if (d > 7) return; M.wob = Wd.t + d * 0.07; M.wobA = 0.5 * Math.exp(-d * 0.3); M.hopA = hh * 0.22 * Math.exp(-d * 0.35); }); }
