@@ -313,13 +313,23 @@ S.terminaux = (() => {
         const z = (Q[0][2] + Q[2][2]) / 2, m = [(Q[0][0] + Q[2][0]) / 2, (Q[0][1] + Q[2][1]) / 2];
         if (m[0] < G.gauche - 80 || m[0] > G.droite + 80 || m[1] < -80 || m[1] > G.bas + 60) continue;
         const Qb = [[x - W0 / 2, y - H0 / 2], [x + W0 / 2, y - H0 / 2], [x + W0 / 2, y + H0 / 2], [x - W0 / 2, y + H0 / 2]].map(([u, v]) => p3(u, v, zl - 0.09, lac, tan, k));
-        L.push({ Q, Qb, z: z + lv * 9, id, lv, pop: c01((cr - d) / 0.8), B: lv > 0.01 ? [[x - W0 / 2, y - H0 / 2], [x + W0 / 2, y - H0 / 2], [x + W0 / 2, y + H0 / 2], [x - W0 / 2, y + H0 / 2]].map(([u, v]) => p3(u, v, 0, lac, tan, k)) : null });
+        L.push({ x, y, Q, Qb, z: z + lv * 9, id, lv, pop: c01((cr - d) / 0.8), B: lv > 0.01 ? [[x - W0 / 2, y - H0 / 2], [x + W0 / 2, y - H0 / 2], [x + W0 / 2, y + H0 / 2], [x - W0 / 2, y + H0 / 2]].map(([u, v]) => p3(u, v, 0, lac, tan, k)) : null });
       }
       L.sort((a, b) => a.z - b.z);
       // (vague 13, l'audit : « le mur passe sur la barre des chapitres et sur la planète ») : il s'arrête sous la barre, et fait le tour de la planète des chats
       ctx.save(); ctx.beginPath(); ctx.rect(0, G.haut - 4, G.droite + 40, 1e4);
       { const Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat; if (Pc) { ctx.moveTo(Pc.x + Pc.r * 1.25, Pc.y); ctx.arc(Pc.x, Pc.y, Pc.r * 1.25, 0, TAU, true); } }
       ctx.clip('evenodd');
+      // (vague 29, l'audit : « les terminaux ») : derrière le mur, le graphe Git : entre deux rangées court la branche principale, ses commits
+      // défilent ; chaque terminal a sa branche (son worktree) qui en part et y revient quand son agent a fini : un point file et fusionne
+      const XR = (COL / 2 + 0.3) * GX, frac = v => v - Math.floor(v);
+      for (let r = -11; r <= 10; r++) { const yr = (r - fr) * GY + GY / 2, A = p3(-XR, yr, -0.12, lac, tan, k), B = p3(XR, yr, -0.12, lac, tan, k), al = 0.55 * c01(cr - Math.abs(r - fr));
+        if (al <= 0.01) continue; trait([A, B], false, 0.9, al);
+        for (let m = 0; m < 5; m++) { const u = frac(now * 0.05 + m / 5 + bruit(r + i0) * 0.3), q = p3(lerp(-XR, XR, u), yr, -0.12, lac, tan, k); brille(q[0], q[1], 2.6, al * 1.6, m % 2 === 0, now, r * 5 + m); rond(q[0], q[1], 3, 0.9, Math.min(1, al * 1.6), 'nuit'); } }
+      L.forEach(({ x, y, id, pop, lv }) => { if (lv > 0.01 || pop < 0.5) return; const cyc = (now * 0.5 + bruit(id) * 3) % 3, yr = y + GY / 2;
+        const P = [p3(x - W0 * 0.3, yr, -0.12, lac, tan, k), p3(x - W0 * 0.3, y, -0.12, lac, tan, k), p3(x + W0 * 0.3, y, -0.12, lac, tan, k), p3(x + W0 * 0.3, yr, -0.12, lac, tan, k)];
+        trait(P, false, 0.5, 0.35 * pop);
+        if (cyc > 2.4) { const u = (cyc - 2.4) / 0.6, sg = u < 0.5 ? [P[2], P[3], u * 2] : [P[3], P[3], 1], q = [lerp(sg[0][0], sg[1][0], sg[2]), lerp(sg[0][1], sg[1][1], sg[2])]; brille(q[0], q[1], 2.4, pop, true, now, id); } });
       L.forEach(({ Q, Qb, z, id, pop, lv, B }) => {
         const al = lv > 0.01 ? 1 : (0.35 + 0.65 * c01((z + 2.2) / 3.2)) * pop, at = (u, v) => [lerp(lerp(Q[0][0], Q[1][0], u), lerp(Q[3][0], Q[2][0], u), v), lerp(lerp(Q[0][1], Q[1][1], u), lerp(Q[3][1], Q[2][1], u), v)];
         if (B) { trait(B, true, 0.5, 0.35); B.forEach((b, j) => trait([b, Q[j]], false, 0.5, 0.5 * lv)); }
