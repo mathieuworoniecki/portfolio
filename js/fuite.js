@@ -178,8 +178,46 @@ function image() {
   // sur le bleu, l'esquisse passe au blanc : le plan bleu du mode sérieux
   if (faits.length) { c.save(); c.beginPath(); faits.forEach(([x, y, w]) => c.rect(x, y, w, w)); c.clip(); esquisse(c, t, 'rgba(238,245,255,.85)', null); c.restore(); }
   pointes.forEach(([x, y]) => plume(c, x, y, ink));
+  dernier(c, t, ink, pointes);
   if (tous || t > E.fin + 0.3) { const f = E.fini; E.fini = null; if (f) f(); }
   requestAnimationFrame(image);
+}
+/* (vague 103 de l'audit, « le passage au mode sérieux » vers 9,9) : le dernier chat. Un chat n'a pas fui : assis sur le papier,
+   il suit des yeux les plumes qui tracent le plan. Quand la vague bleue arrive, il saute de carreau en carreau pour rester sur le papier,
+   jusqu'au tout dernier… qui se retourne sous ses pattes et le catapulte hors de l'écran, par le haut. */
+let dernierVu = false;
+function chat2D(c, x, y, s, ink, rot, yeuxX, peur) {
+  const pap = '#F4F4EE'; c.save(); c.translate(x, y); c.rotate(rot || 0); c.lineWidth = Math.max(2, s * 0.045); c.strokeStyle = ink; c.fillStyle = pap; c.lineJoin = c.lineCap = 'round';
+  c.beginPath(); c.moveTo(s * 0.3, -s * 0.08); c.quadraticCurveTo(s * 0.62, -s * 0.05, s * 0.55, -s * 0.4); c.stroke();   // la queue
+  c.beginPath(); c.ellipse(0, -s * 0.3, s * 0.34, s * 0.32, 0, 0, TAU); c.fill(); c.stroke();   // le corps
+  c.beginPath(); c.moveTo(-s * 0.12, 0); c.lineTo(-s * 0.12, -s * 0.12); c.moveTo(s * 0.1, 0); c.lineTo(s * 0.1, -s * 0.12); c.stroke();
+  const hy = -s * 0.78, r = s * 0.3; c.beginPath(); c.moveTo(-r, hy + r * 0.3); c.quadraticCurveTo(-r * 1.05, hy - r * 0.6, -r * 0.7, hy - r * 0.8); c.lineTo(-r * 0.62, hy - r * 1.35); c.lineTo(-r * 0.2, hy - r * 0.95);
+  c.quadraticCurveTo(0, hy - r, r * 0.2, hy - r * 0.95); c.lineTo(r * 0.62, hy - r * 1.35); c.lineTo(r * 0.7, hy - r * 0.8); c.quadraticCurveTo(r * 1.05, hy - r * 0.6, r, hy + r * 0.3);
+  c.quadraticCurveTo(0, hy + r * 1.05, -r, hy + r * 0.3); c.fill(); c.stroke();
+  const ex = (yeuxX || 0) * r * 0.12; [-1, 1].forEach(sd => { c.fillStyle = ink; c.beginPath(); c.ellipse(sd * r * 0.4 + ex, hy, r * 0.17, r * (peur ? 0.26 : 0.21), 0, 0, TAU); c.fill();
+    c.fillStyle = pap; c.beginPath(); c.arc(sd * r * 0.4 + ex - r * 0.06, hy - r * 0.08, r * 0.07, 0, TAU); c.fill(); });
+  c.restore();
+}
+function dernier(c, t, ink, pointes) {
+  if (reduit || !E) return; const { T, tu } = E;
+  if (!E.DC) { // les carreaux : un au milieu de la vague, loin du bouton, puis deux sauts vers le tout dernier
+    const tri = tu.filter(q => q.y > E.Hh * 0.18 && q.y < E.Hh - T * 3 && q.x > T && q.x < E.W - T * 2).sort((a, b) => a.t - b.t); if (tri.length < 6) { E.DC = { rien: true }; return; }
+    const C = tri[tri.length - 1], A = tri[Math.floor(tri.length * 0.55)], B = tri.filter(q => q.t > A.t + 0.2 && q.t < C.t - 0.15).sort((p, q) => Math.hypot(p.x - (A.x + C.x) / 2, p.y - (A.y + C.y) / 2) - Math.hypot(q.x - (A.x + C.x) / 2, q.y - (A.y + C.y) / 2))[0] || A;
+    E.DC = { L: [A, B, C], s: T * 1.45 }; }
+  const D = E.DC; if (D.rien || t < T_TRACE * 0.6) return; const s = D.s, pos = q => [q.x + T / 2, q.y + T * 0.78];
+  // où il est : sur un carreau ; il saute juste avant que le bleu l'atteigne
+  let i = 0; while (i < 2 && t > D.L[i].t - 0.18) i++;
+  const q = D.L[i], [x1, y1] = pos(q); let x = x1, y = y1, rot = 0, peur = t > T_TUILES - 0.2;
+  if (i > 0) { const [x0, y0] = pos(D.L[i - 1]), u = c01((t - (D.L[i - 1].t - 0.18)) / 0.3); x = x0 + (x1 - x0) * u; y = y0 + (y1 - y0) * u - Math.sin(u * Math.PI) * T * 1.4; rot = Math.sin(u * Math.PI) * 0.3 * Math.sign(x1 - x0); }
+  // le dernier carreau se retourne sous lui : la catapulte
+  if (i === 2 && t > q.t + FLIP * 0.35) { const u = t - q.t - FLIP * 0.35, dx = Math.sign(x1 - E.o.x) || 1; x = x1 + dx * u * 260; y = y1 - u * 1500 + u * u * 700; rot = u * 11 * dx; if (y < -s * 2) return; }
+  // ses yeux suivent la plume la plus proche (pendant le tracé), puis regardent la vague
+  const pl = pointes.reduce((m, p) => !m || Math.hypot(p[0] - x, p[1] - y) < Math.hypot(m[0] - x, m[1] - y) ? p : m, null), yx = pl ? clamp((pl[0] - x) / 120, -1, 1) : clamp((E.o.x - x) / 200, -1, 1);
+  chat2D(c, x, y, s, ink, rot, yx, peur);
+  const EN = en(), mot = i === 2 && t > q.t + FLIP * 0.35 ? (EN ? 'WAAAH!' : 'WAAAH !') : i > 0 && t - (D.L[i - 1].t - 0.18) < 0.5 ? (EN ? 'hop!' : 'hop !') : peur && i === 0 ? (EN ? 'uh oh…' : 'oh oh…') : '';
+  if (mot) { c.save(); c.font = `${Math.round(s * 0.4)}px ${(getComputedStyle(document.body).getPropertyValue('--hand') || 'serif').trim() || 'serif'}`; c.textAlign = 'center'; c.lineWidth = 4; c.strokeStyle = '#F4F4EE'; c.fillStyle = ink;
+    const ty = Math.max(20, y - s * 1.35); c.strokeText(mot, x, ty); c.fillText(mot, x, ty); c.restore(); }
+  if (i === 2 && !D.dit && t > q.t) { D.dit = true; dernierVu = true; }   // (la découverte s'inscrit au retour dans la pièce)
 }
 // le mode sérieux est ouvert par-dessus (opaque) : on range la toile
 function range() { E = null; if (cvE) { xE.setTransform(1, 0, 0, 1, 0, 0); xE.clearRect(0, 0, cvE.width, cvE.height); cvE.style.display = 'none'; } }
@@ -281,7 +319,7 @@ H.draw.push(S => {
 
 // le retour du mode sérieux : les trous recrachent les objets, les chats reviennent
 function retour() {
-  if (!F || !F.ouvert) return; Wd.nextScen = Wd.t + rnd(20, 30); const o = F.o; F = null; Wd.fuite = false;
+  if (!F || !F.ouvert) return; if (dernierVu && window.Dex && Dex.vu) { dernierVu = false; later(3, () => Dex.vu('dernier-carreau')); } Wd.nextScen = Wd.t + rnd(20, 30); const o = F.o; F = null; Wd.fuite = false;
   // (29/09, vague 5) les trous s'ouvrent en vague, depuis le bouton (13 h 21, Mathieu : pas de fissures)
   range(); defait();
   // les lettres : elles ressortent de leur trou et remontent à leur place d'un bond ; les boutons aussi

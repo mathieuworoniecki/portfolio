@@ -113,6 +113,8 @@ fam('evts', 'Les événements', 'Events', [
   ['tour', 'La tour de cartons', 'The box tower', 'Des chats qui empilent.', 'Cats stacking things.'],
   ['tourchute', 'La tour s’écroule', 'The tower falls', 'Trop de chats en haut.', 'Too many cats on top.'],
   ['curseur-avale', 'Aspiré !', 'Sucked in!', 'Passer trop près de l’aspirateur quand il aspire.', 'Get too close to the vacuum while it sucks.'],
+  ['dernier-carreau', 'Le dernier carreau', 'The last tile', 'Passer au mode sérieux… quelqu’un n’a pas voulu partir.', 'Switch to serious mode… someone refused to leave.'],
+  ['cramponne', 'Cramponné', 'Hanging on', 'Ouvrir le trou noir… et regarder tout en bas.', 'Open the black hole… and look at the very bottom.'],
   ['poussiere', 'Poussière d’étoiles', 'Stardust', 'Revenir de l’espace par la planète… et voir un chat attraper ce qu’on a rapporté.', 'Come back through the planet… and watch a cat catch what came back with you.'],
   ['cravate', 'Réunion terminée', 'Meeting over', 'Revenir du mode sérieux… quelqu’un a gardé sa cravate.', 'Come back from serious mode… someone kept the tie on.'],
   ['ticket', 'Le ticket de caisse', 'The receipt', 'Après le jackpot, la machine rend des comptes. Arrache-les.', 'After the jackpot, the machine prints the bill. Tear it off.'],

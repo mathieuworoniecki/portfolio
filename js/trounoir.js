@@ -157,7 +157,7 @@ function dessineTrou(u) {
   // (vague 26, l'audit : « le meilleur moment du site » doit aller plus loin) : la page ne fait pas que s'enrouler, elle se déchire ;
   // des lambeaux se détachent juste avant que leur anneau parte, et filent en vrille, plus vite que la page, vers le trou
   lambeaux(u);
-  souris(u, rh);
+  souris(u, rh); cramponne(u);
   if (rh > 0.5) {
     const clair0 = sm((u - 0.3) / 0.4), col0 = melange(T.ink, [244, 244, 238], clair0);
     // le disque d'accrétion au stylo : sa moitié arrière passe derrière le trou, et la lumière courbée la fait réapparaître en arc au-dessus
@@ -254,6 +254,45 @@ function souris(u, rh) {
     ctx.globalAlpha = 0.9; ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x, y);
     ctx.strokeStyle = `rgb(${T.ink.join(',')})`; ctx.lineWidth = g.w + 1.6; ctx.stroke(); ctx.strokeStyle = '#F4F4EE'; ctx.lineWidth = g.w * 0.7; ctx.stroke(); }
   ctx.restore(); ctx.globalAlpha = 1;
+}
+/* (vague 103 de l'audit, « le trou noir » vers 9,9) : un chat, sous le bas de l'écran, s'accroche au bord de la vitre. Ses deux pattes
+   surgissent et plantent leurs griffes sur le bord, sa tête dépasse, les yeux ronds ; le trou tire : la tête s'étire vers lui
+   (spaghettification), les griffes rayent la vitre en glissant… puis il lâche (« NOOON ») et part en spirale jusqu'au trou. */
+function cramponne(u) {
+  if (!T.CR) { const bx = T.cx > W / 2 ? W * 0.16 : W * 0.84, R = clamp(Math.min(W, H) * 0.12, 40, 88); T.CR = { bx: clamp(bx, R * 1.6, W - R * 1.6), R, dit: 0 }; }
+  const C = T.CR, { bx, R } = C; if (u < 0.12) return; const ink = `rgb(${T.ink.join(',')})`, pap = '#F4F4EE';
+  const sort = sm((u - 0.12) / 0.1), tire = sm((u - 0.3) / 0.42), lache = easeIn((u - 0.72) / 0.2);
+  if (lache > 0 && !C.vu) { C.vu = 1; if (window.Dex && Dex.vu) Dex.vu('cramponne'); }
+  if (lache >= 1) return;
+  const by = H + R * (1.05 - 0.8 * sort), ang = Math.atan2(T.cy - by, T.cx - bx);
+  // la glissade des griffes le long du bord, vers le trou, et les rayures qu'elles laissent sur la vitre
+  const gl = tire * (T.cx - bx) * 0.12 + Math.sin(u * 90) * tire * 1.5;
+  ctx.save(); ctx.lineCap = ctx.lineJoin = 'round';
+  if (tire > 0.02 && lache <= 0) { ctx.strokeStyle = ink; ctx.lineWidth = 1.3; ctx.globalAlpha = 0.55;
+    [-1, 1].forEach(sd => { const px = bx + sd * R * 1.08; for (let k = -1; k <= 1; k++) { ctx.beginPath(); ctx.moveTo(px + k * R * 0.12, H - 3 - Math.abs(k) * 2); ctx.lineTo(px + k * R * 0.12 + gl, H - 3 - Math.abs(k) * 2 - tire * 3); ctx.stroke(); } }); ctx.globalAlpha = 1; }
+  // pendant qu'il lâche : tout le chat part en spirale (le même chemin que le reste de la page)
+  if (lache > 0) { const r0 = Math.hypot(bx - T.cx, by - T.cy), a0 = Math.atan2(by - T.cy, bx - T.cx), r = r0 * Math.pow(1 - lache, 1.15), a = a0 + lache * 2.2 + lache * lache * 5;
+    ctx.translate(T.cx + Math.cos(a) * r, T.cy + Math.sin(a) * r * 0.82); ctx.rotate(lache * 9); ctx.scale(Math.max(0.01, 1 - lache), Math.max(0.01, 1 - lache)); ctx.translate(-bx, -by); }
+  // la tête, étirée vers le trou
+  ctx.save(); ctx.translate(bx, by); ctx.rotate(ang + Math.PI / 2); const st = 1 + 0.7 * tire; ctx.scale(1 / Math.sqrt(st), st);
+  const trem = Math.sin(u * 140) * 1.2 * tire; ctx.translate(trem, 0);
+  ctx.fillStyle = pap; ctx.strokeStyle = ink; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(-R * 0.95, R * 0.2); ctx.quadraticCurveTo(-R * 1.02, -R * 0.55, -R * 0.72, -R * 0.78); ctx.lineTo(-R * 0.62, -R * 1.25); ctx.lineTo(-R * 0.25, -R * 0.92);
+  ctx.quadraticCurveTo(0, -R * 0.98, R * 0.25, -R * 0.92); ctx.lineTo(R * 0.62, -R * 1.25); ctx.lineTo(R * 0.72, -R * 0.78); ctx.quadraticCurveTo(R * 1.02, -R * 0.55, R * 0.95, R * 0.2); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // les yeux : deux grands ovales noirs, deux reflets chacun (tout ronds de peur)
+  [-1, 1].forEach(sd => { ctx.fillStyle = ink; ctx.beginPath(); ctx.ellipse(sd * R * 0.36, -R * 0.3, R * 0.17, R * 0.22 * (1 + 0.2 * tire), 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = pap; ctx.beginPath(); ctx.arc(sd * R * 0.36 - R * 0.06, -R * 0.38, R * 0.06, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(sd * R * 0.36 + R * 0.05, -R * 0.24, R * 0.03, 0, TAU); ctx.fill(); });
+  ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, -R * 0.02, R * 0.08, R * 0.1 * (0.6 + tire), 0, 0, TAU); ctx.stroke();   // la bouche, un petit « o »
+  ctx.lineWidth = 1.4; [-1, 1].forEach(sd => { for (let k = 0; k < 2; k++) { ctx.beginPath(); ctx.moveTo(sd * R * 0.55, -R * 0.08 + k * R * 0.12); ctx.lineTo(sd * R * (1.05 + tire * 0.3), -R * 0.16 + k * R * 0.2 - tire * R * 0.2); ctx.stroke(); } });
+  ctx.restore();
+  // les pattes, griffes plantées sur le bord
+  [-1, 1].forEach(sd => { const px = bx + sd * R * 1.08 + (lache > 0 ? 0 : gl), py = H - 4 + (1 - sort) * R * 1.4;
+    ctx.fillStyle = pap; ctx.strokeStyle = ink; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.moveTo(px - R * 0.26, H + R); ctx.lineTo(px - R * 0.26, py); ctx.quadraticCurveTo(px, py - R * 0.34, px + R * 0.26, py); ctx.lineTo(px + R * 0.26, H + R); ctx.fill(); ctx.stroke();
+    ctx.lineWidth = 1.4; for (let k = -1; k <= 1; k++) { const cx0 = px + k * R * 0.12; ctx.beginPath(); ctx.moveTo(cx0, py - R * 0.14); ctx.quadraticCurveTo(cx0 + R * 0.04, py - R * 0.02, cx0, py + R * 0.1); ctx.stroke(); } });
+  ctx.restore();
+  // ce qu'il crie (écrit à la main, sur le calque)
+  const EN = window.I18N && I18N.lang !== 'fr', mot = lache > 0 ? (EN ? 'NOOOO!' : 'NOOOON !') : tire > 0.55 ? (EN ? 'not letting go…' : 'je lâcherai pas…') : sort > 0.5 ? (EN ? 'hey!!' : 'hé !!') : ''; if (mot && lache < 0.35) { ctx.save(); ctx.font = `${Math.round(R * 0.42)}px ${getComputedStyle(document.body).getPropertyValue('--hand') || 'serif'}`; ctx.textAlign = 'center';
+    ctx.lineWidth = 4; ctx.strokeStyle = pap; ctx.fillStyle = ink; const yy = H - R * (1.6 + tire * 0.8); const tx = clamp(bx, ctx.measureText(mot).width / 2 + 10, W - ctx.measureText(mot).width / 2 - 10); ctx.strokeText(mot, tx, yy); ctx.fillText(mot, tx, yy); ctx.restore(); }
 }
 // le menu, le cadre : ils tournent vers le trou, eux aussi (en CSS : ils sont en HTML)
 function tourneCouches(u) {
