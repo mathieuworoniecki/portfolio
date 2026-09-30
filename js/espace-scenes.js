@@ -338,6 +338,12 @@ S.equipe = (() => {
 // plusieurs terminaux, plusieurs agents : une grille de terminaux par dizaines, vue de biais, qui défile sans fin ; chacun tape, un agent par fenêtre ;
 // de temps en temps, l'un d'eux se soulève vers nous (on voit ce qu'il fait), coche, et reprend sa place
 S.terminaux = (() => {
+  const TERM_FR = [['$ git worktree add ../auth', '› agent : écrit le module', '  + auth/session.ts', '✓ prêt pour la relecture'],
+    ['$ git worktree add ../tests', '› agent : écrit les tests', '$ npm test', '✓ tous les tests passent'],
+    ['$ git worktree add ../revue', '› agent : relit le diff', '  2 remarques, corrigées', '✓ prêt à fusionner']];
+  const TERM_EN = [['$ git worktree add ../auth', '› agent: writing the module', '  + auth/session.ts', '✓ ready for review'],
+    ['$ git worktree add ../tests', '› agent: writing the tests', '$ npm test', '✓ all tests pass'],
+    ['$ git worktree add ../review', '› agent: reviewing the diff', '  2 notes, fixed', '✓ ready to merge']];
   const COL = 9, W0 = 0.9, H0 = 0.56, GX = 1.02, GY = 0.7;
   return {
     cles: () => [[-0.45, -0.28], [0.45, -0.28], [0.45, 0.28], [-0.45, 0.28]],
@@ -383,7 +389,15 @@ S.terminaux = (() => {
         [0.06, 0.11, 0.16].forEach(u => { const p = at(u, 0.09); rond(p[0], p[1], 1.2, 0.5, al, true); });
         // les lignes qui s'écrivent : une invite, puis la commande ; le curseur clignote ; parfois l'agent coche sa tâche
         const cyc = lv > 0.01 ? c01(ul * 1.3) * 3 : (now * 0.5 + bruit(id) * 3) % 3;
-        for (let l = 0; l < 4; l++) { const v = 0.34 + l * 0.17, lg = 0.25 + 0.55 * bruit(id * 7 + l), p = c01(cyc * 1.6 - l * 0.8), a0 = at(0.07, v), a1 = at(0.12, v - 0.045), a2 = at(0.07, v - 0.09);
+        // (vague 53 de l'audit, « les terminaux », finition) : le terminal qui se soulève montre ce qu'il fait pour de vrai, en toutes lettres :
+        // son worktree, la tâche de son agent (l'un écrit, un autre teste, un troisième relit, comme dans la légende), le résultat
+        if (lv > 0.3) { const T = (en() ? TERM_EN : TERM_FR)[nl % 3], d0 = [Q[1][0] - Q[0][0], Q[1][1] - Q[0][1]], d1 = [Q[3][0] - Q[0][0], Q[3][1] - Q[0][1]];
+          ctx.save(); ctx.transform(d0[0] / 100, d0[1] / 100, d1[0] / 62, d1[1] / 62, Q[0][0], Q[0][1]); ctx.globalAlpha = Math.min(1, lv * 1.2); ctx.fillStyle = `rgb(${BL})`; ctx.font = '600 5.3px ui-monospace,Menlo,Consolas,monospace'; ctx.textBaseline = 'middle';
+          let reste = cyc / 3 * T.join('').length * 1.15;
+          T.forEach((l, j) => { if (reste <= 0) return; const n = Math.min(l.length, Math.floor(reste)); reste -= l.length; const y = 17 + j * 9.5, txt = l.slice(0, n);
+            ctx.globalAlpha = Math.min(1, lv * 1.2) * (l[0] === '✓' ? 1 : 0.88); ctx.fillText(txt, 6, y); if (n < l.length && Math.sin(now * 9) > 0) ctx.fillRect(6 + ctx.measureText(txt).width + 1, y - 2.7, 2.9, 5.4); });
+          ctx.restore(); }
+        else for (let l = 0; l < 4; l++) { const v = 0.34 + l * 0.17, lg = 0.25 + 0.55 * bruit(id * 7 + l), p = c01(cyc * 1.6 - l * 0.8), a0 = at(0.07, v), a1 = at(0.12, v - 0.045), a2 = at(0.07, v - 0.09);
           if (p <= 0) break; trait([a2, a1, a0], false, 0.45, al * 0.9); const e = at(0.17 + lg * p, v - 0.045); trait([at(0.17, v - 0.045), e], false, 0.5, al * 0.85);
           if (p < 1 && Math.sin(now * 9) > 0) brille(e[0] + 2, e[1], 1.5, al, false, now, l); }
         if (cyc > 2.4) { const p = at(0.86, 0.72); coche(p[0], p[1], (lv > 0.01 ? 9 : 5) * pop, (cyc - 2.4) / 0.3, 0.7); }
