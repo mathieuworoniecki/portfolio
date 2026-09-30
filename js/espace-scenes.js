@@ -1083,7 +1083,7 @@ S.pilotage = (() => {
       const Pp = (x, y, z) => { const zz = Math.max(0.3, z); return [cx + (x - camX) * f / zz, hz + (hc - y) * f / zz, zz]; };
       // le ciel : la planète à anneaux se lève derrière l'horizon, ses anneaux ; les étoiles filent vers nous
       ctx.save(); ctx.beginPath(); ctx.rect(G.gauche - 40, G.haut + 4, G.droite - G.gauche + 80, hz - G.haut - 4); ctx.clip();
-      const R = D * 0.42, py = hz + R * 0.55 - Math.min(1, a / 5) * R * 0.25;
+      const R = Math.min(D * 0.42, (hz - G.haut - 12) / 0.72), py = hz + R * 0.55 - Math.min(1, a / 5) * R * 0.25;   // (vague 44 : la planète ne touche plus le haut, son anneau n'est plus coupé)
       trait((() => { const L = []; for (let i = 0; i <= 60; i++) { const t = Math.PI + i / 60 * Math.PI; L.push([cx + Math.cos(t) * R * 1.7, py + Math.sin(t) * R * 0.28]); } return L; })(), false, 0.8, 0.8);
       rond(cx, py, R, 1.2, 1, 'nuit');
       for (let j = 1; j < 5; j++) { ctx.save(); ctx.beginPath(); ctx.arc(cx, py, R, 0, TAU); ctx.clip(); style(0.5, 0.45); ctx.beginPath(); ctx.ellipse(cx, py - R + j * R * 0.38, R * 1.1, R * 0.08, -0.08, 0, TAU); ctx.stroke(); ctx.restore(); }
@@ -1097,6 +1097,12 @@ S.pilotage = (() => {
       [-1.6, 1.6].forEach(x => trait([Pp(x, 0, 1.4), Pp(x, 0, 60)], false, 1.2, 1));
       [-0.53, 0.53].forEach(x => { for (let j = 0; j < 16; j++) { const z0 = 1.6 + j * 2.4 - (E.roul * 1.2) % 2.4, z1 = z0 + 1.1; if (z0 < 1.4) continue; trait([Pp(x, 0, z0), Pp(x, 0, z1)], false, 0.9 * c01(6 / z0 + 0.3), 0.8); } });
       ctx.restore();
+      // (vague 44, l'audit : « le bus », finition) : le sol ne s'arrête plus sur une coupe nette : il finit sur le bord d'une dalle d'arcade,
+      // une lèvre épaisse avec son chant, et des rivets qui défilent au rythme de la route
+      { const zf = hc * f / (G.caps + 4 - hz), A = Pp(-8, 0, zf), B = Pp(8, 0, zf), xa = Math.max(G.gauche - 20, A[0]), xb = Math.min(G.droite + 20, B[0]), y = G.caps + 4, ep = Math.max(3, Math.min(6, D * 0.025));
+        ctx.save(); ctx.globalAlpha = 1; ctx.fillStyle = NUIT; ctx.fillRect(xa, y - 1, xb - xa, ep + 2); ctx.restore();
+        trait([[xa, y], [xb, y]], false, 1.3, 1); trait([[xa, y + ep], [xb, y + ep]], false, 0.6, 0.5);
+        for (let x = xa + ((E.roul * 40) % 40); x < xb; x += 40) rond(x, y + ep * 0.5, Math.max(1.2, ep * 0.18), 0.6, 0.6); }
       // (vague 22 de l'audit : « le bus ») : le long de la route défilent des lampadaires de papier à tête de chat, en alternance à gauche et à droite ;
       // leurs oreilles, leurs yeux-ampoules qui s'allument : la vitesse se sent, la route a un décor
       for (let j = 13; j >= 0; j--) { const z = 1.7 + j * 3.2 - (E.roul * 1.6) % 3.2, sd = j % 2 ? 1 : -1; if (z < 1.6 || z > 40) continue;
