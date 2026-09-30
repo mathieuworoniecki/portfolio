@@ -68,10 +68,61 @@ function geant(x) {
   const dir = x == null ? (Math.random() < 0.5 ? 1 : -1) : x < Wd.W / 2 ? 1 : -1;
   const c = spawn('geant', { d: 0.02, face: dir }, Math.min(Wd.H * 1.25, Wd.W * 1.3)); c.zo = 3000;
   const Rb = sc(c) * 0.36; c.x = dir > 0 ? -Rb * 2.2 : Wd.W + Rb * 2.2;
-  c.q = [{ k: 'rouleau', dir, Rb, air: true }, fn(c => { c.gone = true; oeil(dir); })];
-  later(0.4, () => panique(dir > 0 ? 0 : Wd.W));
+  // (vague 111) avant de rouler, il tâte : sa patte, bien trop grande pour la pièce, entre par le bord ; il attend qu'elle soit repartie
+  const t0 = Wd.t; patte(dir);
+  c.q = [{ k: 'wait', anim: 'rouleau', until: () => Wd.t - t0 > PA.dur - 0.1, max: 4 }, { k: 'rouleau', dir, Rb, air: true }, fn(c => { c.gone = true; oeil(dir); })];
+  later(0.75, () => panique(dir > 0 ? 0 : Wd.W));
   return c;
 }
+/* (vague 111 de l'audit, « le chat géant », l'échelle) : avant le géant, sa patte. Elle entre par le bord de l'écran, un bras qui vient de
+   dehors et une patte ronde plus haute que les meubles ; elle tâte le sol deux fois (POUF, tout saute, les chats détalent), puis se relève
+   et se retourne vers nous : ses coussinets, quatre petits et un gros, et un petit signe « coucou » ; elle repart par où elle est venue.
+   Alors seulement, il roule. On a compris la taille du propriétaire avant de le voir. */
+const PA = { t0: -99, dur: 2.4, dir: 1, taps: 0 };
+function patte(dir) {
+  Object.assign(PA, { t0: Wd.t, dir, taps: 0 });
+  if (window.Dex && Dex.vu) later(1.6, () => Dex.vu('patte-geant'));
+}
+function tape(x, y, Rp) {
+  Wd.shake = { t0: Wd.t, a: 11 }; dust(x - Rp * 0.7, y, Rp * 0.7, 1); dust(x + Rp * 0.7, y, Rp * 0.7, 1);
+  word(PA.taps === 1 ? 'POUF' : 'POUF !', x, y - Rp * 2.3, 30);
+  Wd.props.forEach(it => { if (it.mur || it.held || LOURD[it.kind] || it.kind === 'distrib' || !Wd.props.includes(it) || Math.abs(it.x - x) > Rp * 2.6) return; kick(it, sgn(it.x - x) || 1); if (it.fall) it.vy *= 1.3; });
+  const Ls = window.Vie && Vie.LETTERS && Vie.LETTERS(); if (Ls) Ls.forEach(L => { if (L.st || L.a < 0.8) return; L.wob = Wd.t + Math.random() * 0.12; L.wobA = 1.2; L.hopA = 6; });
+}
+H.draw.push(() => {
+  const u = Wd.t - PA.t0; if (u < 0 || u > PA.dur || Wd.a < 0.5 || Wd.espace) return;
+  const ctx = window.Chalk && Chalk.ctx; if (!ctx) return;
+  const ink = (window.THEME && THEME.ink) || (window.Chalk && Chalk.INK) || '34,36,40', papier = (getComputedStyle(document.documentElement).getPropertyValue('--bp').trim() || '#DADBD8');
+  const d = PA.dir, W = Wd.W, fy = floorAt(0.3), Rp = clamp(Math.min(W * 0.16, Wd.H * 0.09), 46, 118), bord = d > 0 ? 0 : W;
+  // la course : entrée (0-0.45), deux tapes (0.7 et 1.15), relevée et retournée (1.3-1.75), sortie (1.85-2.4)
+  const ent = sm(u / 0.45) * (1 - sm((u - 1.85) / 0.5)), cible = bord + d * (W * 0.24 + Rp * 0.8) + d * (u > 0.9 ? Rp * 0.9 * sm((u - 0.9) / 0.2) : 0);
+  const px = bord - d * Rp * 2 + (cible - bord + d * Rp * 2) * ent;
+  const leve = t => t < 0 ? 0 : t < 0.2 ? Math.sin(t / 0.2 * Math.PI / 2) : t < 0.25 ? 1 - (t - 0.2) / 0.05 : 0;   // monte doucement, retombe d'un coup
+  let h = Rp * 0.9 * (leve(u - 0.45) + leve(u - 0.9));
+  const pal = sm((u - 1.3) / 0.35) * (1 - sm((u - 1.85) / 0.3));   // la patte relevée, coussinets vers nous
+  h += pal * Rp * 1.6; const py = fy - Rp * 0.62 - h;
+  [0.7, 1.15].forEach((tt, i) => { if (u >= tt && PA.taps === i) { PA.taps = i + 1; tape(px, fy, Rp); } });
+  ctx.save(); ctx.lineCap = ctx.lineJoin = 'round'; ctx.strokeStyle = `rgb(${ink})`; ctx.lineWidth = Math.max(3, Rp * 0.045);
+  // le bras : il vient de dehors, du bord, en montant (on n'en voit jamais le bout)
+  const ax = bord - d * Rp * 2.5, ay = fy - Rp * 3.4 - pal * Rp, bw = Rp * 1.05;
+  ctx.beginPath(); ctx.moveTo(ax, ay - bw); ctx.quadraticCurveTo(px - d * Rp * 1.1, py - Rp * 1.3, px - d * Rp * 0.2, py - Rp * 0.7);
+  ctx.lineTo(px + d * Rp * 0.6, py + Rp * 0.3); ctx.quadraticCurveTo(px - d * Rp * 0.9, py + Rp * 0.1, ax, ay + bw); ctx.closePath();
+  ctx.fillStyle = papier; ctx.fill(); ctx.stroke();
+  // la patte : un gros moufle rond, trois doigts sur le devant ; relevée, elle s'arrondit et nous montre le dessous
+  ctx.translate(px, py); ctx.rotate(-d * pal * 0.35 + Math.sin(u * 14) * pal * 0.06);
+  const lw = Rp * (1.05 - pal * 0.12), lh = Rp * (0.62 + pal * 0.4);
+  ctx.beginPath(); ctx.ellipse(0, 0, lw, lh, 0, 0, Math.PI * 2); ctx.fillStyle = papier; ctx.fill(); ctx.stroke();
+  if (pal < 0.5) for (let i = 1; i <= 2; i++) { const x = d * lw * (0.15 + i * 0.25); ctx.beginPath(); ctx.moveTo(x, lh * 0.95); ctx.lineTo(x - d * lw * 0.06, lh * 0.35); ctx.stroke(); }
+  if (pal > 0.02) {   // les coussinets : ils grandissent quand elle se retourne (pas de fondu)
+    const k = pal; ctx.fillStyle = `rgb(${ink})`;
+    ctx.beginPath(); ctx.ellipse(0, lh * 0.25, lw * 0.36 * k, lh * 0.3 * k, 0, 0, Math.PI * 2); ctx.fill();
+    [[-0.6, -0.15], [-0.22, -0.5], [0.22, -0.5], [0.6, -0.15]].forEach(([a, b]) => { ctx.beginPath(); ctx.ellipse(a * lw, b * lh, lw * 0.13 * k, lh * 0.17 * k, a * 0.4, 0, Math.PI * 2); ctx.fill(); });
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(-lw * 0.1, lh * 0.14, lw * 0.08 * k, lh * 0.06 * k, 0, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+  if (u > 1.5 && !PA.coucou) { PA.coucou = true; word('coucou', px, py - Rp * 1.5, 22); }
+  if (u < 0.1) PA.coucou = false;
+});
 /* (vague 98 de l'audit, « le chat géant », pour l'inoubliable) : il ne disparaît pas, il habite dehors. Parti de la pièce, il fait le tour
    de la maison : son œil, énorme, vient se coller à la fenêtre, du côté où il est sorti. L'œil suit la souris, cligne ; les chats de la pièce
    lèvent la tête vers lui (« !! ») ; un clic sur la fenêtre, et il cligne, la vitre tremble (un petit « miaou » étouffé) ; puis il se retire

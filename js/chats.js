@@ -1151,6 +1151,10 @@ function rue() {
   if (L.length) { Wd.shake = { t0: Wd.t, a: 3 + Math.min(4, L.length * 0.4) };
     // (29/09, l'audit : on ne lisait pas une ruée) : un vrai nuage de poussière roule derrière la horde, trois bouffées par image
     for (let j = 0; j < 3; j++) { const c = pick(L); if (!c.fall) dust(c.x - c.face * sc(c) * rnd(0.4, 1.4), floorAt(c.d), sc(c) * rnd(0.5, 0.9), 0.9); }
+    // (vague 111 de l'audit, « la horde », profondeur) : derrière elle roule un vrai nuage de dessin animé, des bouffées rondes au trait
+    // qui naissent sous les pattes, gonflent, montent un peu et se dégonflent jusqu'à rien ; rangées par profondeur (celles du fond passent derrière)
+    if (NU.length < 90 && Wd.t > (R.nuT || 0)) { R.nuT = Wd.t + 0.045; const c = pick(L); if (!c.fall) { const s = sc(c);
+      NU.push({ x: c.x - c.face * s * rnd(0.5, 1.1), y: floorAt(c.d), r: s * rnd(0.32, 0.55), vx: -c.face * s * rnd(0.1, 0.5), t0: Wd.t, life: rnd(1.2, 1.9), n: 5 + Math.floor(Math.random() * 3), a0: rnd(0, 6.3), sp: Math.random() < 0.3 }); } }
     // (vague 7, l'audit : la finition) : les chats de la maison qui ne courent pas sautent en l'air pour laisser passer la ruée (saute-mouton) ;
     // le grondement fait trembler le titre, et une ou deux lettres s'en décrochent (elles rentreront à pattes)
     Wd.cats.forEach(k => { if (k.temp || k.rue || k.gone || !free4(k) || Wd.t - (k.sauteRue || -9) < 2.5) return;
@@ -1173,6 +1177,25 @@ function rue() {
     const c = pick(L);
     if (Wd.t > R.dit) { R.dit = Wd.t + rnd(0.5, 0.9); Wd.fx.push({ k: 'txt', text: pick(['VROOOM', 'tagada tagada', 'BRRRM', 'place !', 'ZOOOM', 'mia mia mia']), x: c.x, y: c.y - sc(c) * 1.3, t0: Wd.t, life: 1.1, rot: rnd(-0.2, 0.2), size: rnd(20, 30) }); } }
 }
+const NU = [];
+H.draw.push(() => {
+  if (!NU.length) return; const ctx = Chalk.ctx; if (!ctx || Wd.espace || Wd.trou) { NU.length = 0; return; }
+  for (let i = NU.length - 1; i >= 0; i--) if (Wd.t - NU[i].t0 > NU[i].life) NU.splice(i, 1);
+  const ink = (window.THEME && THEME.ink) || Chalk.INK || '34,36,40', papier = getComputedStyle(document.documentElement).getPropertyValue('--bp').trim() || '#DADBD8';
+  ctx.save(); ctx.lineCap = ctx.lineJoin = 'round';
+  NU.slice().sort((a, b) => a.y - b.y).forEach(b => { const u = (Wd.t - b.t0) / b.life, k = sm(u / 0.18) * (1 - sm((u - 0.5) / 0.5)); if (k < 0.02) return;
+    const R = b.r * k * (1 + u * 0.6), x = b.x + b.vx * u * b.life, y = b.y - R * 0.55 - u * b.r * 0.5, bosses = [];
+    for (let i = 0; i < b.n; i++) { const a = b.a0 + i / b.n * 6.283; bosses.push([x + Math.cos(a) * R * 0.62, y + Math.sin(a) * R * 0.5, R * (0.42 + ((i * 7 + b.n) % 3) * 0.06)]); }
+    // le contour d'abord (épais), puis le papier par-dessus : il ne reste que le bord extérieur de toutes les bosses réunies
+    ctx.strokeStyle = `rgb(${ink})`; ctx.lineWidth = Math.max(2, Math.min(4, R * 0.09)) * 2;
+    bosses.forEach(([bx, by, br]) => { ctx.beginPath(); ctx.arc(bx, by, br, 0, 6.283); ctx.stroke(); });
+    ctx.fillStyle = papier; ctx.beginPath(); ctx.ellipse(x, y, R * 0.7, R * 0.55, 0, 0, 6.283); ctx.fill();
+    bosses.forEach(([bx, by, br]) => { ctx.beginPath(); ctx.arc(bx, by, br, 0, 6.283); ctx.fill(); });
+    if (b.sp && R > 10) { ctx.lineWidth = Math.max(1.4, R * 0.05); ctx.beginPath();   // une petite spirale dans certaines bouffées
+      for (let j = 0; j <= 24; j++) { const a = j * 0.5 + u * 6, rr = R * 0.34 * j / 24; j ? ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.8) : ctx.moveTo(x, y); } ctx.stroke(); }
+  });
+  ctx.restore();
+});
 function runMice(dt) {
   Wd.props.filter(p => p.run).forEach(m => {
     m.fx += m.run.dir * m.run.v * dt / Wd.W; m.d = m.dT; Univers.scurry(m, Wd.t, 1);
