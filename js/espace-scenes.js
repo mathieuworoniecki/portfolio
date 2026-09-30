@@ -55,7 +55,13 @@ function chabot(x, y, r, o = {}) {
   if (r < 3) { rond(x, y, Math.max(1.2, r), 0.6, a, true); return; }
   // le corps : une combinaison arrondie, un sac à dos qui dépasse du côté où il ne regarde pas ; les bras
   const by = y + r * 1.02, bw = r * 0.78, bh = r * 0.72;
-  const bras = o.bras ?? [Math.sin(now * 3 + ph) * 0.25, -Math.sin(now * 3 + ph) * 0.25];
+  let bras = o.bras ?? [Math.sin(now * 3 + ph) * 0.25, -Math.sin(now * 3 + ph) * 0.25];
+  // (vague 49, l'audit : « le chat-robot », immersion) : il nous voit. La souris approche : ses yeux la suivent ; tout près, il lève le bras
+  // de son côté et fait coucou (les chats-robots d'une foule se retournent vers nous un à un, au passage du pointeur)
+  // (le pointeur est en pixels d'écran ; le dessin peut être déplacé ou tourné : on ramène le pointeur dans son repère)
+  let Sp = r >= 6 ? souris() : null; if (Sp) { const m = ctx.getTransform(), k = (ctx.canvas.width / (ctx.canvas.clientWidth || ctx.canvas.width)) || 1, inv = m.inverse(), px = Sp.x * k, py = Sp.y * k; Sp = { x: inv.a * px + inv.c * py + inv.e, y: inv.b * px + inv.d * py + inv.f }; }
+  const dS = Sp ? Math.hypot(Sp.x - x, Sp.y - y) : 1e9, voit = dS < r * 6 ? 1 - dS / (r * 6) : 0;
+  if (dS < r * 2.8) { const i = Sp.x > x ? 1 : 0; bras = bras.slice(); bras[i] = 1.25 + Math.sin(now * 14 + ph) * 0.4; }
   [-1, 1].forEach((g, i) => { const b = bras[i], ex = x + g * bw * 0.86, ey = by - bh * 0.35, mx = ex + g * Math.cos(b) * r * 0.42, my = ey - Math.sin(b) * r * 0.42;
     cerne(() => { ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(mx, my); }, w * 1.5, a, null); cerne(() => { ctx.beginPath(); ctx.arc(mx, my, r * 0.13, 0, TAU); }, w, a); });
   // (vague 32, l'audit : « le chat-robot ») : une queue de chat mécanique, en anneaux qui rapetissent, qui ondule derrière lui ; le bout, une petite boule
@@ -80,7 +86,7 @@ function chabot(x, y, r, o = {}) {
   hach(hx, y, r * 0.93, r * 0.76, 3);
   // les yeux : deux grands ovales noirs, deux reflets ; ils suivent le regard ; parfois il cligne
   const cl = o.cligne || (now * 0.31 + bruit(ph * 5.1) * 4) % 4 < 0.1 ? 0.12 : 1;   // (il cligne tout seul, chacun à son heure)
-  [-1, 1].forEach(g => { const ex = hx + (g * 0.36 + sl * 0.3) * r, ey = y + r * 0.02, sq = 1 - Math.max(0, g * -sl) * 0.35;
+  [-1, 1].forEach(g => { const ex = hx + (g * 0.36 + sl * 0.3) * r + (voit ? clamp((Sp.x - x) / (r * 3), -1, 1) * r * 0.06 * voit : 0), ey = y + r * 0.02 + (voit ? clamp((Sp.y - y) / (r * 3), -1, 1) * r * 0.05 * voit : 0), sq = 1 - Math.max(0, g * -sl) * 0.35;
     ctx.globalAlpha = a; ctx.fillStyle = ENC; ctx.beginPath(); ctx.ellipse(ex, ey, r * 0.15 * sq, r * 0.21 * cl, 0, 0, TAU); ctx.fill();
     if (cl > 0.5) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex - r * 0.05, ey - r * 0.08, r * 0.055, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(ex + r * 0.05, ey + r * 0.07, r * 0.028, 0, TAU); ctx.fill(); } });
   // la bouche en « w », le nez
