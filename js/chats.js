@@ -735,6 +735,11 @@ function live(c, dt) {
   else { c.sK = null; const s0 = sOf(c.d); c.s = c.s ? c.s + (s0 - c.s) * Math.min(1, dt * 3) : s0; }
   c.z = c.held ? 30000 : c.jump && c.zj != null ? c.zj : c.zp != null ? c.zp : zOf(c.d) + c.zo;
   if (c.bonk && Wd.t < c.bonk) { c.tgt[I.eyes] = 1; c.tgt[I.sqz] -= 0.1; c.tgt[I.hnod] -= 0.15; }
+  // (vague 47, l'audit : « les chats », immersion) : la pièce nous voit. Quand la souris (ou le doigt) bouge, les chats éveillés et libres
+  // la suivent des yeux, les plus proches plus franchement ; celui qu'on frôle la fixe. On n'est plus devant une vitrine : on est dans la pièce
+  { const q = Wd.ptr; if (q && q.on && Wd.t - q.moved < 2.5 && c.hp && !c.held && !c.hidden && !(c.task && c.task.zzz) && c.tgt[I.eyes] < 0.5) {
+      const dx = q.x - c.hp[0], dy = q.y - c.hp[1], d = Math.hypot(dx, dy), R = Math.max(Wd.W, Wd.H) * 0.55, w = Math.max(0, 1 - d / R) * Math.min(1, (2.5 - (Wd.t - q.moved)) / 0.6);
+      if (w > 0.02) { const s0 = sc(c) * 1.2; c.tgt[I.px] += (clamp(dx * c.face / s0, -1, 1) - c.tgt[I.px]) * w; c.tgt[I.py] += (clamp(-dy / s0, -1, 1) - c.tgt[I.py]) * w; } } }
   H.live.forEach(f => f(c, dt));
   Chat.step(c, dt, { a: Wd.a * (c.hidden ? 0 : 1) });
   c.hp = c.hidden ? null : Chat.where(c, c.head);
