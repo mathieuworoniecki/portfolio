@@ -280,12 +280,15 @@ function titre(txt, W, H, y1, y2) {
   for (let i = pts.length - 1; i > 0; i--) { const j = Math.floor(h(i * 3.7 + 0.5) * (i + 1)); const t = pts[i]; pts[i] = pts[j]; pts[j] = t; }
   pts.lg = lg; pts.px = px / k; TXT = { cle, pts }; return pts;
 }
-let NID = 0, sauter = false;   // (sauter : pour les captures, js de test : pas de transformation)
+let NID = 0, sauter = false, FIN = null;   // (FIN : où la plume a fini le titre, pour l'onde de choc)   // (sauter : pour les captures, js de test : pas de transformation)
 // les étoiles sur les lettres (écran) ; une lueur passe de gauche à droite ; elles frémissent
 // (vague 10) plus de lueur qui balaie : la lueur, c'est la plume ; les étoiles qu'elle vient de poser brillent un instant, puis se posent
 const ecrit = (pts, tl, W, now) => { const M = pts.length;
   return (r, o) => { const q = pts[r.i % M], dup = r.i >= M; o.p2 = 1; o.f = 1;
     o.x = q[0] + Math.sin(now * 2.1 + r.a * TAU) * 0.8 + (dup ? r.gx * 1.5 : 0); o.y = q[1] + Math.cos(now * 1.7 + r.b * TAU) * 0.8 + (dup ? r.gy * 1.5 : 0);
+    // (vague 52) le titre a de l'épaisseur : chaque étoile a sa profondeur, et le titre pivote un peu quand la souris bouge (parallaxe), comme un hologramme
+    const pz = r.a - 0.5, pp = Wd.ptr; if (pp && pp.on && Wd.t - pp.moved < 4) { o.x += (pp.x / W - 0.5) * pz * 46; o.y += (pp.y / (E.H || 800) - 0.5) * pz * 30; }
+    o.x += Math.sin(now * 0.8) * pz * 10;
     const e = tl - PLUME.d - q[2] * PLUME.v, l = e > 0 ? Math.exp(-e * 5) : 0; o.s = 0.9 + l * 0.6; o.a = (dup ? 0.45 : 1.3) + l * 0.5; }; };
 // la plume-comète : une tête blanche, une queue d'étincelles qui retombent derrière elle ; elle file sur chaque ligne, saute à la suivante, puis s'éteint en fin de titre
 function plume(ctx, pts, tl, now, br) {
@@ -373,7 +376,13 @@ X.fond.push((ctx, now) => {
     if (tl) { ctx.globalAlpha = Math.min(1, k * 0.55); ctx.lineWidth = Math.max(0.6, s * 0.9); ctx.beginPath(); ctx.moveTo(tl[0], tl[1]); ctx.lineTo(x, y); ctx.stroke(); }
     const rr = s * (2.6 + 1.4 * calme) * (k > 1 ? 1 + (k - 1) * 0.8 : 1); ctx.globalAlpha = Math.min(1, k); ctx.drawImage(LUEUR, x - rr, y - rr, rr * 2, rr * 2);
   }
-  if (pts && pts.lg && !reduit) plume(ctx, pts, dt, now, br);
+  if (pts && pts.lg && !reduit) { plume(ctx, pts, dt, now, br); FIN = { x: pts.lg[pts.lg.length - 1].x1, y: pts.lg[pts.lg.length - 1].y, id: C.nid, t: 0 }; }
+  // (vague 52 de l'audit, « les titres en étoiles », immersion) : quand le titre se défait, là où la plume s'est arrêtée part une onde de choc
+  // d'étoiles, deux anneaux qui balaient tout l'écran jusqu'aux bords ; les étoiles de l'anneau rapetissent en s'éloignant (aucun fondu)
+  else if (FIN && C && FIN.id === C.nid && !reduit) { if (!FIN.t) FIN.t = Wd.t; const e = Wd.t - FIN.t, Rm = Math.hypot(Math.max(FIN.x, W - FIN.x), Math.max(FIN.y, H - FIN.y));
+    if (e > 1.1) FIN = null; else for (let j = 0; j < 2; j++) { const u = c01((e - j * 0.16) / 0.95); if (u <= 0 || u >= 1) continue; const R = Rm * (1 - Math.pow(1 - u, 2.2)), n = 64, rr = br * (5 - j * 1.6) * (1 - u);
+      ctx.globalAlpha = 1; for (let i = 0; i < n; i++) { const an = i / n * TAU + j * 0.05 + Math.sin(i * 2.3) * 0.02, x = FIN.x + Math.cos(an) * R, y = FIN.y + Math.sin(an) * R * 0.92;
+        if (x < -rr || x > W + rr || y < -rr || y > H + rr || bd && y > bd.y && y < bd.y + bd.h && x > bd.x && x < bd.x + bd.w) continue; ctx.drawImage(LUEUR, x - rr, y - rr, rr * 2, rr * 2); } } }
   ctx.restore(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
 });
 return { FORMES, E, get N() { return N; }, get P() { return P; }, fige() { T0 = -1e9; sauter = true; }, vers(t) { T0 = Wd.t - t; } };
