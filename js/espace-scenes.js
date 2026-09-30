@@ -214,11 +214,36 @@ function eclairs(o, now) {
     const h = P[Math.min(n, Math.round(u0 * n))]; o.fillStyle = `rgb(${BL})`; o.beginPath(); o.arc(h[0], h[1], u0 < 1 ? 3.5 : 5 * (1 - u1), 0, TAU); o.fill(); });
   o.restore();
 }
+// (vague 85, l'audit : « front et interfaces ») : pendant la scène du front, la vraie interface du site devient inspectable, comme dans les
+// outils de développement : l'élément sous la souris (logo, langue, flèches, boutons, chapitres) s'entoure de sa boîte (contenu, marge en
+// hachures), ses cotes, et une étiquette « button.pp · 86 × 20 » ; la boîte se déplie vers lui quand on change d'élément
+const INSP = { t: -99, el: null, b: null, k: 0, T: 0 };
+function inspecteur(o, now) {
+  const P = souris(), on = now - INSP.t < 0.3 && P; let el = null;
+  if (on) { const e = document.elementFromPoint(P.x, P.y); el = e && e.closest && e.closest('#brand, #lang-pick, .film-ui .ctrl > *, #chap > *, .nav, [class*="fleche"], [class*="arrow"], button, a'); if (el && el.closest('.scenes, #stage')) el = null; }
+  const dt = Math.min(0.2, Math.max(0, now - (INSP.T || now))); INSP.T = now;
+  if (el && el !== INSP.el) { INSP.el = el; INSP.k = 0; INSP.b0 = INSP.b; } INSP.k = el ? Math.min(1, INSP.k + dt / 0.25) : Math.max(0, INSP.k - dt / 0.2);
+  if (!INSP.el || INSP.k <= 0) { if (!el) INSP.el = null; return; }
+  const r = INSP.el.getBoundingClientRect(); if (!r.width) return; INSP.b = r; const cs = getComputedStyle(INSP.el), mg = ['Top', 'Right', 'Bottom', 'Left'].map(q => parseFloat(cs['margin' + q]) || 0), pd = ['Top', 'Right', 'Bottom', 'Left'].map(q => parseFloat(cs['padding' + q]) || 0);
+  const e = sm(INSP.k), b0 = INSP.b0 && INSP.el ? INSP.b0 : null, L = (a, b) => b0 ? lerp(a, b, e) : b, x = L(b0 ? b0.left : 0, r.left), y = L(b0 ? b0.top : 0, r.top), w = L(b0 ? b0.width : 0, r.width) * (b0 ? 1 : e), h = L(b0 ? b0.height : 0, r.height) * (b0 ? 1 : e);
+  const cv = o.canvas, dp = dpDe(cv); o.save(); o.setTransform(dp, 0, 0, dp, 0, 0); o.lineCap = o.lineJoin = 'round';
+  const X0 = b0 ? x : r.left + r.width / 2 - w / 2, Y0 = b0 ? y : r.top + r.height / 2 - h / 2;
+  // la marge (hachurée), le cadre du contenu (tirets), le rembourrage (un trait fin dedans)
+  o.save(); o.beginPath(); o.rect(X0 - mg[3] - 6, Y0 - mg[0] - 6, w + mg[1] + mg[3] + 12, h + mg[0] + mg[2] + 12); o.rect(X0, Y0, w, h); o.clip('evenodd');
+  o.strokeStyle = 'rgba(255,233,168,0.55)'; o.lineWidth = 1; o.beginPath(); for (let q = -h - 40; q < w + 40; q += 6) { o.moveTo(X0 + q, Y0 + h + 30); o.lineTo(X0 + q + h + 40, Y0 - 30); } o.stroke(); o.restore();
+  o.setLineDash([5, 4]); o.lineDashOffset = -now * 20; o.strokeStyle = NUIT; o.lineWidth = 3.5; o.strokeRect(X0, Y0, w, h); o.strokeStyle = `rgb(${BL})`; o.lineWidth = 1.5; o.strokeRect(X0, Y0, w, h); o.setLineDash([]);
+  if (pd.some(v => v > 0)) { o.strokeStyle = 'rgba(150,200,255,0.8)'; o.lineWidth = 1; o.strokeRect(X0 + pd[3], Y0 + pd[0], Math.max(0, w - pd[1] - pd[3]), Math.max(0, h - pd[0] - pd[2])); }
+  // l'étiquette : balise.classe · largeur × hauteur, sous l'élément (au-dessus s'il est en bas de l'écran)
+  if (e > 0.6) { const nom = INSP.el.tagName.toLowerCase() + (INSP.el.id ? '#' + INSP.el.id : INSP.el.classList[0] ? '.' + INSP.el.classList[0] : ''), t = `${nom} · ${Math.round(r.width)} × ${Math.round(r.height)}`;
+    o.font = '600 11px ui-monospace,Menlo,Consolas,monospace'; const tw = o.measureText(t).width + 12, bas = r.bottom + 30 > window.innerHeight, lx = Math.max(6, Math.min(window.innerWidth - tw - 6, X0)), ly = bas ? Y0 - mg[0] - 26 : Y0 + h + mg[2] + 8;
+    o.fillStyle = PAP; o.strokeStyle = ENC; o.lineWidth = 1.2; o.beginPath(); o.rect(lx, ly, tw * sm(c01((e - 0.6) / 0.4)), 18); o.fill(); o.stroke(); if (e > 0.85) { o.fillStyle = ENC; o.textBaseline = 'middle'; o.fillText(t, lx + 6, ly + 9.5); } }
+  o.restore();
+}
 function vise(c0, now) {
   const c = VISE.c, P = souris(); VISE.c = null; const dt = Math.min(0.2, Math.max(0, now - (VISE.t || now))); VISE.t = now;
   if (c && P && (VISE.id === null || VISE.id === c.id || VISE.k < 0.05)) { VISE.id = c.id; VISE.k = Math.min(1.6, VISE.k + dt * 1.4); VISE.rb = c; }
   else { VISE.k = Math.max(0, VISE.k - dt * 3); if (VISE.k === 0) VISE.id = null; }
-  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); const sg = now - SURGE.t0 < 1.6 && now >= SURGE.t0; if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length && !FEUX.length && !sg) return; const o = toileVise(c0.canvas); if (sg) eclairs(o, now);
+  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); const sg = now - SURGE.t0 < 1.6 && now >= SURGE.t0, ins = now - INSP.t < 0.3 || INSP.k > 0; if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length && !FEUX.length && !sg && !ins) return; const o = toileVise(c0.canvas); if (sg) eclairs(o, now); if (ins) inspecteur(o, now);
   TAMPON.forEach(q => tamponVitre(o, q, now - q.t0)); if (ENVOL.length) envols(o, now); if (FEUX.length) feux(o, now); if (!R || VISE.k <= 0 || !P) return;
   const W0 = window.Chats && Chats.K && Chats.K.Wd, chat = W0 && W0.cats.some(q => q.sp && q.sp.m === 'agrippe');
   const cv = o.canvas, dp = dpDe(cv), px = P.x * dp, py = P.y * dp, ln = Math.max(1, dp), k = VISE.k;
@@ -1126,6 +1151,7 @@ S.front = (() => {
       // curseurs, cases, boutons, étoiles d'avis, avatars) qui arrivent du fond vers nous sur toute la largeur du ciel, et vivent (ils basculent,
       // glissent, se cochent) ; ils passent derrière l'écran, jamais sur les sous-titres ni sur la planète des chats
       uiNuee(now, b1 ? sm(a / 1.2) : 1);
+      INSP.t = now;   // (vague 85 : l'inspecteur est actif tant que cette scène se dessine)
       const T = Pk(-w, -h); { // (vague 8) le chat-robot assis sur l'écran : quand l'écran se resserre, le bord se dérobe sous lui ; il saute, bras en l'air, et retombe dessus
         const P = Pk(w * 0.55, -h), r = k * 0.1, sa = u > 0 && u < 1 ? Math.sin(Math.PI * u) : 0;
         chabot(P[0], P[1] - r * 0.55 - Math.abs(Math.sin(now * 2)) * r * 0.15 * (1 - sa) - sa * r * 1.6, r, { now, v: 1, lac: sa ? 0 : Math.sin(now * 0.7) * 0.6, cligne: sa > 0.3, bras: sa ? [1.5, 1.5] : [1.2 + Math.sin(now * 6) * 0.4, -0.4] });
@@ -1502,5 +1528,5 @@ S.pilotage = (() => {
 S.rag = S.ia;
 
 // la toile, l'écran du ciel, les outils ; puis : une scène existe-t-elle ?
-return { S, vise, VISE, LUI, ENVOL, TH, FEUX, SURGE, pose(c, g, o) { ctx = c; G = g; O = o; } };
+return { S, vise, VISE, LUI, ENVOL, TH, FEUX, SURGE, INSP, pose(c, g, o) { ctx = c; G = g; O = o; } };
 })();
