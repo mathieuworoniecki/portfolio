@@ -492,6 +492,11 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
   const NGI = 9, COL = []; for (let i = 0; i < NGI; i++) { const g = new T.Group(); port.add(g); solide(g, new T.BoxGeometry(0.13, 0.13, 0.13).translate(0, 0.065, 0), L[5].l); g.add(trait([[-0.04, 0.132, 0], [0.04, 0.132, 0]], L[5].s)); COL.push({ g, rejet: i % 4 === 2 }); }
   const PIL = []; for (let k = 0; k < 5; k++) { const g = new T.Group(); g.position.y = k * 0.1; pile.add(g); solide(g, new T.BoxGeometry(0.2, 0.09, 0.2).translate(0, 0.045, 0), k === 4 ? L[5].a : L[5].l); PIL.push(g); }
   const juge = perso(L[5].l, true); juge.position.set(0.58, -0.3, 0.3); juge.scale.setScalar(0.72); R.add(juge);
+  /* avant l'anneau final, trois contrôles automatiques (tests, revue, scanners) : chacun s'allume quand un colis le traverse */
+  const CTRL = [-0.78, -0.55, -0.32].map(x => { const g = new T.Group(); g.position.set(x, -0.2 + 0.15, 0); g.rotation.y = 0.75; port.add(g); const l = trait(cercle(0.19, 40).map(q => [q[0], q[1] * 1.15, 0]), L[5].s, true); g.add(l); return { g, l }; });
+  /* les livraisons des agents arrivent de loin par six tapis qui convergent vers le mien */
+  const NFD = 6, FD = Array.from({ length: NFD }, (_, j) => [-0.3 + j * 0.42, 0.8 + (j % 2) * 0.45, -3.4 - (j % 3) * 0.4]), NPF = 7;
+  port.add(traits(FD.flatMap(q => [q, [-1.05, -0.2, 0]]), L[5].d)); const flux5 = points(NFD * NPF, L[5].pa); port.add(flux5.p);
 
   /* la caméra de chaque étape : [rx, ry, zoom, décalage x, décalage y] */
   const VUE = [[0.05, -0.05, 0.8, 0.1, 0], [0.12, 0, 0.85, -0.05, 0.05], [0.3, 0.1, 1.0, -0.1, 0.08], [0.26, -0.1, 0.86, 0.0, 0.1], [0.2, -0.1, 0.9, 0, 0], [0.1, -0.05, 1.05, 0, -0.05], [0.2, 0, 0.9, 0, 0]];
@@ -575,6 +580,8 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
     ann.scale.setScalar(1 + (passe ? 0.08 : 0) + (mauvais ? Math.sin(t * 40) * 0.04 : 0)); scan.visible = !!passe; scan.scale.setScalar(passe ? 0.6 + ((t * 3) % 1) * 0.4 : 1);
     const np = Math.floor((t * 0.11 * NGI * 0.78) % 6); PIL.forEach((g, k) => g.visible = k < Math.max(1, np)); coche.visible = np >= 4 && (t % 1.4) > 0.3;
     juge.rotation.y = Math.sin(t * 0.8) * 0.3;
+    CTRL.forEach(c => { const pres = COL.some(q => q.g.visible && Math.abs(q.g.position.x - c.g.position.x) < 0.08 && q.g.position.y > -0.25); c.l.material = pres ? L[5].a : L[5].s; c.g.scale.setScalar(pres ? 1.12 : 1); });
+    FD.forEach((q, j) => { for (let n = 0; n < NPF; n++) { const u = (t * 0.16 + n / NPF + j * 0.13) % 1; flux5.pos.set(f[5] > 0.05 ? [lerp(q[0], -1.05, u), lerp(q[1], -0.2, u) + 0.04, lerp(q[2], 0, u)] : [0, -99, 0], (j * NPF + n) * 3); } }); flux5.a.needsUpdate = true;
   };
   o.rot = t => [cam.rx, cam.ry + Math.sin(t * 0.15) * 0.05];
 }
