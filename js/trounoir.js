@@ -436,7 +436,7 @@ function flotte(c, dt, Q, acc) {
   // l'inertie (presque aucun frottement), les bords de l'écran : il rebondit
   S.vx *= Math.exp(-dt * 0.08); S.vy *= Math.exp(-dt * 0.08);
   c.x += S.vx * dt; c.y += S.vy * dt;
-  const r = rayon(c), [bx, by] = centreDe(c), bord = (v, n) => { if (Math.abs(v) > 120 && Math.random() < 0.5) Wd.fx.push({ k: 'txt', text: pick(['bonk', 'toc', 'boing']), x: bx + n[0] * r, y: by + n[1] * r, t0: Wd.t, life: 0.9, rot: rnd(-0.2, 0.2), size: 15 }); S.w += rnd(-4, 4); if (Math.abs(v) > 160) S.bonk = Wd.t; };
+  const r = rayon(c), [bx, by] = centreDe(c), bord = (v, n) => { if (Math.abs(v) > 120 && Math.random() < 0.5) Wd.fx.push({ k: 'txt', text: pick(['bonk', 'toc', 'boing']), x: bx + n[0] * r, y: by + n[1] * r, t0: Wd.t, life: 0.9, rot: rnd(-0.2, 0.2), size: 15 }); S.w += rnd(-4, 4); if (Math.abs(v) > 160) S.bonk = Wd.t; if (Math.abs(v) > 70) cogneUI(bx + n[0] * r, by + n[1] * r, n, Math.abs(v)); };
   if (bx - r < 4 && S.vx < 0) { bord(S.vx, [-1, 0]); S.vx = -S.vx * 0.8; c.x += 4 - (bx - r); }
   if (bx + r > W - 4 && S.vx > 0) { bord(S.vx, [1, 0]); S.vx = -S.vx * 0.8; c.x -= bx + r - W + 4; }
   if (by - r < HAUT() && S.vy < 0) { bord(S.vy, [0, -1]); S.vy = -S.vy * 0.8; c.y += HAUT() - (by - r); }
@@ -447,6 +447,18 @@ function flotte(c, dt, Q, acc) {
       const pen = [[bx + rb - bd.x, -1, 0], [bd.x + bd.w - (bx - rb), 1, 0], [by + rb - bd.y, 0, -1], [bd.y + bd.h - (by - rb), 0, 1]].sort((p, q) => p[0] - q[0])[0], [d, nx, ny] = pen;
       c.x += nx * d; c.y += ny * d; const vn = S.vx * nx + S.vy * ny; if (vn < 0) { bord(vn, [-nx, -ny]); S.vx -= 1.8 * vn * nx; S.vy -= 1.8 * vn * ny; } } }
   c.z = 8000 + c.id * 3;
+}
+// (vague 81, l'audit : « les chats en apesanteur ») : l'interface est dans l'espace avec eux. Un chat qui rebondit sur un bord de l'écran
+// tout près d'un élément (le logo, la langue, les flèches, les boutons du bas) le cogne : l'élément est poussé, tangue et revient
+let UIr = null, UIt = -9;
+function cogneUI(x, y, n, v) {
+  if (reduit) return; if (!UIr || Wd.t - UIt > 1) { UIt = Wd.t; UIr = [...document.querySelectorAll('#brand, #lang-pick, #theme-pick, .film-ui .ctrl > *, #chap > *, .nav-fleche, [class*="chevron"]')].map(e => ({ e, b: e.getBoundingClientRect() })).filter(q => q.b.width > 0); }
+  const k = Math.min(1, v / 400);
+  UIr.forEach(({ e, b }) => { const cx = Math.max(b.left, Math.min(x, b.right)), cy = Math.max(b.top, Math.min(y, b.bottom)), d = Math.hypot(cx - x, cy - y); if (d > 110) return;
+    const f = (1 - d / 110) * k, dx = n[0] * 14 * f, dy = n[1] * 14 * f, rz = (n[0] ? n[0] * (cy < y ? -1 : 1) : n[1] * (cx < x ? 1 : -1)) * 12 * f;
+    e.animate([{ transform: 'translate(0,0) rotate(0deg)' }, { transform: `translate(${dx.toFixed(1)}px,${dy.toFixed(1)}px) rotate(${rz.toFixed(1)}deg) scale(${1 - 0.08 * f})`, offset: 0.18 },
+      { transform: `translate(${(-dx * 0.4).toFixed(1)}px,${(-dy * 0.4).toFixed(1)}px) rotate(${(-rz * 0.5).toFixed(1)}deg)`, offset: 0.5 }, { transform: `rotate(${(rz * 0.2).toFixed(1)}deg)`, offset: 0.78 }, { transform: 'translate(0,0) rotate(0deg)' }],
+      { duration: 700, easing: 'ease-out', composite: 'add' }); });
 }
 function agrippe(c, Q, acc) {
   // (Mathieu, 28/09 : « deux chats se superposent » : chacun sa place autour du curseur, en éventail, à une largeur de chat l'un de l'autre)
