@@ -874,8 +874,8 @@ function drawFx(S) {
     if (f.k === 'txt') {
       if (f.text === '♥') heart(f.x, f.y - u * 20, 7 * K, fade);
       else { // (vague 43, l'audit : « la tour », finition) : un mot près du bord ne sort jamais de l'écran (« PATATRAS ! » était coupé à droite)
-        const w2 = (f.w2 ??= String(f.text).length * f.size * K * 0.3 + 10), x = Math.max(w2 + (Wd.mode === 'large' ? 64 : 8), Math.min(Wd.W - w2 - 8, f.x));
-        C.text(f.text, x, f.y - u * 14, c01(u * 4), { size: f.size, align: 'center', rot: f.rot, a: 0.75 * fade }); }
+        const w2 = (f.w2 ??= String(f.text).length * f.size * K * 0.3 + 10), x = Math.max(w2 + (Wd.mode === 'large' ? 64 : 8), Math.min(Wd.W - w2 - 8, f.x)), y = (f.yA ??= horsTitre(f, x, w2, K));
+        C.text(f.text, x, y - u * 14, c01(u * 4), { size: f.size, align: 'center', rot: f.rot, a: 0.75 * fade }); }
     } else if (f.k === 'z') C.text(u < 0.5 ? 'z' : 'Z', f.x + f.dx * u * 18 + Math.sin(u * 7) * 5, f.y - u * 40, 1, { size: 12 + u * 10, a: 0.6 * fade });
     else if (f.k === 'dust') { for (let i = -1; i <= 1; i += 2) for (let j = 0; j < 2; j++) { const a0 = f.r * (0.5 + u * 0.8), h = (j + 1) * 5; C.line(f.x + i * a0, f.y - h * 0.4, f.x + i * (a0 + 8 + u * 8), f.y - h, 1, { w: 1.6, a: 0.5 * f.a * (1 - u), seed: f.seed + i + j }); } }
     else if (f.k === 'calage') calage(f, t, K);
@@ -1022,6 +1022,16 @@ function ondeCri(f, t) {
   for (let i = 0; i < 5; i++) { const tt = t - f.t0 - i * 0.11, R = tt * f.v; if (tt < 0 || R > D) continue;
     const P = [], n = Math.min(120, 24 + Math.floor(R / 12)); for (let k = 0; k <= n; k++) { const a = k / n * Math.PI * 2, rr = R * (1 + 0.025 * Math.sin(a * 18 + tt * 40 + i)); P.push([f.x + Math.cos(a) * rr, f.y + Math.sin(a) * rr * 0.9]); }
     Chalk.stroke(P, 1, { w: Math.max(1, 3.2 - i * 0.5) * (f.w || 1), a: 0.7 * Wd.a, seed: f.seed + i * 7, tip: false, color: f.col }); }
+}
+// (vague 94 de l'audit, la finition des grands événements) : un grand mot (« NYAN NYAN NYAN ♪ ») ne s'écrit plus sur le titre ni sur les boutons :
+// posé une fois pour toutes à sa naissance, il descend juste sous ce qu'il aurait chevauché (on lit les deux)
+function horsTitre(f, x, w2, K) {
+  if (f.size < 24 || Wd.a < 0.5) return f.y;
+  const R = [], T = window.Vie && Vie.RECT && Vie.RECT(); if (T && T.width) R.push(T);
+  document.querySelectorAll('.ctas').forEach(e => { const r = e.getBoundingClientRect(); if (r.width) R.push({ left: r.left, right: r.right, top: r.top, bottom: r.bottom + 22 }); });
+  let y = f.y; const h = f.size * K;
+  for (let k = 0; k < 3; k++) { const r = R.find(r => x - w2 < r.right && x + w2 > r.left && y - h * 0.8 - 14 < r.bottom && y + h * 0.3 > r.top); if (!r) break; y = r.bottom + h * 0.85; }
+  return y;
 }
 function heart(x, y, r, a) {
   const P = []; for (let i = 0; i <= 24; i++) { const q = i / 24 * Math.PI * 2; P.push([x + 16 * Math.pow(Math.sin(q), 3) * r / 16, y - (13 * Math.cos(q) - 5 * Math.cos(2 * q) - 2 * Math.cos(3 * q) - Math.cos(4 * q)) * r / 16]); }
