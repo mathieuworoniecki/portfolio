@@ -39,8 +39,11 @@ function bienvenue() {
   const top = r ? r.top + (L && L.length ? L[0].y0 : 0) : Wd.H * 0.3, s = Wd.s0 * 0.75, y0 = Math.max(s * 1.4, top - s * 1.5);
   // (vague 35 de l'audit : « l'arrivée reste au-dessus du titre ») : la plume entre par le bord de l'écran et traverse toute la pièce en arabesques,
   // son trait derrière elle, jusqu'au titre ; elle y dessine le chat ; quand il prend vie, le long trait est ravalé vers lui comme un fil qu'on rembobine
-  if (!reduit && y0 > s) { const P = croquis(x, y0, s); D = { x, y: y0, s, t0: Wd.t + ENVOL, P, F: arabesque(P[0], x < Wd.W / 2 ? 1 : -1, s) };
-    K.later(ENVOL + 1.25, () => { R = { F: D.F, t0: Wd.t }; D = null; naitre(x, y0 + s * 0.55); }); }
+  // (vague 90 de l'audit, « l'arrivée », elle sort d'elle-même) : si la souris est déjà là, la plume fait un détour par elle : elle l'attrape
+  // d'un lasso de craie (« toi ! »), puis file dessiner le chat ; en chemin, chaque élément du vrai site qu'elle frôle frissonne
+  if (!reduit && y0 > s) { const P = croquis(x, y0, s), pp = Wd.ptr, la = pp && pp.on && pp.x > 30 && pp.x < Wd.W - 30 && pp.y > 30 && pp.y < Wd.H - 30 && Math.hypot(pp.x - P[0][0], pp.y - P[0][1]) > s * 1.5 ? lasso(pp.x, pp.y, P[0], x < Wd.W / 2 ? 1 : -1, s) : null;
+    D = { x, y: y0, s, t0: Wd.t + ENVOL * (la ? 1.6 : 1), dur: ENVOL * (la ? 1.6 : 1), P, F: la ? la.F : arabesque(P[0], x < Wd.W / 2 ? 1 : -1, s), la };
+    K.later(D.dur + 1.25, () => { R = { F: D.F, t0: Wd.t }; D = null; naitre(x, y0 + s * 0.55); }); }
   else naitre(x, null);
 }
 const reduit = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -58,6 +61,16 @@ function arabesque(fin, cote, s) {
     b = Math.sin(Math.PI * t), ph = t * Math.PI * 2 * 3; F.push([bx + Math.sin(ph) * Rb * b * -cote, by - (1 - Math.cos(ph)) * Rb * 0.7 * b]); }
   return F;
 }
+// le détour par la souris : l'arabesque jusqu'à elle, un lasso d'un tour et quart autour du pointeur, puis une courbe jusqu'au croquis
+function lasso(px, py, fin, cote, s) {
+  const A = arabesque([px + 46, py], cote, s * 0.8), n0 = A.length, R0 = 46, B = [];
+  for (let i = 1; i <= 40; i++) { const t = i / 40, an = t * TAU * 1.25, r = R0 * (1 - 0.15 * Math.sin(t * Math.PI)); B.push([px + Math.cos(an) * r, py - Math.sin(an) * r * 0.85]); }
+  const [bx, by] = B[B.length - 1], C = [];
+  for (let i = 1; i <= 40; i++) { const t = i / 40, e = t * t * (3 - 2 * t), cx = (bx + fin[0]) / 2, cy = Math.min(by, fin[1]) - s * 1.2;
+    C.push([(1 - e) * (1 - e) * bx + 2 * (1 - e) * e * cx + e * e * fin[0] + Math.sin(t * Math.PI * 4) * s * 0.15 * Math.sin(Math.PI * t), (1 - e) * (1 - e) * by + 2 * (1 - e) * e * cy + e * e * fin[1]]); }
+  return { F: A.concat(B, C), i0: n0, i1: n0 + B.length, px, py, dit: false };
+}
+const TAU = Math.PI * 2;
 // la plume : un bec d'encre, penché dans le sens où elle va
 function plume(x, y, dx, dy, a) { const l = Math.hypot(dx, dy) || 1, ux = dx / l, uy = dy / l, px = -uy, py = ux, L = 34;
   Chalk.stroke([[x, y], [x - ux * L + px * 7, y - uy * L + py * 7], [x - ux * L * 1.5, y - uy * L * 1.5], [x - ux * L + px * -7, y - uy * L - py * 7], [x, y]], 1, { w: 2.4, a, seed: 13, tip: false });
@@ -66,7 +79,11 @@ function plume(x, y, dx, dy, a) { const l = Math.hypot(dx, dy) || 1, ux = dx / l
 // (vague 51 de l'audit, « l'arrivée », immersion) : toute la pièce regarde passer la plume. Les chats la suivent des yeux (Wd.mire, lu par chats.js),
 // celui qu'elle frôle sursaute d'un « ! », et elle sème derrière elle de petites étincelles de craie qui retombent en tournoyant
 const vus = new Set(), EC = [];
+let UIc = null, UIt = -9; const fremis = new Set();
 function suit(x, y) { Wd.mire = { x, y, fin: Wd.t + 0.5 };
+  if (!UIc || Wd.t - UIt > 0.5) { UIt = Wd.t; UIc = [...document.querySelectorAll('#brand, #lang-pick, .ctas > *, .evts > *, #chap > *, .film-ui .ctrl > *')].map(e => ({ e, b: e.getBoundingClientRect() })).filter(q => q.b.width > 0); }
+  UIc.forEach(q => { const b = q.b; if (fremis.has(q.e) || reduit) return; if (Math.hypot(Math.max(b.left - x, 0, x - b.right), Math.max(b.top - y, 0, y - b.bottom)) < 46) { fremis.add(q.e);
+    q.e.animate([{ transform: 'translate(0,0) rotate(0deg)' }, { transform: 'translate(0,-5px) rotate(-3deg)' }, { transform: 'translate(0,2px) rotate(2deg)' }, { transform: 'translate(0,-1px) rotate(-1deg)' }, { transform: 'translate(0,0) rotate(0deg)' }], { duration: 520, easing: 'ease-out', composite: 'add' }); } });
   Wd.cats.forEach(c => { if (!c.hp || vus.has(c) || c.held || c.hidden) return; if (Math.hypot(c.hp[0] - x, c.hp[1] - y) < sc(c) * 1.6) { vus.add(c); say(c, pick(['!', '?!', '!!'])); } });
   if (EC.length < 60 && Math.random() < 0.7) EC.push({ x, y, vx: rnd(-40, 40), vy: rnd(-30, 10), t0: Wd.t, r: rnd(3, 6), a0: rnd(0, 6) }); }
 H.draw.push(() => {
@@ -90,7 +107,8 @@ H.draw.push(() => {
   // le fil de l'arabesque, rembobiné vers le chat qui vient de naître
   if (R) { const e = Math.min(1, (Wd.t - R.t0) / 0.6), k = Math.floor(e * e * (R.F.length - 1)); if (e >= 1) R = null; else if (R.F.length - k > 1) Chalk.stroke(R.F.slice(k), 1, { w: 2.2, a: 0.8 * Wd.a, seed: 16, tip: false }); }
   if (!D) return;
-  if (Wd.t < D.t0) { const v = Math.max(0, 1 - (D.t0 - Wd.t) / ENVOL), F = D.F, i = Math.min(F.length - 2, Math.floor(v * (F.length - 1)));
+  if (Wd.t < D.t0) { const v = Math.max(0, 1 - (D.t0 - Wd.t) / D.dur), F = D.F, i = Math.min(F.length - 2, Math.floor(v * (F.length - 1)));
+    if (D.la && !D.la.dit && i >= D.la.i1) { D.la.dit = true; Wd.fx.push({ k: 'txt', text: window.I18N && I18N.lang && I18N.lang !== 'fr' ? 'you!' : 'toi !', x: D.la.px + 40, y: D.la.py - 56, t0: Wd.t, life: 1.6, rot: -0.15, size: 30 }); }
     if (v > 0) { Chalk.stroke(F, v, { w: 2.2, a: 0.8 * Wd.a, seed: 16, tip: true }); plume(F[i + 1][0], F[i + 1][1], F[i + 1][0] - F[i][0], F[i + 1][1] - F[i][1], 0.95 * Wd.a); suit(F[i + 1][0], F[i + 1][1]); }
     return; }
   Chalk.stroke(D.F, 1, { w: 2.2, a: 0.8 * Wd.a, seed: 16, tip: false });
