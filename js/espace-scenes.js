@@ -1148,6 +1148,15 @@ S.secu = (() => ({
     // le compteur, en haut du dôme, sur un petit écran de papier (il était caché sous les sous-titres)
     { const o = V(0, 0, 0), w = Math.max(k * 0.52, 108), h = Math.max(k * 0.14, 28), m = [Math.min(o[0] + R * k * 1.2, G.cx * 2 - w * 0.62 - 10), o[1] - R * k * (G.cx * 2 < 700 ? 1.25 : 0.8)]; ecran(m[0] - w / 2, m[1] - h / 2, w, h, k * 0.03, 3); mot(`${en() ? 'blocked' : 'bloqués'} : ${bloq}`, m[0], m[1], Math.max(12, k * 0.075), 1); }
     ctx.restore();
+    // (vague 62 de l'audit, « sécurité », immersion) : la souris est une intruse. En approchant du dôme, elle y allume des alvéoles hexagonales
+    // (le bouclier se renforce là où elle pousse) ; si elle entre, « accès refusé »
+    { const Sm = souris(); if (Sm && window.Chats.K.Wd.t - Sm.moved < 2.5) { const C = V(0, -R * 0.4, 0), Rs = Math.max(...[0, 1, 2, 3, 4, 5, 6, 7].map(j => { const p = V(Math.cos(j / 8 * TAU) * R, -R * 0.4, Math.sin(j / 8 * TAU) * R); return Math.hypot(p[0] - C[0], p[1] - C[1]); }).concat([Math.hypot(V(0, -R, 0)[1] - C[1], 0)]));
+      const dx = Sm.x - C[0], dy = Sm.y - C[1], d = Math.hypot(dx, dy) || 1, pr = c01((Rs * 1.5 - d) / (Rs * 0.5)); if (pr > 0.02) { const ux = dx / d, uy = dy / d, P = [C[0] + ux * Math.min(d, Rs * 0.95), C[1] + uy * Math.min(d, Rs * 0.95)], hr = Math.max(7, k * 0.045);
+        const hex = (x, y, r, al) => { style(0.8, al); ctx.beginPath(); for (let j = 0; j <= 6; j++) { const t = j / 6 * TAU + Math.PI / 6; j ? ctx.lineTo(x + Math.cos(t) * r, y + Math.sin(t) * r) : ctx.moveTo(x + Math.cos(t) * r, y + Math.sin(t) * r); } ctx.stroke(); };
+        hex(P[0], P[1], hr, pr); for (let j = 0; j < 6; j++) { const t = j / 6 * TAU, rr = hr * 1.75, pul = 0.6 + 0.4 * Math.sin(now * 8 - j); hex(P[0] + Math.cos(t) * rr, P[1] + Math.sin(t) * rr, hr, pr * 0.7 * pul); }
+        for (let j = 0; j < 12; j++) { const t = j / 12 * TAU, rr = hr * 3.4; hex(P[0] + Math.cos(t) * rr, P[1] + Math.sin(t) * rr, hr * 0.9, pr * 0.3 * (0.5 + 0.5 * Math.sin(now * 6 - j))); }
+        brille(P[0], P[1], 4, pr, true, now, 3);
+        if (d < Rs) mot(en() ? 'access denied' : 'accès refusé', Sm.x, Sm.y + k * 0.12, Math.max(12, k * 0.065), 1); } } }
   }
 }))();
 
