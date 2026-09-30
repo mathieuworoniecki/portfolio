@@ -884,6 +884,7 @@ function drawFx(S) {
     else if (f.k === 'vague') vaguePoussiere(f, u, K);
     else if (f.k === 'cri') ondeCri(f, t);
     else if (f.k === 'patte') empreinte(f, u);
+    else if (f.k === 'vers') versNous(f, t - f.t0);
     else if (f.k === 'bagarre') fightCloud(f, u, fade, K);
     else if (f.k === 'heart') heart(f.x, f.y - u * 26, f.r * K, fade);
   });
@@ -954,6 +955,35 @@ function empreinte(f, u) {
   const k = u < 0.85 ? 1 : 1 - (u - 0.85) / 0.15, r = f.r * k; if (r < 0.6) return; const a = 0.55 * Wd.a;
   Chalk.circle(f.x, f.y, r, r * 0.5, 1, { w: 1.3, a, seed: f.seed });
   for (let i = 0; i < 4; i++) { const an = (i - 1.5) * 0.45; Chalk.circle(f.x + f.face * Math.cos(an) * r * 1.5, f.y + Math.sin(an) * r * 0.75, r * 0.32, r * 0.18, 1, { w: 1.1, a, seed: f.seed + i + 1 }); }
+}
+// (vague 72, l'audit : « la tour ») : la caisse du sommet ne tombe pas dans la pièce, elle tombe vers nous. Elle grossit en tournoyant,
+// vient se plaquer contre l'écran (BONK, tout tremble, elle s'écrase un peu contre la vitre), reste collée un instant, puis glisse vers le bas
+// et sort par le bas de l'écran. Au trait, remplie de papier ; ses flèches « haut » sont à l'envers
+function versNous(f, tt) {
+  const C = Chalk, ctx = C.ctx; if (!ctx) return; const W = Wd.W, H = Wd.H, ea = c01(tt / 0.55), e = Math.pow(ea, 2.4), Smax = Math.min(W, H) * 0.48;
+  if (tt >= 0.55 && !f.hit) { f.hit = true; Wd.shake = { t0: Wd.t, a: 12 }; Wd.fx.push({ k: 'txt', text: 'BONK', x: W * 0.5 + f.dir * Smax * 0.2, y: H * 0.2, t0: Wd.t, life: 1.3, rot: -0.1 * f.dir, size: 64 }); }
+  const S = f.s * 0.7 + (Smax - f.s * 0.7) * e, glisse = Math.max(0, tt - 1.1), dy = glisse * glisse * H * 1.6;
+  const cx = f.x + (W * 0.5 - f.x) * e, cy = f.y + (H * 0.46 - f.y) * e + dy, ang = f.spin * (1 - e) * 2.5 + (glisse ? f.dir * glisse * 0.35 : 0);
+  if (cy - S > H + 20) return;
+  const ec = tt >= 0.55 ? Math.exp(-(tt - 0.55) * 7) * Math.cos((tt - 0.55) * 30) : 0, sx = 1 + 0.1 * ec, sy = 1 - 0.1 * ec;
+  // la profondeur : le fond de la caisse, plus petit, décalé (il s'aplatit contre la vitre)
+  const prof = (1 - e) * 0.3 + 0.16, bx = (Math.sin(ang * 1.3) * 0.7 + 0.3 * f.dir) * S * prof, by = -S * prof * 0.8, kb = 1 - prof * 0.6;
+  const rot = (px, py, k, ox, oy) => { const c = Math.cos(ang), s2 = Math.sin(ang); return [cx + ox + (px * c - py * s2) * k * sx, cy + oy + (px * s2 + py * c) * k * sy]; };
+  const h = S / 2, avant = [[-h, -h * 0.8], [h, -h * 0.8], [h, h * 0.8], [-h, h * 0.8]].map(p => rot(p[0], p[1], 1, 0, 0)), fond = [[-h, -h * 0.8], [h, -h * 0.8], [h, h * 0.8], [-h, h * 0.8]].map(p => rot(p[0], p[1], kb, bx, by));
+  if (!f.pap) f.pap = getComputedStyle(document.documentElement).getPropertyValue('--bp-hi').trim() || '#eeeeea';
+  const poly = (P, fill) => { ctx.save(); ctx.fillStyle = f.pap; ctx.globalAlpha = Wd.a; ctx.beginPath(); P.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); if (fill) ctx.fill(); ctx.restore(); C.stroke([...P, P[0]], 1, { w: 2.6, a: 0.9 * Wd.a, seed: f.seed + P.length, tip: false }); };
+  // on voit le dessus (ouvert : ses deux rabats battent) et un côté, puis la face avant
+  const cote = bx > 0 ? [avant[1], avant[2], fond[2], fond[1]] : [avant[0], avant[3], fond[3], fond[0]], dessus = [avant[0], avant[1], fond[1], fond[0]];
+  const bat = Math.sin(tt * 14) * 0.25 + 0.55, rabat = (a0, a1, sens) => { const vx = (a0[0] + a1[0]) / 2 - cx, vy = -S * 0.3 * bat, hx = Math.sin(ang) * S * 0.28 * sens;
+    return [a0, a1, [a1[0] + hx, a1[1] + vy], [a0[0] + hx, a0[1] + vy]]; };
+  poly(rabat(fond[0], fond[1], -1), true); poly(cote, true); poly(dessus, true); poly(rabat(avant[0], avant[1], 1), true); poly(avant, true);
+  // le scotch au milieu, et les deux flèches « ce côté en haut »… à l'envers
+  const m = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+  C.stroke([m(avant[0], avant[1], 0.5), m(avant[3], avant[2], 0.5)], 1, { w: 2, a: 0.8 * Wd.a, seed: f.seed + 9, tip: false });
+  C.stroke([m(avant[0], avant[1], 0.44), m(avant[3], avant[2], 0.44)], 1, { w: 1.2, a: 0.5 * Wd.a, seed: f.seed + 10, tip: false });
+  [0.22, 0.78].forEach((k, j) => { const top = m(m(avant[0], avant[1], k), m(avant[3], avant[2], k), 0.62), bot = m(m(avant[0], avant[1], k), m(avant[3], avant[2], k), 0.82), L = S * 0.05;
+    C.stroke([top, bot], 1, { w: 1.8, a: 0.8 * Wd.a, seed: f.seed + 20 + j, tip: false }); const an = Math.atan2(bot[1] - top[1], bot[0] - top[0]);
+    C.stroke([[bot[0] - Math.cos(an - 0.5) * L, bot[1] - Math.sin(an - 0.5) * L], bot, [bot[0] - Math.cos(an + 0.5) * L, bot[1] - Math.sin(an + 0.5) * L]], 1, { w: 1.8, a: 0.8 * Wd.a, seed: f.seed + 30 + j, tip: false }); });
 }
 function ondeCri(f, t) {
   const D = Math.hypot(Wd.W, Wd.H) * 1.25;
@@ -1127,6 +1157,10 @@ function towerFrame(dt) {
       const b = T.boxes[T.boxes.length - 1]; dust(xOf(b), b.y, sOf(b.d) * 0.8, 1);
       Wd.shake = { t0: Wd.t, a: T.grand ? 14 : 7 };
       if (T.grand) later(0.35, () => Wd.fx.push({ k: 'vague', x: xOf(T.boxes[0]), y: floorAt(T.d), r: sOf(T.d) * 0.9, t0: Wd.t, life: 2.6, seed: Math.floor(Math.random() * 99) }));
+      // (vague 72) la caisse du sommet part vers nous (versNous) : elle quitte la pièce
+      if (T.grand && n > 3) { const top = T.boxes[n - 1]; later(0.15, () => { if (!Wd.props.includes(top)) return; const s = sOf(top.d);
+        Wd.cats.forEach(k => { if (k.perch && k.perch.it === top) { interrupt(k); k.perch = null; k.fall = true; k.vy = -s * 3; } });
+        Wd.fx.push({ k: 'vers', x: xOf(top), y: top.y - s * 0.4, s, dir, spin: dir * rnd(0.8, 1.4), t0: Wd.t, life: 2.4, seed: Math.floor(Math.random() * 99) }); T.boxes.splice(T.boxes.indexOf(top), 1); unprop(top); }); }
       if (T.grand) Wd.fx.push({ k: 'txt', text: 'PATATRAS !', x: clamp(xOf(T.boxes[0]) + dir * 60, 150, Wd.W - 150), y: floorAt(T.d) - sOf(T.d) * 2.6, t0: Wd.t, life: 2.2, rot: -0.12 * dir, size: 52 });
       if (window.Rares && Rares.panique) Rares.panique(xOf(T.boxes[0]));   // (la panique, comme pour le géant : js/rares.js)
       Wd.fx.push({ k: 'txt', text: 'boum !', x: xOf(T.boxes[0]), y: floorAt(T.d) - sOf(T.d) * 1.6, t0: Wd.t, life: 1.6, rot: -0.1, size: 26 });
