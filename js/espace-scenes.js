@@ -902,11 +902,19 @@ S.ia = (() => {
       const lb = -0.32 + ((now * 0.35) % 1) * 0.6, A0 = Pk(xd - 0.25, lb), A1 = Pk(xd + 0.25, lb); trait([A0, A1], false, 1.1, 1); brille(A1[0], A1[1], 3, 1, false, now, 1);
       // le nuage : il tourne ; ses liens ; il se remplit
       const Q = Vs.map(([x, y, z]) => V(x * R, y * R, z * R)), nb = Math.min(Nn, 30 + Math.floor(a * 16));
+      sousLaBarre();   // (vague 60 : le nuage ne passe plus sur la barre des chapitres)
       for (let i = 0; i < nb; i++) VO[i].forEach(j => { if (j < nb) trait([Q[i], Q[j]], false, 0.35, prof(Q[i][2], 0.35)); });
       // (vague 4 : « un nuage de points trop sage ») : chaque vecteur est une petite fiche de papier ; celles de devant, plus grandes, portent deux lignes d'encre
       Q.slice(0, nb).map((q, i) => [q, i]).sort((p, r) => p[0][2] - r[0][2]).forEach(([q, i]) => { const al = prof(q[2]); if (q[2] < -0.1) { rond(q[0], q[1], 1.3 + q[3] * 0.9, 0.5, al, true); return; }
         const w = k * 0.03 * q[3], h = w * 0.72, rt = bruit(i * 3.3) - 0.5; ctx.save(); ctx.translate(q[0], q[1]); ctx.rotate(rt); cerne(() => { ctx.beginPath(); ctx.rect(-w, -h, 2 * w, 2 * h); }, 0.45, al);
         if (w > 5) { ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.3; ctx.beginPath(); ctx.moveTo(-w * 0.6, -h * 0.25); ctx.lineTo(w * 0.6, -h * 0.25); ctx.moveTo(-w * 0.6, h * 0.3); ctx.lineTo(w * 0.2, h * 0.3); ctx.stroke(); } ctx.restore(); });
+      // (vague 60 de l'audit, « IA et données », immersion) : la souris pose sa propre question au nuage. Ses cinq plus proches voisins s'allument
+      // et se relient à elle par des fils pointillés qui courent vers le pointeur (une recherche par similarité, en direct)
+      { const Sm = souris(); if (Sm && window.Chats.K.Wd.t - Sm.moved < 2.5) { const Nv = Q.slice(0, nb).map((q, i) => [Math.hypot(q[0] - Sm.x, q[1] - Sm.y), i]).filter(d => d[0] < k * 0.7).sort((p, r) => p[0] - r[0]).slice(0, 5);
+        if (Nv.length) { Nv.forEach(([d, i], n) => { const q = Q[i]; style(0.9, 1 - n * 0.1); ctx.setLineDash([3, 4]); ctx.lineDashOffset = now * 24; ctx.beginPath(); ctx.moveTo(q[0], q[1]); ctx.lineTo(Sm.x, Sm.y); ctx.stroke(); ctx.setLineDash([]);
+            brille(q[0], q[1], 3.6 - n * 0.3, 1, true, now, 90 + i); });
+          const rq = Math.max(9, k * 0.035); cerne(() => { ctx.beginPath(); ctx.arc(Sm.x, Sm.y, rq, 0, TAU); }, 0.8, 1); ctx.globalAlpha = 1; ctx.fillStyle = ENC; ctx.font = `700 ${rq * 1.3}px "Space Grotesk",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('?', Sm.x, Sm.y + rq * 0.08); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; } } }
+      ctx.restore();
       // (vague 38 de l'audit : « IA et données, peu original ») : le chercheur : un chat-robot bibliothécaire, lampe frontale allumée, fait le tour
       // du nuage en fouillant les fiches de son faisceau ; quand la question arrive, il pique vers elle et braque sa lampe sur les voisins
       { const Qc = V(Qp[0] * R, Qp[1] * R, Qp[2] * R), on = c > 1.8 && c < 5.2, an = now * 0.45, orb = V(Math.cos(an) * R * 1.35, -0.1 + Math.sin(an * 1.7) * 0.25, Math.sin(an) * R * 1.35), ci = on ? Qc : V(Math.cos(an + 2.4) * R * 0.3, Math.sin(now * 0.9) * R * 0.4, Math.sin(an + 2.4) * R * 0.3),
