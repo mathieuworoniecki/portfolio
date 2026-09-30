@@ -119,7 +119,7 @@ function chabot(x, y, r, o = {}) {
 const VISE = { c: null, k: 0, id: null, px: 0, py: 0, t: 0 };
 // (dessiné sur sa propre toile, tout en haut : par-dessus le chat qui s'agrippe au pointeur ; effacée dès qu'on ne l'appelle plus)
 let VC = null, VT = 0;
-const AGV = { t: 0, e: 0, p: null }, TH = { t: 0, e: 0, id: null };
+const AGV = { t: 0, e: 0, p: null }, TH = { t: 0, e: 0, id: null }, OLA = { t: -99, el: null };
 const LUI = { t: 0, h: 0, t0: -99 }, TAMPON = [];
 function toileVise(cv0) {
   if (!VC) { VC = document.createElement('canvas'); VC.setAttribute('aria-hidden', 'true'); VC.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2'; document.body.appendChild(VC); }
@@ -459,6 +459,13 @@ S.equipe = (() => {
       const rr0 = Math.max(18, P.bot * 2.6), podH = P.bot * 1.4, coeur = [pied[0], pied[1] - podH - rr0 * 1.9];
       let rentres = 0; const derriere = [], devant = [];
       const Sm = souris(), tW = window.Chats.K.Wd.t, PO = Sm && tW - Sm.moved < 1.5 && c > 1.5 && c < 7.6 ? { u: ((Math.atan2((Sm.y - pied[1]) / Math.max(20, P[P.length - 1].ry), (Sm.x - pied[0]) / Math.max(20, P[P.length - 1].rx)) / TAU) % 1 + 1) % 1, f: c01((1.5 - (tW - Sm.moved)) / 0.5) } : null;
+      // (vague 86, l'audit : « l'équipe ») : la ola ne s'arrête pas aux gradins. Quand elle passe du côté d'un élément de l'interface (logo, langue,
+      // flèches, boutons, chapitres), il se lève à son tour, bras en l'air (il saute), puis se rassoit : tout l'écran fait la ola
+      if (c > 3.3 && c < 5.9 && !reduitMvt()) { const v = ((c - 3.3) / 1.3) % 1, tour = Math.floor((c - 3.3) / 1.3), m = ctx.getTransform(), dp = dpDe(ctx.canvas), R = P[P.length - 1];
+        if (!OLA.el || now - OLA.t > 2) { OLA.t = now; OLA.el = [...document.querySelectorAll('#brand, #lang-pick, .film-ui .ctrl > *, #chap > *, .nav, [class*="fleche"]')].map(e => ({ e, b: e.getBoundingClientRect(), n: -1 })).filter(q => q.b.width); }
+        const px = (m.a * pied[0] + m.c * pied[1] + m.e) / dp, py = (m.b * pied[0] + m.d * pied[1] + m.f) / dp, sx = Math.hypot(m.a, m.b) / dp;
+        OLA.el.forEach(q => { const cx = q.b.left + q.b.width / 2, cy = q.b.top + q.b.height / 2, u = ((Math.atan2((cy - py) / Math.max(20, R.ry * sx), (cx - px) / Math.max(20, R.rx * sx)) / TAU) % 1 + 1) % 1, d = Math.min(Math.abs(u - v), 1 - Math.abs(u - v));
+          if (d < 0.03 && q.n !== tour) { q.n = tour; q.e.animate([{ transform: 'translateY(0) scale(1)' }, { transform: 'translateY(-16px) scale(1.12, 1.18) rotate(-3deg)', offset: 0.35 }, { transform: 'translateY(-10px) scale(1.06) rotate(3deg)', offset: 0.6 }, { transform: 'translateY(0) scale(1)' }], { duration: 650, easing: 'ease-out', composite: 'add' }); } }); }
       // les gradins : chaque rang, son ellipse au sol (sa moitié du fond, puis sa moitié de devant, par-dessus lui)
       const al0 = c01((c - 0.6) / 0.8);
       [0, 1, 2, 3].forEach(i => { const f = P.find(q => q.i === i); if (!f) return; const L0 = [], L1 = [];
