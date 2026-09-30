@@ -55,6 +55,13 @@ STEPS.nyan = (c, T, dt) => {
   // le ruban part de derrière lui, à mi-corps (dans la boucle : derrière, le long de la courbe)
   if (pt) T.P.push([pt[0], pt[1], Wd.t]);
   else if (!T.arche || T.u <= 1) T.P.push([c.x - T.dir * s * 0.55, c.y - s * 0.42, Wd.t]);   // (après l'arche, il file au ras du sol sans ruban : l'arche ne finit pas en V)
+  // (vague 75, l'audit : « l'arc-en-ciel ») : l'interface aussi. Ce qu'il frôle en passant (le titre, un bouton, un chapitre, le logo…)
+  // prend un ruban arc-en-ciel en escalier derrière lui, qui se replie dans l'élément ; l'élément fait un petit bond, dans le sens du vol
+  if (!T.ui) T.ui = [...document.querySelectorAll('#brand, #lang-pick, #theme-pick, .film-ui .ctrl > *, #chap > *, .evts li, .ctas > *, #titles')].filter(e => e.getClientRects().length && e.animate).map(e => ({ e, vu: false }));
+  T.ui.forEach(u => { if (u.vu) return; const q = u.e.getBoundingClientRect(); if (c.x < q.left - s * 0.3 || c.x > q.right + s * 0.3 || c.y - s * 0.42 < q.top - s * 0.8 || c.y - s * 0.42 > q.bottom + s * 0.8 || Math.abs(c.x - (q.left + q.width / 2)) > Math.min(q.width / 2, s) + s * 0.3) return;
+    u.vu = true; const D = -T.dir, ombre = k => COUL.map((col, i) => `drop-shadow(${(D * (i + 1) * 2.2 * k).toFixed(1)}px ${((i - 2.5) * 1.1 * k).toFixed(1)}px 0 rgb(${col}))`).join(' ');
+    try { u.e.animate([{ filter: ombre(0.2), transform: 'none' }, { filter: ombre(1.6), transform: `translate(${T.dir * 5}px,-7px) rotate(${T.dir * 3}deg)`, offset: 0.2 }, { filter: ombre(1), transform: 'translate(0,1px)', offset: 0.55 }, { filter: ombre(0.01), transform: 'none' }], { duration: 1700, easing: 'ease-out', composite: 'add' }); } catch (x) {}
+    etoiles(c.x, c.y - s * 0.4, 5); });
   // ce qu'il frôle devient arc-en-ciel, avec une gerbe d'étoiles
   Wd.cats.forEach(o => { if (o === c || o.nyanT > Wd.t || Math.abs(o.x - c.x) > s * 0.6 || Math.abs((o.y - sc(o) * 0.4) - (c.y - s * 0.4)) > s * 0.9) return; o.nyanT = Wd.t + 5; Arc.colore(o, 18); say(o, pick(['ooh ✨', 'wouah', '!?'])); etoiles(o.x, o.y - sc(o) * 0.6, 8); });
   Wd.props.forEach(it => { if (it.nyanT > Wd.t || it.a < 0.5 || Math.abs(it.x - c.x) > s * 0.5 || Math.abs(it.y - c.y) > s * 1.6) return; it.nyanT = Wd.t + 5; Arc.colore(it, 18); etoiles(it.x, it.y - s * 0.3, 6); });
