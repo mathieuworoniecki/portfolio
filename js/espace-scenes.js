@@ -59,7 +59,7 @@ function chabot(x, y, r, o = {}) {
   // (vague 49, l'audit : « le chat-robot », immersion) : il nous voit. La souris approche : ses yeux la suivent ; tout près, il lève le bras
   // de son côté et fait coucou (les chats-robots d'une foule se retournent vers nous un à un, au passage du pointeur)
   // (le pointeur est en pixels d'écran ; le dessin peut être déplacé ou tourné : on ramène le pointeur dans son repère)
-  let Sp = r >= 6 ? souris() : null; if (Sp) { const m = ctx.getTransform(), k = (ctx.canvas.width / (ctx.canvas.clientWidth || ctx.canvas.width)) || 1, inv = m.inverse(), px = Sp.x * k, py = Sp.y * k; Sp = { x: inv.a * px + inv.c * py + inv.e, y: inv.b * px + inv.d * py + inv.f }; }
+  const Sp = r >= 6 ? sourisIci() : null;
   const dS = Sp ? Math.hypot(Sp.x - x, Sp.y - y) : 1e9, voit = dS < r * 6 ? 1 - dS / (r * 6) : 0;
   if (dS < r * 2.8) { const i = Sp.x > x ? 1 : 0; bras = bras.slice(); bras[i] = 1.25 + Math.sin(now * 14 + ph) * 0.4; }
   [-1, 1].forEach((g, i) => { const b = bras[i], ex = x + g * bw * 0.86, ey = by - bh * 0.35, mx = ex + g * Math.cos(b) * r * 0.42, my = ey - Math.sin(b) * r * 0.42;
@@ -159,6 +159,8 @@ function caillou(x, y, r, t, n, a = 1, mechant = false) { if (!(r > 0.3)) return
 // (vague 33 de l'audit : « toi, dans le style des chats » : original et vivant) : en apesanteur, ses épis flottent ; ses yeux suivent la souris ;
 // et un petit chat est assis sur son épaule : il balance la queue, remue une oreille, suit la souris lui aussi, et fait un bond quand le tampon tombe
 const souris = () => { const W = window.Chats && Chats.K && Chats.K.Wd, P = W && W.ptr; return P && P.on ? P : null; };
+// (le pointeur, ramené dans le repère du dessin en cours : le dessin peut être déplacé, tourné, à l'échelle de l'écran)
+const sourisIci = () => { const P = souris(); if (!P) return null; const m = ctx.getTransform(), k = (ctx.canvas.width / (ctx.canvas.clientWidth || ctx.canvas.width)) || 1, i = m.inverse(), px = P.x * k, py = P.y * k; return { x: i.a * px + i.c * py + i.e, y: i.b * px + i.d * py + i.f }; };
 function epaule(x, y, r, now, a, regard, saut) {
   const yb = y - saut * r * 0.5, qx = Math.sin(now * 1.9) * 0.5 + Math.sin(now * 0.7) * 0.3, w = clamp01(r / 20) * 0.6 + 0.4;
   // la queue qui pend derrière l'épaule et balance
@@ -177,7 +179,10 @@ function epaule(x, y, r, now, a, regard, saut) {
   ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.6; ctx.beginPath(); ctx.moveTo(x - r * 0.08, hy + r * 0.28); ctx.quadraticCurveTo(x, hy + r * 0.36, x, hy + r * 0.28); ctx.quadraticCurveTo(x, hy + r * 0.36, x + r * 0.08, hy + r * 0.28); ctx.stroke();
 }
 function lui(x, y, r, o = {}) {
-  const nw = o.now || 0, P = souris(), regard = P ? (() => { const dx = P.x - x, dy = P.y - y, d = Math.hypot(dx, dy) || 1; return [dx / d, dy / d]; })() : [Math.sin(nw * 0.5) * 0.6, 0.2];
+  const nw = o.now || 0, P = sourisIci(), regard = P ? (() => { const dx = P.x - x, dy = P.y - y, d = Math.hypot(dx, dy) || 1; return [dx / d, dy / d]; })() : [Math.sin(nw * 0.5) * 0.6, 0.2];
+  // (vague 50, l'audit : « toi, dans le style des chats », immersion) : il nous voit arriver. La souris tout près : il hoche la tête et nous salue,
+  // « salut ! » écrit au-dessus de lui (le petit chat de l'épaule regarde aussi) ; le reste du temps, il travaille
+  const pres = P ? Math.hypot(P.x - x, P.y - y) < r * 3.6 : false; if (pres) { o = Object.assign({}, o, { hoche: Math.sin(nw * 7) * 0.8 }); if (r > 8) mot(en() ? 'hi!' : 'salut !', x + r * 0.2, y - r * 2.1 + Math.sin(nw * 5) * r * 0.05, Math.max(11, r * 0.42), o.a ?? 1); }
   const a = o.a ?? 1, w = clamp01(r / 30) * 0.7 + 0.45, hy = y + (o.hoche || 0) * r * 0.1, by = y + r * 0.95, bw = r * 1.2, bh = r * 1.45, g = o.cote || -1, tp = o.tp || 0;
   // le bras qui ne tamponne pas, derrière le corps
   cerne(() => { ctx.beginPath(); ctx.moveTo(x - g * bw * 0.8, by + r * 0.35); ctx.quadraticCurveTo(x - g * bw * 1.25, by + bh * 0.55, x - g * bw * 0.7, by + bh * 0.85); }, w * 1.9, a, null);
