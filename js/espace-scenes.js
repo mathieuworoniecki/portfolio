@@ -1053,6 +1053,7 @@ S.back = (() => ({
 
 // DevOps & cloud : la boucle sans fin, en 3D, comme un circuit vu d'en haut ; des conteneurs en font le tour et passent sous les portiques
 // (build, test, déploie, surveille), qui s'allument à leur passage ; dessous, l'écran du monitoring et son pouls
+let CHG = 0;   // (vague 64 : la charge que la souris fait peser sur DevOps, lissée)
 S.devops = (() => ({
   cles: () => [[-1, 0], [1, 0], [0, 0], [-0.5, -0.35]],
   dessin(a, now) {
@@ -1073,7 +1074,10 @@ S.devops = (() => ({
     ctx.restore();
     trait3(bord(0.08), 1, 1); trait3(bord(-0.08), 1, 1);
     const lab = en() ? ['build', 'test', 'deploy', 'monitor'] : ['build', 'test', 'déploie', 'surveille'], ST = [0.35, 1.25, 3.5, 4.4];
-    const conts = []; for (let q = 0; q < 12; q++) conts.push((now * 0.5 + q / 12 * TAU) % TAU);
+    // (vague 64 de l'audit, « DevOps », immersion) : la souris, c'est le trafic. Plus elle s'agite, plus la charge monte : le pouls du monitoring
+    // s'emballe, et le circuit se met à l'échelle (des conteneurs en renfort s'intercalent, « autoscale ») ; quand elle se calme, tout redescend
+    { const Sm = souris(), v = Sm && window.Chats.K.Wd.t - Sm.moved < 0.3 ? Math.hypot(Sm.vx || 0, Sm.vy || 0) : 0; CHG += (c01(v / 1600) - CHG) * (v / 1600 > CHG ? 0.2 : 0.02); }
+    const nC = 12 + Math.round(CHG * 12), conts = []; for (let q = 0; q < nC; q++) conts.push((now * (0.5 + CHG * 0.4) + q / nC * TAU) % TAU);
     ST.forEach((t, i) => { const p = at(t), [tx, tz] = nor(t), G3 = (u, v, d) => V(p[0] - tz * u + tx * d, p[1] + v, p[2] + tx * u + tz * d);
       const vif = conts.some(u => Math.abs(Math.atan2(Math.sin(u - t), Math.cos(u - t))) < 0.12);
       [[-0.15, -0.12], [0.12, 0.15]].forEach(([u0, u1]) => prisme(G3, [[u0, 0], [u1, 0], [u1, -0.24], [u0, -0.24]], 0.04, 1, 0.7)); prisme(G3, [[-0.16, -0.22], [0.16, -0.22], [0.16, -0.28], [-0.16, -0.28]], 0.05, 1, 0.7);
@@ -1102,7 +1106,8 @@ S.devops = (() => ({
       ctx.globalAlpha = 1; ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, px * 0.32); ctx.strokeStyle = 'rgb(9,11,18)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.strokeText(lab[i], x, m[1]);
       mot(lab[i], x, m[1], px, 1); });
     const mw = Math.min(0.9, lx * 0.5) * k, mh = 0.2 * k, mc = [G.cx, G.cy - k * 0.72]; ecran(mc[0] - mw / 2, mc[1] - mh / 2, mw, mh, k * 0.06, 5);
-    const M = []; for (let i = 0; i <= 70; i++) { const u = i / 70, t = u * 3.5 - now * 0.8, f = t - Math.floor(t), b = f > 0.4 && f < 0.5 ? Math.sin((f - 0.4) / 0.1 * TAU) * 0.35 : 0; M.push([mc[0] - mw * 0.45 + u * mw * 0.9, mc[1] - b * mh]); } trait(M, false, 0.8, 1);
+    const M = []; for (let i = 0; i <= 70; i++) { const u = i / 70, t = u * (3.5 + CHG * 4) - now * (0.8 + CHG * 1.6), f = t - Math.floor(t), b = f > 0.4 && f < 0.5 ? Math.sin((f - 0.4) / 0.1 * TAU) * (0.35 + CHG * 0.1) : 0; M.push([mc[0] - mw * 0.45 + u * mw * 0.9, mc[1] - b * mh]); } trait(M, false, 0.8, 1);
+    if (CHG > 0.25) mot((en() ? 'autoscale ×' : 'mise à l’échelle ×') + (nC / 12).toFixed(1).replace('.0', ''), mc[0], mc[1] + mh * 0.95, Math.max(11, k * 0.06), c01((CHG - 0.25) / 0.2));
   }
 }))();
 
