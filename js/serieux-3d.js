@@ -470,6 +470,11 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
   const FILS = segments(NS, L[2].a), ETIN = segments(NS, L[2].d); R.add(FILS.l); R.add(ETIN.l); const ETC = []; for (let i = 0; i < NS; i++) { const r = trait(cercleH(0.09, 24), L[2].a, true); ceinture.add(r); ETC.push(r); }
   const FORGE = V(-0.72, 0.55, 0.9), NB = 40, boucle = segments(NB, L[2].a), tete2 = points(1, L[2].pa); R.add(boucle.l); R.add(tete2.p);   // la boucle de la tâche qui se répète
   const tours2 = segments(3, L[2].l); R.add(tours2.l); let t2 = null;   // trois crans : une, deux, trois fois
+  /* derrière, tout l'arsenal déjà forgé : un grand anneau d'outils qui tourne autour de la scène ; de temps en temps, l'un s'allume et sert */
+  const arsenal = new T.Group(); arsenal.position.set(1.3, 0.2, -1.5); arsenal.rotation.set(0.35, 0, 0.12); R.add(arsenal); const AR = [];
+  for (let i = 0; i < 44; i++) { const a = i / 44 * TAU, r = 2.3 + (i % 3) * 0.22, g = new T.Group(); g.position.set(Math.cos(a) * r, (i % 5 - 2) * 0.07, Math.sin(a) * r); arsenal.add(g);
+    const geo = i % 3 === 0 ? new T.OctahedronGeometry(0.07) : i % 3 === 1 ? new T.BoxGeometry(0.12, 0.08, 0.08) : new T.CylinderGeometry(0.05, 0.05, 0.1, 6); const l = solide(g, geo, L[2].s, 1); AR.push({ g, l }); }
+  arsenal.add(trait(cercleH(2.52, 128), L[2].d, true));
 
   /* 3 · le banc d'essai : dix couloirs qui arrivent du fond vers nous, dix outils qui courent ; des portiques de chronométrage s'allument au passage du premier ;
      à côté, le tableau des mesures se remplit en direct ; un seul franchit la ligne, les autres basculent hors de la piste */
@@ -569,6 +574,7 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
       tete2.pos.set(fg && r > 0.005 ? [FORGE.x + Math.cos(ang) * r, FORGE.y + Math.sin(ang) * r, FORGE.z] : [0, -99, 0], 0);
       for (let j = 0; j < 3; j++) { const vu = fg && ang >= (j + 1) * TAU - 0.01 && cur < NS, x = FORGE.x - 0.42 + j * 0.06; tours2.pos.set(vu ? [x, FORGE.y - 0.05, FORGE.z, x, FORGE.y + 0.05, FORGE.z] : [0, -99, 0, 0, -99, 0], j * 6); }
       boucle.a.needsUpdate = true; tete2.a.needsUpdate = true; tours2.a.needsUpdate = true; }
+    arsenal.visible = f[2] > 0.01; if (arsenal.visible) { arsenal.rotation.y = t * 0.08; const vif = Math.floor(t * 2.2) % AR.length; AR.forEach((q, i) => { const on = i === vif || i === (vif + 17) % AR.length; q.l.material = on ? L[2].a : L[2].s; q.g.scale.setScalar(on ? 1.6 : 1); q.g.rotation.set(t * 0.7 + i, t * 0.5, 0); }); }
     /* 3 : la course, qui recommence */
     piste.visible = tab.visible = f[3] > 0.01; const tc = (t * 0.2) % 1, xg = XD + Math.min(DP + 0.3, DP * 1.25 * tc);
     CO.forEach((c, i) => { const x = XD + Math.min(DP + 0.3, DP * 1.25 * tc * c.v), va = x < XA ? c.v : 0; const chute = c.v === 1 ? 0 : c01((tc - 0.82 - i * 0.012) / 0.14); c.g.position.set(x, -chute * chute * 1.6, c.z + chute * (c.z > 0 ? 0.6 : -0.6)); c.g.rotation.set(chute * 1.5 * (i % 2 ? 1 : -1), 0, -chute * 2.2); c.g.scale.y = x > XA && c.v === 1 ? 1.6 : 1;   // un seul reste : les autres basculent hors de la piste
