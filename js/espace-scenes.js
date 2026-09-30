@@ -396,8 +396,12 @@ S.agents = (() => {
     dessin(a, now) {
       const [k] = large(1.45, 2), V0 = cam(now * 0.22, -0.36, k * 0.8, 0, -0.26), Cy = 6, c = a > 2.3 ? (a - 2.3) % Cy : -1;
       // (vague 14 de l'audit : « l'arbre reste un petit bouquet au milieu ») : il s'étale sur toute la largeur du ciel, comme un lustre qui tourne
-      const hx = Math.max(1, ((G.droite - G.gauche) / 2 * 0.84) / (1.35 * 0.85 * k * 0.8 * 1.2)), V = (x, y, z) => { const p = V0(x * 0.85, y * 0.62, z * 0.55); p[0] = G.cx + (p[0] - G.cx) * hx; return p; };
+      const hx = Math.max(1, ((G.droite - G.gauche) / 2 * 0.84) / (1.35 * 0.85 * k * 0.8 * 1.2)), V = (x, y, z) => { const p = V0(x * 0.85, y * 0.62, z * 0.55); p[0] = G.cx + (p[0] - G.cx) * hx; p[1] = yA0 + (p[1] - yA0) * syA - dyA; return p; };
       sousLaBarre();
+      // (vague 44, l'audit : « les agents », finition) : le bas du lustre et son anneau remontaient sur la ligne du chapitre : tout remonte d'autant
+      let dyA = 0, syA = 1, yA0 = 0; { let b = -1e9; for (let i = 0; i < 24; i++) { const t = i / 24 * TAU; b = Math.max(b, V(Math.cos(t) * 1.45, 0.88, Math.sin(t) * 1.45)[1], V(Math.cos(t) * 1.35, 0.62, Math.sin(t) * 1.35)[1] + k * 0.1); }
+        const lim = (G.caps || G.bas) - 6, top = V(0, -0.82, 0)[1] - k * 0.16; dyA = Math.max(0, Math.min(b - lim, top - (G.haut + 8)));
+        if (b - dyA > lim) { yA0 = top; syA = Math.max(0.6, (lim + dyA - top) / (b - top)); } }   // (pas assez de place : le lustre se tasse en hauteur)
       const pos = N.map(q => V(Math.cos(q.t) * q.r, q.y, Math.sin(q.t) * q.r)), nait = q => sm((a - q.n * 0.55 - bruit(q.i) * 0.25) / 0.45);
       trait3(anneau(V, 1.45, 0.88), 0.5, 0.35); trait3(anneau(V, 0.5, 0.88, 24), 0.5, 0.25);
       N.forEach(q => { if (q.p < 0) return; const e = nait(q); if (e <= 0) return; const A = pos[q.p], B = pos[q.i], al = prof(B[2]);

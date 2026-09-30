@@ -234,12 +234,22 @@ function planete(ctx, now) {
   // (vague 6, l'audit : « elle ne fait que regarder ») : elle a ses humeurs, de temps en temps : elle bâille (les oreilles se couchent,
   // la gueule s'ouvre grand), tire la langue au poisson-lune quand il passe devant elle, fait un clin d'œil ; sans curseur, elle suit les chats des yeux
   const Hm = P.hum || (P.hum = { k: null, next: now + 5 });
-  if (!Hm.k && now > Hm.next && z === 0 && t >= 1 && !reduit) { Hm.k = Math.sin(la) > 0.2 && Math.abs(Math.cos(la)) < 0.7 ? 'langue' : pick(['baille', 'baille', 'clin']); Hm.t0 = now; Hm.d = { baille: 2.6, langue: 1.6, clin: 0.9 }[Hm.k]; }
+  if (!Hm.k && now > Hm.next && z === 0 && t >= 1 && !reduit) { Hm.k = Math.sin(la) > 0.2 && Math.abs(Math.cos(la)) < 0.7 ? 'langue' : pick(['baille', 'baille', 'clin', 'ronron', 'ronron']); Hm.t0 = now; Hm.d = { baille: 2.6, langue: 1.6, clin: 0.9, ronron: 3.4 }[Hm.k]; }
   if (Hm.k && now - Hm.t0 > Hm.d) { Hm.k = null; Hm.next = now + rnd(6, 12); }
   const hu = Hm.k ? Math.sin(Math.min(1, (now - Hm.t0) / Hm.d) * Math.PI) : 0, bai = Hm.k === 'baille' ? sm(hu * 1.4) : 0, lan = Hm.k === 'langue' ? sm(hu * 1.6) : 0, cli = Hm.k === 'clin' && hu > 0.3;
   const ear = trace(1.4, 0.5) * (1 - bai * 0.45);
   // un halo, très léger (deux fins cercles, comme l'atmosphère de la Terre)
   if (z === 0 && t > 0.5) [[1.12, 0.1], [1.24, 0.05]].forEach(([k, al]) => { ctx.strokeStyle = `rgba(${BL},${al * t})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r * k, 0, TAU); ctx.stroke(); });
+  // (vague 44, l'audit : « la planète chat », immersion) : elle ronronne. Les yeux mi-clos, « rrrr », et son ronron se voit : des ondes tremblées
+  // partent d'elle et traversent tout l'écran, jusqu'aux bords (jamais sur les sous-titres)
+  if (Hm.k === 'ronron' && z === 0) { const u = now - Hm.t0, M = Math.hypot(O.W, O.H) * 1.1, v = M / 2.2, bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande;
+    ctx.save(); if (bd) { ctx.beginPath(); ctx.rect(0, 0, O.W, O.H); ctx.rect(bd.x - 16, bd.y - 12, bd.w + 32, bd.h + 24); ctx.clip('evenodd'); }
+    ctx.lineWidth = 1.4;
+    for (let i = 0; i < 6; i++) { const rr = r * 1.15 + (u - i * 0.42) * v; if (rr < r * 1.15 || rr > M) continue; const al = 0.34 * (1 - rr / M) * c01(u / 0.3) * c01((Hm.d - u) / 0.5 + (rr / M));
+      ctx.strokeStyle = `rgba(${BL},${al.toFixed(3)})`; ctx.beginPath(); for (let k = 0; k <= 120; k++) { const a = k / 120 * TAU, w = rr + Math.sin(a * 11 + now * 26 + i) * (2 + rr * 0.006); k ? ctx.lineTo(x + Math.cos(a) * w, y + Math.sin(a) * w) : ctx.moveTo(x + Math.cos(a) * w, y + Math.sin(a) * w); } ctx.stroke(); }
+    ctx.restore();
+    ctx.save(); ctx.fillStyle = `rgba(${BL},${(0.8 * Math.sin(Math.min(1, u / Hm.d) * Math.PI)).toFixed(3)})`; ctx.font = `600 ${Math.max(12, r * 0.24)}px "Caveat","Segoe Print",cursive`; ctx.textAlign = 'center';
+    ctx.translate(x - r * 1.05, y + r * 0.95); ctx.rotate(-0.25 + Math.sin(now * 30) * 0.03); ctx.fillText('rrrrr…', 0, 0); ctx.restore(); }
   ctx.strokeStyle = `rgb(${BL})`;
   // la lune-poisson, derrière, quand elle passe de l'autre côté
   const lp = [x + Math.cos(la) * r * 2.25, y + Math.sin(la) * r * 0.55 - r * 0.25], devantL = Math.sin(la) > 0;
@@ -271,7 +281,7 @@ function planete(ctx, now) {
     // les yeux : de grands ovales pleins, deux reflets (comme la miche), qui suivent le curseur ; fermés quand elle ronronne
     const Q = Wd.ptr, vc = !(Q && Q.on) && voisin(x, y), vp = vc && centreDe(vc);
     const lx = Q && Q.on ? clamp((Q.x - x) / O.W * 4, -1, 1) : vp ? clamp((vp[0] - x) / O.W * 5, -1, 1) : Math.sin(now * 0.5) * 0.4, ly = Q && Q.on ? clamp((Q.y - y) / O.H * 4, -1, 1) : vp ? clamp((vp[1] - y) / O.H * 5, -1, 1) : 0;
-    const cl = (now % 4.2) < 0.13 || (P.survol > 0.5 && P.pousse > 0.9), ink = z > 0 ? ctx.fillStyle : `rgb(${BL})`;
+    const cl = (now % 4.2) < 0.13 || (P.survol > 0.5 && P.pousse > 0.9) || Hm.k === 'ronron', ink = z > 0 ? ctx.fillStyle : `rgb(${BL})`;
     [-1, 1].forEach(s => { const ex = x + s * r * 0.33 + lx * r * 0.05, ey = y + r * 0.02 + ly * r * 0.05;
       if (bai > 0.35) { ctx.lineWidth = 2.6; ctx.beginPath(); ctx.moveTo(ex - s * r * 0.09, ey - r * 0.06); ctx.lineTo(ex + s * r * 0.05, ey); ctx.lineTo(ex - s * r * 0.09, ey + r * 0.05); ctx.stroke(); }   // plissés, > <
       else if (cl || (cli && s > 0)) { ctx.lineWidth = 2.6; ctx.beginPath(); ctx.arc(ex, ey - r * 0.02, r * 0.1, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke(); }
