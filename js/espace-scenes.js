@@ -144,12 +144,38 @@ function tamponVitre(o, q, t) {
   if (t >= 0.14) { o.globalCompositeOperation = 'destination-out'; o.globalAlpha = 1; for (let i = 0; i < 26; i++) { const b = bruit(i * 7.3 + q.rot * 50) * TAU, d = bruit(i * 3.1 + q.rot * 20) * R * 1.05; o.beginPath(); o.arc(Math.cos(b) * d, Math.sin(b) * d, dp * (0.8 + bruit(i * 1.7) * 2.2), 0, TAU); o.fill(); } o.globalCompositeOperation = 'source-over'; }
   o.restore();
 }
+// (vague 79, l'audit : « le bus », il sort de sa scène) : une étoile ramassée ne reste pas sur la route : elle s'envole hors de la scène,
+// en arc, jusqu'à la barre de progression du haut de l'écran, où elle éclate ; un choc (bonk) secoue toute l'interface
+const ENVOL = [];
+function gagneEtoile(p, now) { const m = ctx.getTransform(); ENVOL.push({ x: m.a * p[0] + m.c * p[1] + m.e, y: m.b * p[0] + m.d * p[1] + m.f, t0: now, s: bruit(now * 13.7) }); }
+function secoueUI(dx) { if (reduitMvt()) return; const g = dx > 0 ? -1 : 1;
+  document.querySelectorAll('#brand, #lang-pick, #theme-pick, .film-ui .ctrl > *, #chap > *').forEach((e, i) => { const d = 4 + (i % 3) * 2;
+    e.animate([{ transform: 'translate(0,0) rotate(0deg)' }, { transform: `translate(${g * d}px,${-d * 0.6}px) rotate(${g * 4}deg)` }, { transform: `translate(${-g * d * 0.5}px,${d * 0.3}px) rotate(${-g * 2}deg)` }, { transform: 'translate(0,0) rotate(0deg)' }], { duration: 420, delay: i * 12, easing: 'ease-out', composite: 'add' }); }); }
+const reduitMvt = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+function cibleBarre() { const M = window.EspacePlume && EspacePlume.M, B = M && M.lay && M.lay.barre, C = M && M.sc; if (!B || !B.seg || !C) return null;
+  const g = B.seg[C.S.ch] || B.seg[0]; return [g.x + g.w * c01((C.i - B.seg.slice(0, C.S.ch).reduce((n, q) => n + q.n, 0) + 0.5) / g.n), B.bas - 4]; }
+function envols(o, now) {
+  const cv = o.canvas, dp = (cv.width / (cv.clientWidth || cv.width)) || 1, T = cibleBarre(); if (!T) { ENVOL.length = 0; return; } const tx = T[0] * dp, ty = T[1] * dp;
+  o.save(); o.setTransform(1, 0, 0, 1, 0, 0); o.lineCap = o.lineJoin = 'round';
+  ENVOL.forEach(q => { const t = now - q.t0, u = c01(t / 0.95), e = u * u * (3 - 2 * u), cx = (q.x + tx) / 2 + (q.s - 0.5) * 300 * dp, cy = Math.min(q.y, ty) - 180 * dp;
+    const at = v => [(1 - v) * (1 - v) * q.x + 2 * (1 - v) * v * cx + v * v * tx, (1 - v) * (1 - v) * q.y + 2 * (1 - v) * v * cy + v * v * ty];
+    if (u < 1) { // la traîne d'étincelles, puis l'étoile qui tourne et rapetisse en approchant
+      for (let k = 1; k < 9; k++) { const p = at(Math.max(0, e - k * 0.035)); o.globalAlpha = 1; o.fillStyle = `rgb(${BL})`; o.beginPath(); o.arc(p[0] + Math.sin(k * 2.3 + t * 20) * 3 * dp, p[1], dp * (2.6 - k * 0.25), 0, TAU); o.fill(); }
+      const p = at(e), R = dp * (16 - 9 * e) * (0.6 + 0.4 * c01(t / 0.12)); o.save(); o.translate(p[0], p[1]); o.rotate(t * 9);
+      o.beginPath(); for (let i = 0; i < 10; i++) { const b = i / 10 * TAU - Math.PI / 2, r = i % 2 ? R * 0.45 : R; o.lineTo(Math.cos(b) * r, Math.sin(b) * r); } o.closePath();
+      o.strokeStyle = NUIT; o.lineWidth = 4 * dp; o.stroke(); o.fillStyle = PAP; o.fill(); o.strokeStyle = ENC; o.lineWidth = 1.4 * dp; o.stroke(); o.restore(); }
+    else { // l'arrivée : un éclat en étoile sur la barre, un « +1 »
+      const v = c01((t - 0.95) / 0.5), R = dp * (8 + v * 26); o.strokeStyle = `rgb(${BL})`; o.lineWidth = 2 * dp * (1 - v);
+      for (let i = 0; i < 8; i++) { const b = i / 8 * TAU + q.s; o.beginPath(); o.moveTo(tx + Math.cos(b) * R * 0.5, ty + Math.sin(b) * R * 0.5); o.lineTo(tx + Math.cos(b) * R, ty + Math.sin(b) * R); o.stroke(); }
+      if (v < 1) { o.font = `700 ${Math.round(13 * dp)}px "Space Grotesk",system-ui,sans-serif`; o.textAlign = 'center'; o.fillStyle = `rgb(${BL})`; o.fillText('+1', tx, ty + 22 * dp + v * 6 * dp); } } });
+  o.restore(); for (let i = ENVOL.length - 1; i >= 0; i--) if (now - ENVOL[i].t0 > 1.5 || now < ENVOL[i].t0) ENVOL.splice(i, 1);
+}
 function vise(c0, now) {
   const c = VISE.c, P = souris(); VISE.c = null; const dt = Math.min(0.2, Math.max(0, now - (VISE.t || now))); VISE.t = now;
   if (c && P && (VISE.id === null || VISE.id === c.id || VISE.k < 0.05)) { VISE.id = c.id; VISE.k = Math.min(1.6, VISE.k + dt * 1.4); VISE.rb = c; }
   else { VISE.k = Math.max(0, VISE.k - dt * 3); if (VISE.k === 0) VISE.id = null; }
-  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); if (!VC && (!R || VISE.k <= 0) && !TAMPON.length) return; const o = toileVise(c0.canvas);
-  TAMPON.forEach(q => tamponVitre(o, q, now - q.t0)); if (!R || VISE.k <= 0 || !P) return;
+  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length) return; const o = toileVise(c0.canvas);
+  TAMPON.forEach(q => tamponVitre(o, q, now - q.t0)); if (ENVOL.length) envols(o, now); if (!R || VISE.k <= 0 || !P) return;
   const W0 = window.Chats && Chats.K && Chats.K.Wd, chat = W0 && W0.cats.some(q => q.sp && q.sp.m === 'agrippe');
   const cv = o.canvas, dp = (cv.width / (cv.clientWidth || cv.width)) || 1, px = P.x * dp, py = P.y * dp, ln = Math.max(1, dp), k = VISE.k;
   o.save(); o.setTransform(1, 0, 0, 1, 0, 0); o.lineCap = o.lineJoin = 'round';
@@ -1295,7 +1321,7 @@ S.pilotage = (() => {
       const vis = E.lane * 1.06, vbx = clamp(vis - E.bx, -dt * 3.2, dt * 3.2); E.bx += vbx; const roulis = -vbx / Math.max(dt, 1e-3) / 3.2 * 0.06;
       // les chocs et les jalons
       E.obs.forEach(o => { if (o.fini || o.z > zb + 2.4 || o.z < zb) return; if (Math.abs(o.x - E.bx) > 0.72) return; o.fini = now;
-        if (o.sorte === 'etoile') { E.jal++; E.mots.push({ t: '+1', x: o.x, z: zb + 1, t0: now }); } else { E.bonk = now; E.mots.push({ t: pick2(['bonk', 'boum', 'ouille'], o.n), x: o.x, z: zb + 1, t0: now }); } });
+        if (o.sorte === 'etoile') { E.jal++; E.mots.push({ t: '+1', x: o.x, z: zb + 1, t0: now }); gagneEtoile(Pp(o.x, 0.6, zb + 1), now); } else { E.bonk = now; E.mots.push({ t: pick2(['bonk', 'boum', 'ouille'], o.n), x: o.x, z: zb + 1, t0: now }); secoueUI(o.x - E.bx); } });
       E.obs = E.obs.filter(o => o.z > 0.8 && !(o.fini && now - o.fini > 0.5));
       // dessin, du fond vers nous
       // (vague 27, l'audit : « le bus ») : des portiques d'autoroute enjambent la route, un panneau par étape de la feuille de route
@@ -1410,5 +1436,5 @@ S.pilotage = (() => {
 S.rag = S.ia;
 
 // la toile, l'écran du ciel, les outils ; puis : une scène existe-t-elle ?
-return { S, vise, VISE, LUI, pose(c, g, o) { ctx = c; G = g; O = o; } };
+return { S, vise, VISE, LUI, ENVOL, pose(c, g, o) { ctx = c; G = g; O = o; } };
 })();
