@@ -747,10 +747,21 @@ S.gardefous = (() => {
         else { const t = now * 1.6, m0 = V(g, yT - 0.55, 0), m1 = V(g, yT - 0.68, 0), r = k * 0.09 * tf; cerne(() => { ctx.beginPath(); ctx.moveTo(m0[0], m0[1]); ctx.lineTo(m1[0], m1[1]); }, 1.1, 1, null);
           cerne(() => { ctx.beginPath(); ctx.ellipse(m1[0], m1[1], r * Math.abs(Math.cos(t)) + 1, r, 0, 0, TAU); }, 0.8, 1); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.5; ctx.beginPath(); ctx.moveTo(m1[0], m1[1]); ctx.lineTo(m1[0] + Math.sin(t) * r * 1.4, m1[1] - r * 0.2); ctx.stroke();
           style(0.5, 0.35); ctx.beginPath(); ctx.moveTo(m1[0], m1[1]); ctx.lineTo(m1[0] + Math.sin(t) * k * 0.6, m1[1] + k * 0.25); ctx.stroke(); }
-        const L = V(g, yT - (i === 2 ? 0.84 : i === 1 ? 1.0 : 0.76), -0.34); mot(lab[i], L[0], L[1], Math.max(10, k * 0.07), 0.9); });
+        const L = V(g, yT - (i === 2 ? 0.84 : i === 1 ? 1.0 : 0.76), -0.34); const fl = Math.max(10, k * 0.07); mot(lab[i], L[0], Math.max(L[1], G.haut + fl * 1.1), fl, 0.9); });   // (vague 58 : jamais sur la barre des chapitres)
       // l'humain : il regarde, hoche la tête, tamponne
       const hp = V(xS + 0.34, yT, -0.28), rr = k * 0.15 * hp[3], hoche = Math.max(0, Math.sin(now * 2.2)) ** 6, ci = V(xS - 0.05, yT - 0.02, 0);
       lui(hp[0], hp[1] - rr * 2.5, rr, { now, hoche, tp: tampon, cible: ci, cote: -1 }); mot(lab[3], hp[0], hp[1] + k * 0.06, Math.max(10, k * 0.07), 0.85);
+      // (vague 58 de l'audit, « la vitesse sans perdre le contrôle », immersion) : l'humain dans la boucle, c'est nous. La souris devient une loupe
+      // de relecture : sous le verre, le diff grossi défile (lignes ajoutées +, retirées −) ; si on s'attarde, on le valide d'une coche
+      { const Sm = souris(), tW = window.Chats.K.Wd.t; if (Sm && tW - Sm.moved < 3 && Sm.y > G.haut + 10 && Sm.y < (G.caps || G.bas) - 10) { const R = Math.max(34, k * 0.2), x = Sm.x, y = Math.min(Sm.y, (G.caps || G.bas) - R - 8), fs = Math.max(8, R * 0.2);
+        ctx.save(); ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.globalAlpha = 1; ctx.fillStyle = PAP; ctx.fill(); ctx.clip();
+        ctx.font = `600 ${fs}px ui-monospace,Menlo,Consolas,monospace`; ctx.textBaseline = 'middle'; const off = (now * fs * 1.2) % (fs * 1.5);
+        for (let l = -4; l <= 4; l++) { const yy = y + l * fs * 1.5 - off, j = Math.floor(now * 0.8) + l + 40, sg = bruit(j * 3.3) < 0.35 ? '+' : bruit(j * 3.3) < 0.55 ? '−' : ' ', lw = R * (0.6 + bruit(j * 7.1) * 0.9);
+          if (sg !== ' ') { ctx.globalAlpha = 0.18; ctx.fillStyle = ENC; ctx.fillRect(x - R, yy - fs * 0.7, R * 2, fs * 1.4); }
+          ctx.globalAlpha = 0.9; ctx.fillStyle = ENC; ctx.fillText(sg, x - R * 0.82, yy); ctx.globalAlpha = 0.55; ctx.fillRect(x - R * 0.6, yy - fs * 0.12, lw * 0.9, fs * 0.24); }
+        ctx.restore();
+        cerne(() => { ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); }, 1.1, 1, null); cerne(() => { ctx.beginPath(); ctx.moveTo(x + R * 0.72, y + R * 0.72); ctx.lineTo(x + R * 1.45, y + R * 1.45); }, 1.8, 1, null);
+        const st = tW - Sm.moved; if (st > 0.8) coche(x + R * 0.9, y - R * 0.9, R * 0.35, (st - 0.8) / 0.3, 1.1); } }
     }
   };
 })();
