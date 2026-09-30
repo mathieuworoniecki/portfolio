@@ -398,6 +398,15 @@ html:not(.locked) #gate:not(.open){display:none}
 .dex-ombre svg{width:78%;fill:none;stroke:rgba(var(--ink),.45);stroke-width:3;stroke-dasharray:7 6;stroke-linecap:round;stroke-linejoin:round}
 .dex-ombre text{font:400 44px var(--hand);fill:rgba(var(--ink),.5);stroke:none;text-anchor:middle}
 .dex-page li.ok.ph{padding-right:9px}
+/* (vague 77) un vrai polaroïd dans la main : il bascule en 3D sous le pointeur, un reflet glisse sur sa surface ; au clic, on le secoue et la photo se révèle */
+.dex-page li.ph figure{transform:perspective(520px) rotateX(var(--tx,0deg)) rotateY(var(--ty,0deg));transform-style:preserve-3d}
+.dex-page li.ph figure::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:3px;opacity:var(--go,0);transition:opacity .3s;
+  background:radial-gradient(circle at var(--gx,50%) var(--gy,30%),rgba(255,255,255,.7),rgba(255,255,255,0) 55%),linear-gradient(115deg,rgba(255,255,255,0) 35%,rgba(255,255,255,.35) 50%,rgba(255,255,255,0) 65%) no-repeat var(--gx,50%) 0/200% 100%}
+.dex-page li.ph figure.secoue{animation:dex-secoue .7s cubic-bezier(.3,1.5,.5,1)}
+.dex-page li.ph figure.secoue img{animation:dex-revele 1.2s ease-out}
+@keyframes dex-secoue{0%,100%{translate:0 0}15%{translate:-7px -3px;rotate:-6deg}35%{translate:6px 2px;rotate:5deg}55%{translate:-4px -1px;rotate:-3deg}75%{translate:2px 0;rotate:1deg}}
+@keyframes dex-revele{0%{filter:brightness(1.9) contrast(.4) sepia(.6)}100%{filter:none}}
+@media (prefers-reduced-motion:reduce){.dex-page li.ph figure{transform:none}.dex-page li.ph figure.secoue,.dex-page li.ph figure.secoue img{animation:none}}
 .dex-page li.ok.ph::after{top:auto;bottom:6px}
 .dex-toast-ph{width:46px;height:46px;align-self:center;margin:-.2rem 0;padding:3px 3px 8px;background:var(--bp-hi);border:1.5px solid rgb(var(--ink));rotate:-6deg}
 /* le viseur dans la pièce : quatre coins qui se referment sur le chat, « clic », puis se replient en tournant jusqu'à un point */

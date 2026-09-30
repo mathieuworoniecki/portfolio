@@ -323,7 +323,14 @@ function guetteur() {
   panneau.appendChild(el);
   const place = () => { const r = pg.getBoundingClientRect(); G.l = r.left + 70; G.r = r.right - 70; G.top = r.top; if (!G.x) G.x = G.tx = r.left + r.width * 0.3; };
   place(); G.mode = '';
-  panneau.onpointermove = e => { G.tx = e.clientX; G.px = e.clientX; G.py = e.clientY; const li = e.target.closest && e.target.closest('.dex-page li'); G.mode = li ? (li.classList.contains('ok') ? 'ok' : 'q') : ''; };
+  panneau.onpointermove = e => { G.tx = e.clientX; G.px = e.clientX; G.py = e.clientY; const li = e.target.closest && e.target.closest('.dex-page li'); G.mode = li ? (li.classList.contains('ok') ? 'ok' : 'q') : '';
+    // (vague 77) le polaroïd sous le pointeur bascule vers lui, et son reflet suit
+    const fg = li && li.classList.contains('ph') ? li.querySelector('figure') : null;
+    if (G.fig && G.fig !== fg) { G.fig.style.setProperty('--tx', '0deg'); G.fig.style.setProperty('--ty', '0deg'); G.fig.style.setProperty('--go', '0'); }
+    G.fig = fg; if (fg) { const r = fg.getBoundingClientRect(), u = (e.clientX - r.left) / r.width - 0.5, v = (e.clientY - r.top) / r.height - 0.5;
+      fg.style.setProperty('--ty', (u * 26).toFixed(1) + 'deg'); fg.style.setProperty('--tx', (-v * 22).toFixed(1) + 'deg');
+      fg.style.setProperty('--gx', ((u + 0.5) * 100).toFixed(0) + '%'); fg.style.setProperty('--gy', ((v + 0.5) * 100).toFixed(0) + '%'); fg.style.setProperty('--go', '1'); } };
+  panneau.querySelectorAll('.dex-page li.ph figure').forEach(fg => fg.addEventListener('click', () => { fg.classList.remove('secoue'); void fg.offsetWidth; fg.classList.add('secoue'); }));
   cancelAnimationFrame(G.raf);
   const pas = () => { if (panneau.hidden || !el.isConnected) return; place();
     G.x += (Math.min(G.r, Math.max(G.l, G.tx)) - G.x) * 0.06; const dx = (G.px ?? G.x) - G.x, dy = (G.py ?? G.top + 200) - (G.top - 20), d = Math.hypot(dx, dy) || 1;
