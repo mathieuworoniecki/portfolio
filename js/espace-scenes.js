@@ -405,11 +405,34 @@ function requetes(o, now) {
       o.save(); o.translate(ex, ty); o.scale(1 - v * 0.5, 1 - v * 0.5); o.strokeStyle = NUIT; o.lineWidth = 4; o.strokeText(tx, 0, 0); o.fillStyle = r.ok ? '#8fe0a0' : '#e8574a'; o.fillText(tx, 0, 0); o.restore(); } });
   o.restore(); for (let i = REQ.L.length - 1; i >= 0; i--) if (now - REQ.L[i].t0 > AL + ATT + RT + 0.6 || now < REQ.L[i].t0) REQ.L.splice(i, 1);
 }
+// (vague 88, l'audit : « DevOps », elle sort d'elle-même) : la mise à l'échelle ne reste pas sur le circuit. Plus la souris s'agite (la
+// charge), plus chaque élément du vrai site se réplique : des copies au trait glissent de dessous lui, en éventail (« ×3 ») ; la charge
+// retombe : elles rentrent sous lui une à une. Et toutes les quelques secondes, un déploiement progressif balaie l'interface de gauche à
+// droite : chaque élément redémarre à son tour (il se tasse puis revient) avec sa nouvelle version
+const DEP = { t: -99, ui: null, uiT: -9, n: 0, T: 0, v: 0, t0: -99 };
+function deploieUI(o, now) {
+  const on = now - DEP.t < 0.3 && !reduitMvt(), dt = Math.min(0.2, Math.max(0, now - (DEP.T || now))); DEP.T = now;
+  if (!DEP.ui || now - DEP.uiT > 1) { DEP.uiT = now; DEP.ui = [...document.querySelectorAll('#brand, #lang-pick, .film-ui .ctrl > *, #chap > *')].filter(e => !e.closest('.scenes, #stage')).map(e => ({ e, b: e.getBoundingClientRect() })).filter(q => q.b.width > 0).sort((a, b) => a.b.left - b.b.left); }
+  const cible = on ? CHG * 2.6 : 0; DEP.n += (cible - DEP.n) * Math.min(1, dt * (cible > DEP.n ? 5 : 1.6));
+  if (on && now - DEP.t0 > 9) { DEP.t0 = now; DEP.v++; DEP.ui.forEach((q, i) => setTimeout(() => q.e.animate([{ transform: 'scale(1)' }, { transform: 'scale(0.86)', offset: 0.35 }, { transform: 'scale(1.06)', offset: 0.7 }, { transform: 'scale(1)' }], { duration: 480, easing: 'ease-out', composite: 'add' }), 120 + i * 140)); }
+  const tr = now - DEP.t0; if (DEP.n < 0.03 && tr > 3) return;
+  const cv = o.canvas, dp = dpDe(cv); o.save(); o.setTransform(dp, 0, 0, dp, 0, 0); o.lineCap = o.lineJoin = 'round';
+  DEP.ui.forEach((q, i) => { const b = q.b, cx = (b.left + b.right) / 2, dir = cx > window.innerWidth / 2 ? -1 : 1, bas = b.top > window.innerHeight / 2 ? -1 : 1;
+    // les répliques : sous l'élément (on découpe sa place), décalées en éventail, du côté où il y a de la place
+    const nr = Math.ceil(DEP.n - 0.001); if (nr > 0) { o.save(); o.beginPath(); o.rect(0, 0, cv.width / dp, cv.height / dp); o.rect(b.left - 2, b.top - 2, b.width + 4, b.height + 4); o.clip('evenodd');
+      for (let j = nr; j >= 1; j--) { const f = c01(DEP.n - (j - 1)), dx = dir * j * 9 * f, dy = bas * j * 7 * f; o.strokeStyle = NUIT; o.lineWidth = 4; o.strokeRect(b.left + dx, b.top + dy, b.width, b.height); o.strokeStyle = `rgba(${BL},${0.85 - j * 0.15})`; o.lineWidth = 1.3; o.setLineDash(j % 2 ? [] : [4, 3]); o.strokeRect(b.left + dx, b.top + dy, b.width, b.height); o.setLineDash([]); }
+      o.restore(); if (DEP.n > 0.6) { const tx = '×' + (1 + nr), x = dir > 0 ? b.right + nr * 9 + 8 : b.left - nr * 9 - 8, y = bas > 0 ? b.bottom + nr * 7 + 6 : b.top - nr * 7 - 6; o.font = '700 10px ui-monospace,Menlo,Consolas,monospace'; o.textAlign = 'center'; o.textBaseline = 'middle'; o.strokeStyle = NUIT; o.lineWidth = 3.5; o.strokeText(tx, x, y); o.fillStyle = '#ffe9a8'; o.fillText(tx, x, y); } }
+    // le déploiement progressif : une barre qui se remplit sous l'élément, puis sa nouvelle version
+    const u = (tr - 0.12 - i * 0.14) / 0.5; if (u > 0 && u < 3) { const y = bas > 0 ? b.bottom + 4 : b.top - 6, w = b.width * c01(u), s = 1 - sm(c01((u - 2.3) / 0.7));
+      if (s > 0) { o.fillStyle = '#8fe0a0'; o.fillRect(b.left + (b.width - w * s) / 2, y, w * s, 2.5 * s);
+        if (u > 1) { const tx = 'v1.' + (DEP.v + 11), ty = bas > 0 ? y + 11 : y - 8; o.save(); o.translate(cx, ty); o.scale(s, s); o.font = '600 9px ui-monospace,Menlo,Consolas,monospace'; o.textAlign = 'center'; o.textBaseline = 'middle'; o.strokeStyle = NUIT; o.lineWidth = 3; o.strokeText(tx, 0, 0); o.fillStyle = '#8fe0a0'; o.fillText(tx, 0, 0); o.restore(); } } } });
+  o.restore();
+}
 function vise(c0, now) {
   const c = VISE.c, P = souris(); VISE.c = null; const dt = Math.min(0.2, Math.max(0, now - (VISE.t || now))); VISE.t = now;
   if (c && P && (VISE.id === null || VISE.id === c.id || VISE.k < 0.05)) { VISE.id = c.id; VISE.k = Math.min(1.6, VISE.k + dt * 1.4); VISE.rb = c; }
   else { VISE.k = Math.max(0, VISE.k - dt * 3); if (VISE.k === 0) VISE.id = null; }
-  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); const sg = now - SURGE.t0 < 1.6 && now >= SURGE.t0, ins = now - INSP.t < 0.3 || INSP.k > 0; if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length && !FEUX.length && !sg && !ins && !INST.q && !pariOn(now) && !(now - GF.t < 0.3 || GF.k > 0) && !(now - RAG.t < 0.3 || RAG.k > 0) && !(now - REQ.t < 0.3 || REQ.L.length)) return; const o = toileVise(c0.canvas); if (now - REQ.t < 0.3 || REQ.L.length) requetes(o, now); if (now - RAG.t < 0.3 || RAG.k > 0) ragUI(o, now); if (now - GF.t < 0.3 || GF.k > 0) gardeFou(o, now); if (sg) eclairs(o, now); if (pariOn(now)) pari(o, now); if (ins) inspecteur(o, now); if (INST.q) installe(o, now);
+  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); const sg = now - SURGE.t0 < 1.6 && now >= SURGE.t0, ins = now - INSP.t < 0.3 || INSP.k > 0; if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length && !FEUX.length && !sg && !ins && !INST.q && !pariOn(now) && !(now - GF.t < 0.3 || GF.k > 0) && !(now - RAG.t < 0.3 || RAG.k > 0) && !(now - REQ.t < 0.3 || REQ.L.length) && !(now - DEP.t < 0.3 || DEP.n > 0.03)) return; const o = toileVise(c0.canvas); if (now - DEP.t < 0.3 || DEP.n > 0.03 || now - DEP.t0 < 3) deploieUI(o, now); if (now - REQ.t < 0.3 || REQ.L.length) requetes(o, now); if (now - RAG.t < 0.3 || RAG.k > 0) ragUI(o, now); if (now - GF.t < 0.3 || GF.k > 0) gardeFou(o, now); if (sg) eclairs(o, now); if (pariOn(now)) pari(o, now); if (ins) inspecteur(o, now); if (INST.q) installe(o, now);
   TAMPON.forEach(q => tamponVitre(o, q, now - q.t0)); if (ENVOL.length) envols(o, now); if (FEUX.length) feux(o, now); if (!R || VISE.k <= 0 || !P) return;
   const W0 = window.Chats && Chats.K && Chats.K.Wd, chat = W0 && W0.cats.some(q => q.sp && q.sp.m === 'agrippe');
   const cv = o.canvas, dp = dpDe(cv), px = P.x * dp, py = P.y * dp, ln = Math.max(1, dp), k = VISE.k;
@@ -1455,6 +1478,7 @@ S.devops = (() => ({
     // (vague 64 de l'audit, « DevOps », immersion) : la souris, c'est le trafic. Plus elle s'agite, plus la charge monte : le pouls du monitoring
     // s'emballe, et le circuit se met à l'échelle (des conteneurs en renfort s'intercalent, « autoscale ») ; quand elle se calme, tout redescend
     { const Sm = souris(), v = Sm && window.Chats.K.Wd.t - Sm.moved < 0.3 ? Math.hypot(Sm.vx || 0, Sm.vy || 0) : 0; CHG += (c01(v / 1600) - CHG) * (v / 1600 > CHG ? 0.2 : 0.02); }
+    DEP.t = now;   // (vague 88 : l'autoscale et le déploiement sortent sur le vrai site, voir deploieUI())
     const nC = 12 + Math.round(CHG * 12), conts = []; for (let q = 0; q < nC; q++) conts.push((now * (0.5 + CHG * 0.4) + q / nC * TAU) % TAU);
     ST.forEach((t, i) => { const p = at(t), [tx, tz] = nor(t), G3 = (u, v, d) => V(p[0] - tz * u + tx * d, p[1] + v, p[2] + tx * u + tz * d);
       const vif = conts.some(u => Math.abs(Math.atan2(Math.sin(u - t), Math.cos(u - t))) < 0.12);
@@ -1719,5 +1743,5 @@ S.pilotage = (() => {
 S.rag = S.ia;
 
 // la toile, l'écran du ciel, les outils ; puis : une scène existe-t-elle ?
-return { S, vise, VISE, LUI, ENVOL, TH, FEUX, SURGE, INSP, INST, PARI, GF, RAG, REQ, pose(c, g, o) { ctx = c; G = g; O = o; } };
+return { S, vise, VISE, LUI, ENVOL, TH, FEUX, SURGE, INSP, INST, PARI, GF, RAG, REQ, DEP, pose(c, g, o) { ctx = c; G = g; O = o; } };
 })();
