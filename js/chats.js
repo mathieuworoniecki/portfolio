@@ -879,7 +879,7 @@ function drawFx(S) {
     } else if (f.k === 'z') C.text(u < 0.5 ? 'z' : 'Z', f.x + f.dx * u * 18 + Math.sin(u * 7) * 5, f.y - u * 40, 1, { size: 12 + u * 10, a: 0.6 * fade });
     else if (f.k === 'dust') { for (let i = -1; i <= 1; i += 2) for (let j = 0; j < 2; j++) { const a0 = f.r * (0.5 + u * 0.8), h = (j + 1) * 5; C.line(f.x + i * a0, f.y - h * 0.4, f.x + i * (a0 + 8 + u * 8), f.y - h, 1, { w: 1.6, a: 0.5 * f.a * (1 - u), seed: f.seed + i + j }); } }
     else if (f.k === 'calage') calage(f, t, K);
-    else if (f.k === 'rayons') rayons(f, u, t);
+    else if (f.k === 'jackpot') rayons(f, u, t);
     else if (f.k === 'rouleaux') rouleaux(f, t - f.t0, fade, K);
     else if (f.k === 'vague') vaguePoussiere(f, u, K);
     else if (f.k === 'cri') ondeCri(f, t);
@@ -1342,7 +1342,7 @@ function machines(dt) {
         Wd.fx.push({ k: 'txt', text: 'JACKPOT !!!', x: m[0], y: m[1] - g.s * 1.1, t0: Wd.t, life: 2, rot: -0.08, size: 44 }); dust(m[0], m[1], g.s * 0.6, 1);
         // (vague 29, l'audit : « le distributeur fou ») : une machine à sous. Juste avant, trois rouleaux à la craie tournent au-dessus de lui
         // et s'arrêtent un à un sur 7 7 7 ; au jackpot, des rayons de lumière partent de lui et balaient toute la pièce
-        Wd.fx.push({ k: 'rayons', x: m[0], y: m[1] - g.s * 0.2, t0: Wd.t, life: 2.4, seed: 5 });
+        Wd.fx.push({ k: 'jackpot', x: m[0], y: m[1] - g.s * 0.2, t0: Wd.t, life: 2.4, seed: 5 });
         if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) { const n = Wd.mode === 'large' ? 26 : 14; Wd.fx.push({ k: 'grele', x: m[0], y: m[1], t0: Wd.t, life: 3.2, L: Array.from({ length: n }, (_, i) => ({ x: rnd(0.06, 0.94) * Wd.W, y: rnd(0.08, 0.7) * Wd.H, r: rnd(14, 30) * Math.min(1.3, Wd.W / 1100 + 0.3), d: 0.1 + i * 0.045 + rnd(0, 0.05), colle: rnd(0.08, 0.35), vx: rnd(-40, 40), a0: rnd(0, 6.3), w: rnd(-9, 9), s: Math.floor(rnd(0, 99)), mot: i % 4 === 0 ? pick(['tic', 'tac', 'toc', 'tic !']) : null })) }); }
         for (let i = 0; i < 70 && Wd.kib.length < KIBMAX() + 60; i++) Wd.kib.push({ x: m[0], y: m[1], vx: rnd(-1, 1) * rnd(200, 1500) * k, vy: -rnd(900, 1900) * k, d: rnd(0, 0.5), t0: Wd.t, rest: false, spin: Math.random() * 6 }), F.nk = (F.nk || 0) + 1; }
       if (Wd.t > F.end) { g.folle = null; g.cour = 0; if (Math.abs(g.fx - F.fx0) > 0.002) g.rentre = { fx0: F.fx0 }; const m = Univers.at(g, [0, 0.8, 0]); dust(m[0], m[1], g.s * 0.3, 1); Wd.fx.push({ k: 'txt', text: 'pfff…', x: m[0], y: m[1] - 20, t0: Wd.t, life: 1.6, rot: -0.1, size: 18 }); g.clk = 0; later(0.9, () => ticket(g, F)); }
