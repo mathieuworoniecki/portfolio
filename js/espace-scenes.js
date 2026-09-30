@@ -459,6 +459,62 @@ function attaques(o, now) {
   finally { ctx = c0; o.restore(); }
   for (let i = ATK.L.length - 1; i >= 0; i--) if (now - ATK.L[i].t0 > VOL + 1.2 || now < ATK.L[i].t0) ATK.L.splice(i, 1);
 }
+// (vague 96, l'audit : « les terminaux », l'originalité) : ton écran devient le mien. Tant que la scène se dessine, tout l'écran se découpe
+// en volets comme un tmux : un trait vertical part de la souris et coupe l'écran en deux, puis chaque moitié se recoupe ; chaque volet a
+// son invite qui tape sa commande (un agent par volet), et la barre d'état en haut liste les fenêtres. Le volet où est la souris est l'actif
+// (son cadre en vert, l'étoile dans la barre) : on passe d'un agent à l'autre en bougeant la souris. Toutes les 9 s, l'écran se redécoupe
+// autour d'elle ; les éléments du vrai site que coupe un trait s'écartent d'un pas. La souris partie, les traits se rétractent vers elle.
+const TMX = { t: -99, k: 0, T: 0, t0: -99, L: null, act: -1, ui: null, uiT: -9 };
+function tmux(o, now) {
+  const on = now - TMX.t < 0.3 && !reduitMvt(), dt = Math.min(0.2, Math.max(0, now - (TMX.T || now))); TMX.T = now;
+  TMX.k += ((on ? 1 : 0) - TMX.k) * Math.min(1, dt * (on ? 2.5 : 4)); if (!on && TMX.k < 0.01) { TMX.k = 0; TMX.L = TMX.vieux = null; return; }
+  const W = window.innerWidth, H = window.innerHeight, P = souris(), FR = !en();
+  if (!TMX.ui || now - TMX.uiT > 1) { TMX.uiT = now; TMX.ui = [...document.querySelectorAll('#brand, #lang-pick, .film-ui .ctrl > *, #chap > *')].filter(e => !e.closest('.scenes, #stage')).map(e => ({ e, b: e.getBoundingClientRect() })).filter(q => q.b.width > 0); }
+  if (on && (!TMX.L || now - TMX.t0 > 9)) {   // un nouveau découpage, autour de la souris
+    TMX.vieux = TMX.L; TMX.t0 = now; const x = clamp(P ? P.x : W / 2, W * 0.28, W * 0.72), yA = clamp(P ? P.y : H * 0.45, H * 0.25, H * 0.7), yB = clamp(H - yA + (bruit(now) - 0.5) * H * 0.15, H * 0.25, H * 0.75);
+    TMX.L = { x, yA, yB, v: x < W / 2 ? 1 : 0, cmd: bruit(now * 3.1) };
+    TMX.ui.forEach((q, i) => { const b = q.b; if (x > b.left - 4 && x < b.right + 4) setTimeout(() => q.e.animate([{ transform: 'translateX(0)' }, { transform: `translateX(${(b.left + b.right) / 2 < x ? -6 : 6}px)`, offset: 0.4 }, { transform: 'translateX(0)' }], { duration: 420, easing: 'ease-out', composite: 'add' }), 160 + i * 20); });
+  }
+  if (!TMX.L) return;
+  const cv = o.canvas, dp = dpDe(cv), bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
+  o.save(); o.setTransform(dp, 0, 0, dp, 0, 0); o.lineCap = o.lineJoin = 'round';
+  o.beginPath(); o.rect(0, 0, W, H); if (bd) o.rect(bd.x - 16, bd.y - 12, bd.w + 32, bd.h + 24); if (Pc) { o.moveTo(Pc.x + Pc.r * 1.2, Pc.y); o.arc(Pc.x, Pc.y, Pc.r * 1.2, 0, TAU); } o.clip('evenodd');
+  // (au redécoupage, l'ancien découpage se rétracte vers la souris pendant que le nouveau pousse : jamais d'image vide)
+  const tN = now - TMX.t0, R = 0.45; if (TMX.vieux && tN < R) dessineL(TMX.vieux, 99, TMX.k * (1 - sm(tN / R)), false);
+  dessineL(TMX.L, TMX.vieux ? tN - R : tN, TMX.k, true);
+  o.restore();
+  function dessineL(L, t, k, principal) {
+  const g = (d, dur) => sm(c01((t - d) / dur)) * k;   // la pousse d'un trait (et sa rétractation, avec k)
+  const panes = [[0, 0, L.x, L.yA], [0, L.yA, L.x, H], [L.x, 0, W, L.yB], [L.x, L.yB, W, H]];
+  const act = P ? panes.findIndex(q => P.x >= q[0] && P.x < q[2] && P.y >= q[1] && P.y < q[3]) : -1; if (principal) TMX.act = act;
+  const trait = (x0, y0, x1, y1, f, vert) => { if (f <= 0) return; const mx = lerp(x0, x1, 0.5), my = lerp(y0, y1, 0.5);
+    [[NUIT, 4], [`rgba(${BL},0.55)`, 1.2]].forEach(([c, w]) => { o.strokeStyle = c; o.lineWidth = w; o.beginPath(); o.moveTo(lerp(mx, x0, f), lerp(my, y0, f)); o.lineTo(lerp(mx, x1, f), lerp(my, y1, f)); o.stroke(); }); };
+  // les traits : le vertical part de la souris, puis les deux horizontaux ; sur le trait, les petits « │ » des bords de volets, comme dans un terminal
+  const fV = g(0, 0.5), fA = g(0.35, 0.45), fB = g(0.55, 0.45);
+  { const y0 = P ? clamp(P.y, 0, H) : H / 2; [[NUIT, 4], [`rgba(${BL},0.55)`, 1.2]].forEach(([c, w]) => { o.strokeStyle = c; o.lineWidth = w; o.beginPath(); o.moveTo(L.x, y0 - fV * (y0 + 10)); o.lineTo(L.x, y0 + fV * (H - y0 + 10)); o.stroke(); }); }
+  trait(L.x, L.yA, 0, L.yA, fA * 2 > 1 ? 1 : fA * 2, false); trait(L.x, L.yB, W, L.yB, fB * 2 > 1 ? 1 : fB * 2, false);
+  o.lineWidth = 1.2; o.strokeStyle = `rgba(${BL},0.55)`;
+  // le volet actif : son cadre en vert, qui suit la souris d'un volet à l'autre
+  if (act >= 0 && fB > 0.5) { const q = panes[act], m = 3; o.strokeStyle = NUIT; o.lineWidth = 4.5; o.strokeRect(q[0] + m, q[1] + m, q[2] - q[0] - m * 2, q[3] - q[1] - m * 2); o.strokeStyle = `rgba(143,224,160,${0.85 * k})`; o.lineWidth = 1.6; o.strokeRect(q[0] + m, q[1] + m, q[2] - q[0] - m * 2, q[3] - q[1] - m * 2); }
+  // dans chaque volet, son invite et sa commande, tapées lettre à lettre, puis le résultat
+  const CMD = FR ? [['claude', '« découpe le module auth »'], ['npm test', '-- --watch'], ['git worktree add', '../relecture'], ['claude', '« relis la PR, sois sévère »']]
+                 : [['claude', '"split the auth module"'], ['npm test', '-- --watch'], ['git worktree add', '../review'], ['claude', '"review the PR, be harsh"']];
+  const OK = FR ? ['✓ module découpé, tests verts', '✓ tout passe', '✓ branche prête', '✓ 2 remarques'] : ['✓ module split, tests green', '✓ all passing', '✓ branch ready', '✓ 2 comments'];
+  const Ly = window.EspacePlume && EspacePlume.M && EspacePlume.M.lay, hautUI = Ly && Ly.barre ? Ly.barre.bas + 6 : 92;   // (sous la barre des chapitres)
+  o.font = '600 10px ui-monospace,Menlo,Consolas,monospace'; o.textBaseline = 'alphabetic'; o.textAlign = 'left';
+  panes.forEach((q, i) => { const d = 0.7 + i * 0.35, u = t - d; if (u < 0 || k < 0.5) return; const j = (i + Math.floor(L.cmd * 4)) % 4, c = CMD[j], x = q[0] + 12, y0 = (q[1] < 60 ? Math.max(92, hautUI) : q[1]) + 22;
+    if (y0 + 20 > q[3]) return; o.save(); o.beginPath(); o.rect(q[0] + 6, q[1], q[2] - q[0] - 12, q[3] - q[1]); o.clip(); const txt = c[0] + ' ' + c[1], n = Math.min(txt.length, Math.floor(u * 22)), vu = txt.slice(0, n), pr = `agent-${i + 1} $ `;
+    const ecrit = (s, x, y, col) => { o.strokeStyle = NUIT; o.lineWidth = 3.5; o.strokeText(s, x, y); o.fillStyle = col; o.fillText(s, x, y); };
+    ecrit(pr, x, y0, '#8fe0a0'); const xp = x + o.measureText(pr).width; ecrit(vu, xp, y0, `rgb(${BL})`);
+    if (n < txt.length || Math.floor(now * 2.4) % 2) { const xc = xp + o.measureText(vu).width + 1; o.fillStyle = act === i ? '#8fe0a0' : `rgba(${BL},0.7)`; o.fillRect(xc, y0 - 9, 6, 11); }
+    if (u > txt.length / 22 + 1.2) ecrit(OK[j], x, y0 + 15, '#8fe0a0'); o.restore(); });
+  // la barre d'état, en haut : la session, les fenêtres, l'étoile sur celle de la souris
+  if (fV > 0.3) { const noms = FR ? ['claude', 'tests', 'relecture', 'revue'] : ['claude', 'tests', 'worktree', 'review'], s0 = '[portfolio] ', ws = noms.map((nm, i) => `${i}:${nm}${i === act ? '*' : ''}`).join('  ');
+    o.font = '600 10px ui-monospace,Menlo,Consolas,monospace'; const w = o.measureText(s0 + ws).width, x = W / 2 - w / 2, y = 13; let xi = x;
+    o.strokeStyle = NUIT; o.lineWidth = 3.5; o.strokeText(s0 + ws, x, y); o.fillStyle = '#8fe0a0'; o.fillText(s0, xi, y); xi += o.measureText(s0).width;
+    noms.forEach((nm, i) => { const s = `${i}:${nm}${i === act ? '*' : ''}`; o.fillStyle = i === act ? '#8fe0a0' : `rgba(${BL},0.75)`; o.fillText(s, xi, y); xi += o.measureText(s + '  ').width; }); }
+    }
+}
 // (vague 89 : la constellation de la nuée autour de l'élément que la souris approche, posée ici, par-dessus la Terre et tout le reste)
 function constel(o) { const C = window.EspaceNuee && EspaceNuee.CST, L = C && C.pts; if (!L || !L.length) return; const dp = dpDe(o.canvas); o.save(); o.setTransform(dp, 0, 0, dp, 0, 0); o.globalCompositeOperation = 'lighter';
   for (let i = 0; i < L.length; i += 4) { o.globalAlpha = L[i + 3]; o.drawImage(C.lueur, L[i] - L[i + 2], L[i + 1] - L[i + 2], L[i + 2] * 2, L[i + 2] * 2); } o.restore(); }
@@ -466,7 +522,7 @@ function vise(c0, now) {
   const c = VISE.c, P = souris(); VISE.c = null; const dt = Math.min(0.2, Math.max(0, now - (VISE.t || now))); VISE.t = now;
   if (c && P && (VISE.id === null || VISE.id === c.id || VISE.k < 0.05)) { VISE.id = c.id; VISE.k = Math.min(1.6, VISE.k + dt * 1.4); VISE.rb = c; }
   else { VISE.k = Math.max(0, VISE.k - dt * 3); if (VISE.k === 0) VISE.id = null; }
-  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); const sg = now - SURGE.t0 < 1.6 && now >= SURGE.t0, ins = now - INSP.t < 0.3 || INSP.k > 0; if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length && !FEUX.length && !sg && !ins && !INST.q && !pariOn(now) && !(now - GF.t < 0.3 || GF.k > 0) && !(now - RAG.t < 0.3 || RAG.k > 0) && !(now - REQ.t < 0.3 || REQ.L.length) && !(now - DEP.t < 0.3 || DEP.n > 0.03) && !(now - ATK.t < 0.3 || ATK.L.length) && !(window.EspaceNuee && EspaceNuee.CST.pts.length)) return; const o = toileVise(c0.canvas); constel(o); if (now - ATK.t < 0.3 || ATK.L.length) attaques(o, now); if (now - DEP.t < 0.3 || DEP.n > 0.03 || now - DEP.t0 < 3) deploieUI(o, now); if (now - REQ.t < 0.3 || REQ.L.length) requetes(o, now); if (now - RAG.t < 0.3 || RAG.k > 0) ragUI(o, now); if (now - GF.t < 0.3 || GF.k > 0) gardeFou(o, now); if (sg) eclairs(o, now); if (pariOn(now)) pari(o, now); if (ins) inspecteur(o, now); if (INST.q) installe(o, now);
+  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); const sg = now - SURGE.t0 < 1.6 && now >= SURGE.t0, ins = now - INSP.t < 0.3 || INSP.k > 0; if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length && !FEUX.length && !sg && !ins && !INST.q && !pariOn(now) && !(now - GF.t < 0.3 || GF.k > 0) && !(now - RAG.t < 0.3 || RAG.k > 0) && !(now - REQ.t < 0.3 || REQ.L.length) && !(now - DEP.t < 0.3 || DEP.n > 0.03) && !(now - ATK.t < 0.3 || ATK.L.length) && !(now - TMX.t < 0.3 || TMX.k > 0.01) && !(window.EspaceNuee && EspaceNuee.CST.pts.length)) return; const o = toileVise(c0.canvas); constel(o); if (now - TMX.t < 0.3 || TMX.k > 0.01) tmux(o, now); if (now - ATK.t < 0.3 || ATK.L.length) attaques(o, now); if (now - DEP.t < 0.3 || DEP.n > 0.03 || now - DEP.t0 < 3) deploieUI(o, now); if (now - REQ.t < 0.3 || REQ.L.length) requetes(o, now); if (now - RAG.t < 0.3 || RAG.k > 0) ragUI(o, now); if (now - GF.t < 0.3 || GF.k > 0) gardeFou(o, now); if (sg) eclairs(o, now); if (pariOn(now)) pari(o, now); if (ins) inspecteur(o, now); if (INST.q) installe(o, now);
   TAMPON.forEach(q => tamponVitre(o, q, now - q.t0)); if (ENVOL.length) envols(o, now); if (FEUX.length) feux(o, now); if (!R || VISE.k <= 0 || !P) return;
   const W0 = window.Chats && Chats.K && Chats.K.Wd, chat = W0 && W0.cats.some(q => q.sp && q.sp.m === 'agrippe');
   const cv = o.canvas, dp = dpDe(cv), px = P.x * dp, py = P.y * dp, ln = Math.max(1, dp), k = VISE.k;
@@ -763,6 +819,7 @@ S.terminaux = (() => {
       L.sort((a, b) => a.z - b.z);
       // (vague 82, l'audit : « les terminaux ») : on choisit le sien. Le terminal sous la souris se soulève vers nous comme celui du moment :
       // son agent sort la tête et tape, sa tâche s'écrit en toutes lettres ; la souris s'en va, il se repose dans le mur
+      TMX.t = now;   // (vague 96 : l'écran entier se découpe en volets, voir tmux())
       { const Sp = sourisIci(), dtT = Math.min(0.2, Math.max(0, now - (TH.t || now))); TH.t = now; let sous = null;
         if (Sp) for (let j = L.length - 1; j >= 0; j--) { const q = L[j], Q = q.lv > 0.01 && q.B ? q.B : q.Q; let np = 0, nn = 0; for (let m = 0; m < 4; m++) { const A = Q[m], B = Q[(m + 1) % 4], cr2 = (B[0] - A[0]) * (Sp.y - A[1]) - (B[1] - A[1]) * (Sp.x - A[0]); if (cr2 > 0) np++; else nn++; } if (np === 4 || nn === 4) { sous = q.id; break; } }
         if (sous !== null && sous !== cible && (TH.id === sous || TH.e < 0.05)) { TH.id = sous; TH.e = Math.min(1, TH.e + dtT / 0.35); } else { TH.e = Math.max(0, TH.e - dtT / 0.3); if (TH.e === 0) TH.id = null; } }
@@ -1781,5 +1838,5 @@ S.pilotage = (() => {
 S.rag = S.ia;
 
 // la toile, l'écran du ciel, les outils ; puis : une scène existe-t-elle ?
-return { S, vise, VISE, LUI, ENVOL, TH, FEUX, SURGE, INSP, INST, PARI, GF, RAG, REQ, DEP, ATK, pose(c, g, o) { ctx = c; G = g; O = o; } };
+return { S, vise, VISE, LUI, ENVOL, TH, TMX, FEUX, SURGE, INSP, INST, PARI, GF, RAG, REQ, DEP, ATK, pose(c, g, o) { ctx = c; G = g; O = o; } };
 })();
