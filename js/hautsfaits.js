@@ -128,7 +128,8 @@ function ferme() { clearTimeout(finT); if (scene.classList.contains('part')) ret
 // en tournant et en rapetissant, semant des étincelles ; le bouton l'avale, rebondit, et son compteur saute. La carte, elle, glisse hors de l'écran.
 function vole() {
   const b = scene.querySelector('.hf-badge'), r0 = b && b.getBoundingClientRect(), r1 = btn && btn.getBoundingClientRect();
-  if (!r0 || !r0.width || !r1 || !r1.width || r1.right < 0 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  // (vague 96 de l'audit : dans l'espace, le bouton est caché : le badge traversait les sous-titres pour rien ; il reste sur la carte, qui sort de l'écran)
+  if (!r0 || !r0.width || !r1 || !r1.width || r1.right < 0 || document.documentElement.classList.contains('espace') || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const v = b.cloneNode(true); v.classList.add('hf-vol'); v.style.cssText = `position:fixed;left:0;top:0;width:${r0.width}px;height:${r0.height}px;z-index:36;pointer-events:none;color:${getComputedStyle(scene).color}`;
   v.style.setProperty('--c', scene.style.getPropertyValue('--c')); document.body.appendChild(v); b.style.visibility = 'hidden';
   const x0 = r0.left + r0.width / 2, y0 = r0.top + r0.height / 2, x1 = r1.left + r1.width / 2, y1 = r1.top + r1.height / 2;
