@@ -867,7 +867,9 @@ function drawFx(S) {
     const u = (t - f.t0) / f.life, fade = (1 - sm((u - 0.6) / 0.4)) * Wd.a;
     if (f.k === 'txt') {
       if (f.text === '♥') heart(f.x, f.y - u * 20, 7 * K, fade);
-      else C.text(f.text, f.x, f.y - u * 14, c01(u * 4), { size: f.size, align: 'center', rot: f.rot, a: 0.75 * fade });
+      else { // (vague 43, l'audit : « la tour », finition) : un mot près du bord ne sort jamais de l'écran (« PATATRAS ! » était coupé à droite)
+        const w2 = (f.w2 ??= String(f.text).length * f.size * K * 0.3 + 10), x = Math.max(w2 + (Wd.mode === 'large' ? 64 : 8), Math.min(Wd.W - w2 - 8, f.x));
+        C.text(f.text, x, f.y - u * 14, c01(u * 4), { size: f.size, align: 'center', rot: f.rot, a: 0.75 * fade }); }
     } else if (f.k === 'z') C.text(u < 0.5 ? 'z' : 'Z', f.x + f.dx * u * 18 + Math.sin(u * 7) * 5, f.y - u * 40, 1, { size: 12 + u * 10, a: 0.6 * fade });
     else if (f.k === 'dust') { for (let i = -1; i <= 1; i += 2) for (let j = 0; j < 2; j++) { const a0 = f.r * (0.5 + u * 0.8), h = (j + 1) * 5; C.line(f.x + i * a0, f.y - h * 0.4, f.x + i * (a0 + 8 + u * 8), f.y - h, 1, { w: 1.6, a: 0.5 * f.a * (1 - u), seed: f.seed + i + j }); } }
     else if (f.k === 'calage') calage(f, t, K);
@@ -915,6 +917,18 @@ function rayons(f, u, t) {
 function rouleaux(f, d, fade, K) {
   const g = f.g; if (!g || !Wd.props.includes(g)) { f.life = 0; return; }
   const m = Univers.at(g, [0, 1.02, 0]), w = Math.max(32, g.s * 0.26) * K, h = w * 1.25, S = ['★', '♥', '7', '$', '♣'];
+  // (vague 43, l'audit : « le distributeur fou », finition) : une vraie façade de machine à sous : un cadre, ses ampoules qui courent (toutes
+  // allumées, en rafale, quand le dernier 7 tombe), la ligne de paiement, et le levier qu'une patte invisible tire au départ
+  { const X0 = m[0] - w * 1.15 * 1.5 - w * 0.2, X1 = m[0] + w * 1.15 * 1.5 + w * 0.2, Y0 = m[1] - h * 0.6 - h * 0.72, Y1 = m[1] - h * 0.6 + h * 0.72, fin = d > 1.8, nb = 22, per = 2 * (X1 - X0 + Y1 - Y0);
+    Chalk.stroke([[X0, Y0], [X1, Y0], [X1, Y1], [X0, Y1], [X0, Y0]], 1, { w: 2.4, a: 0.9 * fade, seed: f.seed + 7, tip: false });
+    for (let i = 0; i < nb; i++) { let u = i / nb * per, bx, by; const lw = X1 - X0, lh = Y1 - Y0;
+      if (u < lw) { bx = X0 + u; by = Y0; } else if ((u -= lw) < lh) { bx = X1; by = Y0 + u; } else if ((u -= lh) < lw) { bx = X1 - u; by = Y1; } else { bx = X0; by = Y1 - (u - lw); }
+      const on = fin ? Math.sin(d * 40) > 0 : (i + Math.floor(d * 12)) % 3 === 0, r = Math.max(3.5, w * 0.09);
+      if (on) Chalk.dot(bx, by, r, 0.85 * fade); else Chalk.circle(bx, by, r, r, 1, { w: 1, a: 0.6 * fade, seed: f.seed + 20 + i }); }
+    const yl = m[1] - h * 0.6; [[X0 - w * 0.08, 1], [X1 + w * 0.08, -1]].forEach(([x, sg]) => Chalk.stroke([[x - sg * w * 0.18, yl - w * 0.1], [x, yl], [x - sg * w * 0.18, yl + w * 0.1]], 1, { w: 1.6, a: 0.8 * fade, seed: f.seed + 30 + sg, tip: false }));
+    const tire = d < 0.25 ? Math.sin(d / 0.25 * Math.PI / 2) : Math.max(0, 1 - (d - 0.25) * 3), an = -0.55 + tire * 1.5, lx = X1 + w * 0.35, ly = yl + h * 0.1, L = h * 0.8;
+    Chalk.stroke([[X1, ly], [lx, ly]], 1, { w: 2, a: 0.85 * fade, seed: f.seed + 40, tip: false });
+    const bx = lx + Math.cos(an) * L * 0.25, by = ly + Math.sin(an) * L; Chalk.stroke([[lx, ly], [bx, by]], 1, { w: 2.2, a: 0.9 * fade, seed: f.seed + 41, tip: false }); Chalk.dot(bx, by, Math.max(5, w * 0.16), 0.9 * fade); }
   for (let i = 0; i < 3; i++) { const x = m[0] + (i - 1) * w * 1.15, y = m[1] - h * 0.6, stop = 0.9 + i * 0.45, pose = d > stop;
     Chalk.stroke([[x - w / 2, y - h / 2], [x + w / 2, y - h / 2], [x + w / 2, y + h / 2], [x - w / 2, y + h / 2], [x - w / 2, y - h / 2]], 1, { w: 2, a: 0.85 * fade, seed: f.seed + i, tip: false });
     if (pose) { const b = Math.exp(-(d - stop) * 9) * Math.sin((d - stop) * 30) * h * 0.12; Chalk.text('7', x, y + b + h * 0.02, 1, { size: h * 0.7, align: 'center', a: 0.9 * fade }); }

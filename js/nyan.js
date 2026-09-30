@@ -35,7 +35,7 @@ const coupe = (P, now, vie) => { vie = vie || VIE; while (P.length && now - P[0]
 
 /* ——— dans la pièce ——— */
 const VOLS = [];   // { c, P } : les rubans (ils restent le temps de s'effacer, même le chat parti)
-let ARCHE = null;   // la grande arche (le bouquet de la parade) : { xs, xe, yb, yp, dir, bw, pret, fin }
+let ARCHE = null, PAP = null;   // la grande arche (le bouquet de la parade) : { xs, xe, yb, yp, dir, bw, pret, fin }
 const archePt = (A, u) => [A.xs + (A.xe - A.xs) * u, A.yb - (A.yb - A.yp) * Math.sin(Math.PI * clamp(u, 0, 1))];
 STEPS.nyan = (c, T, dt) => {
   if (!T.P) { T.P = []; VOLS.push({ c, P: T.P, vie: T.vie, bw: T.bw, dir: T.dir }); T.y0 = c.y; c.face = T.dir; }
@@ -71,7 +71,7 @@ function vol(o) {
   const T = { k: 'nyan', air: true, dir, v: Wd.W / (o.dur || rnd(4.5, 6)) };
   if (o.boucle) { T.boucle = Wd.W * (dir > 0 ? 0.42 : 0.58); T.R = clamp((bas - haut) * 0.42, s * 1.2, Wd.H * 0.2); }
   if (o.arche) { const yb = floorAt(0.2), A = { xs: Wd.W * (dir > 0 ? 0.1 : 0.9), xe: Wd.W * (dir > 0 ? 0.9 : 0.1), yb: yb - 2, yp: Math.max((Wd.ceil || Wd.H * 0.25) + s * 0.3, yb - Wd.H * 0.55), dir, bw: Math.max(5, s * 0.075) };
-    ARCHE = A; T.arche = A; T.dur = 2.6; T.vie = 20; T.bw = A.bw; c.d = 0.2; c.x = A.xs; c.y = A.yb + s * 0.42; }
+    A.t0 = Wd.t; ARCHE = A; T.arche = A; T.dur = 2.6; T.vie = 20; T.bw = A.bw; c.d = 0.2; c.x = A.xs; c.y = A.yb + s * 0.42; }
   c.q = [T, fn(k => { k.gone = true; })];
   return c;
 }
@@ -110,6 +110,15 @@ function parade() {
 H.draw.push(() => {
   const ctx = window.Chalk && Chalk.ctx; if (!ctx || Wd.a < 0.05) return; const now = Wd.t;
   for (let i = VOLS.length - 1; i >= 0; i--) { const V = VOLS[i]; coupe(V.P, now, V.vie); if (!V.P.length && !(V.c.task && V.c.task.P === V.P)) { VOLS.splice(i, 1); continue; } ruban(ctx, V.P, V.bw || Math.max(2.2, sc(V.c) * 0.035), now, Wd.a, V.dir, V.vie); }
+  // (vague 43, l'audit : « l'arc-en-ciel », finition) : l'arche ne sort pas du plancher, elle naît d'un nuage de craie et finit dans un autre ;
+  // chaque nuage gonfle quand l'arche le touche, se dégonfle quand elle s'en retire (et les chats du toboggan atterrissent dedans)
+  const A = ARCHE; if (A && A.t0) { const r0 = A.bw * 4.2, p1 = A.pret ? A.pret : 1e9;
+    [[A.xs, A.t0, A.t0 + 20], [A.xe, p1, p1 + 20]].forEach(([x, t1, t2], j) => { const g = Math.min(1, (now - t1) / 0.35), e = 1 - Math.min(1, Math.max(0, (now - t2 + 0.2) / 0.5)), k = g <= 0 ? 0 : (1 + 0.25 * Math.sin(Math.min(1, g) * Math.PI)) * Math.min(1, g) * e; if (k <= 0.02) return;
+      const r = r0 * k, y = A.yb - r * 0.35, B = [[-1.3, 0.25, 0.62], [-0.5, -0.2, 0.85], [0.45, -0.28, 0.95], [1.3, 0.2, 0.66], [0, 0.35, 0.8]].map(([dx, dy, rr]) => [x + dx * r, y + dy * r, rr * r * (1 + 0.04 * Math.sin(now * 3 + dx * 4 + j))]);
+      if (!PAP) { const c = getComputedStyle(document.body).backgroundColor; PAP = c && !/rgba\(.*,\s*0\)$|transparent/.test(c) ? c : 'rgb(237,236,231)'; }
+      ctx.save(); ctx.globalAlpha = Wd.a; ctx.strokeStyle = `rgb(${(window.THEME && THEME.ink) || Chalk.INK || "40,40,48"})`; ctx.lineWidth = 4.4; B.forEach(([bx, by, br]) => { ctx.beginPath(); ctx.arc(bx, by, br, 0, TAU); ctx.stroke(); });
+      ctx.fillStyle = PAP; B.forEach(([bx, by, br]) => { ctx.beginPath(); ctx.arc(bx, by, br - 0.2, 0, TAU); ctx.fill(); });
+      ctx.lineWidth = 1.2; ctx.globalAlpha = 0.5 * Wd.a; ctx.beginPath(); ctx.arc(x - r * 0.35, y - r * 0.1, r * 0.35, Math.PI * 1.1, Math.PI * 1.6); ctx.stroke(); ctx.restore(); }); }
 });
 // de temps en temps, un seul passe, sans prévenir (à tour de rôle avec les autres scénarios)
 if (K.SCEN) K.SCEN.push(() => { if (Wd.mode !== 'large' && Math.random() < 0.5) return false; return vol() ? undefined : false; });
