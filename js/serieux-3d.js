@@ -455,13 +455,20 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
   const FORGE = V(-0.72, 0.55, 0.9), NB = 40, boucle = segments(NB, L[2].a), tete2 = points(1, L[2].pa); R.add(boucle.l); R.add(tete2.p);   // la boucle de la tâche qui se répète
   const tours2 = segments(3, L[2].l); R.add(tours2.l); let t2 = null;   // trois crans : une, deux, trois fois
 
-  /* 3 · le banc d'essai : dix couloirs, dix outils qui courent ; un seul franchit la ligne en tête */
-  const piste = new T.Group(); piste.position.set(-0.2, -0.4, 0.2); piste.rotation.y = 0.05; piste.scale.setScalar(0.86); R.add(piste); const NL = 10, CO = [];
-  for (let i = 0; i < NL; i++) { const z = (i - (NL - 1) / 2) * 0.16; piste.add(trait([[-1.5, 0, z - 0.08], [1.5, 0, z - 0.08]], L[3].s)); }
-  piste.add(trait([[1.2, 0, -0.85], [1.2, 0, 0.85]], L[3].a)); piste.add(trait([[1.2, 0.18, -0.85], [1.2, 0.18, 0.85]], L[3].d));
-  for (let i = 0; i < NL; i++) { const g = new T.Group(); piste.add(g); solide(g, new T.BoxGeometry(0.1, 0.08, 0.08).translate(0, 0.04, 0), i === 6 ? L[3].a : L[3].l); CO.push({ g, z: (i - (NL - 1) / 2) * 0.16, v: i === 6 ? 1 : 0.55 + rnd() * 0.35 }); }
+  /* 3 · le banc d'essai : dix couloirs qui arrivent du fond vers nous, dix outils qui courent ; des portiques de chronométrage s'allument au passage du premier ;
+     à côté, le tableau des mesures se remplit en direct ; un seul franchit la ligne, les autres basculent hors de la piste */
+  const piste = new T.Group(); piste.position.set(0.35, -0.5, -0.2); piste.rotation.y = -1.36; R.add(piste); const NL = 10, CO = [], XD = -6.5, XA = 1.0, DP = XA - XD, NGT = 6;
+  for (let i = 0; i <= NL; i++) { const z = (i - NL / 2) * 0.16; piste.add(trait([[XD, 0, z], [1.7, 0, z]], L[3].s)); }
+  piste.add(trait([[XA, 0, -0.85], [XA, 0, 0.85]], L[3].a)); piste.add(trait([[XA, 0, -0.85], [XA, 0.42, -0.85], [XA, 0.42, 0.85], [XA, 0, 0.85]], L[3].d));
+  const GX = Array.from({ length: NGT }, (_, g) => XD + DP * (g + 1) / (NGT + 1));
+  piste.add(traits(GX.flatMap(x => [[x, 0, -0.85], [x, 0.36, -0.85], [x, 0.36, -0.85], [x, 0.36, 0.85], [x, 0.36, 0.85], [x, 0, 0.85]]), L[3].s));
+  const portes = segments(NGT * 3, L[3].a); piste.add(portes.l);
+  for (let i = 0; i < NL; i++) { const g = new T.Group(); piste.add(g); solide(g, new T.BoxGeometry(0.13, 0.1, 0.1).translate(0, 0.05, 0), i === 6 ? L[3].a : L[3].l); CO.push({ g, z: (i - (NL - 1) / 2) * 0.16, v: i === 6 ? 1 : 0.55 + rnd() * 0.35 }); }
   const sillages = segments(NL * 2, L[3].l); piste.add(sillages.l); const eclat = trait(cercleH(0.2, 48), L[3].a, true); piste.add(eclat);   // les traînées de vitesse, l'éclat du vainqueur
-  const BAR = CO.map((c, i) => { const g = new T.Group(); g.position.set(1.42, 0, c.z); piste.add(g); solide(g, new T.BoxGeometry(0.1, 1, 0.1).translate(0, 0.5, 0), i === 6 ? L[3].a : L[3].l); g.scale.y = 0.001; return g; });   // chaque arrivée dresse sa barre : le banc d'essai devient un classement
+  const NVI = 110, vitesse = points(NVI, L[3].p); piste.add(vitesse.p); const VI = Array.from({ length: NVI }, (_, j) => ({ o: rnd(), z: (j % 2 ? 1 : -1) * (0.95 + rnd() * 0.9), y: rnd() * 0.35, v: 0.6 + rnd() * 0.8 }));   // le décor qui défile
+  const RG = CO.map((c, i) => i).sort((a, b) => CO[b].v - CO[a].v), tab = new T.Group(); tab.position.set(0.72, 0.95, -0.4); R.add(tab);   // le tableau des mesures, trié
+  tab.add(trait([[-0.02, 0.05, 0], [-0.02, -NL * 0.075, 0]], L[3].s)); tab.add(trait([[0.8, 0.05, 0], [0.8, -NL * 0.075, 0]], L[3].d));
+  const BAR = CO.map((c, i) => { const g = new T.Group(); g.position.set(0, -RG.indexOf(i) * 0.075, 0); tab.add(g); solide(g, new T.BoxGeometry(1, 0.035, 0.02).translate(0.5, 0, 0), i === 6 ? L[3].a : L[3].l); g.scale.x = 0.001; return g; });
 
   /* 4 · le produit monte au centre, nourri par tout le mur de terminaux */
   const prod = new T.Group(); prod.position.set(0, -0.55, 0.75); R.add(prod); const ET = [];
@@ -487,7 +494,7 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
   const juge = perso(L[5].l, true); juge.position.set(0.58, -0.3, 0.3); juge.scale.setScalar(0.72); R.add(juge);
 
   /* la caméra de chaque étape : [rx, ry, zoom, décalage x, décalage y] */
-  const VUE = [[0.05, -0.05, 0.8, 0.1, 0], [0.12, 0, 0.85, -0.05, 0.05], [0.3, 0.1, 1.0, -0.1, 0.08], [0.55, -0.1, 0.95, 0, 0.1], [0.2, -0.1, 0.9, 0, 0], [0.1, -0.05, 1.05, 0, -0.05], [0.2, 0, 0.9, 0, 0]];
+  const VUE = [[0.05, -0.05, 0.8, 0.1, 0], [0.12, 0, 0.85, -0.05, 0.05], [0.3, 0.1, 1.0, -0.1, 0.08], [0.26, -0.1, 0.86, 0.0, 0.1], [0.2, -0.1, 0.9, 0, 0], [0.1, -0.05, 1.05, 0, -0.05], [0.2, 0, 0.9, 0, 0]];
   const cam = { rx: 0.1, ry: 0, z: 0.8, x: 0, y: 0 }; let t0 = null;
   o.tick = (t, v) => {
     const pas = v.pas === undefined ? 6 : v.pas, S = Math.min(5, Math.floor(pas)), k = i => c01(pas - i);
@@ -542,11 +549,14 @@ function atelier() {   // Méthode : un geste par étape, en grand (Mathieu, 28/
       for (let j = 0; j < 3; j++) { const vu = fg && ang >= (j + 1) * TAU - 0.01 && cur < NS, x = FORGE.x - 0.42 + j * 0.06; tours2.pos.set(vu ? [x, FORGE.y - 0.05, FORGE.z, x, FORGE.y + 0.05, FORGE.z] : [0, -99, 0, 0, -99, 0], j * 6); }
       boucle.a.needsUpdate = true; tete2.a.needsUpdate = true; tours2.a.needsUpdate = true; }
     /* 3 : la course, qui recommence */
-    piste.visible = f[3] > 0.01; const tc = (t * 0.28) % 1;
-    CO.forEach((c, i) => { const x = -1.4 + Math.min(2.7, 2.9 * tc * c.v * 1.1), va = x < 1.3 ? c.v : 0; const chute = c.v === 1 ? 0 : c01((tc - 0.8 - i * 0.012) / 0.16); c.g.position.set(x + chute * 0.25, -chute * chute * 1.6, c.z); c.g.rotation.set(chute * 1.5 * (i % 2 ? 1 : -1), 0, -chute * 2.2); c.g.scale.y = x > 1.2 && c.v === 1 ? 1.6 : 1;   // un seul reste : les autres basculent hors de la piste
-      for (let j = 0; j < 2; j++) { const dy = 0.02 + j * 0.04, l = va * (1 - chute) * (0.35 + 0.25 * Math.sin(t * 20 + i + j)); sillages.pos.set([x - 0.06 - l, dy, c.z + (j - 0.5) * 0.03, x - 0.06, dy, c.z + (j - 0.5) * 0.03], (i * 2 + j) * 6); } });
-    CO.forEach((c, i) => { const arr = 2.9 * tc * c.v * 1.1 >= 2.6, cible = arr ? 0.12 + 0.75 * Math.pow(c.v, 3) : 0.001; BAR[i].scale.y = Math.max(0.001, lerp(BAR[i].scale.y, cible, arr ? 0.12 : 0.4)); BAR[i].visible = f[3] > 0.01; });
-    sillages.a.needsUpdate = true; { const w = CO.find(c => c.v === 1), xg = -1.4 + 2.9 * tc * 1.1, k = c01((xg - 1.2) / 0.9); eclat.position.set(1.2, 0.02, w.z); eclat.scale.setScalar(0.2 + k * 5); eclat.visible = k > 0 && k < 1; }
+    piste.visible = tab.visible = f[3] > 0.01; const tc = (t * 0.2) % 1, xg = XD + Math.min(DP + 0.3, DP * 1.25 * tc);
+    CO.forEach((c, i) => { const x = XD + Math.min(DP + 0.3, DP * 1.25 * tc * c.v), va = x < XA ? c.v : 0; const chute = c.v === 1 ? 0 : c01((tc - 0.82 - i * 0.012) / 0.14); c.g.position.set(x, -chute * chute * 1.6, c.z + chute * (c.z > 0 ? 0.6 : -0.6)); c.g.rotation.set(chute * 1.5 * (i % 2 ? 1 : -1), 0, -chute * 2.2); c.g.scale.y = x > XA && c.v === 1 ? 1.6 : 1;   // un seul reste : les autres basculent hors de la piste
+      for (let j = 0; j < 2; j++) { const dy = 0.02 + j * 0.04, l = va * (1 - chute) * (0.6 + 0.4 * Math.sin(t * 20 + i + j)); sillages.pos.set([x - 0.06 - l, dy, c.z + (j - 0.5) * 0.03, x - 0.06, dy, c.z + (j - 0.5) * 0.03], (i * 2 + j) * 6); }
+      BAR[i].scale.x = Math.max(0.001, 0.8 * c01((x - XD) / DP) * (1 - chute * 0.6)); });
+    sillages.a.needsUpdate = true; { const w = CO.find(c => c.v === 1), k = c01((xg - XA) / 1.2); eclat.position.set(XA, 0.02, w.z); eclat.scale.setScalar(0.2 + k * 5); eclat.visible = k > 0 && k < 1; }
+    GX.forEach((x, g) => { const fl = c01(1 - (xg - x) / 0.9), on = f[3] > 0.05 && xg >= x && fl > 0; const h = 0.36 * (0.6 + 0.4 * fl);
+      portes.pos.set(on ? [x, 0, -0.85, x, h, -0.85, x, h, -0.85, x, h, 0.85, x, h, 0.85, x, 0, 0.85] : new Array(18).fill(0).map((_, j) => j % 3 === 1 ? -99 : 0), g * 18); }); portes.a.needsUpdate = true;
+    VI.forEach((p, j) => { const q = (t * 0.35 * p.v + p.o) % 1; vitesse.pos.set(f[3] > 0.05 ? [XD + q * (DP + 1.5), p.y, p.z] : [0, -99, 0], j * 3); }); vitesse.a.needsUpdate = true;
     /* 4 : le produit, étage par étage, nourri par le mur */
     const k4 = S >= 4 ? k(4) : 0; prod.visible = f[4] > 0.01;
     ET.forEach((e, i) => { const q = sm(k4 * (NF + 1) - i); e.visible = q > 0.02; e.scale.set(1, Math.max(0.02, q), 1); });
@@ -755,6 +765,25 @@ function immeuble() {   // MARKO : un parc d'immeubles ; l'anneau IA descend lir
   const cone = segments(4, o.m.d); o.g.add(cone.l);
   const etg = segments(4 * 13, o.m.a); o.g.add(etg.l);   // les étages lus, qui s'allument de bas en haut
   const doc = new T.Group(); o.g.add(doc); doc.add(trait([[-0.07, 0, -0.09], [0.07, 0, -0.09], [0.07, 0, 0.09], [-0.07, 0, 0.09]], o.m.l, true)); doc.add(traits([[-0.04, 0, -0.04], [0.04, 0, -0.04], [-0.04, 0, 0.01], [0.03, 0, 0.01]], o.m.s));
+  /* tout le parc du client, jusqu'à l'horizon : des centaines d'immeubles pâles dont les fenêtres s'allument */
+  let gr = 7; const al2 = () => { gr = (gr * 16807) % 2147483647; return gr / 2147483647; };
+  const hz0 = piece(o, [0, 0, 0], [0, 0, 0], { fond: true }), hs = [], NWI = 520, fen2 = nuage(NWI), PHW = [];
+  const HB = []; while (HB.length < 95) { const a = al2() * TAU, r = 1.9 + Math.pow(al2(), 0.8) * 3.8, x = Math.cos(a) * r * 1.3, z = Math.sin(a) * r - 0.6; if (Math.abs(x) < 1.7 && z > -1.3) continue; HB.push([x, z, 0.22 + al2() * 0.3, 0.3 + al2() * al2() * 1.6]); }
+  HB.forEach(([x, z, w, h]) => { const q = w / 2, y0 = Y0 - 0.06, y1 = y0 + h, C = [[-q, -q], [q, -q], [q, q], [-q, q]];
+    C.forEach((c, j) => { const d = C[(j + 1) % 4]; hs.push([x + c[0], y0, z + c[1]], [x + c[0], y1, z + c[1]], [x + c[0], y1, z + c[1]], [x + d[0], y1, z + d[1]]); }); });
+  hz0.g.add(traits(hs, o.m.s));
+  for (let i = 0; i < NWI; i++) { const [x, z, w, h] = HB[i % HB.length], f = al2() < 0.5, u = (al2() - 0.5) * w * 0.8, y = Y0 + 0.05 + al2() * (h - 0.12);
+    fen2.P.set(f ? [x + u, y, z + w / 2] : [x + w / 2, y, z + u], i * 3); fen2.H[i] = al2() < 0.18 ? 1 : 0; PHW.push([al2() * TAU, 0.3 + al2() * 1.2]); }
+  hz0.g.add(fen2.p);
+  /* les documents de prêt arrivent de partout, en tourbillonnant, et plongent dans l'anneau ; les rapports en repartent */
+  const ND = 34, NR = 7, docs = segments(ND * 4, o.m.s), rapp = segments(NR * 4, o.m.a); o.g.add(docs.l, rapp.l);
+  const DD = Array.from({ length: ND }, (_, j) => ({ ph: j / ND, a: al2() * TAU, y: 0.6 + al2() * 2.4, z: (al2() - 0.5) * 3.2, sp: 0.6 + al2() * 1.2 }));
+  const feuille = (sg, k, c, ro, sc) => { const w = 0.085 * sc, h = 0.11 * sc, ca = Math.cos(ro), sa = Math.sin(ro), cb = Math.cos(ro * 0.7), sb = Math.sin(ro * 0.7);
+    const U = [ca * w, 0, sa * w], W2 = [-sa * sb * h, cb * h, ca * sb * h], P = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([m, n]) => [c.x + U[0] * m + W2[0] * n, c.y + U[1] * m + W2[1] * n, c.z + U[2] * m + W2[2] * n]);
+    for (let j = 0; j < 4; j++) sg.pos.set([...P[j], ...P[(j + 1) % 4]], (k * 4 + j) * 6); };
+  const cache4 = (sg, k) => { for (let j = 0; j < 4; j++) sg.pos.set([0, -99, 0, 0, -99, 0], (k * 4 + j) * 6); };
+  const ON = [0, 1, 2].map(() => { const m = matieres(); MATS.push(m); const l = trait(cercleH(1, 64, 0, 0.004, 0), m.a, true); G[3].add(l); return { l, m }; });
+  const ca0 = V(), vd = V(), vr = V();
   let der = -1;
   o.tick = (t, v) => {
     const T0 = t * 0.32, i = Math.floor(T0) % BAT.length, e = T0 % 1, b = BAT[i], k = sm(v.loc * 1.6);
@@ -777,6 +806,19 @@ function immeuble() {   // MARKO : un parc d'immeubles ; l'anneau IA descend lir
     J.forEach((j, n) => { j.rem.scale.y = Math.max(0.001, lerp(j.rem.scale.y, j.v * (0.5 + 0.5 * k) / 0.3 * 0.3, 0.1)); });
     if (i === 3 && e > 0.85) al.visible = true;
     al.scale.setScalar(1 + 0.2 * Math.max(0, Math.sin(t * 6))); al.rotation.y = -o.g.rotation.y;
+    ON.forEach((w, j) => { const q2 = (t * 0.45 + j / 3) % 1; w.l.visible = al.visible; w.l.scale.set(0.3 + q2 * 1.6, 1, 0.3 + q2 * 1.6); opac(w.m, o.op * (1 - q2) * 0.9); });
+    for (let j = 0; j < NWI; j++) { const [ph, f] = PHW[j]; fen2.A[j] = 0.25 + 0.75 * sm((Math.sin(t * f + ph) - 0.3) / 0.7); }
+    fen2.maj(); fen2.m.uniforms.op.value = o.op * 0.75 * k; fen2.m.uniforms.sz.value = 2.2 * PR;
+    /* le flux : de loin, le document tourne, se rapproche, rapetisse et disparaît dans l'anneau */
+    anneau.getWorldPosition(ca0); o.g.worldToLocal(ca0); const on = o.op > 0.02;
+    DD.forEach((d, j) => { const q = (t * 0.11 * d.sp + d.ph) % 1; if (!on) { cache4(docs, j); return; }
+      const e2 = q * q * (3 - 2 * q), R0 = 4.6 * (1 - e2), a = d.a + e2 * 2.4;
+      vd.set(ca0.x + Math.cos(a) * R0, lerp(d.y, ca0.y, e2) + Math.sin(e2 * Math.PI) * 0.4, ca0.z + Math.sin(a) * R0 * 0.55 + d.z * (1 - e2));
+      feuille(docs, j, vd, t * d.sp * 1.3 + j, 1.4 * (1 - Math.pow(e2, 3)) + 0.05); });
+    docs.a.needsUpdate = true;
+    for (let j = 0; j < NR; j++) { const q = (t * 0.09 + j / NR) % 1; if (!on) { cache4(rapp, j); continue; }
+      vr.set(lerp(ca0.x, 4.2, q) + Math.sin(q * 5 + j) * 0.1, ca0.y + q * 2.6 + Math.sin(q * Math.PI) * 0.4, lerp(ca0.z, -1.6 + j * 0.25, q)); feuille(rapp, j, vr, 0.3 + q * 2 + j, 0.2 + q * 1.1); }
+    rapp.a.needsUpdate = true;
   };
   o.rot = t => [0.34, -0.6 + Math.sin(t * 0.2) * 0.22];
 }
@@ -793,7 +835,7 @@ function fleur() {   // HUman : une seule nuée de particules raconte le livre, 
       if (i % 5 < 2) { const k = i % 5 ? (i >> 1) % 5 : (i >> 3) % 5, xs = B[k][0] + B[k][1] / 2, xe = B[5][0] + B[5][1] / 2, v = R[i][0], hh2 = 0.22 + 0.09 * (5 - k);   // l'attention : chaque jeton passé tend un arc vers le mot à prédire
         f.p.set([lerp(xs, xe, v), 0.19 + Math.sin(Math.PI * v) * hh2, (R[i][1] - 0.5) * 0.015], i * 3); f.h[i] = v > 0.86 ? 1 : 0; } } F.push(f); }
   /* la fleur : chaque graine à 137,5° de la précédente */
-  { const f = mk(); for (let i = 0; i < N; i++) { const r = 0.03 * Math.sqrt(i), a = i * 137.5 * Math.PI / 180; f.p.set([Math.cos(a) * r, 0.25 - r * r * 0.3, Math.sin(a) * r], i * 3); f.h[i] = i < 21 ? 1 : 0; } F.push(f); }
+  { const f = mk(); for (let i = 0; i < N; i++) { const r = 0.024 * Math.sqrt(i), a = i * 137.5 * Math.PI / 180; f.p.set([Math.cos(a) * r, 0.25 - r * r * 0.3, Math.sin(a) * r], i * 3); f.h[i] = i < 21 ? 1 : 0; } F.push(f); }
   /* l'atome : un noyau, trois orbites */
   { const f = mk(), E = [new T.Euler(1.2, 0, 0), new T.Euler(1.2, 1.05, 0), new T.Euler(1.2, -1.05, 0)];
     for (let i = 0; i < N; i++) { if (i < N * 0.18) { const u = R[i][0] * TAU, cz = R[i][1] * 2 - 1, r = 0.14 * Math.cbrt(R[i][2]), s = Math.sqrt(1 - cz * cz); f.p.set([Math.cos(u) * s * r, cz * r + 0.1, Math.sin(u) * s * r], i * 3); f.h[i] = 1; continue; }
@@ -805,6 +847,10 @@ function fleur() {   // HUman : une seule nuée de particules raconte le livre, 
   { const f = mk(); for (let i = 0; i < N; i++) { const s = i % 2 ? 1 : -1, u = R[i][0] * TAU, v = Math.acos(R[i][1] * 2 - 1), pl = 1 + 0.07 * Math.sin(u * 7 + v * 9) * Math.sin(v * 5);
     const x = s * (0.36 + 0.34 * Math.sin(v) * Math.abs(Math.cos(u)) * pl), y = 0.18 + 0.48 * Math.cos(v) * pl, z = 0.72 * Math.sin(v) * Math.sin(u) * pl; f.p.set([x, y, z], i * 3); f.h[i] = R[i][2] > 0.985 ? 1 : 0; } F.push(f); }
   const ROT = [0.1, 0.75, 0.45, 0.9, 0.2];
+  /* l'encre : des milliers de gouttes dérivent dans tout l'écran ; à chaque métamorphose, un tourbillon les aspire vers la forme puis les relâche */
+  const NA = 1500, en = nuage(NA), pe = piece(o, [0, 0, 0], [0, 0, 0], { fond: true }); pe.g.add(en.p);
+  const EA = Array.from({ length: NA }, (_, i) => { const r = 1.3 + Math.pow(rnd(), 0.6) * 4.2, a = rnd() * TAU; return [Math.cos(a) * r * 1.3, (rnd() - 0.45) * 4.2, Math.sin(a) * r - 1.2, rnd(), 0.2 + rnd() * 0.8]; });
+  for (let i = 0; i < NA; i++) en.H[i] = EA[i][3] > 0.93 ? 1 : 0;
   let rx = 0.3;
   o.tick = (t, v) => {
     const DUR = 4.2, T0 = t / DUR, s = Math.floor(T0) % F.length, u = T0 % 1, A = F[s], B = F[(s + 1) % F.length], m = c01((u - 0.62) / 0.38);
@@ -813,6 +859,10 @@ function fleur() {   // HUman : une seule nuée de particules raconte le livre, 
       nu.H[i] = lerp(A.h[i], B.h[i], k); nu.A[i] = 1; }
     nu.maj(); nu.m.uniforms.op.value = o.op; nu.m.uniforms.sz.value = 2.4 * PR;
     rx = lerp(ROT[s], ROT[(s + 1) % F.length], sm(m)); pc.g.rotation.y = t * 0.15;
+    { const asp = Math.sin(Math.PI * m) * 0.75; for (let i = 0; i < NA; i++) { const E = EA[i], a = t * 0.05 * E[4] + asp * 2.2 * (1 - E[3] * 0.5), c = Math.cos(a), sn = Math.sin(a), f2 = 1 - asp * (0.55 + E[3] * 0.4);
+        const x0 = E[0] + Math.sin(t * 0.3 * E[4] + i) * 0.08, z0 = E[2], y0 = E[1] + Math.sin(t * 0.2 + E[3] * 9) * 0.1; en.P.set([(x0 * c - (z0 + 1.2) * sn) * f2, y0 * f2 + 0.1 * (1 - f2), ((x0 * sn + (z0 + 1.2) * c)) * f2 - 1.2 * f2], i * 3);
+        en.A[i] = 0.35 + 0.65 * E[4]; }
+      en.maj(); en.m.uniforms.op.value = o.op * 0.8; en.m.uniforms.sz.value = 2.5 * PR; pe.g.rotation.y = t * 0.03; }
   };
   o.rot = t => [rx, 0];
 }
@@ -967,6 +1017,9 @@ function bougies() {   // NumerusX : des chandeliers, des agents qui les lisent,
     for (let i = 0; i < 22; i++) { const x = -1.25 + i * 0.12, ouv = px, clo = px + Math.sin(i * 2.3 + r * 4) * 0.14; px = clo; const a = Math.min(ouv, clo), b = Math.max(ouv, clo) + 0.02;
       segs.push([x - 0.025, a, z], [x + 0.025, a, z], [x + 0.025, a, z], [x + 0.025, b, z], [x + 0.025, b, z], [x - 0.025, b, z], [x - 0.025, b, z], [x - 0.025, a, z], [x, a - 0.05, z], [x, a, z], [x, b, z], [x, b + 0.05, z]); }
     const l = traits(segs, o.m.s); p.g.add(l); return p; });
+  /* la houle du marché : une surface de prix qui ondule jusqu'à l'horizon ; une crête dorée suit le cours */
+  const HX = 44, HZ = 22, houle = segments(HZ * (HX - 1) + HX * (HZ - 1), o.m.s), crete = segments(HX - 1, o.m.a), HP = new Float32Array(HX * HZ * 3); o.g.add(houle.l, crete.l);
+  const hxz = (i, j) => [-4.6 + i * 9.2 / (HX - 1), -4.8 + j * 4.6 / (HZ - 1)];
   const rayons = segments(3, o.m.a); o.g.add(rayons.l);   // chaque agent lit la dernière bougie
   const ag = piece(o, [0, 2.2, -0.5]), A = []; for (let i = 0; i < 3; i++) { const g = new T.Group(); ag.g.add(g); solide(g, new T.OctahedronGeometry(0.07), i === 0 ? o.m.a : o.m.l, 1); g.add(trait(cercleH(0.13, 24), o.m.s, true)); A.push(g); }
   /* l'évolution : devant la dernière bougie, une génération de stratégies s'ouvre en éventail vers nous ; les moins bonnes tombent, la meilleure s'allume et engendre la suivante */
@@ -988,6 +1041,13 @@ function bougies() {   // NumerusX : des chandeliers, des agents qui les lisent,
         if (lui) elu.pos.set(vu && ph > 0.6 ? [...P0, ...P1] : [0, -99, 0, 0, -99, 0], k2 * 6); } });
       pop.a.needsUpdate = true; elu.a.needsUpdate = true; }
 
+    { const on = o.op > 0.02, lv = -0.66 + 0.04 * k; for (let j = 0; j < HZ; j++) for (let i = 0; i < HX; i++) { const [x, z] = hxz(i, j), d = Math.min(1, -z / 4.8);
+        const y = lv - 0.08 + (Math.sin(x * 0.9 - t * 0.8 + z * 0.5) * 0.18 + Math.sin(x * 2.3 + z * 1.7 + t * 1.3) * 0.07 + Math.sin(z * 1.1 - t * 0.5) * 0.12) * (0.3 + d * 1.4) * k + d * 0.4; HP.set([x, y, z], (j * HX + i) * 3); }
+      let q = 0; const P = (i, j) => { const n = (j * HX + i) * 3; return [HP[n], HP[n + 1], HP[n + 2]]; };
+      for (let j = 0; j < HZ; j++) for (let i = 0; i < HX - 1; i++) houle.pos.set(on ? [...P(i, j), ...P(i + 1, j)] : [0, -99, 0, 0, -99, 0], (q++) * 6);
+      for (let i = 0; i < HX; i++) for (let j = 0; j < HZ - 1; j++) houle.pos.set(on ? [...P(i, j), ...P(i, j + 1)] : [0, -99, 0, 0, -99, 0], (q++) * 6);
+      const jc = Math.floor((t * 2.2) % HZ); for (let i = 0; i < HX - 1; i++) crete.pos.set(on ? [...P(i, jc), ...P(i + 1, jc)].map((c, n) => n % 3 === 1 ? c + 0.004 : c) : [0, -99, 0, 0, -99, 0], i * 6);
+      houle.a.needsUpdate = true; crete.a.needsUpdate = true; }
     A.forEach((g, i) => { const a = t * 0.5 + i * TAU / 3, x = Math.cos(a) * 0.9; g.position.set(x, 0.75 + Math.sin(t * 1.2 + i) * 0.05, Math.sin(a) * 0.35); g.rotation.y = t; });
     const cible = B[Math.max(0, vis - 1)]; A.forEach((g, i) => { const on = (t * 0.7 + i / 3) % 1 < 0.35; rayons.pos.set(on ? [g.position.x, g.position.y, g.position.z, cible.position.x, 0.2, 0] : [0, -9, 0, 0, -9, 0], i * 6); }); rayons.a.needsUpdate = true;
   };
