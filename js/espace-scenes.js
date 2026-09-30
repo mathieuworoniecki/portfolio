@@ -377,11 +377,39 @@ function ragUI(o, now) {
         o.font = '600 10px ui-monospace,Menlo,Consolas,monospace'; o.fillStyle = '#ffe9a8'; o.textAlign = 'left'; o.fillText(en() ? 'found' : 'trouvé', px + 18, py + 24); } } }
   o.restore();
 }
+// (vague 88, l'audit : « back-end », elle sort d'elle-même) : le vrai site est un client de ce back-end. Chaque élément de l'interface envoie
+// ses requêtes (des enveloppes qui filent en arc jusqu'à la passerelle de la scène) ; la réponse revient en fiche de données, l'élément la
+// reçoit (un petit sursaut, « 200 »). La souris posée sur un bouton le fait mitrailler : au-delà de cinq requêtes, la passerelle limite
+// le débit : les enveloppes reviennent tamponnées « 429 » et le bouton se fait secouer
+const REQ = { t: -99, gx: 0, gy: 0, L: [], ui: null, uiT: -9, next: 0, hov: null, hT: 0 };
+function requetes(o, now) {
+  const on = now - REQ.t < 0.3 && !reduitMvt(), P = souris();
+  if (!REQ.ui || now - REQ.uiT > 1) { REQ.uiT = now; REQ.ui = [...document.querySelectorAll('#brand, #lang-pick, .film-ui .ctrl > *, #chap > *')].filter(e => !e.closest('.scenes, #stage')).map(e => ({ e, b: e.getBoundingClientRect(), h: [] })).filter(q => q.b.width > 0); }
+  const envoie = q => { q.h = q.h.filter(t => now - t < 2); q.h.push(now); REQ.L.push({ q, t0: now, ok: q.h.length <= 4, s: bruit(now * 7.3) }); };
+  if (on) { let h = null; if (P) h = REQ.ui.find(q => P.x > q.b.left - 8 && P.x < q.b.right + 8 && P.y > q.b.top - 8 && P.y < q.b.bottom + 8);
+    if (h && now > REQ.hT) { REQ.hT = now + 0.16; envoie(h); } else if (!h && now > REQ.next && REQ.ui.length) { REQ.next = now + 0.5 + bruit(now) * 0.5; envoie(REQ.ui[Math.floor(bruit(now * 3.1) * REQ.ui.length)]); } }
+  if (!REQ.L.length) return; const cv = o.canvas, dp = dpDe(cv); o.save(); o.setTransform(dp, 0, 0, dp, 0, 0); o.lineCap = o.lineJoin = 'round';
+  const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
+  o.beginPath(); o.rect(0, 0, cv.width / dp, cv.height / dp); if (bd) o.rect(bd.x - 16, bd.y - 12, bd.w + 32, bd.h + 24); if (Pc) { o.moveTo(Pc.x + Pc.r * 1.2, Pc.y); o.arc(Pc.x, Pc.y, Pc.r * 1.2, 0, TAU); } o.clip('evenodd');
+  const gx = REQ.gx, gy = REQ.gy, AL = 0.75, RT = 0.7, ATT = 0.25;
+  const env = (x, y, rot, s, rouge) => { o.save(); o.translate(x, y); o.rotate(rot); o.scale(s * 1.25, s * 1.25); o.beginPath(); o.rect(-10, -7, 20, 14); o.strokeStyle = `rgb(${BL})`; o.lineWidth = 4.5; o.stroke(); o.fillStyle = PAP; o.fill(); o.strokeStyle = ENC; o.lineWidth = 1.2; o.stroke();
+    o.beginPath(); o.moveTo(-10, -7); o.lineTo(0, 1); o.lineTo(10, -7); o.stroke(); if (rouge) { o.rotate(-0.3); o.strokeStyle = '#e8574a'; o.lineWidth = 1.4; o.strokeRect(-11, -5, 22, 10); o.fillStyle = '#e8574a'; o.font = '800 8px "Space Grotesk",system-ui,sans-serif'; o.textAlign = 'center'; o.textBaseline = 'middle'; o.fillText('429', 0, 0.5); } o.restore(); };
+  const fiche = (x, y, rot, s) => { o.save(); o.translate(x, y); o.rotate(rot); o.scale(s * 1.25, s * 1.25); o.beginPath(); o.rect(-7, -10, 14, 20); o.strokeStyle = `rgb(${BL})`; o.lineWidth = 4.5; o.stroke(); o.fillStyle = PAP; o.fill(); o.strokeStyle = ENC; o.lineWidth = 1.2; o.stroke();
+    o.lineWidth = 1; o.beginPath(); for (let j = 0; j < 3; j++) { o.moveTo(-4, -5 + j * 5); o.lineTo(j === 2 ? 1 : 4, -5 + j * 5); } o.stroke(); o.restore(); };
+  REQ.L.forEach(r => { const b = r.q.b, ex = (b.left + b.right) / 2, ey = (b.top + b.bottom) / 2, t = now - r.t0, cx = (ex + gx) / 2 + (r.s - 0.5) * 220, cy = Math.min(ey, gy) - 120 - r.s * 80;
+    const at = (v, a, b2) => [(1 - v) * (1 - v) * a[0] + 2 * (1 - v) * v * cx + v * v * b2[0], (1 - v) * (1 - v) * a[1] + 2 * (1 - v) * v * cy + v * v * b2[1]];
+    if (t < AL) { const v = sm(t / AL), p = at(v, [ex, ey], [gx, gy]); env(p[0], p[1], Math.sin(t * 9 + r.s * 6) * 0.3, 1 - v * 0.45, false); return; }
+    const t2 = t - AL - ATT; if (t2 < 0) return; if (t2 < RT) { const v = sm(t2 / RT), p = at(1 - v, [ex, ey], [gx, gy]); if (r.ok) fiche(p[0], p[1], Math.sin(t2 * 7) * 0.3, 0.55 + v * 0.45); else env(p[0], p[1], t2 * 12, 0.6 + v * 0.5, true); return; }
+    if (!r.fait) { r.fait = true; r.q.e.animate(r.ok ? [{ transform: 'translateY(0)' }, { transform: 'translateY(-4px)' }, { transform: 'translateY(0)' }] : [{ transform: 'translateX(0)' }, { transform: 'translateX(-6px) rotate(-3deg)' }, { transform: 'translateX(6px) rotate(3deg)' }, { transform: 'translateX(-3px)' }, { transform: 'translateX(0)' }], { duration: r.ok ? 240 : 420, easing: 'ease-out', composite: 'add' }); }
+    const v = (t2 - RT) / 0.6; if (v < 1) { const tx = r.ok ? '200' : (en() ? '429 · too many requests' : '429 · trop de requêtes'), ty = ey > window.innerHeight / 2 ? b.top - 10 - v * 14 : b.bottom + 14 + v * 10; o.font = `700 ${r.ok ? 10 : 11}px ui-monospace,Menlo,Consolas,monospace`; o.textAlign = 'center'; o.textBaseline = 'middle';
+      o.save(); o.translate(ex, ty); o.scale(1 - v * 0.5, 1 - v * 0.5); o.strokeStyle = NUIT; o.lineWidth = 4; o.strokeText(tx, 0, 0); o.fillStyle = r.ok ? '#8fe0a0' : '#e8574a'; o.fillText(tx, 0, 0); o.restore(); } });
+  o.restore(); for (let i = REQ.L.length - 1; i >= 0; i--) if (now - REQ.L[i].t0 > AL + ATT + RT + 0.6 || now < REQ.L[i].t0) REQ.L.splice(i, 1);
+}
 function vise(c0, now) {
   const c = VISE.c, P = souris(); VISE.c = null; const dt = Math.min(0.2, Math.max(0, now - (VISE.t || now))); VISE.t = now;
   if (c && P && (VISE.id === null || VISE.id === c.id || VISE.k < 0.05)) { VISE.id = c.id; VISE.k = Math.min(1.6, VISE.k + dt * 1.4); VISE.rb = c; }
   else { VISE.k = Math.max(0, VISE.k - dt * 3); if (VISE.k === 0) VISE.id = null; }
-  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); const sg = now - SURGE.t0 < 1.6 && now >= SURGE.t0, ins = now - INSP.t < 0.3 || INSP.k > 0; if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length && !FEUX.length && !sg && !ins && !INST.q && !pariOn(now) && !(now - GF.t < 0.3 || GF.k > 0) && !(now - RAG.t < 0.3 || RAG.k > 0)) return; const o = toileVise(c0.canvas); if (now - RAG.t < 0.3 || RAG.k > 0) ragUI(o, now); if (now - GF.t < 0.3 || GF.k > 0) gardeFou(o, now); if (sg) eclairs(o, now); if (pariOn(now)) pari(o, now); if (ins) inspecteur(o, now); if (INST.q) installe(o, now);
+  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); const sg = now - SURGE.t0 < 1.6 && now >= SURGE.t0, ins = now - INSP.t < 0.3 || INSP.k > 0; if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length && !FEUX.length && !sg && !ins && !INST.q && !pariOn(now) && !(now - GF.t < 0.3 || GF.k > 0) && !(now - RAG.t < 0.3 || RAG.k > 0) && !(now - REQ.t < 0.3 || REQ.L.length)) return; const o = toileVise(c0.canvas); if (now - REQ.t < 0.3 || REQ.L.length) requetes(o, now); if (now - RAG.t < 0.3 || RAG.k > 0) ragUI(o, now); if (now - GF.t < 0.3 || GF.k > 0) gardeFou(o, now); if (sg) eclairs(o, now); if (pariOn(now)) pari(o, now); if (ins) inspecteur(o, now); if (INST.q) installe(o, now);
   TAMPON.forEach(q => tamponVitre(o, q, now - q.t0)); if (ENVOL.length) envols(o, now); if (FEUX.length) feux(o, now); if (!R || VISE.k <= 0 || !P) return;
   const W0 = window.Chats && Chats.K && Chats.K.Wd, chat = W0 && W0.cats.some(q => q.sp && q.sp.m === 'agrippe');
   const cv = o.canvas, dp = dpDe(cv), px = P.x * dp, py = P.y * dp, ln = Math.max(1, dp), k = VISE.k;
@@ -1391,6 +1419,7 @@ S.back = (() => ({
       if (t < 0.65) { cerne(() => { ctx.beginPath(); ctx.rect(p[0] - s, p[1] - s * 0.7, s * 2, s * 1.4); }, 0.6, al); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath(); ctx.moveTo(p[0] - s, p[1] - s * 0.7); ctx.lineTo(p[0], p[1]); ctx.lineTo(p[0] + s, p[1] - s * 0.7); ctx.stroke(); }
       else { cerne(() => { ctx.beginPath(); ctx.rect(p[0] - s * 0.75, p[1] - s, s * 1.5, s * 2); }, 0.6, al); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath(); for (let j = 0; j < 3; j++) { ctx.moveTo(p[0] - s * 0.45, p[1] - s * 0.5 + j * s * 0.45); ctx.lineTo(p[0] + s * (j === 2 ? 0.1 : 0.45), p[1] - s * 0.5 + j * s * 0.45); } ctx.stroke(); }
       if (t > 0.94) { const m = V(xD + 0.12, yS - 0.5, z); mot('+1', m[0], m[1] - (t - 0.94) * k * 1.2, Math.max(10, k * 0.07), 1 - (t - 0.94) / 0.06); } }
+    { const g = V(xA - 0.12, yS - 0.14, 0), m = ctx.getTransform(), dq = dpDe(ctx.canvas); REQ.t = now; REQ.gx = (m.a * g[0] + m.c * g[1] + m.e) / dq; REQ.gy = (m.b * g[0] + m.d * g[1] + m.f) / dq; }   // (vague 88 : le vrai site est client, voir requetes())
     // (vague 61 de l'audit, « back-end », immersion) : nous aussi, on est un client. La souris porte sa propre requête (une enveloppe) ;
     // présentée au videur, elle passe (« 200 OK ») si on arrive calmement, elle est refoulée (« 429 ») si on arrive en trombe
     { const Sm = souris(); if (Sm && window.Chats.K.Wd.t - Sm.moved < 2.5 && Sm.y > G.haut && Sm.y < (G.caps || G.bas)) { const s = k * 0.05, ex = Sm.x + s * 1.4, ey = Sm.y + s * 1.2, P = V(xA - 0.2, yS - 0.1, 0), d = Math.hypot(Sm.x - P[0], Sm.y - P[1]), vit = Math.hypot(Sm.vx || 0, Sm.vy || 0);
@@ -1690,5 +1719,5 @@ S.pilotage = (() => {
 S.rag = S.ia;
 
 // la toile, l'écran du ciel, les outils ; puis : une scène existe-t-elle ?
-return { S, vise, VISE, LUI, ENVOL, TH, FEUX, SURGE, INSP, INST, PARI, GF, RAG, pose(c, g, o) { ctx = c; G = g; O = o; } };
+return { S, vise, VISE, LUI, ENVOL, TH, FEUX, SURGE, INSP, INST, PARI, GF, RAG, REQ, pose(c, g, o) { ctx = c; G = g; O = o; } };
 })();
