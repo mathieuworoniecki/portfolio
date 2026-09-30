@@ -1047,6 +1047,12 @@ function rue() {
     let nP = 0; for (const f of Wd.fx) if (f.k === 'patte') nP++;
     L.forEach(c => { if (c.fall || nP > 220 || Wd.t < (c.pasT || 0)) return; c.pasT = Wd.t + rnd(0.14, 0.22); c.pasC = -(c.pasC || 1); nP++;
       Wd.fx.push({ k: 'patte', x: c.x - c.face * sc(c) * rnd(0.1, 0.5), y: floorAt(c.d) + c.pasC * sc(c) * 0.05, r: sc(c) * 0.075, face: c.face, t0: Wd.t, life: rnd(8, 11), seed: Math.floor(Math.random() * 99) }); });
+    // (vague 71) la ruée secoue aussi l'interface : chaque élément sous lequel (ou au-dessus duquel) la horde passe saute sur place,
+    // de plus en plus fort à mesure qu'ils sont nombreux à passer ; on voit l'onde de la cavalcade courir le long de la barre du bas
+    if (!R.ui) R.ui = [...document.querySelectorAll('#brand, #lang-pick, #theme-pick, .film-ui .ctrl > *, #chap > *, .evts li, .ctas > *, #titles')].filter(e => e.getClientRects().length).map(e => ({ e, t: -9 }));
+    R.ui.forEach(u => { if (Wd.t - u.t < 0.22) return; const q = u.e.getBoundingClientRect(), ex = q.left + q.width / 2, w = Math.max(q.width / 2, 20);
+      const n = L.filter(c => Math.abs(c.x - ex) < w + sc(c) * 0.8).length; if (!n || !u.e.animate) return; u.t = Wd.t; const k = Math.min(1.6, 0.6 + n * 0.25), r = rnd(-1, 1) * 3 * k;
+      try { u.e.animate([{ transform: 'none' }, { transform: `translate(${R.dir * 2 * k}px,${-5 * k}px) rotate(${r}deg)`, offset: 0.35 }, { transform: `translateY(${1.5 * k}px) rotate(${-r * 0.4}deg)`, offset: 0.7 }, { transform: 'none' }], { duration: 220, composite: 'add' }); } catch (x) {} });
     const c = pick(L);
     if (Wd.t > R.dit) { R.dit = Wd.t + rnd(0.5, 0.9); Wd.fx.push({ k: 'txt', text: pick(['VROOOM', 'tagada tagada', 'BRRRM', 'place !', 'ZOOOM', 'mia mia mia']), x: c.x, y: c.y - sc(c) * 1.3, t0: Wd.t, life: 1.1, rot: rnd(-0.2, 0.2), size: rnd(20, 30) }); } }
 }
