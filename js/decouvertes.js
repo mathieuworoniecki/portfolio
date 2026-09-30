@@ -305,7 +305,7 @@ function ouvre() {
       : (/^(race|rare)-/.test(d.id) ? `<li class="ph" style="${st}"><figure class="dex-ombre">${OMBRE}</figure><b>???</b><span>${d.h}</span></li>` : `<li style="${st}"><b>???</b><span>${d.h}</span></li>`); }).join('')}</ul></section>`).join(''); })()}
     <footer><button type="button" class="dex-raz">${T('Tout oublier', 'Forget everything')}</button></footer></div>`;
   panneau.hidden = false; panneau.querySelector('.dex-x').focus();
-  panneau.querySelector('.dex-x').onclick = ferme; guetteur();
+  panneau.querySelector('.dex-x').onclick = ferme; guetteur(); folioscope();
   const raz = panneau.querySelector('.dex-raz'); raz.onclick = () => { if (raz.dataset.sur) { vus = {}; garde(); photos = {}; gardePh(); compte(); ouvre(); } else { raz.dataset.sur = 1; raz.textContent = T('Sûr ? Cliquer encore', 'Sure? Click again'); } };
 }
 function ferme() { panneau.hidden = true; cancelAnimationFrame(G.raf); if (btn) btn.focus(); }
@@ -340,6 +340,57 @@ function guetteur() {
     G.raf = requestAnimationFrame(pas); };
   G.raf = requestAnimationFrame(pas);
 }
+/* (vague 95 de l'audit, « le carnet » : immersion) : le carnet est un folioscope. Dans le coin bas de la page, un chat est dessiné page après page :
+   faire défiler le carnet, c'est feuilleter, et il court (la tranche des pages s'effeuille sous le pouce) ; on s'arrête, il s'arrête en l'air.
+   Sans rien faire défiler, le pointeur posé sur le coin le feuillette aussi. Au bout du carnet, il bondit hors du cadre, et la page écrit « fin. ». */
+const FB = { raf: 0, ph: 0, v: 0, s0: 0, saut: 0 };
+function folioscope() {
+  const pg = panneau.querySelector('.dex-page'); if (!pg) return;
+  const cv = document.createElement('canvas'); cv.className = 'dex-folio'; cv.setAttribute('aria-hidden', 'true'); panneau.appendChild(cv);
+  const dp = Math.min(2, devicePixelRatio || 1), W = 132, H = 96; cv.width = W * dp; cv.height = H * dp; const o = cv.getContext('2d');
+  const reduit = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  Object.assign(FB, { ph: 0, v: 0, s0: pg.scrollTop, saut: 0, t: performance.now() });
+  pg.addEventListener('scroll', () => { const d = pg.scrollTop - FB.s0; FB.s0 = pg.scrollTop; FB.v += Math.abs(d) / 16; }, { passive: true });
+  cancelAnimationFrame(FB.raf);
+  const pas = now => { if (panneau.hidden || !cv.isConnected) return;
+    const dt = Math.min(0.05, (now - FB.t) / 1000); FB.t = now; const r = pg.getBoundingClientRect();
+    cv.style.left = (r.right - W - 14) + 'px'; cv.style.top = (r.bottom - 44) + 'px';   // sous la tranche du carnet : les pages empilées, et lui qui court dessous
+    // le pouce : la molette ou le doigt ; ou le pointeur posé sur le coin
+    const coin = G.px != null && G.px > r.right - W - 14 && G.py > r.bottom - 44 && G.px < r.right && G.py < r.bottom + 52;
+    if (coin) FB.v += dt * 9; if (reduit) FB.v = 0;
+    const av = Math.min(1.2, FB.v); FB.ph += av; FB.v = Math.max(0, FB.v - av); FB.vit = (FB.vit || 0) * 0.85 + av * 0.15 / Math.max(dt, 0.001) * 0.02;
+    const bout = pg.scrollHeight - pg.clientHeight - pg.scrollTop < 4 && pg.scrollHeight > pg.clientHeight + 40;
+    FB.saut = bout ? Math.min(1, FB.saut + dt * 1.4) : Math.max(0, FB.saut - dt * 2);
+    dessine(o, dp, W, H, FB.ph, Math.min(1, FB.vit), FB.saut);
+    FB.raf = requestAnimationFrame(pas); };
+  FB.raf = requestAnimationFrame(pas);
+}
+function dessine(o, dp, W, H, ph, vit, saut) {
+  o.setTransform(dp, 0, 0, dp, 0, 0); o.clearRect(0, 0, W, H);
+  const ink = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '34,36,40', C = `rgb(${ink})`;
+  o.strokeStyle = C; o.fillStyle = C; o.lineCap = o.lineJoin = 'round';
+  // la tranche : les pages empilées, et celle qu'on tourne (son coin se corne, puis retombe)
+  const f = ph % 1, k = Math.floor(ph);
+  o.lineWidth = 1; o.globalAlpha = 0.5; for (let i = 0; i < 5; i++) { o.beginPath(); o.moveTo(W - 4 - i * 1.5, 40 + i * 1.2); o.lineTo(W - 4 - i * 1.5, H - 4 - (4 - i) * 1.3); o.lineTo(14 + i * 3, H - 4 - (4 - i) * 1.3); o.stroke(); }
+  o.globalAlpha = 1;
+  if (vit > 0.05) { const c = 26 * Math.sin(f * Math.PI) * Math.min(1, vit * 2); o.lineWidth = 1.6; o.beginPath(); o.moveTo(W - 4 - c, H - 4); o.quadraticCurveTo(W - 4 - c * 0.2, H - 4 - c * 0.2, W - 4, H - 4 - c); o.stroke(); }
+  // le chat qui court (8 dessins par foulée, un par page) ; au bout du carnet, il saute hors du coin
+  const n = k % 8, a = n / 8 * Math.PI * 2, x0 = 52 + saut * saut * 120, y0 = 72 - Math.sin(Math.min(1, saut) * Math.PI) * 14;
+  o.save(); o.translate(x0, y0); o.rotate(-Math.sin(Math.min(1, saut) * Math.PI) * 0.25); o.lineWidth = 2.2;
+  const b = Math.sin(a * 2) * 2.2;                                  // le rebond du corps
+  o.beginPath(); o.ellipse(0, b, 20, 10, -0.05 + Math.sin(a) * 0.08, 0, Math.PI * 2); o.stroke();
+  o.beginPath(); o.arc(22, -9 + b, 9, 0, Math.PI * 2); o.stroke();  // la tête
+  o.beginPath(); o.moveTo(16, -15 + b); o.lineTo(17, -24 + b); o.lineTo(23, -17 + b); o.moveTo(25, -17 + b); o.lineTo(31, -23 + b); o.lineTo(30, -13 + b); o.stroke();
+  o.beginPath(); o.ellipse(20.5, -10 + b, 1.8, 2.6, 0, 0, Math.PI * 2); o.ellipse(26, -10 + b, 1.8, 2.6, 0, 0, Math.PI * 2); o.fill();
+  const patte = (x, ph2) => { const s = Math.sin(a + ph2), l = 11; o.beginPath(); o.moveTo(x, 6 + b); o.lineTo(x + s * 9, 6 + b + l - Math.max(0, Math.cos(a + ph2)) * 5); o.stroke(); };
+  patte(12, 0); patte(8, Math.PI); patte(-12, Math.PI * 0.5); patte(-16, Math.PI * 1.5);
+  o.beginPath(); o.moveTo(-19, -2 + b); o.quadraticCurveTo(-32, -8 - Math.sin(a) * 8 + b, -30, -20 - Math.cos(a) * 4 + b); o.stroke();   // la queue
+  if (vit > 0.3) { o.lineWidth = 1.2; o.globalAlpha = Math.min(1, vit); for (let i = 0; i < 3; i++) { o.beginPath(); o.moveTo(-26 - i * 5, -6 + i * 6); o.lineTo(-38 - i * 5 - vit * 8, -6 + i * 6); o.stroke(); } o.globalAlpha = 1; }
+  o.restore();
+  if (saut > 0.6) { o.font = `400 16px ${getComputedStyle(document.documentElement).getPropertyValue('--hand') || 'cursive'}`; const u = Math.min(1, (saut - 0.6) / 0.35), tx = L_fin(); o.fillText(tx.slice(0, Math.ceil(tx.length * u)), 30, 80); }
+  o.font = '500 8px monospace'; o.globalAlpha = 0.55; o.fillText(`p. ${1 + k}`, W - 44, 58); o.globalAlpha = 1;
+}
+const L_fin = () => T('fin.', 'the end.');
 panneau.addEventListener('click', e => { if (e.target === panneau) ferme(); });
 addEventListener('keydown', e => { if (e.key === 'Escape' && !panneau.hidden) ferme(); });
 ['pointerdown', 'click', 'wheel', 'touchstart'].forEach(t => panneau.addEventListener(t, e => e.stopPropagation(), { passive: t === 'wheel' || t === 'touchstart' }));
