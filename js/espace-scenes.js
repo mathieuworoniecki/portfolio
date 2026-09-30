@@ -428,11 +428,42 @@ function deploieUI(o, now) {
         if (u > 1) { const tx = 'v1.' + (DEP.v + 11), ty = bas > 0 ? y + 11 : y - 8; o.save(); o.translate(cx, ty); o.scale(s, s); o.font = '600 9px ui-monospace,Menlo,Consolas,monospace'; o.textAlign = 'center'; o.textBaseline = 'middle'; o.strokeStyle = NUIT; o.lineWidth = 3; o.strokeText(tx, 0, 0); o.fillStyle = '#8fe0a0'; o.fillText(tx, 0, 0); o.restore(); } } } });
   o.restore();
 }
+// (vague 88, l'audit : « sécurité », elle sort d'elle-même) : les petits méchants n'attaquent plus seulement le dôme : ils arrivent des bords
+// de l'écran sur le vrai site, et visent l'élément le plus proche de la souris (c'est elle qui les attire). À un pas de lui, un bouclier
+// d'alvéoles s'allume autour de l'élément là où ça frappe, le méchant rebondit, sonné, et repart en tournoyant hors de l'écran
+const ATK = { t: -99, L: [], next: 0, ui: null, uiT: -9 };
+function attaques(o, now) {
+  const on = now - ATK.t < 0.3 && !reduitMvt(), P = souris(), W = window.innerWidth, H = window.innerHeight;
+  if (!ATK.ui || now - ATK.uiT > 1) { ATK.uiT = now; ATK.ui = [...document.querySelectorAll('#brand, #lang-pick, .film-ui .ctrl > *, #chap > *')].filter(e => !e.closest('.scenes, #stage')).map(e => ({ e, b: e.getBoundingClientRect() })).filter(q => q.b.width > 0); }
+  const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
+  if (on && now > ATK.next && ATK.ui.length && ATK.L.length < 6) { ATK.next = now + 0.7 + bruit(now * 1.9) * 0.6;
+    const q = P ? ATK.ui.reduce((m, q) => { const d = Math.hypot((q.b.left + q.b.right) / 2 - P.x, (q.b.top + q.b.bottom) / 2 - P.y); return d < m[0] ? [d, q] : m; }, [1e9, null])[1] : ATK.ui[Math.floor(bruit(now) * ATK.ui.length)];
+    const cx = (q.b.left + q.b.right) / 2, cy = (q.b.top + q.b.bottom) / 2, s = bruit(now * 5.7), bord = cy < H / 2 ? [s * W, -40] : (s < 0.5 ? [-40, cy - 120 - s * 200] : [W + 40, cy - 120 - (s - 0.5) * 200]);
+    ATK.L.push({ q, x0: bord[0], y0: bord[1], t0: now, n: Math.floor(now * 97) % 50, s }); }
+  if (!ATK.L.length) return; const cv = o.canvas, dp = dpDe(cv), c0 = ctx; o.save(); o.setTransform(dp, 0, 0, dp, 0, 0); o.lineCap = o.lineJoin = 'round';
+  o.beginPath(); o.rect(0, 0, W, H); if (bd) o.rect(bd.x - 16, bd.y - 12, bd.w + 32, bd.h + 24); if (Pc) { o.moveTo(Pc.x + Pc.r * 1.2, Pc.y); o.arc(Pc.x, Pc.y, Pc.r * 1.2, 0, TAU); } o.clip('evenodd');
+  ctx = o; const VOL = 0.95;
+  try { ATK.L.forEach(a => { const b = a.q.b, cx = (b.left + b.right) / 2, cy = (b.top + b.bottom) / 2, rx = b.width / 2 + 16, ry = b.height / 2 + 14, t = now - a.t0;
+    const dx = cx - a.x0, dy = cy - a.y0, L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, k2 = 1 / Math.sqrt((ux / rx) ** 2 + (uy / ry) ** 2), hx = cx - ux * k2, hy = cy - uy * k2;   // (le point d'impact, sur l'ellipse du bouclier)
+    if (t < VOL) { const v = t / VOL, e = v * v * (3 - 2 * v) * 0.3 + v * 0.7, x = lerp(a.x0, hx, e) + Math.sin(t * 11 + a.s * 9) * 6 * (1 - v), y = lerp(a.y0, hy, e); o.strokeStyle = `rgba(${BL},0.5)`; o.lineWidth = 1.2; o.setLineDash([2, 6]); o.beginPath(); o.moveTo(lerp(a.x0, hx, Math.max(0, e - 0.15)), lerp(a.y0, hy, Math.max(0, e - 0.15))); o.lineTo(x, y); o.stroke(); o.setLineDash([]);
+      caillou(x, y, 13, now * 3 + a.s * 5, a.n, 1, true); return; }
+    const u = t - VOL; if (!a.fait) { a.fait = true; a.q.e.animate([{ transform: 'translate(0,0)' }, { transform: `translate(${ux * 5}px,${uy * 5}px)` }, { transform: 'translate(0,0)' }], { duration: 260, easing: 'ease-out', composite: 'add' }); }
+    // le bouclier : des alvéoles le long de l'ellipse, vives près de l'impact ; l'ellipse elle-même, un instant
+    const f = 1 - c01(u / 0.8), ai = Math.atan2((hy - cy) / ry, (hx - cx) / rx); if (f > 0) { o.strokeStyle = `rgba(150,200,255,${0.6 * f})`; o.lineWidth = 1; o.beginPath(); o.ellipse(cx, cy, rx, ry, 0, 0, TAU); o.stroke();
+      for (let j = -6; j <= 6; j++) { const an = ai + j * 0.26, x = cx + Math.cos(an) * rx, y = cy + Math.sin(an) * ry, w = Math.exp(-(j * j) / 10) * f, r = 7 * (0.6 + 0.4 * w) * (1 + (1 - f) * 0.3); if (w < 0.05) continue;
+        o.strokeStyle = NUIT; o.lineWidth = 3.5; o.beginPath(); for (let m = 0; m <= 6; m++) { const tt = m / 6 * TAU + Math.PI / 6; m ? o.lineTo(x + Math.cos(tt) * r, y + Math.sin(tt) * r) : o.moveTo(x + Math.cos(tt) * r, y + Math.sin(tt) * r); } o.stroke(); o.strokeStyle = `rgba(170,215,255,${w})`; o.lineWidth = 1.5; o.stroke(); } }
+    // le méchant repart, sonné, en tournoyant (il rapetisse en s'éloignant, hors de l'écran)
+    const v = u / 1.1; if (v < 1) { const x = hx - ux * v * 520 + (a.s - 0.5) * v * 300, y = hy - uy * v * 380 + v * v * 260; caillou(x, y, 13 * (1 - v * 0.6), now * 14, a.n, 1, true);
+      if (v < 0.4) { o.font = '700 13px "Space Grotesk",system-ui,sans-serif'; o.textAlign = 'center'; o.strokeStyle = NUIT; o.lineWidth = 3.5; const tx = ['paf', 'bonk', 'toc'][a.n % 3]; o.strokeText(tx, hx, hy - 16); o.fillStyle = `rgb(${BL})`; o.fillText(tx, hx, hy - 16); }
+      for (let j = 0; j < 3; j++) { const an = now * 8 + j * TAU / 3; o.fillStyle = '#ffe9a8'; o.beginPath(); o.arc(x + Math.cos(an) * 16, y - 14 + Math.sin(an) * 5, 2, 0, TAU); o.fill(); } } }); }
+  finally { ctx = c0; o.restore(); }
+  for (let i = ATK.L.length - 1; i >= 0; i--) if (now - ATK.L[i].t0 > VOL + 1.2 || now < ATK.L[i].t0) ATK.L.splice(i, 1);
+}
 function vise(c0, now) {
   const c = VISE.c, P = souris(); VISE.c = null; const dt = Math.min(0.2, Math.max(0, now - (VISE.t || now))); VISE.t = now;
   if (c && P && (VISE.id === null || VISE.id === c.id || VISE.k < 0.05)) { VISE.id = c.id; VISE.k = Math.min(1.6, VISE.k + dt * 1.4); VISE.rb = c; }
   else { VISE.k = Math.max(0, VISE.k - dt * 3); if (VISE.k === 0) VISE.id = null; }
-  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); const sg = now - SURGE.t0 < 1.6 && now >= SURGE.t0, ins = now - INSP.t < 0.3 || INSP.k > 0; if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length && !FEUX.length && !sg && !ins && !INST.q && !pariOn(now) && !(now - GF.t < 0.3 || GF.k > 0) && !(now - RAG.t < 0.3 || RAG.k > 0) && !(now - REQ.t < 0.3 || REQ.L.length) && !(now - DEP.t < 0.3 || DEP.n > 0.03)) return; const o = toileVise(c0.canvas); if (now - DEP.t < 0.3 || DEP.n > 0.03 || now - DEP.t0 < 3) deploieUI(o, now); if (now - REQ.t < 0.3 || REQ.L.length) requetes(o, now); if (now - RAG.t < 0.3 || RAG.k > 0) ragUI(o, now); if (now - GF.t < 0.3 || GF.k > 0) gardeFou(o, now); if (sg) eclairs(o, now); if (pariOn(now)) pari(o, now); if (ins) inspecteur(o, now); if (INST.q) installe(o, now);
+  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); const sg = now - SURGE.t0 < 1.6 && now >= SURGE.t0, ins = now - INSP.t < 0.3 || INSP.k > 0; if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length && !FEUX.length && !sg && !ins && !INST.q && !pariOn(now) && !(now - GF.t < 0.3 || GF.k > 0) && !(now - RAG.t < 0.3 || RAG.k > 0) && !(now - REQ.t < 0.3 || REQ.L.length) && !(now - DEP.t < 0.3 || DEP.n > 0.03) && !(now - ATK.t < 0.3 || ATK.L.length)) return; const o = toileVise(c0.canvas); if (now - ATK.t < 0.3 || ATK.L.length) attaques(o, now); if (now - DEP.t < 0.3 || DEP.n > 0.03 || now - DEP.t0 < 3) deploieUI(o, now); if (now - REQ.t < 0.3 || REQ.L.length) requetes(o, now); if (now - RAG.t < 0.3 || RAG.k > 0) ragUI(o, now); if (now - GF.t < 0.3 || GF.k > 0) gardeFou(o, now); if (sg) eclairs(o, now); if (pariOn(now)) pari(o, now); if (ins) inspecteur(o, now); if (INST.q) installe(o, now);
   TAMPON.forEach(q => tamponVitre(o, q, now - q.t0)); if (ENVOL.length) envols(o, now); if (FEUX.length) feux(o, now); if (!R || VISE.k <= 0 || !P) return;
   const W0 = window.Chats && Chats.K && Chats.K.Wd, chat = W0 && W0.cats.some(q => q.sp && q.sp.m === 'agrippe');
   const cv = o.canvas, dp = dpDe(cv), px = P.x * dp, py = P.y * dp, ln = Math.max(1, dp), k = VISE.k;
@@ -1560,6 +1591,7 @@ S.secu = (() => ({
     // le compteur, en haut du dôme, sur un petit écran de papier (il était caché sous les sous-titres)
     { const o = V(0, 0, 0), w = Math.max(k * 0.52, 108), h = Math.max(k * 0.14, 28), m = [Math.min(o[0] + R * k * 1.2, G.cx * 2 - w * 0.62 - 10), o[1] - R * k * (G.cx * 2 < 700 ? 1.25 : 0.8)]; ecran(m[0] - w / 2, m[1] - h / 2, w, h, k * 0.03, 3); mot(`${en() ? 'blocked' : 'bloqués'} : ${bloq}`, m[0], m[1], Math.max(12, k * 0.075), 1); }
     ctx.restore();
+    ATK.t = now;   // (vague 88 : les méchants attaquent aussi le vrai site, voir attaques())
     // (vague 62 de l'audit, « sécurité », immersion) : la souris est une intruse. En approchant du dôme, elle y allume des alvéoles hexagonales
     // (le bouclier se renforce là où elle pousse) ; si elle entre, « accès refusé »
     { const Sm = souris(); if (Sm && window.Chats.K.Wd.t - Sm.moved < 2.5) { const C = V(0, -R * 0.4, 0), Rs = Math.max(...[0, 1, 2, 3, 4, 5, 6, 7].map(j => { const p = V(Math.cos(j / 8 * TAU) * R, -R * 0.4, Math.sin(j / 8 * TAU) * R); return Math.hypot(p[0] - C[0], p[1] - C[1]); }).concat([Math.hypot(V(0, -R, 0)[1] - C[1], 0)]));
@@ -1743,5 +1775,5 @@ S.pilotage = (() => {
 S.rag = S.ia;
 
 // la toile, l'écran du ciel, les outils ; puis : une scène existe-t-elle ?
-return { S, vise, VISE, LUI, ENVOL, TH, FEUX, SURGE, INSP, INST, PARI, GF, RAG, REQ, DEP, pose(c, g, o) { ctx = c; G = g; O = o; } };
+return { S, vise, VISE, LUI, ENVOL, TH, FEUX, SURGE, INSP, INST, PARI, GF, RAG, REQ, DEP, ATK, pose(c, g, o) { ctx = c; G = g; O = o; } };
 })();
