@@ -246,6 +246,13 @@ function planete(ctx, now) {
   const Hm = P.hum || (P.hum = { k: null, next: now + 5 });
   if (!Hm.k && now > Hm.next && z === 0 && t >= 1 && !reduit) { Hm.k = Math.sin(la) > 0.2 && Math.abs(Math.cos(la)) < 0.7 ? 'langue' : pick(['baille', 'baille', 'clin', 'ronron', 'ronron']); Hm.t0 = now; Hm.d = { baille: 2.6, langue: 1.6, clin: 0.9, ronron: 3.4 }[Hm.k]; }
   if (Hm.k && now - Hm.t0 > Hm.d) { Hm.k = null; Hm.next = now + rnd(6, 12); }
+  // (vague 80, l'audit : « la planète chat ») : on la caresse (la souris posée dessus un moment) : elle ronronne aussitôt ; et son ronron
+  // sort de l'espace : chaque onde, en atteignant un élément de l'interface (logo, langue, boutons, chapitres), le fait vibrer
+  if (P.survol > 0.85 && z === 0 && t >= 1 && !reduit && Hm.k !== 'ronron' && now > (Hm.cal || 0)) { Hm.k = 'ronron'; Hm.t0 = now; Hm.d = 4.2; Hm.cal = now + 9; }
+  if (Hm.k === 'ronron' && z === 0 && !reduit) { if (Hm.ui0 !== Hm.t0) { Hm.ui0 = Hm.t0; Hm.ui = [...document.querySelectorAll('#brand, #lang-pick, #theme-pick, .film-ui .ctrl > *, #chap > *')].map(e => { const b = e.getBoundingClientRect(); return { e, d: Math.hypot(b.left + b.width / 2 - x, b.top + b.height / 2 - y), n: 0 }; }).filter(q => q.d > 0); }
+    const u = now - Hm.t0, v = Math.hypot(O.W, O.H) * 1.1 / 2.2;
+    Hm.ui.forEach(q => { const n = [0, 1, 2].filter(i => r * 1.15 + (u - i * 0.42) * v >= q.d).length; if (n > q.n && q.n < 3) { q.n = n; const k = 2.4 - q.n * 0.5;
+      q.e.animate(Array.from({ length: 9 }, (_, j) => ({ transform: j === 0 || j === 8 ? 'translate(0,0)' : `translate(${(j % 2 ? k : -k).toFixed(1)}px,${(j % 3 - 1) * k * 0.5}px) rotate(${(j % 2 ? 1 : -1) * k * 0.6}deg)` })), { duration: 380, easing: 'linear', composite: 'add' }); } }); }
   const hu = Hm.k ? Math.sin(Math.min(1, (now - Hm.t0) / Hm.d) * Math.PI) : 0, bai = Hm.k === 'baille' ? sm(hu * 1.4) : 0, lan = Hm.k === 'langue' ? sm(hu * 1.6) : 0, cli = Hm.k === 'clin' && hu > 0.3;
   const ear = trace(1.4, 0.5) * (1 - bai * 0.45);
   // un halo, très léger (deux fins cercles, comme l'atmosphère de la Terre)
