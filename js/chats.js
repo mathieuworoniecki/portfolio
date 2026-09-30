@@ -1379,6 +1379,20 @@ function aspire(grand) {
   Wd.vac = { t0: Wd.t, dir, x: dir > 0 ? Wd.s0 * 0.6 : Wd.W - Wd.s0 * 0.6, ph: 'descend', curious: false, grand: !!grand, ventre: [], nC: 0 };
   const c = Wd.cats.find(k => free4(k)); if (c) say(c, '?!');
 }
+// (vague 73, l'audit : « l'aspirateur ») : il aspire aussi l'interface. Tant qu'il balaie, chaque élément (logo, menu des événements, titre,
+// boutons, chapitres, commandes) est tiré vers sa bouche, d'autant plus qu'il est près : il s'étire vers elle et tremble ; quand il remonte,
+// tout se relâche d'un coup et revient à sa place en rebondissant (la traction dure 0,3 s et se renouvelle à chaque image : si le monde s'arrête, elle lâche seule)
+function aspireUI(V) {
+  if (V.ph === 'balaye') {
+    if (!V.ui) V.ui = [...document.querySelectorAll('#brand, #lang-pick, #theme-pick, .film-ui .ctrl > *, #chap > *, .evts li, .ctas > *, #titles')].filter(e => e.getClientRects().length && e.animate).map(e => { const q = e.getBoundingClientRect(); return { e, x: q.left + q.width / 2, y: q.top + q.height / 2, a: null, g: Math.min(1, 320 / Math.max(q.width, 1)) }; });
+    const Rm = Wd.W * 0.5, mo = V.y;
+    V.ui.forEach(u => { const dx = V.x - u.x, dy = mo - u.y, d = Math.hypot(dx, dy) || 1, f = Math.max(0, 1 - d / Rm), k = f * f * (V.grand ? 1.4 : 1) * (0.45 + 0.55 * u.g);   // (les grands éléments, le titre, la barre : moins étirés) if (!u.a && k <= 0.01) return;
+      const m = Math.min(d * 0.35, 70) * k, tr = Math.sin(Wd.t * 47 + u.x) * 2 * k, ang = Math.atan2(dy, dx) * 180 / Math.PI;
+      const T = `translate(${(dx / d * m + tr).toFixed(1)}px,${(dy / d * m).toFixed(1)}px) rotate(${ang.toFixed(1)}deg) scaleX(${(1 + 0.35 * k).toFixed(3)}) scaleY(${(1 - 0.15 * k).toFixed(3)}) rotate(${(-ang).toFixed(1)}deg)`;
+      try { if (!u.a) u.a = u.e.animate([{ transform: T }, { transform: T }], { duration: 300, composite: 'add' }); else { u.a.effect.setKeyframes([{ transform: T }, { transform: T }]); u.a.currentTime = 0; if (u.a.playState !== 'running') u.a.play(); } u.T = T; } catch (x) {} });
+  } else if (V.ui && !V.lache) { V.lache = true;
+    V.ui.forEach(u => { if (!u.a) return; try { u.a.cancel(); u.e.animate([{ transform: u.T }, { transform: 'translate(0,-6px) scale(1.08)', offset: 0.35 }, { transform: 'translate(0,2px) scale(0.97)', offset: 0.65 }, { transform: 'none' }], { duration: 600, easing: 'ease-out', composite: 'add' }); } catch (x) {} }); }
+}
 function vacFrame(dt) {
   if (!Wd.vac) { if (Wd.t > (Wd.vacT || 0)) { Wd.vacT = Wd.t + 1; if (clutter() >= (Wd.mode === 'large' ? 14 : 7) && Wd.t > (Wd.vacCool || 0) && Math.random() < 0.035) aspire(); } return; }   // de temps en temps seulement, pas dès que ça déborde
   const V = Wd.vac, u = Wd.t - V.t0, s0 = Wd.s0, mouthY = Wd.floor - s0 * 1.05;
@@ -1412,6 +1426,7 @@ function vacFrame(dt) {
       if (V.grand) recrache(V);
       Wd.fx.push({ k: 'txt', text: pick(['propre !', 'voilà.', 'merci qui ?']), x: clamp(V.x, 60, Wd.W - 60), y: mouthY - s0 * 0.5, t0: Wd.t, life: 2, rot: -0.08, size: 22 }); }
   }
+  aspireUI(V);
   if (V.ph === 'remonte' && Wd.t - V.tu > 1.2 && !Wd.props.some(p => p.suck) && !Wd.kib.some(k => k.suck)) { Wd.vac = null; Wd.vacCool = Wd.t + rnd(70, 140); }
   // l'aspiration : vers la bouche, de plus en plus petit, puis disparu
   const mx = V.x, my = V.y + s0 * 0.05;
