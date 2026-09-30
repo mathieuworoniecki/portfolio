@@ -975,7 +975,7 @@ function empreinte(f, u) {
 // et sort par le bas de l'écran. Au trait, remplie de papier ; ses flèches « haut » sont à l'envers
 function versNous(f, tt) {
   const C = Chalk, ctx = C.ctx; if (!ctx) return; const W = Wd.W, H = Wd.H, ea = c01(tt / 0.55), e = Math.pow(ea, 2.4), Smax = Math.min(W, H) * 0.48;
-  if (tt >= 0.55 && !f.hit) { f.hit = true; Wd.shake = { t0: Wd.t, a: 12 }; Wd.fx.push({ k: 'txt', text: 'BONK', x: W * 0.5 + f.dir * Smax * 0.2, y: H * 0.2, t0: Wd.t, life: 1.3, rot: -0.1 * f.dir, size: 64 }); }
+  if (tt >= 0.55 && !f.hit) { f.hit = true; traceVitre(W * 0.5, H * 0.46, Smax, f.dir); Wd.shake = { t0: Wd.t, a: 12 }; Wd.fx.push({ k: 'txt', text: 'BONK', x: W * 0.5 + f.dir * Smax * 0.2, y: H * 0.2, t0: Wd.t, life: 1.3, rot: -0.1 * f.dir, size: 64 }); }
   const S = f.s * 0.7 + (Smax - f.s * 0.7) * e, glisse = Math.max(0, tt - 1.1), dy = glisse * glisse * H * 1.6;
   const cx = f.x + (W * 0.5 - f.x) * e, cy = f.y + (H * 0.46 - f.y) * e + dy, ang = f.spin * (1 - e) * 2.5 + (glisse ? f.dir * glisse * 0.35 : 0);
   if (cy - S > H + 20) return;
@@ -999,6 +999,38 @@ function versNous(f, tt) {
     C.stroke([top, bot], 1, { w: 1.8, a: 0.8 * Wd.a, seed: f.seed + 20 + j, tip: false }); const an = Math.atan2(bot[1] - top[1], bot[0] - top[0]);
     C.stroke([[bot[0] - Math.cos(an - 0.5) * L, bot[1] - Math.sin(an - 0.5) * L], bot, [bot[0] - Math.cos(an + 0.5) * L, bot[1] - Math.sin(an + 0.5) * L]], 1, { w: 1.8, a: 0.8 * Wd.a, seed: f.seed + 30 + j, tip: false }); });
 }
+// (vague 99 de l'audit, « la tour », l'inoubliable) : la caisse a laissé sa trace sur la vitre. Une empreinte de poussière, la forme de sa face
+// avant, le scotch, les deux flèches à l'envers, reste collée à l'écran après son départ ; elle ne s'efface pas toute seule : on la nettoie
+// à la souris (ou au doigt), comme un chiffon, et chaque passage l'essuie là où il passe (« fwip ») ; propre, elle brille une fois (« ✨ »)
+const TV = { cv: null, x: 0, y: 0, S: 0, n0: 0, px: null, py: null, t: 0, fin: -99 };
+addEventListener('pointermove', e => { if (e.pointerType !== 'mouse' && TV.cv) TV.tp = { x: e.clientX, y: e.clientY, on: true, t: Wd.t }; }, { passive: true });
+function traceVitre(x, y, S, dir) {
+  const W = Wd.W, Hh = Wd.H, dp = Math.min(2, devicePixelRatio || 1), cv = TV.cv || document.createElement('canvas'); cv.width = Math.round(W * dp); cv.height = Math.round(Hh * dp);
+  const o = cv.getContext('2d'); o.setTransform(dp, 0, 0, dp, 0, 0); o.clearRect(0, 0, W, Hh); const ink = (window.THEME && THEME.ink) || '34,36,40', h = S / 2, rnd2 = (i) => { const v = Math.sin(i * 127.1 + 311.7) * 43758.5; return v - Math.floor(v); };
+  // la poussière : des grains serrés sur les bords (là où la caisse a appuyé), plus clairsemés au milieu
+  for (let i = 0; i < 2600; i++) { const u = rnd2(i) * 2 - 1, v = rnd2(i + 9e3) * 2 - 1, bord = Math.max(Math.abs(u), Math.abs(v)); if (rnd2(i + 5e3) > 0.25 + bord * bord * 0.75) continue;
+    o.fillStyle = `rgba(${ink},${0.1 + rnd2(i + 7e3) * 0.22})`; o.beginPath(); o.arc(x + u * h, y + v * h * 0.8, 0.6 + rnd2(i + 3e3) * 1.4, 0, Math.PI * 2); o.fill(); }
+  o.strokeStyle = `rgba(${ink},0.35)`; o.lineCap = o.lineJoin = 'round'; o.lineWidth = 2.2; o.strokeRect(x - h, y - h * 0.8, S, h * 1.6);
+  o.lineWidth = 5; o.strokeStyle = `rgba(${ink},0.16)`; o.beginPath(); o.moveTo(x, y - h * 0.8); o.lineTo(x, y + h * 0.8); o.stroke();
+  o.lineWidth = 2; o.strokeStyle = `rgba(${ink},0.35)`; [-0.28, 0.28].forEach(k => { const ax = x + k * S, t = y + h * 0.25, b = y + h * 0.6, L = S * 0.05; o.beginPath(); o.moveTo(ax, t); o.lineTo(ax, b); o.moveTo(ax - L * 0.8, b - L); o.lineTo(ax, b); o.lineTo(ax + L * 0.8, b - L); o.stroke(); });
+  // les traces de la glissade vers le bas
+  o.lineWidth = 1.4; o.strokeStyle = `rgba(${ink},0.18)`; for (let i = 0; i < 5; i++) { const gx = x - h + S * (0.12 + i * 0.19); o.beginPath(); o.moveTo(gx, y + h * 0.8); o.lineTo(gx + dir * 6, Hh); o.stroke(); }
+  Object.assign(TV, { cv, x, y, S, px: null, py: null, t: Wd.t, fin: -99, dp, n0: 0 }); TV.n0 = compteTV();
+}
+function compteTV() { const c = TV.cv; if (!c) return 0; const k = 8, o = c.getContext('2d'), x0 = Math.max(0, (TV.x - TV.S / 2) * TV.dp | 0), y0 = Math.max(0, (TV.y - TV.S * 0.4) * TV.dp | 0), w = Math.min(c.width - x0, TV.S * TV.dp | 0), h = Math.min(c.height - y0, TV.S * 0.8 * TV.dp | 0);
+  if (w <= 0 || h <= 0) return 0; const d = o.getImageData(x0, y0, w, h).data; let n = 0; for (let i = 3; i < d.length; i += 4 * k) if (d[i] > 10) n++; return n; }
+H.draw.push(() => {
+  if (!TV.cv || !Chalk.ctx || Wd.espace || Wd.trou) return; const o = TV.cv.getContext('2d'), P = TV.tp && Wd.t - TV.tp.t < 0.3 ? TV.tp : Wd.ptr;   // (au doigt aussi)
+  // essuyer : le pointeur qui passe dessus (sans rien tenir) enlève la poussière sur son chemin, un large coup de chiffon
+  if (P && P.on && Wd.t - TV.t > 0.8 && TV.fin < 0) { if (TV.px != null && Math.hypot(P.x - TV.px, P.y - TV.py) > 1 && Math.abs(P.x - TV.x) < TV.S * 0.7 && Math.abs(P.y - TV.y) < TV.S * 0.6) {
+      o.save(); o.globalCompositeOperation = 'destination-out'; o.strokeStyle = '#000'; o.lineCap = 'round'; o.lineWidth = Math.max(26, Wd.s0 * 0.3); o.beginPath(); o.moveTo(TV.px, TV.py); o.lineTo(P.x, P.y); o.stroke(); o.restore();
+      if (Math.random() < 0.05) Wd.fx.push({ k: 'txt', text: pick(['fwip', 'fwip fwip', 'couic']), x: P.x, y: P.y - 24, t0: Wd.t, life: 0.7, rot: rnd(-0.2, 0.2), size: 16 });
+      if ((TV.cpt = (TV.cpt || 0) + 1) % 12 === 0 && compteTV() < TV.n0 * 0.2) { TV.fin = Wd.t; o.clearRect(0, 0, TV.cv.width, TV.cv.height); Wd.fx.push({ k: 'txt', text: '✨ propre !', x: TV.x, y: TV.y - TV.S * 0.2, t0: Wd.t, life: 1.6, rot: -0.06, size: 30 }); if (window.Dex && Dex.vu) Dex.vu('vitre-propre'); } }
+    TV.px = P.x; TV.py = P.y; }
+  if (TV.fin > 0) { if (Wd.t - TV.fin > 1.2) TV.cv = null; else { const k = (Wd.t - TV.fin) / 1.2, C = Chalk; for (let i = 0; i < 4; i++) { const a = i * 1.57 + k * 2, r = TV.S * (0.2 + k * 0.3); C.line(TV.x + Math.cos(a) * r, TV.y + Math.sin(a) * r, TV.x + Math.cos(a) * r * (1 + 0.2 * (1 - k)), TV.y + Math.sin(a) * r * (1 + 0.2 * (1 - k)), 1, { w: 1.6, a: 0.7, seed: i }); } } return; }
+  const ctx = Chalk.ctx; ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = Wd.a; ctx.drawImage(TV.cv, 0, 0, ctx.canvas.width, ctx.canvas.height); ctx.restore();
+});
+
 // (vague 74, l'audit : « le distributeur fou ») : au JACKPOT, une partie du geyser part vers nous : des croquettes grossissent en tournant,
 // claquent contre l'écran (une étoile de choc, « tic », « tac »), y restent une fraction de seconde puis tombent et sortent par le bas
 function grele(f, tt) {
@@ -1499,6 +1531,28 @@ function recrache(V) {
     if (h) it.dT = h.d; it.away = Wd.t;
   }));
 }
+// (vague 99 de l'audit, « l'aspirateur », l'inoubliable) : il avale aussi ta flèche. La souris qui passe trop près de sa bouche pendant qu'il
+// aspire : le vrai curseur disparaît, sa flèche dessinée file dans le tuyau en tournant et en rapetissant (« slurp ») ; tant qu'il aspire, on n'a
+// plus de curseur (il est dedans). Puis il la recrache (« pouah ! ») : elle ressort en arc et revient se poser là où est la souris, en grandissant
+const CUR = { ph: '', t0: 0, x0: 0, y0: 0 };
+const curseur = on => document.documentElement.classList.toggle('sans-curseur', on);
+H.draw.push(() => {
+  const V = Wd.vac, P = Wd.ptr, C = Chalk; if (!C.ctx) return; const s0 = Wd.s0, u = Wd.t - CUR.t0;
+  if (!CUR.ph) { if (V && V.ph === 'balaye' && P && P.on && Wd.t - P.moved < 1 && !Wd.cats.some(c => c.held) && !matchMedia('(prefers-reduced-motion: reduce)').matches && Math.hypot(P.x - V.x, P.y - V.y) < s0 * 1.3 && !(Wd.t < (CUR.pause || 0))) {
+      Object.assign(CUR, { ph: 'avale', t0: Wd.t, x0: P.x, y0: P.y }); curseur(true); Wd.fx.push({ k: 'txt', text: 'SLURP', x: V.x, y: V.y - s0 * 0.7, t0: Wd.t, life: 1, rot: 0.1, size: 26 }); if (window.Dex && Dex.vu) Dex.vu('curseur-avale'); }
+    return; }
+  const mx = V ? V.x : CUR.mx, my = V ? V.y : CUR.my; if (V) { CUR.mx = V.x; CUR.my = V.y; }
+  const fleche = (x, y, k, a) => { const L = 22 * k, Q = [[0, 0], [0, 19], [5, 15], [9, 23], [13, 21], [9, 13], [15, 13], [0, 0]].map(([p, q]) => { const c = Math.cos(a), sn = Math.sin(a); p *= L / 23; q *= L / 23; return [x + p * c - q * sn, y + p * sn + q * c]; });
+    const ctx = C.ctx; ctx.save(); ctx.fillStyle = '#fff'; ctx.globalAlpha = Wd.a; ctx.beginPath(); Q.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.fill(); ctx.restore(); C.stroke(Q, 1, { w: 1.8, a: 0.95 * Wd.a, seed: 91, tip: false }); };
+  if (CUR.ph === 'avale') { const e = Math.min(1, u / 0.6), q = e * e; fleche(CUR.x0 + (mx - CUR.x0) * q + Math.sin(e * 9) * 10 * (1 - e), CUR.y0 + (my - CUR.y0) * q, 1 - q * 0.9, e * 9);
+    if (e >= 1) { CUR.ph = 'dedans'; CUR.t0 = Wd.t; } return; }
+  if (CUR.ph === 'dedans') { if (!V || V.ph !== 'balaye' || u > 2.6) { CUR.ph = 'recrache'; CUR.t0 = Wd.t; Wd.fx.push({ k: 'txt', text: pick(['pouah !', 'PTOUI', 'beurk, du plastique']), x: mx, y: my - s0 * 0.8, t0: Wd.t, life: 1.2, rot: -0.1, size: 24 }); } return; }
+  if (CUR.ph === 'recrache') { const e = Math.min(1, u / 0.55), tx = P && P.on ? P.x : Wd.W / 2, ty = P && P.on ? P.y : Wd.H / 2, x = mx + (tx - mx) * e, y = my + (ty - my) * e - Math.sin(e * Math.PI) * s0 * 1.2;
+    fleche(x, y, 0.1 + 0.9 * e, (1 - e) * -12); if (e >= 1) { CUR.ph = ''; CUR.pause = Wd.t + 20; curseur(false); } }
+});
+// (au cas où : on ne reste jamais sans curseur plus de quelques secondes)
+setInterval(() => { if (CUR.ph && Wd.t - CUR.t0 > 5) { CUR.ph = ''; curseur(false); } if (!CUR.ph && document.documentElement.classList.contains('sans-curseur')) curseur(false); }, 1000);
+
 function drawVac(S) {
   const V = Wd.vac; if (!V) return; const C = Chalk, s0 = Wd.s0, x = V.x, y = V.y, a = 0.85 * Wd.a, w = s0 * 0.28;
   // (27/09) il a aspiré de l'arc-en-ciel : il en prend les couleurs (js/arcenciel.js, V.arcT)

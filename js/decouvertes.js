@@ -112,6 +112,8 @@ fam('eau', 'L’eau et les couleurs', 'Water and colours', [
 fam('evts', 'Les événements', 'Events', [
   ['tour', 'La tour de cartons', 'The box tower', 'Des chats qui empilent.', 'Cats stacking things.'],
   ['tourchute', 'La tour s’écroule', 'The tower falls', 'Trop de chats en haut.', 'Too many cats on top.'],
+  ['curseur-avale', 'Aspiré !', 'Sucked in!', 'Passer trop près de l’aspirateur quand il aspire.', 'Get too close to the vacuum while it sucks.'],
+  ['vitre-propre', 'Coup de chiffon', 'Wipe it clean', 'La caisse a laissé sa trace… à toi de nettoyer.', 'The box left its mark… your turn to clean.'],
   ['horde', 'La horde', 'The horde', 'Ils courent tous dans le même sens.', 'They all run the same way.'],
   ['souris-geante', 'Le retour de bâton', 'Payback', 'La grande horde revient… poursuivie.', 'The big horde comes back… chased.'],
   ['retard', 'Le retardataire', 'The straggler', 'Quand tout est fini, quelqu’un arrive encore.', 'When it’s all over, someone is still coming.'],

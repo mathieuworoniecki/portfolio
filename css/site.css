@@ -515,3 +515,6 @@ html:not(.locked) #gate:not(.open){display:none}
 .pick li button:hover,.pick li button:focus-visible{background:color-mix(in srgb,#8EC5F0 45%,transparent)}
 /* le lien vers le CV en texte (index.html) : caché, il apparaît en haut à gauche quand on y arrive au clavier */
 .lien-texte:focus{position:fixed;left:12px;top:12px;width:auto;height:auto;clip:auto;z-index:10000;padding:10px 14px;background:#fff;color:#111;border:3px solid #111;border-radius:10px;font:600 15px/1.2 Barlow,sans-serif}
+
+/* (vague 99) l'aspirateur a avalé le curseur (js/chats.js, CUR) : la flèche dessinée le remplace un instant */
+html.sans-curseur,html.sans-curseur *{cursor:none!important}
