@@ -39,7 +39,7 @@ X.pas.push((dt, cats) => {
     // la Terre : rien ne passe au travers (les chats, les dessins, les lettres rebondissent)
     const repousse = (x, y, r, fn) => { const dx = x - T.cx, dy = y - T.cy, d = Math.hypot(dx, dy); if (d < T.R + r) fn(dx / d, dy / d, T.R + r - d); };
     cats.forEach(c => { const S = c.sp; if (!S || c.held || X.mode[S.m] && S.m !== 'texte') return; const [x, y] = centreDe(c);
-      repousse(x, y, rayon(c) * 0.85, (nx, ny, o) => { c.x += nx * o; c.y += ny * o; const vn = S.vx * nx + S.vy * ny; if (vn < 0) { S.vx -= 1.8 * vn * nx; S.vy -= 1.8 * vn * ny; S.w += rnd(-3, 3); if (-vn > 150 && Math.random() < 0.5) Wd.fx.push({ k: 'txt', text: pick(['boing', 'plonk', 'bonk']), x, y: y + 10, t0: Wd.t, life: 0.8, rot: rnd(-0.2, 0.2), size: 15 }); } }); });
+      repousse(x, y, rayon(c) * 0.85, (nx, ny, o) => { c.x += nx * o; c.y += ny * o; const vn = S.vx * nx + S.vy * ny; if (vn < 0) { S.vx -= 1.8 * vn * nx; S.vy -= 1.8 * vn * ny; S.w += rnd(-3, 3); if (-vn > 150) rentree(c, x - nx * rayon(c), y - ny * rayon(c), -vn); if (-vn > 150 && Math.random() < 0.5) Wd.fx.push({ k: 'txt', text: pick(['boing', 'plonk', 'bonk']), x, y: y + 10, t0: Wd.t, life: 0.8, rot: rnd(-0.2, 0.2), size: 15 }); } }); });
     (O.corps || []).forEach(b => { if (b.fin || b.tenu) return; let o = 0, nx = 0, ny = 0; b.P.forEach(p => repousse(p[0], p[1], 2, (a, bb, q) => { if (q > o) { o = q; nx = a; ny = bb; } }));
       if (o) { b.x += nx * o; b.y += ny * o; const vn = b.vx * nx + b.vy * ny; if (vn < 0) { b.vx -= 1.6 * vn * nx; b.vy -= 1.6 * vn * ny; b.w += rnd(-0.5, 0.5); } } });
     (O.lettres || []).forEach(l => repousse(l.x, l.y, l.px * 0.4, (nx, ny, o) => { l.x += nx * o; l.y += ny * o; const vn = l.vx * nx + l.vy * ny; if (vn < 0) { l.vx -= 1.8 * vn * nx; l.vy -= 1.8 * vn * ny; } }));
@@ -402,6 +402,34 @@ function constructions(ctx, x, y, r, now) {
 X.fond.unshift((ctx, now) => { if (!P) return; terre(ctx, now); if (trace(0.8, 0.1) > 0 && !(P.aspire && P.aspire.zoom > 0)) planete(ctx, now); });
 // (le zoom final passe devant tout : la planète grossit jusqu'à remplir l'écran)
 X.devant.push((ctx, now) => { if (P && P.aspire && P.aspire.zoom > 0) planete(ctx, now); });
+
+/* (vague 104 de l'audit, « les chats en apesanteur » et « la Terre » vers 9,9) : la rentrée atmosphérique. Un chat qui fonce vers la Terre
+   chauffe avant de la toucher : son côté Terre rougeoie, de plus en plus fort ; au rebond, il repart dans une gerbe de plasma orange qui
+   file derrière lui, puis une traîne de fumée en boules qui rapetissent (« ouille, ça chauffe ! »). */
+const FEU = [];   // les boules de fumée : { x, y, r, t0, vx, vy }
+function rentree(c, x, y, v) { const S = c.sp; if (!S || Wd.t - (S.feuT ?? -9) < 1.5) return; S.feuT = Wd.t; S.feuV = Math.min(1, v / 500);
+  if (Math.random() < 0.7) say(c, pick(en() ? ['ouch, hot!', 'it burns!', 'toasty!'] : ['ouille, ça chauffe !', 'ça brûle !', 'chaud chaud !']));
+  for (let i = 0; i < 8; i++) Wd.fx.push({ k: 'etoile', x, y, vx: rnd(-160, 160), vy: -rnd(20, 160), g: 60, t0: Wd.t, life: 0.7, col: pick(['255,160,60', '255,90,40', '255,220,120']), r: rnd(2, 3.5), tw: true });
+  if (S.feuV > 0.5 && window.Dex && Dex.vu) Dex.vu('rentree'); }
+X.fond.push((ctx, now0) => {
+  if (!P || reduit) return; const now = Wd.t, T = P.terre, dt = Math.min(0.05, now - (FEU.tl ?? now)); FEU.tl = now;
+  Wd.cats.forEach(c => { const S = c.sp; if (!S || c.held) return; const [x, y] = centreDe(c), r = rayon(c), dx = x - T.cx, dy = y - T.cy, d = Math.hypot(dx, dy) || 1, nx = dx / d, ny = dy / d, vn = S.vx * nx + S.vy * ny;
+    // l'approche : la face tournée vers la Terre rougeoit (plus il va vite et plus il est près, plus c'est fort)
+    const pres = 1 - (d - T.R - r) / (Wd.s0 * 2.6);
+    if (vn < -150 && pres > 0) { const k = Math.min(1, pres) * Math.min(1, (-vn - 150) / 350), a = Math.atan2(-ny, -nx);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; { const gx = x - nx * r * 0.7, gy = y - ny * r * 0.7, g = ctx.createRadialGradient(gx, gy, 0, gx, gy, r * 1.5); g.addColorStop(0, `rgba(255,190,90,${(0.7 * k).toFixed(3)})`); g.addColorStop(0.5, `rgba(255,90,40,${(0.35 * k).toFixed(3)})`); g.addColorStop(1, 'rgba(255,60,30,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(gx, gy, r * 1.5, 0, TAU); ctx.fill(); }
+      for (let j = 0; j < 3; j++) { ctx.strokeStyle = `rgba(${['255,210,120', '255,140,50', '255,80,40'][j]},${(0.55 * k).toFixed(3)})`; ctx.lineWidth = 4 + j * 4; ctx.beginPath(); ctx.arc(x, y, r * (1.02 + j * 0.12), a - 1.1 + j * 0.15, a + 1.1 - j * 0.15); ctx.stroke(); } ctx.restore(); }
+    // le rebond : la gerbe de plasma derrière lui, puis la fumée
+    const u = now - (S.feuT ?? -9); if (u < 1.1) { const k = (1 - u / 1.1) * (0.5 + 0.5 * (S.feuV || 0.5)), sp = Math.hypot(S.vx, S.vy) || 1, bx = -S.vx / sp, by = -S.vy / sp, L = r * (2 + 3.4 * k);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (let j = 0; j < 3; j++) { const w = r * (1.25 - j * 0.3), l = L * (1 - j * 0.22); ctx.fillStyle = `rgba(${['255,80,40', '255,150,60', '255,230,150'][j]},${(0.35 * k + j * 0.08 * k).toFixed(3)})`; ctx.beginPath();
+        ctx.moveTo(x - by * w, y + bx * w); ctx.quadraticCurveTo(x + bx * l * 0.6 - by * w * 0.8 + Math.sin(now * 40 + j) * 3, y + by * l * 0.6 + bx * w * 0.8, x + bx * l, y + by * l); ctx.quadraticCurveTo(x + bx * l * 0.6 + by * w * 0.8, y + by * l * 0.6 - bx * w * 0.8 + Math.cos(now * 37 + j) * 3, x + by * w, y - bx * w); ctx.closePath(); ctx.fill(); }
+      ctx.restore(); }
+    if (u < 1.8 && (FEU.n = (FEU.n || 0) + 1) % 3 === 0) FEU.push({ x: x + rnd(-4, 4), y: y + rnd(-4, 4), r: r * rnd(0.25, 0.4), t0: now, vx: -S.vx * 0.15 + rnd(-10, 10), vy: -S.vy * 0.15 + rnd(-10, 10) }); });
+  // la fumée : des boules au trait qui gonflent un peu puis rapetissent jusqu'à rien (jamais un fondu)
+  for (let i = FEU.length - 1; i >= 0; i--) { const f = FEU[i], u = (now - f.t0) / 2.2; if (u >= 1) { FEU.splice(i, 1); continue; } f.x += f.vx * dt; f.y += f.vy * dt;
+    const r = f.r * (u < 0.3 ? 1 + u : 1.3 * (1 - (u - 0.3) / 0.7)); ctx.strokeStyle = `rgba(${BL},0.55)`; ctx.fillStyle = 'rgba(90,90,100,0.35)'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(f.x, f.y, Math.max(0.1, r), 0, TAU); ctx.fill(); ctx.stroke(); }
+});
 
 /* (vague 102 de l'audit, « le retour par la planète chat » vers 9,9) : on revient avec un peu d'espace sur soi. Dans la pièce,
    de la poussière d'étoiles tombe encore du plafond un moment, en tournoyant ; les chats lèvent la tête, en attrapent au vol d'un coup
