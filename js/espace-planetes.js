@@ -179,6 +179,16 @@ function terre(ctx, now) {
   // (29/09, l'audit : « la Terre, correcte mais passive ») : elle vit. Des villes s'allument le long de l'horizon (la nuit de ce côté) ;
   // un satellite de papier passe au-dessus de l'atmosphère, ses panneaux ; de temps en temps, une petite fusée décolle et monte en arc
   if (tc > 0.5) { const yA = x => T.cy - Math.sqrt(Math.max(0, T.R * T.R - (x - T.cx) ** 2));
+    // (vague 45, l'audit : « la Terre », immersion) : une aurore boréale se lève de temps en temps sur tout l'horizon, d'un bord à l'autre :
+    // des rideaux de traits verticaux qui ondulent, se plient, courent le long de la courbe, puis retombent dans l'atmosphère (jamais sur les sous-titres)
+    { const cyc = 26, u = ((now + 4) % cyc) / 9; if (u < 1 && !reduit) { const lev = sm(u / 0.25) * (1 - sm((u - 0.72) / 0.28)), bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, Hm = Math.min(130, O.H * 0.17);
+      ctx.save(); if (bd) { ctx.beginPath(); ctx.rect(0, 0, O.W, O.H); ctx.rect(bd.x - 16, bd.y - 12, bd.w + 32, bd.h + 24); ctx.clip('evenodd'); }
+      ctx.lineCap = 'round'; ctx.lineWidth = 2.2; const n = Math.round(O.W / 7), C3 = ['140,255,200', '150,215,255', '190,165,255'], A3 = [0.42, 0.24, 0.1];
+      for (let sg = 0; sg < 3; sg++) { ctx.strokeStyle = `rgba(${C3[sg]},${(A3[sg] * lev).toFixed(3)})`; ctx.beginPath();
+        for (let i = 0; i <= n; i++) { const x = i / n * O.W, ph = x / O.W * 9 + now * 0.9, h = Hm * lev * (0.25 + 0.75 * Math.pow(0.5 + 0.5 * Math.sin(ph + Math.sin(ph * 0.37 + now * 0.5) * 1.5), 1.5)), y0 = yA(x) - 12, sw = (Math.sin(x * 0.012 + now * 1.3) * 14 + Math.sin(x * 0.05 - now * 2.1) * 4) * lev;
+          if (h < 2) continue; const q = v => [x + sw * 1.6 * v * v, y0 - h * v]; const [x1, y1] = q(sg / 3), [x2, y2] = q((sg + 1) / 3); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); }
+        ctx.stroke(); }
+      ctx.restore(); } }
     for (let i = 0; i < 26; i++) { const u = (i * 0.618 + P.seed * 0.1) % 1, x = O.W * (0.03 + u * 0.94), y = yA(x) + 6 + (i % 4) * 5, on = Math.sin(now * (0.7 + (i % 5) * 0.23) + i * 2.1) > -0.3;
       if (on) O.brille(ctx, x, y, 1.1 + (i % 3) * 0.35, 0.75 * tc, false, now, i + 40); }
     const sa = ((now * 0.035 + P.seed * 0.1) % 1.4) - 0.2, sx = O.W * sa, sy = yA(sx) - 34 - Math.sin(sa * Math.PI) * 26, ang = Math.atan2(yA(sx + 1) - yA(sx), 1);
