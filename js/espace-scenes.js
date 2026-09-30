@@ -119,7 +119,7 @@ function chabot(x, y, r, o = {}) {
 const VISE = { c: null, k: 0, id: null, px: 0, py: 0, t: 0 };
 // (dessiné sur sa propre toile, tout en haut : par-dessus le chat qui s'agrippe au pointeur ; effacée dès qu'on ne l'appelle plus)
 let VC = null, VT = 0;
-const AGV = { t: 0, e: 0, p: null };
+const AGV = { t: 0, e: 0, p: null }, TH = { t: 0, e: 0, id: null };
 const LUI = { t: 0, h: 0, t0: -99 }, TAMPON = [];
 function toileVise(cv0) {
   if (!VC) { VC = document.createElement('canvas'); VC.setAttribute('aria-hidden', 'true'); VC.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2'; document.body.appendChild(VC); }
@@ -156,7 +156,7 @@ const reduitMvt = () => !!(window.matchMedia && matchMedia('(prefers-reduced-mot
 function cibleBarre() { const M = window.EspacePlume && EspacePlume.M, B = M && M.lay && M.lay.barre, C = M && M.sc; if (!B || !B.seg || !C) return null;
   const g = B.seg[C.S.ch] || B.seg[0]; return [g.x + g.w * c01((C.i - B.seg.slice(0, C.S.ch).reduce((n, q) => n + q.n, 0) + 0.5) / g.n), B.bas - 4]; }
 function envols(o, now) {
-  const cv = o.canvas, dp = (cv.width / (cv.clientWidth || cv.width)) || 1, T = cibleBarre(); if (!T) { ENVOL.length = 0; return; } const tx = T[0] * dp, ty = T[1] * dp;
+  const cv = o.canvas, dp = dpDe(cv), T = cibleBarre(); if (!T) { ENVOL.length = 0; return; } const tx = T[0] * dp, ty = T[1] * dp;
   o.save(); o.setTransform(1, 0, 0, 1, 0, 0); o.lineCap = o.lineJoin = 'round';
   ENVOL.forEach(q => { const t = now - q.t0, u = c01(t / 0.95), e = u * u * (3 - 2 * u), cx = (q.x + tx) / 2 + (q.s - 0.5) * 300 * dp, cy = Math.min(q.y, ty) - 180 * dp;
     const at = v => [(1 - v) * (1 - v) * q.x + 2 * (1 - v) * v * cx + v * v * tx, (1 - v) * (1 - v) * q.y + 2 * (1 - v) * v * cy + v * v * ty];
@@ -178,7 +178,7 @@ function vise(c0, now) {
   const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length) return; const o = toileVise(c0.canvas);
   TAMPON.forEach(q => tamponVitre(o, q, now - q.t0)); if (ENVOL.length) envols(o, now); if (!R || VISE.k <= 0 || !P) return;
   const W0 = window.Chats && Chats.K && Chats.K.Wd, chat = W0 && W0.cats.some(q => q.sp && q.sp.m === 'agrippe');
-  const cv = o.canvas, dp = (cv.width / (cv.clientWidth || cv.width)) || 1, px = P.x * dp, py = P.y * dp, ln = Math.max(1, dp), k = VISE.k;
+  const cv = o.canvas, dp = dpDe(cv), px = P.x * dp, py = P.y * dp, ln = Math.max(1, dp), k = VISE.k;
   o.save(); o.setTransform(1, 0, 0, 1, 0, 0); o.lineCap = o.lineJoin = 'round';
   // les deux traits de balayage, des yeux vers la souris (en tirets qui courent), qui se tendent en premier
   const bal = c01(k / 0.45), ex = R.x, ey = R.y;
@@ -251,7 +251,8 @@ function caillou(x, y, r, t, n, a = 1, mechant = false) { if (!(r > 0.3)) return
 // et un petit chat est assis sur son épaule : il balance la queue, remue une oreille, suit la souris lui aussi, et fait un bond quand le tampon tombe
 const souris = () => { const W = window.Chats && Chats.K && Chats.K.Wd, P = W && W.ptr; return P && P.on ? P : null; };
 // (le pointeur, ramené dans le repère du dessin en cours : le dessin peut être déplacé, tourné, à l'échelle de l'écran)
-const sourisIci = () => { const P = souris(); if (!P) return null; const m = ctx.getTransform(), k = (ctx.canvas.width / (ctx.canvas.clientWidth || ctx.canvas.width)) || 1, i = m.inverse(), px = P.x * k, py = P.y * k; return { x: i.a * px + i.c * py + i.e, y: i.b * px + i.d * py + i.f }; };
+const dpDe = cv => (cv.clientWidth ? cv.width / cv.clientWidth : cv.width / (window.innerWidth || cv.width)) || 1;   // (la toile hors champ n'a pas de taille à l'écran : on la compare à la fenêtre)
+const sourisIci = () => { const P = souris(); if (!P) return null; const m = ctx.getTransform(), k = dpDe(ctx.canvas), i = m.inverse(), px = P.x * k, py = P.y * k; return { x: i.a * px + i.c * py + i.e, y: i.b * px + i.d * py + i.f }; };
 function epaule(x, y, r, now, a, regard, saut) {
   const yb = y - saut * r * 0.5, qx = Math.sin(now * 1.9) * 0.5 + Math.sin(now * 0.7) * 0.3, w = clamp01(r / 20) * 0.6 + 0.4;
   // la queue qui pend derrière l'épaule et balance
@@ -277,7 +278,7 @@ function lui(x, y, r, o = {}) {
   // (vague 79, l'audit : « toi », il sort de la scène) : la souris reste près de lui : il lève son tampon et le frappe sur la vitre, sous la souris
   { const m = ctx.getTransform(); LUI.x = m.a * x + m.c * y + m.e; LUI.y = m.b * x + m.d * y + m.f; LUI.r = r * Math.hypot(m.a, m.b);
     const dtl = Math.min(0.2, Math.max(0, nw - (LUI.t || nw))); LUI.t = nw; LUI.h = pres && r > 8 ? LUI.h + dtl : 0;
-    if (LUI.h > 1.3 && nw - LUI.t0 > 7) { LUI.t0 = nw; LUI.h = 0; const S = souris(), cv = ctx.canvas, dp = (cv.width / (cv.clientWidth || cv.width)) || 1; if (S) TAMPON.push({ x: S.x * dp, y: S.y * dp, t0: nw, rot: (Math.random() - 0.5) * 0.5, dp }); }
+    if (LUI.h > 1.3 && nw - LUI.t0 > 7) { LUI.t0 = nw; LUI.h = 0; const S = souris(), cv = ctx.canvas, dp = dpDe(cv); if (S) TAMPON.push({ x: S.x * dp, y: S.y * dp, t0: nw, rot: (Math.random() - 0.5) * 0.5, dp }); }
     const ft = nw - LUI.t0; if (ft < 0.9) o = Object.assign({}, o, { tp: ft < 0.25 ? 1 - ft / 0.25 * 0.2 : Math.max(o.tp || 0, 1 - (ft - 0.25) / 0.65) }); } if (pres) { o = Object.assign({}, o, { hoche: Math.sin(nw * 7) * 0.8 }); if (r > 8) mot(en() ? 'hi!' : 'salut !', x + r * 0.2, y - r * 2.1 + Math.sin(nw * 5) * r * 0.05, Math.max(11, r * 0.42), o.a ?? 1); }
   const a = o.a ?? 1, w = clamp01(r / 30) * 0.7 + 0.45, hy = y + (o.hoche || 0) * r * 0.1, by = y + r * 0.95, bw = r * 1.2, bh = r * 1.45, g = o.cote || -1, tp = o.tp || 0;
   // le bras qui ne tamponne pas, derrière le corps
@@ -454,7 +455,7 @@ S.terminaux = (() => {
       for (let r = -11; r <= 10; r++) for (let c = 0; c < COL; c++) {
         const x = (c - (COL - 1) / 2) * GX, y = (r - fr) * GY, d = Math.hypot(c - (COL - 1) / 2, r - fr), id = (r + i0) * COL + c;
         if (d > cr) continue;   // (elles naissent du centre vers les bords)
-        const lv = id === cible ? lev : 0, zl = lv * 1.1;
+        const lv = id === cible ? lev : id === TH.id ? TH.e * c01(a - 1) : 0, zl = lv * 1.1;
         const Q = [[x - W0 / 2, y - H0 / 2], [x + W0 / 2, y - H0 / 2], [x + W0 / 2, y + H0 / 2], [x - W0 / 2, y + H0 / 2]].map(([u, v]) => p3(u, v, zl, lac, tan, k));
         const z = (Q[0][2] + Q[2][2]) / 2, m = [(Q[0][0] + Q[2][0]) / 2, (Q[0][1] + Q[2][1]) / 2];
         if (m[0] < G.gauche - 80 || m[0] > G.droite + 80 || m[1] < -80 || m[1] > G.bas + 60) continue;
@@ -462,6 +463,11 @@ S.terminaux = (() => {
         L.push({ x, y, Q, Qb, z: z + lv * 9, id, lv, pop: c01((cr - d) / 0.8), B: lv > 0.01 ? [[x - W0 / 2, y - H0 / 2], [x + W0 / 2, y - H0 / 2], [x + W0 / 2, y + H0 / 2], [x - W0 / 2, y + H0 / 2]].map(([u, v]) => p3(u, v, 0, lac, tan, k)) : null });
       }
       L.sort((a, b) => a.z - b.z);
+      // (vague 82, l'audit : « les terminaux ») : on choisit le sien. Le terminal sous la souris se soulève vers nous comme celui du moment :
+      // son agent sort la tête et tape, sa tâche s'écrit en toutes lettres ; la souris s'en va, il se repose dans le mur
+      { const Sp = sourisIci(), dtT = Math.min(0.2, Math.max(0, now - (TH.t || now))); TH.t = now; let sous = null;
+        if (Sp) for (let j = L.length - 1; j >= 0; j--) { const q = L[j], Q = q.lv > 0.01 && q.B ? q.B : q.Q; let np = 0, nn = 0; for (let m = 0; m < 4; m++) { const A = Q[m], B = Q[(m + 1) % 4], cr2 = (B[0] - A[0]) * (Sp.y - A[1]) - (B[1] - A[1]) * (Sp.x - A[0]); if (cr2 > 0) np++; else nn++; } if (np === 4 || nn === 4) { sous = q.id; break; } }
+        if (sous !== null && sous !== cible && (TH.id === sous || TH.e < 0.05)) { TH.id = sous; TH.e = Math.min(1, TH.e + dtT / 0.35); } else { TH.e = Math.max(0, TH.e - dtT / 0.3); if (TH.e === 0) TH.id = null; } }
       // (vague 13, l'audit : « le mur passe sur la barre des chapitres et sur la planète ») : il s'arrête sous la barre, et fait le tour de la planète des chats
       ctx.save(); ctx.beginPath(); ctx.rect(0, G.haut - 4, G.droite + 40, 1e4);
       { const Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat; if (Pc) { ctx.moveTo(Pc.x + Pc.r * 1.25, Pc.y); ctx.arc(Pc.x, Pc.y, Pc.r * 1.25, 0, TAU, true); } }
@@ -1451,5 +1457,5 @@ S.pilotage = (() => {
 S.rag = S.ia;
 
 // la toile, l'écran du ciel, les outils ; puis : une scène existe-t-elle ?
-return { S, vise, VISE, LUI, ENVOL, pose(c, g, o) { ctx = c; G = g; O = o; } };
+return { S, vise, VISE, LUI, ENVOL, TH, pose(c, g, o) { ctx = c; G = g; O = o; } };
 })();
