@@ -95,6 +95,20 @@ function dessine(ctx, x, y, r, rot, now, porte) {
         for (let i = 0; i <= 24 * u; i++) { const q = i / 24 * TAU; P.push([hx + 16 * Math.pow(Math.sin(q), 3) * hs / 16, hy - (13 * Math.cos(q) - 5 * Math.cos(2 * q) - 2 * Math.cos(3 * q) - Math.cos(4 * q)) * hs / 16]); }
         ctx.strokeStyle = `rgba(7,8,12,${0.8 * b + 0.1})`; ctx.lineWidth = 1.4; ctx.beginPath(); P.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke(); }
       ctx.restore(); } }
+  // (vague 80, l'audit : « le casque », il sort de l'espace) : sa visière, c'est aussi notre vitre. Elle reflète le pointeur (une petite flèche
+  // courbée par le bombé, du côté où il est) ; et quand la souris passe sur le verre, elle y laisse une trace de doigt, qui tourne avec le casque
+  { const S = Wd.ptr; if (S && S.on) { const cs = Math.cos(-rot), sn = Math.sin(-rot), gx = S.x - x, gy = S.y - y, dx = gx * cs - gy * sn, dy = gx * sn + gy * cs, d = Math.hypot(dx, dy) || 1;
+      if (d < r * 6) { const k = r * 0.62 * d / (d + r * 0.9), px = dx / d * k, py = dy / d * k, s2 = r * 0.16 * (1 - k / r * 0.5), al = 0.55 * (1 - d / (r * 6));
+        ctx.save(); ctx.beginPath(); ctx.arc(0, 0, r * 0.94, 0, TAU); ctx.clip(); ctx.translate(px, py); ctx.rotate(-rot - 0.2); ctx.scale(s2 / 10, s2 / 10 * (1 - k / r * 0.35));
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 15); ctx.lineTo(3.8, 11.5); ctx.lineTo(6.6, 17.5); ctx.lineTo(9, 16.4); ctx.lineTo(6.3, 10.6); ctx.lineTo(11, 10.4); ctx.closePath();
+        ctx.fillStyle = `rgba(${BL},${al.toFixed(3)})`; ctx.fill(); ctx.strokeStyle = `rgba(7,8,12,${(al * 0.8).toFixed(3)})`; ctx.lineWidth = 1.2; ctx.stroke(); ctx.restore(); }
+      const T = dessine.traces || (dessine.traces = new WeakMap()), cle = porte || C, L = T.get(cle) || []; T.set(cle, L);
+      if (d < r * 0.85 && Wd.t - S.moved < 0.2 && !(L.length && Math.hypot(L[L.length - 1].x - dx, L[L.length - 1].y - dy) < r * 0.35)) { L.push({ x: dx, y: dy, t: Wd.t, a: Math.random() * TAU }); if (L.length > 5) L.shift(); }
+      for (let i = L.length - 1; i >= 0; i--) if (Wd.t - L[i].t > 7) L.splice(i, 1);
+      if (L.length) { ctx.save(); ctx.beginPath(); ctx.arc(0, 0, r * 0.95, 0, TAU); ctx.clip(); ctx.strokeStyle = `rgba(${BL},0.32)`; ctx.lineWidth = 0.9;
+        L.forEach(q => { const e = 1 - Math.max(0, (Wd.t - q.t - 5.5) / 1.5), R = r * 0.13 * e; if (R < 0.5) return;   // (elle se résorbe en rapetissant)
+          for (let j = 1; j <= 4; j++) { ctx.beginPath(); ctx.ellipse(q.x, q.y, R * j / 4, R * j / 4 * 1.35, q.a, 0.3 + j * 0.5, TAU - 0.4 + j * 0.3); ctx.stroke(); } });
+        ctx.restore(); } } }
   // le col : un anneau épais en bas
   ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.ellipse(0, r * 0.9, r * 0.62, r * 0.16, 0, 0, TAU); ctx.stroke();
   ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(0, r * 0.9, r * 0.5, r * 0.1, 0, 0, Math.PI); ctx.stroke();
