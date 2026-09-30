@@ -978,8 +978,13 @@ S.front = (() => {
       const e1 = b1 ? sm((a - 0.2) / 0.5) : 1; if (e1 > 0) { const p = Pk(-w + 0.08 - (1 - e1) * 0.6, -h + 0.21); boite(p[0], p[1], (2 * w - 0.16) * k, 0.09 * k, 3, 0.8, 1); }
       // les cartes : elles se retournent (la première fois), puis suivent la mise en page
       CC.forEach(([x, y, cw, ch], i) => { const e = b1 ? sm((a - 0.6 - i * 0.3) / 0.5) : 1, fl = Math.cos((1 - e) * Math.PI / 2); if (e <= 0) return;
-        const p = Pk(x + cw / 2 - cw / 2 * fl, y); boite(p[0], p[1], cw * fl * k, ch * k, 5, 0.85, 1, true);
-        if (fl > 0.6) { const im = Pk(x + cw / 2, y + ch * 0.38); rond(im[0], im[1], Math.min(cw, ch) * 0.2 * k, 0.6, 0.9); trait([Pk(x + 0.05, y + ch * 0.78), Pk(x + cw * 0.7, y + ch * 0.78)], false, 0.5, 0.8); }
+        // (vague 63 de l'audit, « front », immersion) : l'interface répond vraiment à la souris : la carte survolée se soulève (état :hover),
+        // son ombre se décale dessous, un liseré s'allume
+        const Sm = souris(), q0 = Pk(x, y), q1 = Pk(x + cw, y + ch), hv = Sm && fl > 0.9 && window.Chats.K.Wd.t - Sm.moved < 3 && Sm.x > q0[0] && Sm.x < q1[0] && Sm.y > q0[1] && Sm.y < q1[1], lift = hv ? k * 0.05 : 0;
+        if (hv) { ctx.globalAlpha = 0.35; ctx.fillStyle = '#000'; ctx.fillRect(q0[0] + k * 0.02, q0[1] + k * 0.03, cw * k, ch * k); }
+        const p = Pk(x + cw / 2 - cw / 2 * fl, y); p[1] -= lift; boite(p[0], p[1], cw * fl * k, ch * k, 5, hv ? 1.3 : 0.85, 1, true);
+        if (hv) { brille(p[0] + cw * k, p[1], 3, 1, true, now, 40 + i); mot(':hover', p[0] + cw * k * 0.5, p[1] - k * 0.05, Math.max(10, k * 0.05), 0.8); }
+        if (fl > 0.6) { const im = Pk(x + cw / 2, y + ch * 0.38 - lift / k); rond(im[0], im[1], Math.min(cw, ch) * 0.2 * k, 0.6, 0.9); trait([Pk(x + 0.05, y + ch * 0.78), Pk(x + cw * 0.7, y + ch * 0.78)], false, 0.5, 0.8); }
         if (c > 8.6 && c < 9.4 && i === 1) { const r = (c - 8.6) / 0.8, q = Pk(x + cw / 2, y + ch / 2); style(0.8, 1 - r); ctx.beginPath(); ctx.arc(q[0], q[1], k * 0.2 * r, 0, TAU); ctx.stroke(); rond(q[0], q[1], k * 0.035, 0.9, 1 - r); } });
       // le bouton
       const eb = b1 ? sm((a - 1.6) / 0.4) : 1, bw = Math.min(0.4, w * 1.1), bx = large01 * w * 0.5, by = h - 0.15; if (eb > 0) { const p = Pk(bx - bw / 2, by - 0.06); boite(p[0], p[1], bw * k * eb, 0.12 * k, 6, 0.95, 1, true); }
