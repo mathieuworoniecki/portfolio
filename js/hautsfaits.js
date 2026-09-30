@@ -109,8 +109,20 @@ function suivant() {
   if (h.rang !== 'bronze' && !Wd.espace && !Wd.trou && !Wd.fuite) { const O = Wd.cats.filter(c => !c.gone && !c.temp && !c.rare && !c.fall && !c.held && !c.perch && K.free4(c)).sort((a, b) => a.x - b.x);
     if (O.length >= 3) { setTimeout(() => Wd.fx.push({ k: 'txt', text: T('OLA !', 'OLÉ!'), x: Wd.W * 0.5, y: Wd.floor - K.sOf(0.3) * 2.6, t0: Wd.t, life: 1.6, rot: -0.06, size: 40 }), 1500);
       O.forEach((c, i) => setTimeout(() => { if (c.gone || c.held || c.fall || !K.free4(c)) return; K.interrupt(c); c.q = [K.hop(() => K.groundAt(c.x, c.d), { h: K.sc(c) * 0.8, dur: 0.45 }), K.pose('assis', 0.8)]; }, 1400 + (c.x / Wd.W) * 1400 + i * 20)); } }
+  // (vague 76, l'audit : « le déblocage ») : le moment sort de la carte. Une onde de la couleur du rang part du badge et traverse tout l'écran
+  // (des cercles à la craie) ; chaque élément de l'interface qu'elle touche fait un bond, et les chats qu'elle touche lèvent la tête
+  if (!Wd.trou && !matchMedia('(prefers-reduced-motion: reduce)').matches) setTimeout(() => { const r = scene.getBoundingClientRect(); if (!r.width) return;
+    const x = r.left + 44, y = r.top + 46, V = Math.hypot(innerWidth, innerHeight) / 1.3, t0 = performance.now(), vus = new Set();
+    Wd.fx.push({ k: 'cri', x, y, v: V, t0: Wd.t, life: 1.9, seed: 3, col: R.c, w: h.rang === 'or' || h.rang === 'secret' ? 1.4 : 1 });
+    const L = [...document.querySelectorAll('#brand, #lang-pick, .film-ui .ctrl > *, #chap > *, .evts li, .ctas > *, #titles')].filter(e => e.getClientRects().length && e.animate);
+    const tic = () => { const Rr = (performance.now() - t0) / 1000 * V; L.forEach(e => { if (vus.has(e)) return; const q = e.getBoundingClientRect(), ex = q.left + q.width / 2, ey = q.top + q.height / 2; if (Math.hypot(ex - x, ey - y) > Rr) return; vus.add(e);
+        const sx = Math.sign(ex - x) || 1; try { e.animate([{ transform: 'none' }, { transform: `translate(${sx * 4}px,-8px) scale(1.06)`, offset: 0.3 }, { transform: 'translateY(2px)', offset: 0.65 }, { transform: 'none' }], { duration: 520, easing: 'ease-out', composite: 'add' }); } catch (z) {} });
+      Wd.cats.forEach(c => { if (vus.has(c) || c.gone || c.held || c.fall || Math.hypot(c.x - x, c.y - K.sc(c) * 0.6 - y) > Rr) return; vus.add(c); if (Math.random() < 0.3 && K.free4(c)) K.say(c, pick2(['!', '✨', 'oh ?'])); });
+      if (Rr < Math.hypot(innerWidth, innerHeight) * 1.1) requestAnimationFrame(tic); };
+    requestAnimationFrame(tic); }, 420);
   clearTimeout(finT); finT = setTimeout(ferme, 5000);
 }
+const pick2 = L => L[Math.floor(Math.random() * L.length)];
 function ferme() { clearTimeout(finT); if (scene.classList.contains('part')) return; vole(); scene.classList.add('part'); setTimeout(() => { scene.classList.remove('go', 'part'); scene.hidden = true; joue = false; setTimeout(suivant, 300); }, 380); }
 // (vague 6, l'audit : « le déblocage ne va nulle part ») : rien ne s'efface. Le badge quitte la carte, file en arc jusqu'au bouton des hauts faits
 // en tournant et en rapetissant, semant des étincelles ; le bouton l'avale, rebondit, et son compteur saute. La carte, elle, glisse hors de l'écran.

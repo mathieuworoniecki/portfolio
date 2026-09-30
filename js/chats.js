@@ -1008,7 +1008,7 @@ function ondeCri(f, t) {
   const D = Math.hypot(Wd.W, Wd.H) * 1.25;
   for (let i = 0; i < 5; i++) { const tt = t - f.t0 - i * 0.11, R = tt * f.v; if (tt < 0 || R > D) continue;
     const P = [], n = Math.min(120, 24 + Math.floor(R / 12)); for (let k = 0; k <= n; k++) { const a = k / n * Math.PI * 2, rr = R * (1 + 0.025 * Math.sin(a * 18 + tt * 40 + i)); P.push([f.x + Math.cos(a) * rr, f.y + Math.sin(a) * rr * 0.9]); }
-    Chalk.stroke(P, 1, { w: Math.max(1, 3.2 - i * 0.5), a: 0.7 * Wd.a, seed: f.seed + i * 7, tip: false }); }
+    Chalk.stroke(P, 1, { w: Math.max(1, 3.2 - i * 0.5) * (f.w || 1), a: 0.7 * Wd.a, seed: f.seed + i * 7, tip: false, color: f.col }); }
 }
 function heart(x, y, r, a) {
   const P = []; for (let i = 0; i <= 24; i++) { const q = i / 24 * Math.PI * 2; P.push([x + 16 * Math.pow(Math.sin(q), 3) * r / 16, y - (13 * Math.cos(q) - 5 * Math.cos(2 * q) - 2 * Math.cos(3 * q) - Math.cos(4 * q)) * r / 16]); }
