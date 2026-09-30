@@ -342,7 +342,7 @@ html:not(.locked) #gate:not(.open){display:none}
 /* ——— le carnet de découvertes (js/decouvertes.js) : le bouton en bas de la barre, l'annonce, le carnet ouvert ——— */
 .dex-btn{position:relative;border-style:dashed!important}
 .dex-n{position:absolute;right:-12px;bottom:-7px;padding:0 4px;border-radius:7px;background:var(--bp-hi);color:rgb(var(--ink));border:1.2px solid rgb(var(--ink));font:600 .56rem/1.35 var(--mono);font-style:normal;white-space:nowrap;pointer-events:none}
-.dex-toast{position:fixed;left:calc(var(--b,40px) + 26px);bottom:64px;z-index:30;display:flex;align-items:baseline;gap:.5rem;max-width:min(80vw,380px);padding:.45rem .8rem;
+.dex-toast{position:fixed;left:calc(var(--b,40px) + 26px);bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:30;display:flex;align-items:baseline;gap:.5rem;max-width:min(80vw,380px);padding:.45rem .8rem;
   background:var(--bp-hi);color:rgb(var(--ink));border:2px solid rgb(var(--ink));border-radius:14px 10px 16px 12px;box-shadow:3px 3px 0 rgba(var(--ink),.18);
   font:400 1.05rem/1.2 var(--hand);opacity:0;pointer-events:none;transform:translateY(20px)}
 .dex-toast b{font-weight:700}.dex-toast i{font:500 .7rem/1 var(--mono);font-style:normal;opacity:.7;white-space:nowrap}
@@ -463,7 +463,7 @@ html:not(.locked) #gate:not(.open){display:none}
 @keyframes hf-rayons{0%{opacity:0;rotate:0deg}12%{opacity:1}75%{opacity:.8}100%{opacity:0;rotate:120deg}}
 @keyframes hf-badge{0%{scale:0;rotate:-540deg}70%{scale:1.2;rotate:10deg}100%{scale:1;rotate:0deg}}
 @keyframes hf-mot{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:none}}
-@media (max-width:600px){.hf-show{top:auto;bottom:calc(58px + env(safe-area-inset-bottom,0px));right:10px;max-width:min(270px,calc(100vw - 80px));padding:5px 12px 5px 5px;gap:6px;transform-origin:100% 100%}.hf-show .hf-badge{width:50px;height:auto}.hf-rayons{left:30px;width:120px}.hf-show h2{font-size:1.05rem}.hf-sur{font-size:.55rem}}
+@media (max-width:600px){.hf-show{top:auto;bottom:calc(92px + env(safe-area-inset-bottom,0px));right:10px;max-width:min(270px,calc(100vw - 80px));padding:5px 12px 5px 5px;gap:6px;transform-origin:100% 100%}.hf-show .hf-badge{width:50px;height:auto}.hf-rayons{left:30px;width:120px}.hf-show h2{font-size:1.05rem}.hf-sur{font-size:.55rem}}
 .hf-btn svg{fill:none}
 .hf-grille{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))!important}
 .hf-grille li{align-items:center;text-align:center;padding:10px 8px!important}

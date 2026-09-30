@@ -24,7 +24,10 @@ function montre(b) {
 function place() {
   if (!courant) return; const p = courant.at(); if (!p || Wd.a < 0.6) { bulle.style.opacity = 0; return; } bulle.style.opacity = '';
   // (la taille de la bulle, mesurée une fois par texte : la relire à chaque image forçait le navigateur à tout recalculer)
-  if (!taille || !taille[0]) taille = [bulle.offsetWidth, bulle.offsetHeight]; const [w, h] = taille, x = Math.max(12, Math.min(Wd.W - w - 12, p[0] - w / 2)), y = Math.max(12, p[1] - h - 18);
+  if (!taille || !taille[0]) taille = [bulle.offsetWidth, bulle.offsetHeight]; const [w, h] = taille, x = Math.max(12, Math.min(Wd.W - w - 12, p[0] - w / 2)); let y = Math.max(12, p[1] - h - 18);
+  // (vague 93 de l'audit, la finition au téléphone : le chat de l'arrivée est posé sur le titre, et la bulle cachait « Salut, moi c'est Mathieu ») :
+  // si elle chevauche le titre, elle passe au-dessus de lui ; faute de place, juste en dessous
+  { const r = window.Vie && Vie.RECT && Vie.RECT(); if (r && r.width && x < r.right && x + w > r.left && y < r.bottom && y + h > r.top) y = r.top - h - 10 >= 8 ? r.top - h - 10 : r.bottom + 10; }
   bulle.style.transform = `translate(${x | 0}px, ${y | 0}px)`; bulle.style.setProperty('--queue', `${Math.max(14, Math.min(w - 14, p[0] - x)) | 0}px`);
 }
 
