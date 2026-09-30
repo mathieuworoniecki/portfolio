@@ -62,7 +62,7 @@ function chabot(x, y, r, o = {}) {
   const Sp = r >= 6 ? sourisIci() : null;
   const dS = Sp ? Math.hypot(Sp.x - x, Sp.y - y) : 1e9, voit = dS < r * 6 ? 1 - dS / (r * 6) : 0;
   if (dS < r * 2.8) { const i = Sp.x > x ? 1 : 0; bras = bras.slice(); bras[i] = 1.25 + Math.sin(now * 14 + ph) * 0.4; }
-  if (Sp && r >= 8 && o.vise !== false && !(AGV.e > 0.3 && now - AGV.t < 0.3) && dS < r * 4.5 && (!VISE.c || dS / r < VISE.c.d)) { const m = ctx.getTransform(), q = { d: dS / r, id: ph, x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f, r: r * Math.hypot(m.a, m.b) }; if (q.x > 0 && q.y > 0 && q.x < ctx.canvas.width && q.y < ctx.canvas.height && q.r < ctx.canvas.height * 0.3) VISE.c = q; }
+  if (Sp && r >= 8 && o.vise !== false && !INST.q && !(AGV.e > 0.3 && now - AGV.t < 0.3) && dS < r * 4.5 && (!VISE.c || dS / r < VISE.c.d)) { const m = ctx.getTransform(), q = { d: dS / r, id: ph, x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f, r: r * Math.hypot(m.a, m.b) }; if (q.x > 0 && q.y > 0 && q.x < ctx.canvas.width && q.y < ctx.canvas.height && q.r < ctx.canvas.height * 0.3) VISE.c = q; }
   [-1, 1].forEach((g, i) => { const b = bras[i], ex = x + g * bw * 0.86, ey = by - bh * 0.35, mx = ex + g * Math.cos(b) * r * 0.42, my = ey - Math.sin(b) * r * 0.42;
     cerne(() => { ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(mx, my); }, w * 1.5, a, null); cerne(() => { ctx.beginPath(); ctx.arc(mx, my, r * 0.13, 0, TAU); }, w, a); });
   // (vague 32, l'audit : « le chat-robot ») : une queue de chat mécanique, en anneaux qui rapetissent, qui ondule derrière lui ; le bout, une petite boule
@@ -239,11 +239,29 @@ function inspecteur(o, now) {
     o.fillStyle = PAP; o.strokeStyle = ENC; o.lineWidth = 1.2; o.beginPath(); o.rect(lx, ly, tw * sm(c01((e - 0.6) / 0.4)), 18); o.fill(); o.stroke(); if (e > 0.85) { o.fillStyle = ENC; o.textBaseline = 'middle'; o.fillText(t, lx + 6, ly + 9.5); } }
   o.restore();
 }
+const INST = { t: 0, h: 0, hi: -1, q: null, fin: -99, vu: -99 };
+function installe(o, now) {
+  const q = INST.q, P = souris(); if (!q) return; const t = now - q.t0; if (t > 6.2 || now - INST.vu > 1.5) { INST.q = null; INST.fin = now; return; }
+  const cv = o.canvas, dp = dpDe(cv); o.save(); o.setTransform(dp, 0, 0, dp, 0, 0); o.lineCap = o.lineJoin = 'round';
+  const px = P ? P.x : q.x, py = P ? P.y : q.y, ax = px + 18, ay = py + 20, va = sm(c01(t / 0.6)), re = sm(c01((t - 5.3) / 0.9));
+  // (l'aller : en arc depuis l'orbite ; le retour : vers sa place sur l'orbite, où il est redessiné par la scène)
+  let x = lerp(q.x, ax, va), y = lerp(q.y, ay, va) - Math.sin(Math.PI * va) * 80 * (1 - re); if (re > 0) { x = lerp(ax, q.ox ?? q.x, re); y = lerp(ay, q.oy ?? q.y, re) - Math.sin(Math.PI * re) * 60; }
+  const s = 1 - re * 0.6, rot = (1 - va) * 4 + re * 3 + Math.sin(now * 3) * 0.06 * va;
+  if (va >= 1 && re <= 0) { // le câble : du pointeur à la cartouche, qui pend un peu ; au branchement, un éclair
+    o.strokeStyle = NUIT; o.lineWidth = 4.5; o.beginPath(); o.moveTo(px + 2, py + 4); o.quadraticCurveTo(px + 4, ay + 14, x - 8, y); o.stroke(); o.strokeStyle = `rgb(${BL})`; o.lineWidth = 1.8; o.stroke();
+    if (t < 0.9) { const u = (t - 0.6) / 0.3; o.lineWidth = 1.5; for (let i = 0; i < 8; i++) { const b = i / 8 * TAU; o.beginPath(); o.moveTo(x + Math.cos(b) * 14 * (1 + u), y + Math.sin(b) * 14 * (1 + u)); o.lineTo(x + Math.cos(b) * 24 * (1 + u) * (1 - u * 0.3), y + Math.sin(b) * 24 * (1 + u) * (1 - u * 0.3)); o.stroke(); } } }
+  o.translate(x, y); o.rotate(rot); o.scale(s, s); o.font = '600 12px ui-monospace,Menlo,Consolas,monospace'; const tw = o.measureText(q.l).width + 18, H = 26;
+  o.beginPath(); o.moveTo(-8, -H / 2); o.lineTo(tw - 6, -H / 2); o.lineTo(tw, -H / 2 + 6); o.lineTo(tw, H / 2); o.lineTo(-8, H / 2); o.closePath();
+  o.strokeStyle = `rgb(${BL})`; o.lineWidth = 5; o.stroke(); o.fillStyle = PAP; o.fill(); o.strokeStyle = ENC; o.lineWidth = 1.4; o.stroke();
+  [-5, 1, 7].forEach(v => { o.beginPath(); o.moveTo(-8, v); o.lineTo(-13, v); o.stroke(); });   // (ses broches)
+  o.fillStyle = ENC; o.textBaseline = 'middle'; o.fillText(q.l, 2, 1);
+  o.restore();
+}
 function vise(c0, now) {
   const c = VISE.c, P = souris(); VISE.c = null; const dt = Math.min(0.2, Math.max(0, now - (VISE.t || now))); VISE.t = now;
   if (c && P && (VISE.id === null || VISE.id === c.id || VISE.k < 0.05)) { VISE.id = c.id; VISE.k = Math.min(1.6, VISE.k + dt * 1.4); VISE.rb = c; }
   else { VISE.k = Math.max(0, VISE.k - dt * 3); if (VISE.k === 0) VISE.id = null; }
-  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); const sg = now - SURGE.t0 < 1.6 && now >= SURGE.t0, ins = now - INSP.t < 0.3 || INSP.k > 0; if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length && !FEUX.length && !sg && !ins) return; const o = toileVise(c0.canvas); if (sg) eclairs(o, now); if (ins) inspecteur(o, now);
+  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); const sg = now - SURGE.t0 < 1.6 && now >= SURGE.t0, ins = now - INSP.t < 0.3 || INSP.k > 0; if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length && !FEUX.length && !sg && !ins && !INST.q) return; const o = toileVise(c0.canvas); if (sg) eclairs(o, now); if (ins) inspecteur(o, now); if (INST.q) installe(o, now);
   TAMPON.forEach(q => tamponVitre(o, q, now - q.t0)); if (ENVOL.length) envols(o, now); if (FEUX.length) feux(o, now); if (!R || VISE.k <= 0 || !P) return;
   const W0 = window.Chats && Chats.K && Chats.K.Wd, chat = W0 && W0.cats.some(q => q.sp && q.sp.m === 'agrippe');
   const cv = o.canvas, dp = dpDe(cv), px = P.x * dp, py = P.y * dp, ln = Math.max(1, dp), k = VISE.k;
@@ -693,6 +711,12 @@ S.skills = (() => {
         // (vague 55 de l'audit, « skills », immersion) : le module que la souris approche se tourne vers nous, grossit, et le rayon de la souris le tient
         const p = V(...w), Sm = souris(), hv = Sm && window.Chats.K.Wd.t - Sm.moved < 2.5 ? c01(1.6 - Math.hypot(Sm.x - p[0], Sm.y - p[1]) / (k * 0.3)) : 0;
         return { l, i, e: Math.max(e, hv), eb: e, hv, kind: KIND[i], w, p }; });
+      // (vague 86, l'audit : « skills ») : on s'installe un skill. La souris qui tient un module une seconde l'arrache à son orbite : il vole jusqu'au
+      // pointeur et s'y branche (une cartouche de papier, son nom, son câble), le suit partout sur l'écran, puis se débranche et rentre en orbite
+      { const dtS = Math.min(0.2, Math.max(0, now - (INST.t || now))); INST.t = now; const m = ctx.getTransform(), dp = dpDe(ctx.canvas);
+        const h = it.reduce((b, q) => q.hv > (b ? b.hv : 0.85) ? q : b, null); if (h && !INST.q) { INST.h = INST.hi === h.i ? INST.h + dtS : 0; INST.hi = h.i; } else if (!h) INST.h = 0; INST.mp = it.map(q => [(m.a * q.p[0] + m.c * q.p[1] + m.e) / dp, (m.b * q.p[0] + m.d * q.p[1] + m.f) / dp, q.p[2]]);
+        if (INST.h > 1 && !INST.q && now - INST.fin > 2) { INST.q = { l: h.l, kind: h.kind, t0: now, x: (m.a * h.p[0] + m.c * h.p[1] + m.e) / dp, y: (m.b * h.p[0] + m.d * h.p[1] + m.f) / dp }; INST.h = 0; }
+        if (INST.q) { const q = it.find(z => z.kind === INST.q.kind && z.l === INST.q.l); if (q) { INST.q.ox = (m.a * q.p[0] + m.c * q.p[1] + m.e) / dp; INST.q.oy = (m.b * q.p[0] + m.d * q.p[1] + m.f) / dp; } INST.vu = now; } }
       // les orbites
       trait3(anneau(V, Rr, 0, 72), 0.6, 0.55); trait3(anneau(V, Rr * 0.72, 0.02, 60), 0.4, 0.3);
       const C = V(0, 0, 0), avant = q => q.p[2] >= 0;
@@ -1535,5 +1559,5 @@ S.pilotage = (() => {
 S.rag = S.ia;
 
 // la toile, l'écran du ciel, les outils ; puis : une scène existe-t-elle ?
-return { S, vise, VISE, LUI, ENVOL, TH, FEUX, SURGE, INSP, pose(c, g, o) { ctx = c; G = g; O = o; } };
+return { S, vise, VISE, LUI, ENVOL, TH, FEUX, SURGE, INSP, INST, pose(c, g, o) { ctx = c; G = g; O = o; } };
 })();
