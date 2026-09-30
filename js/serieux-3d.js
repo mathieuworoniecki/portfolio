@@ -235,6 +235,18 @@ function puce(nom, cfg) {
     c.g.add(traits([[-0.2, y, -0.12], [0.36, y, -0.12], [-0.2, y, 0.04], [0.16, y, 0.04]], m.s)); }
   const X = { devops: [1.5, 0.035, 1.1], lead: [1.36, 0, 0.6], back: [0.85, 0.05, 0.85], secu: [0.64, 0.05, 0.64], ia: [0.45, 0.06, 0.45], front: [0.75, 0.12, 0.75] };
   o.C = C; sol(o, cfg.solY ?? -1.65, 3.4, 0.34);
+  /* la carte mère : sous la puce, des pistes partent vers tout l'écran (droit, un coude à 45°, droit), jusqu'à d'autres composants au loin ; des signaux y circulent */
+  const mb = piece(o, [0, 0, 0], [0, 0, 0], { fond: true }), YM = (cfg.solY ?? -1.65) + 0.004, PT = [], sm2 = [], cmp = []; let gm = 11; const al3 = () => { gm = (gm * 16807) % 2147483647; return gm / 2147483647; };
+  for (let i = 0; i < 56; i++) { const cote = [0, 1, 2][i % 3], u = (Math.floor(i / 3) / 18 - 0.5) * 2.8, sg = al3() < 0.5 ? 1 : -1, d1 = 0.2 + al3() * 0.9, d2 = 0.3 + al3() * 1.2, d3 = 0.4 + al3() * 2.4;
+    const loc = [[u, 1.5], [0, d1], [sg * d2, d2], [0, d3]]; let x = loc[0][0], z = loc[0][1]; const P = [[x, z]]; for (let k = 1; k < 4; k++) { x += loc[k][0]; z += loc[k][1]; P.push([x, z]); }
+    const R2 = P.map(([x2, z2]) => cote === 0 ? [x2, z2] : cote === 1 ? [-x2, -z2] : cote === 2 ? [z2, -x2] : [-z2, x2]).map(([x2, z2]) => [x2 * 1.15, YM, z2]);
+    for (let k = 0; k < 3; k++) sm2.push(R2[k], R2[k + 1]); const e = R2[3], q = 0.035; sm2.push(...boucleSegs([[e[0] - q, YM, e[2] - q], [e[0] + q, YM, e[2] - q], [e[0] + q, YM, e[2] + q], [e[0] - q, YM, e[2] + q]]));
+    const Lg = [0]; for (let k = 1; k < 4; k++) Lg.push(Lg[k - 1] + Math.hypot(R2[k][0] - R2[k - 1][0], R2[k][2] - R2[k - 1][2])); PT.push({ R2, Lg });
+    if (i % 5 === 2) cmp.push([e[0], e[2], 0.18 + al3() * 0.2, 0.12 + al3() * 0.14]); }
+  mb.g.add(traits(sm2, o.m.s));
+  cmp.forEach(([x, z, w, d]) => { const b = new T.Group(); b.position.set(x, YM, z); mb.g.add(b); solide(b, new T.BoxGeometry(w, 0.05, d).translate(0, 0.025, 0), o.m.s);
+    const pn = []; for (let k = 0; k < 5; k++) { const px = -w / 2 + (k + 0.5) * w / 5; pn.push([px, 0.01, d / 2], [px, 0.01, d / 2 + 0.04], [px, 0.01, -d / 2], [px, 0.01, -d / 2 - 0.04]); } b.add(traits(pn, o.m.s)); });
+  const NSG = 70, sig = points(NSG, o.m.pa); mb.g.add(sig.p);
   /* compétences : au-dessus de la couche qu'on lit, son univers se construit (réseau de neurones, fenêtre, bases, boucle, bouclier, équipe) */
   const EM = {};
   if (cfg.univers) {
@@ -284,6 +296,10 @@ function puce(nom, cfg) {
       F.l.a.needsUpdate = true; F.p.a.needsUpdate = true; }
     for (const id in EM) { const e = EM[id], on = COUCHES[hl] === id; e.b = on ? Math.min(1, e.b + dtt * 0.8) : Math.max(0, e.b - dtt * 2.5); construit(e.L, sm(e.b * 1.4), 0.6);
       e.g.visible = e.b > 0.01; e.g.rotation.y = -o.g.rotation.y * 0.6 + Math.sin(t * 0.4) * 0.15; if (e.imp) { if (e.b > 0.6) e.mv(t, e.imp.pos); else e.imp.pos.fill(-99); e.imp.a.needsUpdate = true; } }
+    mb.g.rotation.y = -o.g.rotation.y - 0.62;   /* la carte mère garde son cap, même quand la puce tourne */
+    for (let i = 0; i < NSG; i++) { const tr = PT[(i * 13) % PT.length], sens = i % 3 ? 1 : -1, u0 = (t * 0.22 * (0.7 + (i % 5) * 0.12) + i * 0.173) % 1, u = sens > 0 ? u0 : 1 - u0, L3 = tr.Lg[3] * u; let k = 1; while (k < 3 && tr.Lg[k] < L3) k++;
+      const a0 = tr.R2[k - 1], b0 = tr.R2[k], w = (L3 - tr.Lg[k - 1]) / Math.max(1e-6, tr.Lg[k] - tr.Lg[k - 1]); sig.pos.set(o.op > 0.02 ? [lerp(a0[0], b0[0], w), YM + 0.006, lerp(a0[2], b0[2], w)] : [0, -99, 0], i * 3); }
+    sig.a.needsUpdate = true;
     const imp = C.lead.imp, rails = C.lead.rails, n = cfg.impulsions ? cfg.impulsions(t, v) : 0;
     for (let i = 0; i < 24; i++) {
       const r = rails[(i * 7) % rails.length], u = ((t * 0.35 + i * 0.137) % 1); let P;
@@ -1372,7 +1388,7 @@ function init(toile, d) {
     const env = new T.Group(); oc.g.add(env); { const l = trait([[-0.16, -0.1, 0], [0.16, -0.1, 0], [0.16, 0.1, 0], [-0.16, 0.1, 0]], oc.m.a, true), v2 = trait([[-0.16, 0.1, 0], [0, -0.02, 0], [0.16, 0.1, 0]], oc.m.a); env.add(l); env.add(v2); oc.bb.push(l, v2); }   // votre message arrive, et la puce répond
     const envTr = segments(10, oc.m.s); oc.g.add(envTr.l);
     oc.tick = (t, v) => { tk(t, v); G2.rotation.y = -t * 0.15;
-      { const pos = u => [lerp(-3.6, 0, u), 0.15 + Math.sin(u * Math.PI) * 1.1 + (1 - u) * 0.4, lerp(1.4, 0, u)], u = (t * 0.2) % 1, e = sm(c01(u / 0.7)); env.visible = u < 0.72; env.position.set(...pos(e)); env.scale.setScalar(2.2 - 1.6 * e);
+      { const pos = u => [lerp(3.4, 0, u), 0.15 + Math.sin(u * Math.PI) * 1.1 + (1 - u) * 0.9, lerp(1.4, 0, u)], u = (t * 0.2) % 1, e = sm(c01(u / 0.7)); env.visible = u < 0.72; env.position.set(...pos(e)); env.scale.setScalar(2.2 - 1.6 * e);
         for (let j = 0; j < 10; j++) { const a = Math.max(0, e - (j + 1) * 0.025), b = Math.max(0, e - j * 0.025); envTr.pos.set(env.visible && e > 0.02 ? [...pos(a), ...pos(b)] : [0, -99, 0, 0, -99, 0], j * 6); } envTr.a.needsUpdate = true; } for (let i = 0; i < 36; i++) { const [x, z] = PIS[i % 6], u = (t * 0.22 + i * 0.137) % 1; sig.pos.set([x * (0.3 + u * 0.7), -0.6 + Math.sin(u * Math.PI) * 0.08, z * (0.3 + u * 0.7)], i * 3); } sig.a.needsUpdate = true; ondes.forEach((l, i) => { const k = (t * 0.28 + i / 4) % 1; l.scale.set(0.9 + k * 3.4, 1, 0.9 + k * 3.4); l.material.opacity = oc.op * Math.pow(1 - k, 1.6) * 0.9; }); }; }
   poussiere(); chaine(); atelier(); if (d.marko) preuve(d.marko); impact(); circuit(d.parcours.slice().reverse()); immeuble(); fleur(); globe(); chat(); archive(); bougies(); reseau(); caviarde(); radar();
   ok = true; resize();
