@@ -688,6 +688,9 @@ function circuit(postes) {
   /* « chaque poste a ajouté une couche » : derrière la piste, une pile de plaques qui gagne un étage à chaque poste */
   const pile = new T.Group(); P.add(pile); const PL = postes.map((_, i) => { const g = new T.Group(); g.position.y = i * 0.06; pile.add(g); solide(g, plaque(0.19, 0.19, 0.03, 0.04), i === postes.length - 1 ? o.m.a : o.m.l, 30); g.userData.y0 = g.position.y; return g; });
   pile.add(trait([[0, -0.02, 0.3], [0, -0.02, 0.62]], o.m.s));
+  /* le bus : de part et d'autre de la piste, des lignes parallèles filent jusqu'à l'horizon ; leurs vias défilent, des données y courent dans le sens du parcours */
+  const BZ = [-4.2, -3.6, -3.1, -2.7, -2.35, -2.05, -1.8, -1.58, -1.38, -1.2, -1.04, -0.9], NBL = BZ.length, NVB = 9, bus = segments(NBL, o.m.s), vias = segments(NBL * NVB, o.m.s), NDB = 90, don = points(NDB, o.m.pa); P.add(bus.l, vias.l, don.p);
+  const DB = Array.from({ length: NDB }, (_, i) => [i % NBL, rnd(), 0.08 + rnd() * 0.12]);
   const K = postes.map((p, i) => { const m = matieres(); MATS.push(m); const g = new T.Group(); g.position.x = X[i]; P.add(g); const c = { m, g, f: 0.3, hot: 0, parts: [] };
     const socle = trait(cercleH(0.34, 48), m.s, true); g.add(socle);
     COMPOSANT[p.c](c, m, o); c.L = pieces(g, [socle]); c.b = 0;
@@ -702,6 +705,10 @@ function circuit(postes) {
     signal.position.set(x, 0.05, S >= n - 1 ? 0 : zS); solP.uniforms.cx.value = x; solP.uniforms.r.value = 3;
     if (hist.length && hist[0].distanceTo(signal.position) > 0.3) hist.length = 0; hist.unshift(signal.position.clone()); if (hist.length > NQ * 2) hist.pop(); for (let i = 0; i < NQ; i++) { const h = hist[Math.min(hist.length - 1, i * 2)]; queue.pos.set([h.x, h.y, h.z], i * 3); } queue.a.needsUpdate = true;
     pile.position.set(x - 0.95, 0, -1.0); PL.forEach((g, i) => { const e = c01((pas + 1 - i) * 3); g.visible = e > 0.02; g.position.y = g.userData.y0 + (1 - sm(e)) * 0.9; g.rotation.y = (1 - sm(e)) * 1.2; });
+    { const on = o.op > 0.02, x0 = x - 1.6, x1 = x + 5.5; BZ.forEach((z, j) => { bus.pos.set(on ? [x0, -0.01, z, x1, -0.01, z] : [0, -99, 0, 0, -99, 0], j * 6);
+        const pv = 0.55 + (j % 3) * 0.15, v0 = Math.ceil(x0 / pv) * pv; for (let k = 0; k < NVB; k++) { const xv = v0 + k * pv, vu = on && xv < x1 && (j * 7 + Math.round(xv / pv)) % 3 === 0; vias.pos.set(vu ? [xv, -0.01, z - 0.05, xv, -0.01, z + 0.05] : [0, -99, 0, 0, -99, 0], (j * NVB + k) * 6); } });
+      DB.forEach(([j, ph, sp], i) => { const q = (t * sp + ph) % 1; don.pos.set(on ? [x0 + q * (x1 - x0), -0.005, BZ[j]] : [0, -99, 0], i * 3); });
+      bus.a.needsUpdate = true; vias.a.needsUpdate = true; don.a.needsUpdate = true; }
     pilier.position.set(X[S], 0, 0); pilier.scale.y = 0.4 + 0.6 * sm(1 - Math.abs(u - 0.35) * 2);
     const ip = Math.min(pts.length, 1 + Math.round((x / ES) * 5)), d0 = Math.max(0, ip - 5); luL.geometry.setDrawRange(d0, ip - d0);   // seule la dernière longueur reste allumée
     K.forEach((c, i) => { const on = i === S ? 1 : 0, d = Math.abs(X[i] - x); c.hot = lerp(c.hot, on, 0.12); c.f = lerp(c.f, on ? 1 : i < S ? 0.3 : 0.18, 0.1); chaud(c.m, c.hot * 0.6);
