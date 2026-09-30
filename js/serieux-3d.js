@@ -654,6 +654,11 @@ function impact() {
   const base = new T.Group(); fant.add(base); solide(base, new T.BoxGeometry(0.12, 0.12, 0.12), o.m.a); const filsP = traits(PAYS.flatMap(c => [[0, 0, 0], [c[0], 0, c[1]]]), o.m.s); base.add(filsP);
   const envoi = points(25 * 3, o.m.pa); base.add(envoi.p);
   const ROT = [[1.05, 0], [0.25, 0], [1.1, 0], [0.12, -0.3], [0.38, 0], [1.0, 0], [0.18, -0.25]];
+  /* autour de chaque chiffre, tout l'écran vit : une poussière de points dérive, s'engouffre dans le tourbillon à chaque changement de forme ; pour −40 %, elle file en traits de vitesse */
+  const NA = 1300, am = nuage(NA), pa2 = piece(o, [0, 0, 0], [0, 0, 0], { fond: true }); o.g.add(pa2.g); pa2.g.add(am.p);
+  const EA = Array.from({ length: NA }, () => { const r = 1.5 + Math.pow(rnd(), 0.6) * 4.2, a = rnd() * TAU; return [Math.cos(a) * r * 1.35, (rnd() - 0.5) * 4.4, Math.sin(a) * r - 1.4, rnd(), 0.2 + rnd() * 0.8]; });
+  for (let i = 0; i < NA; i++) am.H[i] = EA[i][3] > 0.94 ? 1 : 0;
+  let vit = 0;
   const cur = { rx: 0.9 };
   o.tick = (t, v) => {
     TT = t; const pas = v.pas === undefined ? 0 : Math.min(F.length - 0.001, v.pas), s = Math.floor(pas), u = pas - s;
@@ -668,6 +673,11 @@ function impact() {
     g40.visible = s === 3 && u > 0.1 && m < 0.5; g35.visible = s === 4 && m < 0.9;
     base.visible = s === 5 && u > 0.15 && m < 0.6; if (base.visible) { base.children[0].rotation.y = t; const nj = Math.max(1, Math.ceil(sm(Math.min(1, u / 0.7) * 1.3) * 25));
       for (let i = 0; i < 75; i++) { const j = i % 25, q2 = (t * 0.5 + Math.floor(i / 25) / 3) % 1; envoi.pos.set(j < nj ? [PAYS[j][0] * q2, 0, PAYS[j][1] * q2] : [0, -99, 0], i * 3); } envoi.a.needsUpdate = true; }
+    { vit = lerp(vit, s === 3 && m < 0.5 ? 1 : 0, 0.05); const asp = Math.sin(Math.PI * m) * 0.7;
+      for (let i = 0; i < NA; i++) { const E = EA[i], a = t * 0.04 * E[4] + asp * 2 * (1 - E[3] * 0.5), c = Math.cos(a), sn = Math.sin(a), f2 = 1 - asp * (0.5 + E[3] * 0.4);
+        const zc = E[2] + 1.4, x0 = (E[0] * c - zc * sn) * f2, z0 = (E[0] * sn + zc * c) * f2 - 1.4 * f2, y0 = (E[1] + Math.sin(t * 0.2 + E[3] * 9) * 0.1) * f2;
+        const xs = ((E[3] * 12 - t * (2.5 + E[4] * 3)) % 12 + 12) % 12 - 6; am.P.set([lerp(x0, xs, vit), lerp(y0, E[1] * 0.8, vit), lerp(z0, E[2] * 0.5 - 1, vit)], i * 3); am.A[i] = 0.3 + 0.7 * E[4]; }
+      am.maj(); am.m.uniforms.op.value = o.op * 0.7; am.m.uniforms.sz.value = 2.2 * PR; pa2.g.rotation.x = -cur.rx * 0.6; }
     const rr = ROT[s], rn = ROT[Math.min(F.length - 1, s + 1)]; cur.rx = lerp(rr[0], rn[0], sm(m)); cur.ry = lerp(rr[1], rn[1], sm(m));
     const tourne = rr[1] === 0 && rn[1] === 0; pc.g.rotation.y = tourne ? t * 0.15 : cur.ry + Math.sin(t * 0.3) * 0.12;   // les formes rondes tournent sur elles-mêmes
   };
