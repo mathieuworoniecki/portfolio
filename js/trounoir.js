@@ -321,7 +321,7 @@ function entre() {
   if (Wd.espace) return;
   if (!theme0 || (window.THEME && THEME.color !== 'espace')) noir();
   Wd.espace = true; root.classList.add('espace'); taille();
-  E.crache = Wd.t; E.flash = performance.now() / 1000; E.ondes.length = 0; E.pops.length = 0;
+  E.crache = Wd.t; E.flash = performance.now() / 1000; E.retourG = null; E.ondes.length = 0; E.pops.length = 0;
   Wd.props.forEach(it => { it.root.visible = false; });
   const id = ++E.boucle; requestAnimationFrame(() => boucleEspace(id));
   X.entre.forEach(f => f());
@@ -600,6 +600,27 @@ function boucleEspace(id) {
       ctx.globalAlpha = 0.7 * (1 - e); ctx.lineWidth = q.s * 0.7; ctx.beginPath(); ctx.moveTo(xt, yt); ctx.lineTo(x, y); ctx.stroke(); brille(ctx, x, y, q.s, 1 - e, q.s > 2, now, q.a); });
     ctx.restore(); }
   else E.gerbe = null;
+  // (vague 66) et ta souris revient : les grains de craie avalés avec elle ressortent du trou blanc, en spirale inverse,
+  // et se rassemblent sur la pointe ; la flèche, encore étirée vers le trou, se rétracte d'un coup, et un petit anneau marque qu'elle est là
+  const P = Wd.ptr;
+  if (u < 1.9 && !reduit && P && P.on) {
+    if (!E.retourG) E.retourG = Array.from({ length: W < 760 ? 60 : 110 }, () => ({ d: rnd(0.05, 0.9), sp: rnd(1.6, 3.2) * (Math.random() < 0.85 ? 1 : -1), w: rnd(0.8, 2), j: rnd(-1, 1) }));
+    const dx = P.x - cx, dy = P.y - cy, D0 = Math.hypot(dx, dy), a0 = Math.atan2(dy, dx);
+    ctx.save(); ctx.lineCap = 'round';
+    E.retourG.forEach(q => { const e = c01((u - q.d) / 0.7); if (e <= 0 || e >= 1) return;
+      const f = 1 - Math.pow(1 - e, 2.2), tour = q.sp * (1 - f), r = D0 * f + q.j * 14 * Math.sin(Math.PI * f), a = a0 + tour,
+        x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r * (0.82 + 0.18 * f), f2 = Math.max(0, f - 0.05), r2 = D0 * f2, a2 = a0 + q.sp * (1 - f2),
+        x2 = cx + Math.cos(a2) * r2, y2 = cy + Math.sin(a2) * r2 * (0.82 + 0.18 * f2);
+      ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x, y); ctx.strokeStyle = '#F4F4EE'; ctx.globalAlpha = 0.85; ctx.lineWidth = q.w; ctx.stroke(); });
+    // la flèche : étirée vers le trou blanc, elle se rétracte à mesure que ses grains arrivent
+    const e = c01((u - 0.3) / 1.2), L = 18 * (1 + 7 * Math.pow(1 - e, 2)), ang = Math.atan2(cy - P.y, cx - P.x);
+    if (u > 0.25) { ctx.save(); ctx.translate(P.x, P.y); ctx.rotate(ang); ctx.lineJoin = 'round'; ctx.globalAlpha = 0.9;
+      ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(L, -3.5 * (0.5 + 0.5 * e)); ctx.lineTo(L * 0.72, 0); ctx.lineTo(L, 3.5 * (0.5 + 0.5 * e)); ctx.closePath();
+      ctx.strokeStyle = '#F4F4EE'; ctx.lineWidth = 1.6; ctx.stroke(); ctx.restore(); }
+    // arrivée : un anneau au stylo qui s'élargit autour de la pointe (et rétrécit, sans s'effacer)
+    const k = c01((u - 1.35) / 0.5); if (k > 0 && k < 1) { ctx.globalAlpha = 0.9; ctx.strokeStyle = '#F4F4EE'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(P.x, P.y, 26 * Math.sin(Math.PI * k), 0, TAU); ctx.stroke(); }
+    ctx.restore();
+  } else if (u >= 1.9) E.retourG = null;
   // les petits trous blancs d'un clic : ils s'ouvrent en un point, recrachent un chat, et se referment en un point
   E.pops = E.pops.filter(o => now - o.t0 < 0.75);
   E.pops.forEach(o => { const u = (now - o.t0) / 0.75, k = Math.sin(Math.PI * Math.min(1, u)), r = Wd.s0 * 0.16 * k + 1.5;
