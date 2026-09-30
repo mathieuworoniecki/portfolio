@@ -289,6 +289,10 @@ const ecrit = (pts, tl, W, now) => { const M = pts.length;
     // (vague 52) le titre a de l'épaisseur : chaque étoile a sa profondeur, et le titre pivote un peu quand la souris bouge (parallaxe), comme un hologramme
     const pz = r.a - 0.5, pp = Wd.ptr; if (pp && pp.on && Wd.t - pp.moved < 4) { o.x += (pp.x / W - 0.5) * pz * 46; o.y += (pp.y / (E.H || 800) - 0.5) * pz * 30; }
     o.x += Math.sin(now * 0.8) * pz * 10;
+    // (vague 89 de l'audit, « les titres en étoiles ») : les lettres qu'on frôle se défont et tourbillonnent autour du pointeur, comme de la
+    // poussière d'étoiles qu'on remue ; la souris s'éloigne : elles retombent sur leur lettre
+    if (pp && pp.on && Wd.t - pp.moved < 1.5 && !dup) { const dx = q[0] - pp.x, dy = q[1] - pp.y, d = Math.hypot(dx, dy); if (d < 110) { const w = Math.pow(1 - d / 110, 0.6) * 0.9, an = now * (2.4 + r.b * 2) + r.a * TAU, rr = 14 + r.c * 34;
+      o.x = lerp(o.x, pp.x + Math.cos(an) * rr, w); o.y = lerp(o.y, pp.y + Math.sin(an) * rr * 0.8, w); o.s *= 1 + w * 0.3; } }
     const e = tl - PLUME.d - q[2] * PLUME.v, l = e > 0 ? Math.exp(-e * 5) : 0; o.s = 0.9 + l * 0.6; o.a = (dup ? 0.45 : 1.3) + l * 0.5; }; };
 // la plume-comète : une tête blanche, une queue d'étincelles qui retombent derrière elle ; elle file sur chaque ligne, saute à la suivante, puis s'éteint en fin de titre
 function plume(ctx, pts, tl, now, br) {
@@ -316,6 +320,21 @@ function tete(u, v, cl) {
   const w = (u - 0.87) / 0.13, k = Math.floor(w * 6), t = w * 6 - k, g = k < 3 ? -1 : 1, m = k % 3;   // les moustaches
   return [g * (0.45 + t * 0.75), 0.2 + (m - 1) * 0.1 + (m - 1) * t * 0.1]; }
 
+/* (vague 89 de l'audit, « la nuée », elle sort d'elle-même) : la souris qui s'approche d'un élément du vrai site (logo, langue, flèches,
+   boutons, chapitres) y attire une poignée d'étoiles de la nuée : elles quittent leur forme et viennent tracer le contour de l'élément,
+   une constellation qui file le long de son bord ; la souris s'en va : elles repartent à leur place dans la forme */
+const CST = { el: null, b: null, g: 0, T: 0, ui: null, uiT: -9, pts: [], lueur: LUEUR };
+function constellation(pt) {
+  const dt = Math.min(0.2, Math.max(0, Wd.t - (CST.T || Wd.t))); CST.T = Wd.t;
+  if (!CST.ui || Wd.t - CST.uiT > 1) { CST.uiT = Wd.t; CST.ui = [...document.querySelectorAll('#brand, #lang-pick, .film-ui .ctrl > *, #chap > *, .nav, [class*="fleche"]')].filter(e => !e.closest('.scenes, #stage')).map(e => ({ e, b: e.getBoundingClientRect() })).filter(q => q.b.width > 0); }
+  let el = null, bb = null, bd = 70; if (pt) CST.ui.forEach(q => { const b = q.b, d = Math.hypot(Math.max(b.left - pt.x, 0, pt.x - b.right), Math.max(b.top - pt.y, 0, pt.y - b.bottom)); if (d < bd) { bd = d; el = q.e; bb = b; } });
+  if (el && el !== CST.el && CST.g < 0.05) { CST.el = el; CST.b = bb; }
+  CST.g = el && el === CST.el ? Math.min(1, CST.g + dt / 0.7) : Math.max(0, CST.g - dt / 0.9); if (CST.g <= 0) CST.el = null;
+}
+// (sa place sur le contour de l'élément, un rectangle aux coins arrondis un peu plus grand que lui ; u de 0 à 1 fait le tour)
+function surBord(b, u) { const m = 9, x0 = b.left - m, y0 = b.top - m, w = b.width + 2 * m, hh = b.height + 2 * m, L = 2 * (w + hh); let d = fr(u) * L;
+  if (d < w) return [x0 + d, y0]; d -= w; if (d < hh) return [x0 + w, y0 + d]; d -= hh; if (d < w) return [x0 + w - d, y0 + hh]; d -= w; return [x0, y0 + hh - d]; }
+
 /* ——— l'image ——— */
 const o = { x: 0, y: 0, z: 0, s: 1, a: 1, t: 0, tx: 0, ty: 0, tz: 0, p2: 0, f: 1 };
 X.fond.push((ctx, now) => {
@@ -330,6 +349,7 @@ X.fond.push((ctx, now) => {
   const duree = pts ? 0.95 : 1.4, etale = pts ? 0.35 : 0.6;
   const ap = reduit ? 1 : c01((Wd.t - M.t0) / 2.5), bd = M.bande, haut = L.barre.bas + 8, br = L.L ? 1.6 : 1.3, mx = W / 2, my = G.cy, dt = Wd.t - T0;
   const pp = Wd.ptr, pt = !reduit && pp && pp.on && Wd.t - pp.moved < 4 ? pp : null, RP = L.L ? 130 : 95, pax = pt ? (pt.x - W / 2) / W : 0, pay = pt ? (pt.y - H / 2) / H : 0;
+  CST.pts = []; if (!reduit && !pts) constellation(pt); const cg = CST.el && !pts && C && C.cs ? sm(CST.g) : 0;
   // (29/09, 13 h 27, Mathieu : « trop d'effets lumineux ; garde les effets pour les animations utiles ») : une fois le titre écrit et le dessin
   // de la scène arrivé, la nuée se calme : plus pâle, plus petite, sans traînées ; elle reste un ciel, le dessin est le sujet
   const dessinee = C && !pts && window.EspaceScenes && EspaceScenes.S && EspaceScenes.S[C.S.d], calme0 = dessinee ? 1 - 0.7 * c01((a - 0.3) / 1.4) : 1;
@@ -362,6 +382,9 @@ X.fond.push((ctx, now) => {
     if (gT > 0.01) { const [hx, hy] = tete(r.e, r.c, clin), tk = Math.sin(now * 1.3) * 0.06, K2 = KT, hx2 = hx * Math.cos(tk) - hy * Math.sin(tk), hy2 = hx * Math.sin(tk) + hy * Math.cos(tk),
         jx = mx + hx2 * K2 + Math.sin(now * 3 + r.a * 9) * 2, jy = YT + hy2 * K2 + Math.cos(now * 2.7 + r.b * 9) * 2;
       x = lerp(x, jx, gT); y = lerp(y, jy, gT); s = lerp(s, br * 1.15, gT); al = lerp(al, 0.95, gT); tl = null; }
+    // (la constellation : une étoile sur quatorze quitte sa forme pour le bord de l'élément approché, et y file)
+    if (cg > 0 && i % 14 === 0) { const w = sm(c01(cg * 1.6 - r.c * 0.6)), [bx, by] = surBord(CST.b, r.e + Wd.t * (0.04 + r.a * 0.03)); x = lerp(x, bx + Math.sin(now * 4 + r.a * 9) * 1.5, w); y = lerp(y, by + Math.cos(now * 3.3 + r.b * 9) * 1.5, w); s = lerp(s, br * 1.25, w); al = lerp(al, 1.1, w); tl = null; P[j] = x; P[j + 1] = y; P[j + 2] = s; P[j + 3] = al;
+      CST.pts.push(x, y, s * 3.4, Math.min(1, al * ap)); continue; }   // (dessinées par-dessus tout, sur la toile du haut de js/espace-scenes.js : sinon la Terre les cache)
     // (le doigt ou la souris : les étoiles s'écartent sur son passage, et tout le ciel penche un peu vers lui, les proches plus que les lointaines)
     if (pt) { const dx = x - pt.x, dy = y - pt.y, d2 = dx * dx + dy * dy; if (d2 < RP * RP) { const dd = Math.sqrt(d2) || 1, q = 1 - dd / RP; x += dx / dd * q * q * RP * 0.5; y += dy / dd * q * q * RP * 0.5; al *= 1 + q * 0.8; }
       x -= pax * Math.min(2, fz) * 18; y -= pay * Math.min(2, fz) * 12; }
@@ -385,5 +408,5 @@ X.fond.push((ctx, now) => {
         if (x < -rr || x > W + rr || y < -rr || y > H + rr || bd && y > bd.y && y < bd.y + bd.h && x > bd.x && x < bd.x + bd.w) continue; ctx.drawImage(LUEUR, x - rr, y - rr, rr * 2, rr * 2); } } }
   ctx.restore(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
 });
-return { FORMES, E, get N() { return N; }, get P() { return P; }, fige() { T0 = -1e9; sauter = true; }, vers(t) { T0 = Wd.t - t; } };
+return { FORMES, E, CST, get N() { return N; }, get P() { return P; }, fige() { T0 = -1e9; sauter = true; }, vers(t) { T0 = Wd.t - t; } };
 })();
