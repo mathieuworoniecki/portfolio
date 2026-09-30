@@ -210,7 +210,34 @@ function terre(ctx, now) {
     const fu = (now % 23) / 5; if (fu < 1) { const x0 = O.W * (0.2 + ((Math.floor(now / 23) * 0.37) % 0.6)), y0 = yA(x0), e = fu * fu, x = x0 + e * O.W * 0.12, y = y0 - e * O.H * 0.28, ang = Math.atan2(-O.H * 0.28, O.W * 0.12);
       for (let j = 1; j < 9; j++) { const v = Math.max(0, fu - j * 0.035), ex = x0 + v * v * O.W * 0.12, ey = y0 - v * v * O.H * 0.28; ctx.globalAlpha = (1 - j / 9) * 0.6 * tc; ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(ex + Math.sin(j * 2.3) * 2, ey, 2 + j * 0.8, 0, TAU); ctx.stroke(); }
       ctx.save(); ctx.translate(x, y); ctx.rotate(ang + Math.PI / 2); ctx.globalAlpha = tc; ctx.beginPath(); ctx.moveTo(0, -9); ctx.quadraticCurveTo(5, -3, 4, 6); ctx.lineTo(-4, 6); ctx.quadraticCurveTo(-5, -3, 0, -9); ctx.closePath();
-      ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 4; ctx.stroke(); ctx.fillStyle = 'rgb(250,248,242)'; ctx.fill(); ctx.strokeStyle = 'rgb(34,36,40)'; ctx.lineWidth = 1.4; ctx.stroke(); ctx.restore(); O.brille(ctx, x - Math.cos(ang) * 9, y - Math.sin(ang) * 9, 2.2, tc, true, now, 98); } }
+      ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 4; ctx.stroke(); ctx.fillStyle = 'rgb(250,248,242)'; ctx.fill(); ctx.strokeStyle = 'rgb(34,36,40)'; ctx.lineWidth = 1.4; ctx.stroke(); ctx.restore(); O.brille(ctx, x - Math.cos(ang) * 9, y - Math.sin(ang) * 9, 2.2, tc, true, now, 98); } 
+    // (vague 80, l'audit : « la Terre ») : on pose la souris sur la Terre, on attend : une fusée de papier décolle de ce point-là, fumée qui roule
+    // le long de l'horizon ; elle monte droit, s'incline, prend un grand arc à travers tout l'écran et sort par le haut,
+    // sa fumée derrière elle (jamais sur les sous-titres)
+    { const S = Wd.ptr, bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, L = P.lanc || (P.lanc = { h: 0, t: now, f: [] }), dtl = Math.min(0.2, Math.max(0, now - L.t)); L.t = now;
+      const vise = S && S.on && !reduit && S.y > yA(S.x) + 4 && S.y < O.H - 64 && Wd.t - S.moved < 6;
+      L.h = vise ? L.h + dtl : 0;
+      if (L.h > 0.9 && now > (L.cal || 0) && L.f.length < 3) { L.h = 0; L.cal = now + 3; const x0 = S.x, g = x0 > O.W / 2 ? -1 : 1;
+        L.f.push({ t0: now, P: [[x0, yA(x0) + 2], [x0 + g * 20, yA(x0) - O.H * 0.45], [x0 + g * O.W * 0.3, -O.H * 0.1], [x0 + g * O.W * 0.55, -O.H * 0.4]] }); }
+      L.f = L.f.filter(f => now - f.t0 < 4.2);
+      if (L.f.length) { ctx.save(); if (bd) { ctx.beginPath(); ctx.rect(0, 0, O.W, O.H); ctx.rect(bd.x - 16, bd.y - 12, bd.w + 32, bd.h + 24); ctx.clip('evenodd'); }
+        L.f.forEach(f => { const t = now - f.t0, pos = v => { const [A, B, C, D] = f.P, w = 1 - v; return [w * w * w * A[0] + 3 * w * w * v * B[0] + 3 * w * v * v * C[0] + v * v * v * D[0], w * w * w * A[1] + 3 * w * w * v * B[1] + 3 * w * v * v * C[1] + v * v * v * D[1]]; };
+          const pre = c01(t / 0.5), u = Math.pow(c01((t - 0.5) / 3.2), 1.6), p0 = f.P[0];
+          // le décollage : il tremble sur le pas de tir, un nuage de fumée roule de chaque côté le long de l'horizon
+          ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 1.4;
+          for (let j = 0; j < 10; j++) { const sd = j % 2 ? 1 : -1, v = c01((t - j * 0.03) / 1.6), xx = p0[0] + sd * (8 + v * (40 + j * 7)), yy = yA(xx) - 4 - Math.sin(v * Math.PI) * 6, r = (3 + j % 3) * (1 + v * 2) * (1 - sm((t - 1.8) / 0.8));
+            if (r > 0.4) { ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(xx, yy, r, 0, TAU); ctx.stroke(); } }
+          // la traîne : des bouffées rondes qui gonflent et rapetissent
+          for (let j = 1; j < 18; j++) { const v = u - j * 0.018; if (v <= 0) continue; const q = pos(v), r = (2 + j * 0.9) * (1 - sm((t - 0.5 - j * 0.04 - 1.6) / 1)); if (r < 0.4) continue;
+            ctx.globalAlpha = 0.75; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(q[0] + Math.sin(j * 2.1 + t * 3) * 3, q[1], r, 0, TAU); ctx.stroke(); }
+          const q = pre < 1 ? [p0[0] + Math.sin(t * 60) * 1.2, p0[1] - 8] : pos(u), q2 = pos(Math.min(1, u + 0.01)), ang = pre < 1 ? -Math.PI / 2 : Math.atan2(q2[1] - q[1], q2[0] - q[0]), sc = 1.8;
+          ctx.save(); ctx.translate(q[0], q[1]); ctx.rotate(ang + Math.PI / 2); ctx.scale(sc, sc); ctx.globalAlpha = 1;
+          const corps = () => { ctx.beginPath(); ctx.moveTo(0, -11); ctx.quadraticCurveTo(6, -4, 5, 7); ctx.lineTo(-5, 7); ctx.quadraticCurveTo(-6, -4, 0, -11); ctx.closePath(); ctx.moveTo(5, 3); ctx.lineTo(9, 9); ctx.lineTo(4, 7); ctx.moveTo(-5, 3); ctx.lineTo(-9, 9); ctx.lineTo(-4, 7); };
+          ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 3; corps(); ctx.stroke(); ctx.fillStyle = 'rgb(250,248,242)'; corps(); ctx.fill(); ctx.strokeStyle = 'rgb(34,36,40)'; ctx.lineWidth = 0.9; corps(); ctx.stroke();
+          ctx.beginPath(); ctx.arc(0, -2.5, 2, 0, TAU); ctx.stroke();   // le hublot
+          const fl = 5 + Math.sin(t * 50) * 2 + (pre < 1 ? 0 : 4); ctx.beginPath(); ctx.moveTo(-3, 8); ctx.quadraticCurveTo(0, 8 + fl * 1.4, 3, 8); ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 1.4; ctx.stroke();
+          ctx.restore(); O.brille(ctx, q[0] - Math.cos(ang) * 16, q[1] - Math.sin(ang) * 16, 2.6, 1, true, now, 97); });
+        ctx.restore(); } } }
   ctx.restore();
 }
 // la planète des chats : une tête de chat ronde, qui nous regarde
