@@ -391,6 +391,7 @@ X.fond.push((ctx, now) => {
       o.globalCompositeOperation = 'source-over'; ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(c2, 0, 0); ctx.restore(); ctx.globalAlpha = 1; };
     const V0 = M.vieux; if (V0 && V0.sc && V0.sc.cs && Wd.t - V0.t0 < 0.6) joue(V0.sc, V0.tl - A + (Wd.t - V0.t0), 1 - sm((Wd.t - V0.t0) / 0.6));
     if (C.cs) joue(C, tl - A + 0.2, sm((tl - A + 0.25) / 0.9));
+    if (C.cs && !reduit) EspaceScenes.vise(ctx, now);   // (vague 79 : le chat-robot nous analyse, par-dessus tout l'écran)
     // les traits : la constellation se relie, trait après trait ; puis le trait s'affirme (le dessin)
     ctx.lineWidth = 1;
     f.e.forEach(([a, b, st], j) => { const g = c01((tl - A - (j / ne) * B * 0.85) / 0.35); if (g <= 0) return; const P = Q[a], R = Q[b], k = prof((P[3] + R[3]) / 2);

@@ -62,6 +62,7 @@ function chabot(x, y, r, o = {}) {
   const Sp = r >= 6 ? sourisIci() : null;
   const dS = Sp ? Math.hypot(Sp.x - x, Sp.y - y) : 1e9, voit = dS < r * 6 ? 1 - dS / (r * 6) : 0;
   if (dS < r * 2.8) { const i = Sp.x > x ? 1 : 0; bras = bras.slice(); bras[i] = 1.25 + Math.sin(now * 14 + ph) * 0.4; }
+  if (Sp && r >= 8 && dS < r * 4.5 && (!VISE.c || dS / r < VISE.c.d)) { const m = ctx.getTransform(), q = { d: dS / r, id: ph, x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f, r: r * Math.hypot(m.a, m.b) }; if (q.x > 0 && q.y > 0 && q.x < ctx.canvas.width && q.y < ctx.canvas.height && q.r < ctx.canvas.height * 0.3) VISE.c = q; }
   [-1, 1].forEach((g, i) => { const b = bras[i], ex = x + g * bw * 0.86, ey = by - bh * 0.35, mx = ex + g * Math.cos(b) * r * 0.42, my = ey - Math.sin(b) * r * 0.42;
     cerne(() => { ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(mx, my); }, w * 1.5, a, null); cerne(() => { ctx.beginPath(); ctx.arc(mx, my, r * 0.13, 0, TAU); }, w, a); });
   // (vague 32, l'audit : « le chat-robot ») : une queue de chat mécanique, en anneaux qui rapetissent, qui ondule derrière lui ; le bout, une petite boule
@@ -111,6 +112,49 @@ function chabot(x, y, r, o = {}) {
     ctx.beginPath(); ctx.moveTo(sx, sy + r * 0.12); ctx.quadraticCurveTo(sx, y + r * 0.42, hx + (sl * 0.32 + 0.22) * r, y + r * 0.36); ctx.stroke(); ctx.beginPath(); ctx.arc(hx + (sl * 0.32 + 0.2) * r, y + r * 0.36, r * 0.05, 0, TAU); ctx.fill(); }
   // le casque de verre : un rond au trait blanc, un reflet
   if (o.casque !== false) { style(0.55 * w, a * 0.8); ctx.beginPath(); ctx.arc(hx, y - r * 0.08, r * 1.32, 0, TAU); ctx.stroke(); style(0.9 * w, a * 0.7); ctx.beginPath(); ctx.arc(hx, y - r * 0.08, r * 1.16, -2.5, -1.9); ctx.stroke(); }
+}
+// (vague 79, l'audit : « le chat-robot », il sort de sa scène) : c'est une IA, il nous analyse. La souris s'attarde près d'un chat-robot : de ses
+// yeux partent deux traits de balayage jusqu'à elle, puis un cadre de détection se referme autour du pointeur, par-dessus tout l'écran, avec son
+// étiquette de papier (« souris · 0,97 », le score qui hésite) ; la souris s'en va : le cadre se rétracte sur lui-même (jamais de fondu)
+const VISE = { c: null, k: 0, id: null, px: 0, py: 0, t: 0 };
+// (dessiné sur sa propre toile, tout en haut : par-dessus le chat qui s'agrippe au pointeur ; effacée dès qu'on ne l'appelle plus)
+let VC = null, VT = 0;
+function toileVise(cv0) {
+  if (!VC) { VC = document.createElement('canvas'); VC.setAttribute('aria-hidden', 'true'); VC.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2'; document.body.appendChild(VC); }
+  if (VC.width !== cv0.width || VC.height !== cv0.height) { VC.width = cv0.width; VC.height = cv0.height; }
+  const o = VC.getContext('2d'); o.setTransform(1, 0, 0, 1, 0, 0); o.clearRect(0, 0, VC.width, VC.height);
+  const n = ++VT; requestAnimationFrame(() => requestAnimationFrame(() => { if (n === VT && VC) VC.getContext('2d').clearRect(0, 0, VC.width, VC.height); })); return o;
+}
+function vise(c0, now) {
+  const c = VISE.c, P = souris(); VISE.c = null; const dt = Math.min(0.2, Math.max(0, now - (VISE.t || now))); VISE.t = now;
+  if (c && P && (VISE.id === null || VISE.id === c.id || VISE.k < 0.05)) { VISE.id = c.id; VISE.k = Math.min(1.6, VISE.k + dt * 1.4); VISE.rb = c; }
+  else { VISE.k = Math.max(0, VISE.k - dt * 3); if (VISE.k === 0) VISE.id = null; }
+  const R = VISE.rb; if (!VC && (!R || VISE.k <= 0)) return; const o = toileVise(c0.canvas); if (!R || VISE.k <= 0 || !P) return;
+  const W0 = window.Chats && Chats.K && Chats.K.Wd, chat = W0 && W0.cats.some(q => q.sp && q.sp.m === 'agrippe');
+  const cv = o.canvas, dp = (cv.width / (cv.clientWidth || cv.width)) || 1, px = P.x * dp, py = P.y * dp, ln = Math.max(1, dp), k = VISE.k;
+  o.save(); o.setTransform(1, 0, 0, 1, 0, 0); o.lineCap = o.lineJoin = 'round';
+  // les deux traits de balayage, des yeux vers la souris (en tirets qui courent), qui se tendent en premier
+  const bal = c01(k / 0.45), ex = R.x, ey = R.y;
+  [-1, 1].forEach(g => { const sx = ex + g * R.r * 0.36, sy = ey, tx = sx + (px - sx) * bal, ty = sy + (py - sy) * bal;
+    o.globalAlpha = 0.75; o.strokeStyle = `rgb(${BL})`; o.lineWidth = ln * 1.1; o.setLineDash([6 * ln, 7 * ln]); o.lineDashOffset = -now * 60 * ln; o.beginPath(); o.moveTo(sx, sy); o.lineTo(tx, ty); o.stroke(); });
+  o.setLineDash([]);
+  // le cadre : quatre coins qui se referment de loin sur le pointeur (puis respirent), un réticule au centre
+  const f = sm(c01((k - 0.3) / 0.5)); if (f > 0) {
+    const h0 = 32 * dp, h = h0 * (1 + (1 - f) * 2.2) + Math.sin(now * 5) * 1.5 * dp, cl = h * 0.42 * Math.min(1, f * 1.3), rot = (1 - f) * 0.6;
+    o.translate(px, py); o.rotate(rot); o.globalAlpha = 1;
+    [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([gx, gy]) => { const cx = gx * h, cy = gy * h;
+      o.strokeStyle = 'rgba(9,11,16,0.9)'; o.lineWidth = ln * 4.5; o.beginPath(); o.moveTo(cx - gx * cl, cy); o.lineTo(cx, cy); o.lineTo(cx, cy - gy * cl); o.stroke();
+      o.strokeStyle = `rgb(${BL})`; o.lineWidth = ln * 2; o.stroke(); });
+    o.lineWidth = ln; o.beginPath(); o.arc(0, 0, h * 0.18 * f, 0, TAU); o.stroke(); o.rotate(-rot);
+    // l'étiquette de papier, accrochée au coin haut-droit : elle se déplie de la largeur
+    const lab = c01((k - 0.7) / 0.35); if (lab > 0) {
+      const sc = (0.97 - Math.abs(Math.sin(now * 1.7 + R.id)) * 0.04 - (Math.sin(now * 7.3) > 0.93 ? 0.09 : 0)).toFixed(2), t = (chat ? (en() ? 'cat · ' : 'chat · ') : en() ? 'mouse · ' : 'souris · ') + (en() ? sc : sc.replace('.', ','));
+      const fs = Math.round(13 * dp); o.font = `600 ${fs}px "Space Grotesk",system-ui,sans-serif`; const tw = o.measureText(t).width + 12 * dp, th = fs * 1.6, lx = h - 2 * dp, ly = -h - th - 4 * dp, w = tw * sm(lab);
+      o.fillStyle = PAP; o.strokeStyle = ENC; o.lineWidth = ln * 1.2; o.beginPath(); o.rect(lx, ly, w, th); o.fill(); o.stroke();
+      if (lab > 0.6) { o.save(); o.beginPath(); o.rect(lx, ly, w, th); o.clip(); o.fillStyle = ENC; o.textBaseline = 'middle'; o.fillText(t, lx + 6 * dp, ly + th / 2 + 1); o.restore(); }
+      o.strokeStyle = `rgb(${BL})`; o.lineWidth = ln; o.beginPath(); o.moveTo(h, -h); o.lineTo(lx + 4 * dp, ly + th); o.stroke(); }
+  }
+  o.restore();
 }
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v, pick2 = (L, i) => L[Math.abs(i) % L.length];
 function robot(x, y, r, a = 1, cligne = 0, o = {}) { chabot(x, y - r * 0.15, r * 0.82, Object.assign({ a, cligne }, o)); }
@@ -1341,5 +1385,5 @@ S.pilotage = (() => {
 S.rag = S.ia;
 
 // la toile, l'écran du ciel, les outils ; puis : une scène existe-t-elle ?
-return { S, pose(c, g, o) { ctx = c; G = g; O = o; } };
+return { S, vise, VISE, pose(c, g, o) { ctx = c; G = g; O = o; } };
 })();
