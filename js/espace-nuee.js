@@ -298,6 +298,21 @@ function plume(ctx, pts, tl, now, br) {
   ctx.globalAlpha = 0.9 * fin; ctx.lineWidth = 1.4; ctx.beginPath(); for (let k = 0; k < 4; k++) { const a = k * Math.PI / 4 + now * 2; ctx.moveTo(x - Math.cos(a) * R0 * 0.9, yy - Math.sin(a) * R0 * 0.9); ctx.lineTo(x + Math.cos(a) * R0 * 0.9, yy + Math.sin(a) * R0 * 0.9); } ctx.stroke();
 }
 
+/* (vague 42, l'audit : « la nuée », originalité) : entre deux formes, toute la nuée se rassemble un instant en une immense tête de chat
+   qui nous fait un clin d'œil, puis se disperse vers la forme suivante ; u : la place de l'étoile sur le dessin, cl : l'œil droit fermé (0 → 1) */
+function tete(u, v, cl) {
+  if (u < 0.46) { const an = u / 0.46 * TAU; return [Math.cos(an) * 1.05, Math.sin(an) * 0.84 + 0.05]; }
+  if (u < 0.6) { const w = (u - 0.46) / 0.14, g = w < 0.5 ? -1 : 1, t = (w % 0.5) * 2, q = t < 0.5 ? t * 2 : (t - 0.5) * 2;   // les oreilles
+    const A = [0.92, -0.38], B = [0.78, -1.12], Cc = [0.3, -0.76], [p0, p1] = t < 0.5 ? [A, B] : [B, Cc];
+    return [g * lerp(p0[0], p1[0], q), lerp(p0[1], p1[1], q)]; }
+  if (u < 0.82) { const d = u < 0.71, cx = d ? -0.4 : 0.4, an = v * TAU, rr = Math.sqrt((u - (d ? 0.6 : 0.71)) / 0.11);   // les yeux : deux grands ovales pleins
+    let x = cx + Math.cos(an) * 0.15 * rr, y = -0.02 + Math.sin(an) * 0.21 * rr;
+    if (!d && cl > 0) { const t = (x - cx) / 0.15, ya = -0.02 - 0.07 * (1 - t * t); x = lerp(x, cx + t * 0.19, cl); y = lerp(y, ya, cl); }   // fermé : un petit arc ^
+    return [x, y]; }
+  if (u < 0.87) { const t = (u - 0.82) / 0.05 * 2 - 1; return [t * 0.16, 0.3 + 0.06 * Math.abs(Math.sin(t * Math.PI))]; }   // la bouche en w
+  const w = (u - 0.87) / 0.13, k = Math.floor(w * 6), t = w * 6 - k, g = k < 3 ? -1 : 1, m = k % 3;   // les moustaches
+  return [g * (0.45 + t * 0.75), 0.2 + (m - 1) * 0.1 + (m - 1) * t * 0.1]; }
+
 /* ——— l'image ——— */
 const o = { x: 0, y: 0, z: 0, s: 1, a: 1, t: 0, tx: 0, ty: 0, tz: 0, p2: 0, f: 1 };
 X.fond.push((ctx, now) => {
@@ -314,7 +329,11 @@ X.fond.push((ctx, now) => {
   const pp = Wd.ptr, pt = !reduit && pp && pp.on && Wd.t - pp.moved < 4 ? pp : null, RP = L.L ? 130 : 95, pax = pt ? (pt.x - W / 2) / W : 0, pay = pt ? (pt.y - H / 2) / H : 0;
   // (29/09, 13 h 27, Mathieu : « trop d'effets lumineux ; garde les effets pour les animations utiles ») : une fois le titre écrit et le dessin
   // de la scène arrivé, la nuée se calme : plus pâle, plus petite, sans traînées ; elle reste un ciel, le dessin est le sujet
-  const dessinee = C && !pts && window.EspaceScenes && EspaceScenes.S && EspaceScenes.S[C.S.d], calme = dessinee ? 1 - 0.7 * c01((a - 0.3) / 1.4) : 1;
+  const dessinee = C && !pts && window.EspaceScenes && EspaceScenes.S && EspaceScenes.S[C.S.d], calme0 = dessinee ? 1 - 0.7 * c01((a - 0.3) / 1.4) : 1;
+  const gT = C && !pts && !reduit && dt < 3 ? eio(c01((dt - 0.1) / 0.45)) * (1 - eio(c01((dt - 1.35) / 0.6))) : 0, clin = c01((dt - 0.8) / 0.12) * (1 - c01((dt - 1.12) / 0.12));
+  const calme = Math.max(calme0, gT);
+  // (la tête tient entre la barre des chapitres et les sous-titres : jamais sur eux)
+  const bas = (bd ? bd.y : G.caps || G.bas || H * 0.7) - 14, KT = Math.min(E.K * 0.62, W * 0.4, (bas - haut - 10) / 2.05), YT = haut + 10 + KT * 1.14;
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.strokeStyle = 'rgb(236,240,255)';
   for (let i = 0; i < N; i++) {
     const r = R[i], j = i * 4; o.s = 1; o.a = 1; o.t = 0; o.p2 = 0; f(r, o);
@@ -336,6 +355,10 @@ X.fond.push((ctx, now) => {
       // (la traînée : là où l'étoile était un peu plus tôt sur son chemin, pas à l'image d'avant : nette même si l'écran rame)
       if (e > 0.06 && e < 0.9) { const q = vol(e - 0.035), d2 = (q[0] - x) ** 2 + (q[1] - y) ** 2; tl = d2 > 16 && d2 < 14400 ? q : null; }
       if (e > 0.82) al *= 1 + 1.6 * Math.sin(Math.PI * (e - 0.82) / 0.18); }
+    // (la tête de chat : même heure pour toutes les étoiles, pour que le dessin se lise d'un coup ; puis chacune repart vers sa forme)
+    if (gT > 0.01) { const [hx, hy] = tete(r.e, r.c, clin), tk = Math.sin(now * 1.3) * 0.06, K2 = KT, hx2 = hx * Math.cos(tk) - hy * Math.sin(tk), hy2 = hx * Math.sin(tk) + hy * Math.cos(tk),
+        jx = mx + hx2 * K2 + Math.sin(now * 3 + r.a * 9) * 2, jy = YT + hy2 * K2 + Math.cos(now * 2.7 + r.b * 9) * 2;
+      x = lerp(x, jx, gT); y = lerp(y, jy, gT); s = lerp(s, br * 1.15, gT); al = lerp(al, 0.95, gT); tl = null; }
     // (le doigt ou la souris : les étoiles s'écartent sur son passage, et tout le ciel penche un peu vers lui, les proches plus que les lointaines)
     if (pt) { const dx = x - pt.x, dy = y - pt.y, d2 = dx * dx + dy * dy; if (d2 < RP * RP) { const dd = Math.sqrt(d2) || 1, q = 1 - dd / RP; x += dx / dd * q * q * RP * 0.5; y += dy / dd * q * q * RP * 0.5; al *= 1 + q * 0.8; }
       x -= pax * Math.min(2, fz) * 18; y -= pay * Math.min(2, fz) * 12; }
@@ -353,5 +376,5 @@ X.fond.push((ctx, now) => {
   if (pts && pts.lg && !reduit) plume(ctx, pts, dt, now, br);
   ctx.restore(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
 });
-return { FORMES, E, get N() { return N; }, get P() { return P; }, fige() { T0 = -1e9; sauter = true; } };
+return { FORMES, E, get N() { return N; }, get P() { return P; }, fige() { T0 = -1e9; sauter = true; }, vers(t) { T0 = Wd.t - t; } };
 })();
