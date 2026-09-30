@@ -1039,6 +1039,16 @@ S.skills = (() => {
       const rb = k * 0.14 * (1 + flash * 0.08); chabot(C[0], C[1] - rb * 1.1, rb, { now, v: 3, lac: Math.sin(now * 0.5) * 0.5, travaille: true, bras: flash > 0.2 ? [1.5, 1.5] : null });
       if (flash > 0) eclat(C[0], C[1] - rb * 1.1, k * 0.3, 1 - flash, 10, now);
       it.filter(avant).sort((p, q) => p.p[2] - q.p[2]).forEach(q => module(V, q, now, k, Vs, hx));
+      // (vague 106 de l'audit, « skills » vers 9,9) : chaque outil branché rend les autres plus forts. Au moment où un module s'arrime, une décharge
+      // part de la station et court, en éclair, jusqu'à chacun des autres modules, qui s'allument à son arrivée
+      if (flash > 0.02 && !reduitMvt()) { const v = 1 - flash, H = [C[0], C[1] - rb * 1.1];
+        it.forEach(q => { if (q.eb > 0.05) return; const d = Math.hypot(q.p[0] - H[0], q.p[1] - H[1]) || 1, nx = -(q.p[1] - H[1]) / d, ny = (q.p[0] - H[0]) / d, t = c01(v * 1.4), P2 = [H];
+          for (let j = 1; j <= 7; j++) { const f = j / 8 * t, g = (j % 2 ? 1 : -1) * k * 0.035 * Math.sin(j * 7.3 + q.i + Math.floor(now * 24)); P2.push([lerp(H[0], q.p[0], f) + nx * g, lerp(H[1], q.p[1], f) + ny * g]); }
+          P2.push([lerp(H[0], q.p[0], t), lerp(H[1], q.p[1], t)]);
+          ctx.globalAlpha = 1; ctx.strokeStyle = 'rgba(160,210,255,0.35)'; ctx.lineWidth = G.lw * 3; ctx.lineCap = ctx.lineJoin = 'round'; ctx.beginPath(); P2.forEach((p, j) => j ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke();
+          ctx.strokeStyle = 'rgb(235,245,255)'; ctx.lineWidth = G.lw * 0.9; ctx.stroke(); brille(P2[P2.length - 1][0], P2[P2.length - 1][1], 3, 1, true, now, q.i);
+          if (t >= 1) eclat(q.p[0], q.p[1], k * 0.09 * q.p[3], c01((v * 1.4 - 1) / 0.4), 8, q.i); });
+        }
       // (vague 40 de l'audit : « skills, peu original ») : la forge, sur le côté : la même tâche revient, trois fois (trois feuilles identiques
       // tombent sur la pile : ×1, ×2, ×3) ; la presse s'abat, « CLAC », et il en sort une cartouche neuve qui file rejoindre l'orbite
       { const cy = 5, u = now % cy, fx = G.gauche + (G.droite - G.gauche) * 0.1, fy = C[1] + k * 0.42, s = Math.max(10, k * 0.07), n = Math.min(3, Math.floor(u / 0.8));
