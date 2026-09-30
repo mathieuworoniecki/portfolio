@@ -171,12 +171,36 @@ function envols(o, now) {
       if (v < 1) { o.font = `700 ${Math.round(13 * dp)}px "Space Grotesk",system-ui,sans-serif`; o.textAlign = 'center'; o.fillStyle = `rgb(${BL})`; o.fillText('+1', tx, ty + 22 * dp + v * 6 * dp); } } });
   o.restore(); for (let i = ENVOL.length - 1; i >= 0; i--) if (now - ENVOL[i].t0 > 1.5 || now < ENVOL[i].t0) ENVOL.splice(i, 1);
 }
+// (vague 83, l'audit : « la flotte ») : la tour MARKO livrée, le feu d'artifice ne tient plus dans la scène : des gerbes éclatent partout dans
+// le ciel de l'écran, par-dessus tout (sauf les sous-titres et la planète des chats) ; chaque étincelle retombe en rapetissant, jamais en fondu
+const FEUX = []; let feuT = 0;
+function feuxDArtifice(now) { if (reduitMvt() || now - feuT < 0.45 || FEUX.length > 7) return; feuT = now;
+  const W = window.innerWidth, H = window.innerHeight, bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
+  for (let essai = 0; essai < 8; essai++) { const x = W * (0.06 + Math.random() * 0.88), y = H * (0.12 + Math.random() * 0.4);
+    if (bd && y > bd.y - 90) continue; if (Pc && Math.hypot(x - Pc.x, y - Pc.y) < Pc.r * 1.6 + 120) continue;
+    const n = 14 + Math.floor(Math.random() * 10), R = 60 + Math.random() * 70; FEUX.push({ x, y, y0: bd ? Math.min(H, bd.y) : H, t0: now, R, n, rot: Math.random() * TAU, sorte: Math.floor(Math.random() * 3) }); return; } }
+function feux(o, now) {
+  const cv = o.canvas, dp = dpDe(cv); o.save(); o.setTransform(dp, 0, 0, dp, 0, 0); o.lineCap = 'round';
+  const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
+  o.beginPath(); o.rect(0, 0, cv.width / dp, cv.height / dp); if (bd) o.rect(bd.x - 16, bd.y - 12, bd.w + 32, bd.h + 24); if (Pc) { o.moveTo(Pc.x + Pc.r * 1.35, Pc.y); o.arc(Pc.x, Pc.y, Pc.r * 1.35, 0, TAU); } o.clip('evenodd');
+  FEUX.forEach(f => { const t = now - f.t0;
+    // la fusée qui monte (un trait d'étincelles), puis la gerbe
+    if (t < 0.45) { const u = t / 0.45, y = f.y0 + (f.y - f.y0) * (1 - (1 - u) * (1 - u)); o.strokeStyle = `rgb(${BL})`; o.lineWidth = 2; o.beginPath(); o.moveTo(f.x + Math.sin(t * 30) * 1.5, y); o.lineTo(f.x, y + 26); o.stroke(); return; }
+    const u = (t - 0.45) / 1.6; if (u >= 1) return; const e = 1 - Math.pow(1 - u, 3), R = f.R * e, fall = u * u * 38, taille = 1 - sm((u - 0.55) / 0.45);
+    for (let i = 0; i < f.n; i++) { const b = f.rot + i / f.n * TAU, cx = f.x + Math.cos(b) * R, cy = f.y + Math.sin(b) * R + fall, L = f.R * 0.28 * (1 - u) + 2;
+      o.globalAlpha = 1; o.strokeStyle = NUIT; o.lineWidth = 4.5 * taille + 0.5; o.beginPath(); o.moveTo(cx - Math.cos(b) * L, cy - Math.sin(b) * L - fall * 0.2); o.lineTo(cx, cy); o.stroke();
+      o.strokeStyle = f.sorte === 1 && i % 2 ? '#ffe9a8' : `rgb(${BL})`; o.lineWidth = 2.2 * taille; o.stroke();
+      if (f.sorte !== 0 && taille > 0.05) { o.fillStyle = `rgb(${BL})`; o.beginPath(); o.arc(cx, cy, 2.4 * taille, 0, TAU); o.fill(); }
+      if (f.sorte === 2 && u > 0.35) { const v = (u - 0.35) / 0.65, r2 = f.R * 0.25 * v; for (let j = 0; j < 4; j++) { const b2 = b + j * Math.PI / 2; o.fillStyle = `rgb(${BL})`; o.beginPath(); o.arc(cx + Math.cos(b2) * r2, cy + Math.sin(b2) * r2 + v * 8, 1.6 * taille, 0, TAU); o.fill(); } } }
+    if (u < 0.2) { o.fillStyle = `rgb(${BL})`; o.beginPath(); o.arc(f.x, f.y, 10 * (1 - u / 0.2), 0, TAU); o.fill(); } });
+  o.restore(); for (let i = FEUX.length - 1; i >= 0; i--) if (now - FEUX[i].t0 > 2.1 || now < FEUX[i].t0) FEUX.splice(i, 1);
+}
 function vise(c0, now) {
   const c = VISE.c, P = souris(); VISE.c = null; const dt = Math.min(0.2, Math.max(0, now - (VISE.t || now))); VISE.t = now;
   if (c && P && (VISE.id === null || VISE.id === c.id || VISE.k < 0.05)) { VISE.id = c.id; VISE.k = Math.min(1.6, VISE.k + dt * 1.4); VISE.rb = c; }
   else { VISE.k = Math.max(0, VISE.k - dt * 3); if (VISE.k === 0) VISE.id = null; }
-  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length) return; const o = toileVise(c0.canvas);
-  TAMPON.forEach(q => tamponVitre(o, q, now - q.t0)); if (ENVOL.length) envols(o, now); if (!R || VISE.k <= 0 || !P) return;
+  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length && !FEUX.length) return; const o = toileVise(c0.canvas);
+  TAMPON.forEach(q => tamponVitre(o, q, now - q.t0)); if (ENVOL.length) envols(o, now); if (FEUX.length) feux(o, now); if (!R || VISE.k <= 0 || !P) return;
   const W0 = window.Chats && Chats.K && Chats.K.Wd, chat = W0 && W0.cats.some(q => q.sp && q.sp.m === 'agrippe');
   const cv = o.canvas, dp = dpDe(cv), px = P.x * dp, py = P.y * dp, ln = Math.max(1, dp), k = VISE.k;
   o.save(); o.setTransform(1, 0, 0, 1, 0, 0); o.lineCap = o.lineJoin = 'round';
@@ -802,6 +826,7 @@ S.flotte = (() => {
       Q.filter(q => q.p[2] >= -0.2).forEach(agent);
       if (n >= NE && tas > 0.5) { const t = V(0, top, 0), m = [t[0], t[1] - k * 0.3]; trait([t, m], false, 1, 1); trait([m, [m[0] + k * 0.16, m[1] + k * (0.05 + Math.sin(now * 5) * 0.015)], [m[0], m[1] + k * 0.11]], true, 0.9, 1, true);
         mot('MARKO', t[0], t[1] - k * 0.38, Math.max(11, k * 0.08), 1);
+        feuxDArtifice(now);
         for (let j = 0; j < 4; j++) { const u = ((c - NE * 0.55) * 0.9 + j / 4) % 1, px = t[0] + (bruit(j * 7 + Math.floor((c - NE * 0.55) * 0.9 + j / 4)) - 0.5) * k * 1.6, py = t[1] - k * (0.2 + 0.4 * bruit(j * 3 + 1)); eclat(px, py, k * 0.07, u, 9, j); } }
       ctx.restore();
     }
@@ -1457,5 +1482,5 @@ S.pilotage = (() => {
 S.rag = S.ia;
 
 // la toile, l'écran du ciel, les outils ; puis : une scène existe-t-elle ?
-return { S, vise, VISE, LUI, ENVOL, TH, pose(c, g, o) { ctx = c; G = g; O = o; } };
+return { S, vise, VISE, LUI, ENVOL, TH, FEUX, pose(c, g, o) { ctx = c; G = g; O = o; } };
 })();
