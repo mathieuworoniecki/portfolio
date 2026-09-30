@@ -666,6 +666,16 @@ S.gardefous = (() => {
         const xa = xS - 0.05; if (x < xa) { carte(x, yT - 0.015, 0, 1); continue; }
         const ts = (x - xa) / vit; if (ts < 0.6) { carte(xa, yT - 0.015, 0, 1); tampon = Math.max(tampon, ts < 0.25 ? sm(ts / 0.25) : 1 - sm((ts - 0.3) / 0.3)); if (ts > 0.2) { const c = V(xa, yT - 0.1, 0); coche(c[0], c[1], k * 0.05, (ts - 0.2) / 0.25, 1.1); } continue; }
         const m = sm((ts - 0.6) / 0.8); if (m >= 1) continue; carte(lerp(xa, xP, m), lerp(yT, yT - Math.min(14, pile) * 0.03, m) - Math.sin(Math.PI * m) * 0.3, lerp(0, zP, m), 1); }
+      // (vague 41 de l'audit : « la vitesse sans perdre le contrôle, peu original ») : l'atelier de réparation, sous le tapis : un chat-robot
+      // à la clé répare une feuille recalée (un pansement en croix), puis un ressort la renvoie en cloche au début du tapis : « on corrige, on repasse »
+      { const B = [x0 + 0.3, yT + 0.2, 0.6], cyc = 2.6, u = now % cyc, P0 = V(B[0], B[1] - 0.08, B[2]), s0 = k * 0.05 * P0[3];
+        boite3(V, B[0] - 0.22, B[0] + 0.22, B[1], B[1] - 0.08, B[2] - 0.12, B[2] + 0.12, 0.8, 0.9);
+        const r = k * 0.075 * P0[3], cb = V(B[0] + 0.3, B[1], B[2]), fr = Math.sin(now * 9) * 0.5; chabot(cb[0], cb[1] - r * 1.75, r, { now, ph: 21, lac: -0.7, casque: false, travaille: u < 1.6, bras: [0.6 + fr, -0.2] });
+        if (u < 1.6) { carte(B[0], B[1] - 0.1, B[2], 1, 0.2); const c = V(B[0], B[1] - 0.1, B[2]); style(1.4, 1); ctx.beginPath(); ctx.moveTo(c[0] - s0, c[1] - s0 * 0.4); ctx.lineTo(c[0] + s0, c[1] + s0 * 0.4); ctx.moveTo(c[0] - s0, c[1] + s0 * 0.4); ctx.lineTo(c[0] + s0, c[1] - s0 * 0.4); ctx.stroke();
+          if (Math.sin(now * 9) > 0.8) mot('tac', c[0] + s0 * 2, c[1] - s0 * 1.5, Math.max(9, k * 0.05), 0.8); }
+        else { const v = sm((u - 1.6) / 1.0), x = lerp(B[0], x0 + 0.08, v), y = lerp(B[1] - 0.1, yT - 0.02, v) - Math.sin(Math.PI * v) * 0.55, z = lerp(B[2], 0, v); carte(x, y, z, 1, v * 6);
+          const rs = V(B[0], B[1] - 0.1, B[2]); style(0.8, 1); ctx.beginPath(); for (let j = 0; j <= 8; j++) { const yy = rs[1] - j / 8 * s0 * 2 * (1 - v * 0.6); ctx.lineTo(rs[0] + (j % 2 ? s0 * 0.6 : -s0 * 0.6), yy); } ctx.stroke();
+          if (v < 0.4) mot(en() ? 'fixed!' : 'réparé !', rs[0], rs[1] - s0 * 3, Math.max(10, k * 0.055), 1 - v * 2.5); } }
       // les portiques : l'arche, son nom, son faisceau qui balaie
       xs.forEach((g, i) => { bloc(V, g - 0.03, g + 0.03, yT, yT - 0.5, -0.34, -0.27, 1, 0.7); bloc(V, g - 0.035, g + 0.035, yT - 0.46, yT - 0.55, -0.34, 0.34, 1, 0.7); bloc(V, g - 0.03, g + 0.03, yT, yT - 0.5, 0.27, 0.34, 1, 0.7);
         const v = (now * 1.3 + i * 0.3) % 1, y = yT - 0.46 + v * 0.44; trait([V(g, y, -0.28), V(g, y, 0.28)], false, 0.8, 0.9); brille(V(g, y, 0.28)[0], V(g, y, 0.28)[1], 2.2, 0.8, false, now, i);
