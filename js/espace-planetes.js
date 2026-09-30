@@ -141,7 +141,7 @@ X.mode.aspire = (c, dt) => {
 function aspire(dt) {
   const A = P.aspire, tous = Wd.cats.every(c => !c.sp || c.sp.dedans);
   // tous dedans : la planète grandit et son disque s'ouvre sur la pièce (js/trounoir.js, la sortie : elle recrache tout de l'autre côté)
-  if ((tous || Wd.t - A.t0 > 4.5) && !A.fait) { A.fait = true; if (window.Dex && Dex.vu) Dex.vu('retourplanete'); const Cp = P.chat; O.sortie({ x: Cp.x, y: Cp.y, dessine: (ctx, z, now) => { A.zoom = Math.max(0.001, z); } }); }
+  if ((tous || Wd.t - A.t0 > 4.5) && !A.fait) { A.fait = true; if (window.Dex && Dex.vu) Dex.vu('retourplanete'); POUS.attend = true; const Cp = P.chat; O.sortie({ x: Cp.x, y: Cp.y, dessine: (ctx, z, now) => { A.zoom = Math.max(0.001, z); } }); }
 }
 
 /* ——— attraper : la planète des chats (un clic la lance), la Terre (elle frémit) ——— */
@@ -403,5 +403,34 @@ X.fond.unshift((ctx, now) => { if (!P) return; terre(ctx, now); if (trace(0.8, 0
 // (le zoom final passe devant tout : la planète grossit jusqu'à remplir l'écran)
 X.devant.push((ctx, now) => { if (P && P.aspire && P.aspire.zoom > 0) planete(ctx, now); });
 
-return { get P() { return P; }, naissance, lance };
+/* (vague 102 de l'audit, « le retour par la planète chat » vers 9,9) : on revient avec un peu d'espace sur soi. Dans la pièce,
+   de la poussière d'étoiles tombe encore du plafond un moment, en tournoyant ; les chats lèvent la tête, en attrapent au vol d'un coup
+   de patte (l'étoile rebondit et éclate en étincelles) ; celles qui touchent le sol s'y éteignent en rapetissant. */
+const POUS = { attend: false, L: [] };
+X.retour.push(() => { if (!POUS.attend) return; POUS.attend = false; if (reduit) return; const W = innerWidth, n = W < 600 ? 22 : 40;
+  POUS.L = Array.from({ length: n }, (_, i) => ({ x: rnd(0.04, 0.96) * W, y: (Wd.ceil || innerHeight * 0.3) - rnd(0, 90), t0: Wd.t + 0.4 + i * rnd(0.1, 0.22), d: rnd(0, 0.7), v: rnd(50, 95), ph: rnd(0, 6), r: rnd(6, 11) * (W < 600 ? 0.8 : 1), col: pick(['241,196,15', '243,156,18', '52,152,219', '155,89,182', '255,255,255']) }));
+  POUS.tc = Wd.t + 1.5; });
+function etoile4(ctx, x, y, r, rot, col, ink) { ctx.save(); ctx.translate(x, y); ctx.fillStyle = `rgba(${col},0.16)`; ctx.beginPath(); ctx.arc(0, 0, r * 1.9, 0, TAU); ctx.fill(); ctx.rotate(rot); ctx.beginPath(); for (let i = 0; i < 8; i++) { const a = i / 8 * TAU, q = i % 2 ? r * 0.32 : r; ctx.lineTo(Math.cos(a) * q, Math.sin(a) * q); } ctx.closePath();
+  ctx.fillStyle = `rgb(${col})`; ctx.fill(); ctx.strokeStyle = `rgb(${ink})`; ctx.lineWidth = 1.2; ctx.stroke(); ctx.restore(); }
+K.H.draw.push(() => {
+  const L = POUS.L, ctx = window.Chalk && Chalk.ctx; if (!L.length || !ctx || Wd.espace || Wd.trou || Wd.a < 0.05) return; const now = Wd.t, dt = Math.min(0.05, now - (POUS.tl ?? now)); POUS.tl = now;
+  const ink = (window.THEME && THEME.ink) || Chalk.INK || '40,40,48';
+  // de temps en temps, un chat libre repère une étoile qui descend près de lui et l'attrape d'un coup de patte
+  if (now > POUS.tc) { POUS.tc = now + rnd(0.8, 1.6); const Ls = L.filter(s => !s.pris && !s.sol && now > s.t0 && s.y > (Wd.ceil || 0) + 40);
+    for (const c of Wd.cats) { if (c.gone || c.temp || !K.free4(c) || c.fall || c.hidden) continue; const s = K.sc(c), e = Ls.find(e => Math.abs(e.x - c.x) < s * 1.6 && e.y > c.y - s * 2.2 && e.y < c.y);
+      if (!e) continue; e.vise = c; K.interrupt(c); const f = sgn(e.x - c.x); c.face = f;
+      c.q = [K.pose('affut', 0.35, { face: f }), K.hop(() => K.groundAt(c.x, c.d), { h: Math.max(s * 0.4, c.y - e.y - s * 0.6), dur: 0.5 }), K.pose('assis', 0.8, { face: f })];
+      K.later(0.45, () => { if (e.sol || e.pris) return; e.pris = now + 0.45; e.vx = f * rnd(60, 140); e.vy = -rnd(180, 260); say(c, pick(en() ? ['got it!', '✨!', 'mine!'] : ['attrapée !', '✨ !', 'à moi !'])); if (window.Dex && Dex.vu) Dex.vu('poussiere'); });
+      break; } }
+  for (let i = L.length - 1; i >= 0; i--) { const e = L[i]; if (now < e.t0) continue; const u = now - e.t0;
+    if (e.pris) { const k = (now - e.pris) / 0.5; e.vy += 500 * dt; e.x += e.vx * dt; e.y += e.vy * dt;
+      if (k > 1) { for (let j = 0; j < 5; j++) Wd.fx.push({ k: 'etoile', x: e.x, y: e.y, vx: rnd(-120, 120), vy: -rnd(40, 200), g: 200, t0: now, life: 0.7, col: e.col, r: rnd(1.5, 2.5), tw: true }); L.splice(i, 1); continue; } }
+    else if (!e.sol) { e.y += e.v * dt; const x = e.x + Math.sin(u * 1.7 + e.ph) * 14, sol = K.floorAt(e.d); if (e.y >= sol) { e.sol = now; e.y = sol; } e.dx = x; }
+    const x = e.pris ? e.x : e.dx ?? e.x, r = e.sol ? e.r * Math.max(0, 1 - (now - e.sol) / 1.6) : e.r * (0.8 + 0.25 * Math.sin(now * 7 + e.ph));
+    if (e.sol && r <= 0.05) { L.splice(i, 1); continue; }
+    if (e.pris) e.x = x;
+    if (!e.sol && !e.pris) { ctx.fillStyle = `rgba(${e.col},0.5)`; for (let j = 1; j < 4; j++) { ctx.beginPath(); ctx.arc(x - Math.cos(u * 1.7 + e.ph) * 4 * j, e.y - e.r * 1.6 * j, e.r * 0.22 * (4 - j) / 3, 0, TAU); ctx.fill(); } }
+    etoile4(ctx, x, e.y, r, u * 1.5 + e.ph, e.col, ink); }
+});
+return { get P() { return P; }, naissance, lance, POUS };
 })();

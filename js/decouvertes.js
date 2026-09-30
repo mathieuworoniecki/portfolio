@@ -113,6 +113,8 @@ fam('evts', 'Les événements', 'Events', [
   ['tour', 'La tour de cartons', 'The box tower', 'Des chats qui empilent.', 'Cats stacking things.'],
   ['tourchute', 'La tour s’écroule', 'The tower falls', 'Trop de chats en haut.', 'Too many cats on top.'],
   ['curseur-avale', 'Aspiré !', 'Sucked in!', 'Passer trop près de l’aspirateur quand il aspire.', 'Get too close to the vacuum while it sucks.'],
+  ['poussiere', 'Poussière d’étoiles', 'Stardust', 'Revenir de l’espace par la planète… et voir un chat attraper ce qu’on a rapporté.', 'Come back through the planet… and watch a cat catch what came back with you.'],
+  ['cravate', 'Réunion terminée', 'Meeting over', 'Revenir du mode sérieux… quelqu’un a gardé sa cravate.', 'Come back from serious mode… someone kept the tie on.'],
   ['ticket', 'Le ticket de caisse', 'The receipt', 'Après le jackpot, la machine rend des comptes. Arrache-les.', 'After the jackpot, the machine prints the bill. Tear it off.'],
   ['vitre-propre', 'Coup de chiffon', 'Wipe it clean', 'La caisse a laissé sa trace… à toi de nettoyer.', 'The box left its mark… your turn to clean.'],
   ['horde', 'La horde', 'The horde', 'Ils courent tous dans le même sens.', 'They all run the same way.'],

@@ -307,7 +307,9 @@ function retour() {
   // deux autres rentrent en courant par les côtés
   const n = L.length, tr = [...new Set([L[n - 1], L[n - 2], L[Math.max(0, n - 4)], L[Math.floor(n / 2)]])].filter(Boolean).slice(0, 4);
   tr.forEach((it, i) => later(0.55 + (n - 1) * 0.12 + i * 0.3, () => { if (K.residents().length >= K.MAXC) return; const d = it.d ?? 0.3, c = K.addCat({ x: it.fx * Wd.W, d }), s = sc(c);
-    c.y = floorAt(d) - s * 0.3; c.fall = true; c.vy = -s * rnd(5.5, 7); c.vx = s * rnd(1, 2.4) * (i % 2 ? -1 : 1); c.face = sgn(c.vx) || 1; later(0.2, () => say(c, pick(en() ? ['woohoo!', 'I’m back!', 'hi!', 'hop!'] : ['youhou !', 'me revoilà !', 'coucou !', 'hop !']))); }));
+    c.y = floorAt(d) - s * 0.3; c.fall = true; c.vy = -s * rnd(5.5, 7); if (!CRAV.some(o => o.c)) cravate(c); c.vx = s * rnd(1, 2.4) * (i % 2 ? -1 : 1); c.face = sgn(c.vx) || 1; later(0.2, () => say(c, pick(en() ? ['woohoo!', 'I’m back!', 'hi!', 'hop!'] : ['youhou !', 'me revoilà !', 'coucou !', 'hop !']))); }));
+  // (la pièce était pleine, personne n'a jailli : la cravate va à un chat de la maison)
+  later(1.3 + n * 0.12, () => { if (CRAV.some(o => o.c)) return; const c = Wd.cats.find(c => !c.gone && !c.temp && !c.rare && K.free4(c)); if (c) cravate(c); });
   [0, 1].forEach(i => later(1.4 + n * 0.12 + i * 0.7, () => { if (K.residents().length < K.MAXC) { const c = K.enter(); c.q.unshift(go(c.x + (c.x < Wd.W / 2 ? 1 : -1) * sc(c) * 3, { g: 'galop', v: 1.5 })); } }));
   // (vague 10, l'audit : « le retour du mode sérieux ») : quand tout est revenu, un dernier trou s'ouvre, là où il n'y a rien ;
   // il en sort un chat qui dormait dedans, toujours endormi ; il se pose, ronfle, s'étire et découvre qu'il a tout raté
@@ -319,6 +321,34 @@ function retour() {
       word('pop…', x, y - s * 0.7, 16); if (window.Dex && Dex.vu) later(2, () => Dex.vu('dormeur')); }); });
   Wd.nextIn = Wd.t + 6 + n * 0.1;
 }
+/* (vague 101-102 de l'audit, « le retour du mode sérieux » vers 9,9) : le premier chat qui jaillit revient du mode sérieux… en cravate
+   (bleue, comme le plan). Il la garde un moment, très fier (« réunion terminée ! »), puis, un peu plus tard, fait sa toilette et l'arrache :
+   elle vole, retombe au sol et s'y ratatine jusqu'à rien. */
+const CRAV = [];   // { c } sur un chat ; { x, y, vx, vy, rot, vr, sol, t } quand elle vole
+function cravate(c) { if (!c || CRAV.some(o => o.c === c)) return; c.cravate = true; CRAV.push({ c, t0: Wd.t });
+  later(1.1, () => say(c, pick(en() ? ['meeting over!', 'very serious.', 'Q3 was great'] : ['réunion terminée !', 'très sérieux.', 'on a bien bossé'])));
+  if (window.Dex && Dex.vu) later(2.5, () => Dex.vu('cravate'));
+  later(rnd(40, 70), () => { if (!c.cravate || !Wd.cats.includes(c)) return; const go2 = () => { if (!c.cravate || !Wd.cats.includes(c)) return; if (!K.free4(c) || c.fall || c.held) { later(2, go2); return; }
+    interrupt(c); c.q = [pose('toilette', 1.2, { fx: c => { say(c, pick(en() ? ['enough.', 'weekend!'] : ['bon, ça suffit.', 'c’est le week-end !'])); const o = CRAV.find(o => o.c === c); if (!o || !c.hp) return;
+      c.cravate = false; const s = sc(c); Object.assign(o, { c: null, x: c.hp[0], y: c.hp[1] + s * 0.3, vx: c.face * s * rnd(2, 3), vy: -s * 3.5, rot: 0, vr: c.face * 9, sol: floorAt(c.d) - 2, s, t: 0 }); } }), pose('assis', 1.2)]; };
+    go2(); }); }
+function dessineCravate(ctx, x, y, s, rot, k, ink) {
+  const L = s * 0.34 * k, w = s * 0.11 * k; ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(1.4, s * 0.018);
+  ctx.strokeStyle = `rgb(${ink})`; ctx.fillStyle = 'rgb(52,120,219)';
+  ctx.beginPath(); ctx.moveTo(-w * 0.5, 0); ctx.lineTo(w * 0.5, 0); ctx.lineTo(w * 0.35, w * 0.7); ctx.lineTo(-w * 0.35, w * 0.7); ctx.closePath(); ctx.fill(); ctx.stroke();   // le nœud
+  ctx.beginPath(); ctx.moveTo(-w * 0.3, w * 0.7); ctx.lineTo(w * 0.3, w * 0.7); ctx.lineTo(w * 0.62, L * 0.82); ctx.lineTo(0, L); ctx.lineTo(-w * 0.62, L * 0.82); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.lineWidth = 1; ctx.beginPath(); for (let i = 1; i < 4; i++) { const yy = w * 0.7 + (L * 0.75 - w * 0.7) * i / 4; ctx.moveTo(-w * 0.35, yy); ctx.lineTo(w * 0.35, yy + w * 0.5); } ctx.stroke(); ctx.restore(); }
+H.draw.push(() => {
+  const ctx = window.Chalk && Chalk.ctx; if (!CRAV.length || !ctx || Wd.espace || Wd.trou || Wd.a < 0.05) return; const ink = (window.THEME && THEME.ink) || Chalk.INK || '40,40,48', dt = Math.min(0.05, Wd.t - (CRAV.tl ?? Wd.t)); CRAV.tl = Wd.t;
+  for (let i = CRAV.length - 1; i >= 0; i--) { const o = CRAV[i];
+    if (o.c) { const c = o.c; if (!Wd.cats.includes(c) || c.gone) { CRAV.splice(i, 1); continue; } if (!c.hp || c.hidden || c.held) continue; const s = sc(c);
+      // sous le menton, qui se balance au pas
+      dessineCravate(ctx, c.hp[0] + c.face * s * 0.02, c.hp[1] + s * 0.16, s, Math.sin(Wd.t * 6 + i) * 0.12 - (c.vx || 0) * 0.0006, 1, ink); continue; }
+    // arrachée : elle vole, retombe, puis se ratatine au sol
+    if (o.y < o.sol) { o.vy += o.s * 12 * dt; o.x += o.vx * dt; o.y += o.vy * dt; o.rot += o.vr * dt; if (o.y >= o.sol) { o.y = o.sol; o.rot = Math.PI / 2 * sgn(o.vr); } }
+    else { o.t += dt; if (o.t > 3) { CRAV.splice(i, 1); continue; } }
+    dessineCravate(ctx, o.x, o.y - (o.t ? 3 : 0), o.s, o.rot, o.t > 1.8 ? 1 - (o.t - 1.8) / 1.2 : 1, ink); }
+});
 addEventListener('serieux:ferme', retour);
-return { go: go0, avale, get actif() { return !!F; }, set vitesse(v) { vit = v; } };
+return { go: go0, avale, CRAV, get actif() { return !!F; }, set vitesse(v) { vit = v; } };
 })();
