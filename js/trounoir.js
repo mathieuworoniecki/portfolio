@@ -717,7 +717,17 @@ function boucleSortie(id) {
   if (id !== E.boucle || !RV) return;
   taille(); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.clearRect(0, 0, W, H);
   const now = performance.now() / 1000, u = (now - RV.t0) / DS, z = ease(u / 0.62);
-  fondNoir(1); cielEtoile(1, now); X.fond.forEach(f => f(ctx, now));
+  fondNoir(1); cielEtoile(1, now);
+  // (vague 67) on plonge dans le passage : les étoiles filent en traits vers les bords (la vitesse lumière), d'autant plus longs
+  // que la plongée est rapide ; elles naissent près du passage et partent, le passage les découpe (il est dessiné par-dessus)
+  if (!reduit) { if (!RV.ws) RV.ws = Array.from({ length: W < 760 ? 120 : 220 }, () => ({ a: rnd(0, TAU), r0: rnd(0, 1), w: rnd(0.6, 1.8), v: rnd(0.7, 1.3) }));
+    const v = Math.sin(Math.PI * c01(u / 0.7)), Rm = RV.R;
+    ctx.save(); ctx.strokeStyle = '#F4F4EE'; ctx.lineCap = 'round';
+    RV.ws.forEach(q => { const f = (q.r0 + u * 1.6 * q.v) % 1, r = 20 + Rm * f * f, L = v * r * 0.45 * q.v; if (L < 1) return;
+      const c = Math.cos(q.a), s2 = Math.sin(q.a); ctx.globalAlpha = 0.35 + 0.5 * f; ctx.lineWidth = q.w * (0.6 + f);
+      ctx.beginPath(); ctx.moveTo(RV.cx + c * r, RV.cy + s2 * r); ctx.lineTo(RV.cx + c * (r + L), RV.cy + s2 * (r + L)); ctx.stroke(); });
+    ctx.restore(); }
+  X.fond.forEach(f => f(ctx, now));
   // le menu, le cadre : ils sortent du passage en se déroulant
   RV.couches.forEach(({ el, r }) => { const e = 1 - easeIn(c01((u - 0.3) / 0.5)); el.style.transformOrigin = `${RV.cx - r.left}px ${RV.cy - r.top}px`;
     el.style.transform = e > 0.001 ? `rotate(${-(e * 2.2 + e * e * 5) * 57.3}deg) scale(${Math.max(0.001, Math.pow(1 - e, 1.3))})` : ''; });
