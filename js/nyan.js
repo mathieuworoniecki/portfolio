@@ -111,6 +111,7 @@ function parade() {
       c.q.push(K.go(x0 - D * sc(c) * (0.3 + k * 0.5), { d: 0.2, g: 'galop', face: D }), K.pose('assis', 0.2 + k * 0.7), { k: 'arche', air: true, rev });
       if (c.visiteur) c.q.push(K.pose('assis', 1.2), fn(k => K.leave(k)));
       if (!i) say(c, pick(['un pont !', 'ooh ✨', 'j’y vais !'])); }); });
+  later(n * 0.7 + 6, miniNyan);
   later(0.4, () => Wd.fx.push({ k: 'txt', text: 'NYAN NYAN NYAN ♪', x: Wd.W / 2, y: (Wd.ceil || Wd.H * 0.3) + 20, t0: Wd.t, life: 2.2, rot: -0.06, size: 40 }));
 }
 // les rubans : dessinés sur la craie, par-dessus le décor ; un Nyan Cat attrapé au vol s'arrête (son ruban s'efface derrière lui)
@@ -126,6 +127,43 @@ H.draw.push(() => {
       ctx.save(); ctx.globalAlpha = Wd.a; ctx.strokeStyle = `rgb(${(window.THEME && THEME.ink) || Chalk.INK || "40,40,48"})`; ctx.lineWidth = 4.4; B.forEach(([bx, by, br]) => { ctx.beginPath(); ctx.arc(bx, by, br, 0, TAU); ctx.stroke(); });
       ctx.fillStyle = PAP; B.forEach(([bx, by, br]) => { ctx.beginPath(); ctx.arc(bx, by, br - 0.2, 0, TAU); ctx.fill(); });
       ctx.lineWidth = 1.2; ctx.globalAlpha = 0.5 * Wd.a; ctx.beginPath(); ctx.arc(x - r * 0.35, y - r * 0.1, r * 0.35, Math.PI * 1.1, Math.PI * 1.6); ctx.stroke(); ctx.restore(); }); }
+});
+// (vague 100 de l'audit, « l'arc-en-ciel » vers 9,9) : la parade finie, un tout petit Nyan Cat surgit au bord de la barre des chapitres,
+// court dessus d'un bout à l'autre et y laisse son arc-en-ciel : une frise de six couleurs, sous la barre, qui reste pour toute la visite.
+// Au bout, il saute : il s'envole en diagonale et sort par le haut de l'écran, son ruban derrière lui.
+const MINI = { m: null };
+function frise() {
+  const chap = document.getElementById('chap'); if (!chap) return null; let f = chap.querySelector('.frise-arc');
+  if (!f) { f = document.createElement('i'); f.className = 'frise-arc'; f.setAttribute('aria-hidden', 'true'); chap.appendChild(f); }
+  return f;
+}
+function miniNyan() {
+  const chap = document.getElementById('chap'), bars = chap && [...chap.querySelectorAll('.bar')]; if (!bars || !bars.length || Wd.espace || MINI.m) return;
+  const r0 = bars[0].getBoundingClientRect(), r1 = bars[bars.length - 1].getBoundingClientRect(), rc = chap.getBoundingClientRect(); if (!r0.width) return;
+  const f = frise(); f.style.top = (r0.bottom - rc.top + 2) + 'px'; f.style.left = (r0.left - rc.left) + 'px';
+  const w0 = parseFloat(f.dataset.w || 0); f.style.width = w0 + 'px';
+  MINI.m = { x0: r0.left, x1: r1.right, y: r0.top, x: r0.left - 30, t0: Wd.t, v: Math.max(140, (r1.right - r0.left) / 4.5), P: [], ph: 'court', f, rc, w0 };
+}
+H.draw.push(() => {
+  const M = MINI.m, ctx = window.Chalk && Chalk.ctx; if (!M || !ctx) return; const now = Wd.t, dt = Math.min(0.05, now - (M.tl ?? now)); M.tl = now;
+  if (M.ph === 'court') { M.x += M.v * dt; const w = Math.max(M.w0, Math.min(M.x1 - M.x0, M.x - 14 - M.x0)); if (w > 0) { M.f.style.width = w + 'px'; M.f.dataset.w = w; }
+    if (Math.random() < dt * 3) Wd.fx.push({ k: 'etoile', x: M.x - 16, y: M.y - 4, vx: -rnd(20, 60), vy: -rnd(40, 120), g: 160, t0: now, life: 0.8, col: pick(COUL), r: rnd(2, 3), tw: true });
+    if (M.x >= M.x1 - 8) { M.f.style.width = (M.x1 - M.x0) + 'px'; M.f.dataset.w = M.x1 - M.x0; M.ph = 'saute'; M.vx = M.v * 1.2; M.vy = -Math.max(420, Wd.H * 0.7); M.x1 = M.x; if (window.Dex && Dex.vu) Dex.vu('frise');
+      Wd.fx.push({ k: 'txt', text: 'nyan !', x: Math.min(Wd.W - 60, M.x), y: M.y - 34, t0: now, life: 1.2, rot: -0.2, size: 18 }); } }
+  else { M.x += M.vx * dt; M.y += M.vy * dt; M.vy += 60 * dt; if (M.y < -40 || M.x > Wd.W + 40) M.dehors = true; }
+  const y = M.y - 6 + (M.ph === 'court' ? Math.sin(now * 18) * 1.2 : 0);
+  if (!M.dehors) M.P.push([M.x - 11, y, now]); coupe(M.P, now, M.ph === 'court' ? 0.35 : 0.9);
+  if (Wd.a > 0.05 && !Wd.espace) { ctx.save(); ctx.globalAlpha = Wd.a; ruban(ctx, M.P, 1.3, now, 1, 1, 0.9);
+    // le chat : un petit gâteau rose (les pépites), la tête devant, les pattes qui moulinent
+    const ink = (window.THEME && THEME.ink) || Chalk.INK || '40,40,48', a = M.ph === 'court' ? 0 : Math.atan2(M.vy, M.vx) * 0.6; ctx.translate(M.x, y); ctx.rotate(a);
+    ctx.strokeStyle = `rgb(${ink})`; ctx.lineWidth = 1.6; ctx.lineCap = 'round'; const k = Math.floor(now * 12) % 2;
+    ctx.beginPath(); [-7, -2, 3, 7].forEach((lx, i) => { const s = (i + k) % 2 ? 2 : -2; ctx.moveTo(lx, 4); ctx.lineTo(lx + s, 8); }); ctx.stroke();
+    ctx.fillStyle = 'rgb(255,214,160)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-10, -6, 18, 11, 3) : ctx.rect(-10, -6, 18, 11); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgb(255,153,204)'; ctx.fillRect(-8, -4, 14, 7); ctx.fillStyle = 'rgb(231,76,60)'; [[-6, -2], [-2, 1], [2, -2], [4, 1]].forEach(([px, py]) => ctx.fillRect(px, py, 1.5, 1.5));
+    ctx.fillStyle = PAP || 'rgb(237,236,231)'; ctx.beginPath(); ctx.moveTo(5, -4); ctx.lineTo(7, -9); ctx.lineTo(9.5, -5); ctx.lineTo(12, -9); ctx.lineTo(14, -3); ctx.quadraticCurveTo(15.5, 3, 10, 3.5); ctx.quadraticCurveTo(5, 3.5, 5, -1); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = `rgb(${ink})`; ctx.beginPath(); ctx.arc(8.3, -1.5, 1, 0, TAU); ctx.arc(12, -1.5, 1, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-10, -1); ctx.quadraticCurveTo(-14, -4 + k * 3, -16, -1); ctx.stroke(); ctx.restore(); }
+  if (M.dehors && !M.P.length) MINI.m = null;
 });
 // de temps en temps, un seul passe, sans prévenir (à tour de rôle avec les autres scénarios)
 if (K.SCEN) K.SCEN.push(() => { if (Wd.mode !== 'large' && Math.random() < 0.5) return false; return vol() ? undefined : false; });
@@ -160,5 +198,5 @@ if (window.TrouNoir && TrouNoir.outils) {
   var espace = { part };
 }
 
-return { vol, parade, espace };
+return { vol, parade, espace, miniNyan, MINI };
 })();

@@ -1330,7 +1330,9 @@ function machines(dt) {
         if (Wd.t > (F.chasse || 0)) { F.chasse = Wd.t + 1.2; Wd.cats.filter(c => !c.temp && free4(c) && !c.glouton && Math.random() < 0.3).slice(0, 2).forEach(c => { interrupt(c); c.q.push(go(g.fx * Wd.W, { g: 'galop' })); if (Math.random() < 0.5) say(c, pick(['reviens !', 'attends !', 'mrrraow !'])); }); } }
       else g.cour = 0;
       if (Wd.t > F.next && Wd.kib.length < KIBMAX()) { F.next = Wd.t + 0.07; const m = Univers.at(g, g.bec), k = Wd.s0 / 160;
-        for (let i = 0; i < 3; i++) Wd.kib.push({ x: m[0], y: m[1], vx: rnd(-750, 750) * k, vy: -rnd(300, 1050) * k, d: rnd(0, 0.15), t0: Wd.t, rest: false, spin: Math.random() * 6 }); }
+        for (let i = 0; i < 3; i++) Wd.kib.push({ x: m[0], y: m[1], vx: rnd(-750, 750) * k, vy: -rnd(300, 1050) * k, d: rnd(0, 0.15), t0: Wd.t, rest: false, spin: Math.random() * 6 }); F.nk = (F.nk || 0) + 3; }
+      // (vague 100) : qui a mangé pendant la fête (pour le ticket)
+      Wd.cats.forEach(c => { if (c.task && c.task.anim === 'mange') (F.mg || (F.mg = new Set())).add(c); });
       if (Wd.t > F.say) { F.say = Wd.t + rnd(0.6, 1); const m = Univers.at(g, g.bec); Wd.fx.push({ k: 'txt', text: pick(g.cour && Math.abs(g.cour) > 8 ? ['youhouuu !', 'attrapez-moi !', 'croquettes pour tous !', 'BZZT !', 'hihihi'] : ['BZZT !', 'ding ding ding', '!!!', 'croquettes !!!', 'brrrrr']), x: m[0] + rnd(-40, 40), y: m[1] - g.s * rnd(0.4, 0.8), t0: Wd.t, life: 1.2, rot: rnd(-0.3, 0.3), size: 19 }); }
       if (!F.fest && Wd.t > F.t0 + 1.2) { F.fest = true; feast(); }
       if (!F.rouleaux && Wd.t > F.end - 3.1) { F.rouleaux = true; Wd.fx.push({ k: 'rouleaux', g, t0: Wd.t, life: 3.4, seed: 9 }); }
@@ -1342,8 +1344,8 @@ function machines(dt) {
         // et s'arrêtent un à un sur 7 7 7 ; au jackpot, des rayons de lumière partent de lui et balaient toute la pièce
         Wd.fx.push({ k: 'rayons', x: m[0], y: m[1] - g.s * 0.2, t0: Wd.t, life: 2.4, seed: 5 });
         if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) { const n = Wd.mode === 'large' ? 26 : 14; Wd.fx.push({ k: 'grele', x: m[0], y: m[1], t0: Wd.t, life: 3.2, L: Array.from({ length: n }, (_, i) => ({ x: rnd(0.06, 0.94) * Wd.W, y: rnd(0.08, 0.7) * Wd.H, r: rnd(14, 30) * Math.min(1.3, Wd.W / 1100 + 0.3), d: 0.1 + i * 0.045 + rnd(0, 0.05), colle: rnd(0.08, 0.35), vx: rnd(-40, 40), a0: rnd(0, 6.3), w: rnd(-9, 9), s: Math.floor(rnd(0, 99)), mot: i % 4 === 0 ? pick(['tic', 'tac', 'toc', 'tic !']) : null })) }); }
-        for (let i = 0; i < 70 && Wd.kib.length < KIBMAX() + 60; i++) Wd.kib.push({ x: m[0], y: m[1], vx: rnd(-1, 1) * rnd(200, 1500) * k, vy: -rnd(900, 1900) * k, d: rnd(0, 0.5), t0: Wd.t, rest: false, spin: Math.random() * 6 }); }
-      if (Wd.t > F.end) { g.folle = null; g.cour = 0; if (Math.abs(g.fx - F.fx0) > 0.002) g.rentre = { fx0: F.fx0 }; const m = Univers.at(g, [0, 0.8, 0]); dust(m[0], m[1], g.s * 0.3, 1); Wd.fx.push({ k: 'txt', text: 'pfff…', x: m[0], y: m[1] - 20, t0: Wd.t, life: 1.6, rot: -0.1, size: 18 }); g.clk = 0; }
+        for (let i = 0; i < 70 && Wd.kib.length < KIBMAX() + 60; i++) Wd.kib.push({ x: m[0], y: m[1], vx: rnd(-1, 1) * rnd(200, 1500) * k, vy: -rnd(900, 1900) * k, d: rnd(0, 0.5), t0: Wd.t, rest: false, spin: Math.random() * 6 }), F.nk = (F.nk || 0) + 1; }
+      if (Wd.t > F.end) { g.folle = null; g.cour = 0; if (Math.abs(g.fx - F.fx0) > 0.002) g.rentre = { fx0: F.fx0 }; const m = Univers.at(g, [0, 0.8, 0]); dust(m[0], m[1], g.s * 0.3, 1); Wd.fx.push({ k: 'txt', text: 'pfff…', x: m[0], y: m[1] - 20, t0: Wd.t, life: 1.6, rot: -0.1, size: 18 }); g.clk = 0; later(0.9, () => ticket(g, F)); }
     }
   });
   // les cartons lancés et effacés s'en vont pour de bon
@@ -1353,6 +1355,98 @@ function machines(dt) {
 function folle(g) {
   if (!g || g.folle) return; g.folle = { t0: Wd.t, end: Wd.t + rnd(6, 8), next: 0, say: 0 }; g.wob = Wd.t; g.wobA = 1;
   const m = Univers.at(g, g.bec); Wd.fx.push({ k: 'txt', text: 'BZZZT !!', x: m[0], y: m[1] - g.s * 0.6, t0: Wd.t, life: 1.5, rot: -0.2, size: 24 });
+}
+// (vague 100 de l'audit, « le distributeur fou » vers 9,9) : après le JACKPOT, la machine imprime son ticket de caisse. Un ruban de papier
+// sort par le haut, ligne après ligne (les vrais comptes de la fête : croquettes crachées, chats qui ont mangé, durée), et s'enroule en haut
+// comme sur une vraie caisse ; un chat vient le taper. Un clic l'arrache : il tombe en voletant, se froisse en boule, et un chat la chasse
+// hors de la pièce. Sinon, au bout d'une trentaine de secondes, la machine le ravale (« zzzip »). Rien ne s'efface.
+const TK = { L: null };
+function ticket(g, F) {
+  if (TK.L || !Wd.props.includes(g)) return; const en = window.I18N && I18N.lang !== 'fr', nk = F.nk || 0, nc = F.mg ? F.mg.size : 0, du = Math.round(F.end - F.t0);
+  const L = en ? ['CROQ-O-MATIC', '- - - - - - -', `kibbles: ${nk}`, `cats fed: ${nc || 'all'}`, 'combo: 7 7 7', `time: ${du} s`, '- - - - - - -', 'thank you!', 'see you ♪']
+               : ['CROQ-O-MATIC', '- - - - - - -', `croquettes : ${nk}`, `chats servis : ${nc || 'tous'}`, 'combo : 7 7 7', `durée : ${du} s`, '- - - - - - -', 'merci !', 'à bientôt ♪'];
+  Object.assign(TK, { g, L, t0: Wd.t, len: 0, etat: 'imprime', fin: Wd.t + 30, tape: 0, bruit: 0, P: null });
+}
+// la géométrie du ruban : la fente (sous la bouche de la machine), la largeur, la longueur qui pend jusqu'au sol, devant (jamais sur la barre du bas)
+function tkGeo() {
+  const g = TK.g, m = Univers.at(g, g.bec), w = clamp(Wd.s0 * 0.62, 66, 96), lh = clamp(w * 0.17, 11, 15), pad = lh * 0.8;
+  const ch = document.getElementById('chap'), rb = ch && ch.getBoundingClientRect(), bas = Math.min(floorAt(0) + Wd.s0 * 0.75, (rb && rb.top > 0 ? rb.top : Wd.H) - 26);
+  return { x: m[0], y: m[1] + 4, w, lh, pad, tot: pad * 2 + TK.L.length * lh, hMax: Math.max(20, bas - m[1] - 4) };
+}
+// le papier (vu de face) : la bande qui pend, de hauteur h sous la fente ; s = sa longueur totale. La machine imprime par le bas :
+// la première ligne sortie est tout au bout, alors elle imprime le ticket à l'envers (on le lit de haut en bas, l'en-tête en haut)
+function tkPapier(ctx, G, s, h, roule, C, ink, pap) {
+  const w = G.w, L = TK.L, n = L.length; ctx.fillStyle = pap; ctx.strokeStyle = `rgb(${ink})`; ctx.lineWidth = 2.2; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(-w / 2, 0); ctx.lineTo(-w / 2, h);
+  // le bord déchiré (un zigzag) quand il n'y a pas de rouleau au bout
+  if (!roule) for (let i = 0; i <= 8; i++) ctx.lineTo(-w / 2 + w * i / 8, h + (i % 2 ? 4 : 0)); else ctx.lineTo(w / 2, h);
+  ctx.lineTo(w / 2, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+  let fs = 10; const mw = Math.max(...L.map(l => C.measure(l, 10))); if (mw > w - 12) fs = 10 * (w - 12) / mw;
+  ctx.save(); ctx.beginPath(); ctx.rect(-w / 2, -2, w, h + 6); ctx.clip();
+  L.forEach((l, i) => { const d = G.pad + (n - 1 - i + 0.5) * G.lh, y = s - d; if (y < 2 || y > h + G.lh) return;
+    if (l[0] === '-') { ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-w / 2 + 6, y); ctx.lineTo(w / 2 - 6, y); ctx.stroke(); ctx.setLineDash([]); return; }
+    C.text(l, 0, y, 1, { size: i ? fs : fs * 1.1, align: 'center', a: 0.9 }); });
+  ctx.restore();
+}
+function tkBoule(ctx, x, y, r, rot, ink, pap) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.fillStyle = pap; ctx.strokeStyle = `rgb(${ink})`; ctx.lineWidth = 2; ctx.beginPath();
+  for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2, rr = r * (i % 2 ? 0.82 : 1.05); ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-r * 0.5, -r * 0.1); ctx.lineTo(0, r * 0.2); ctx.lineTo(r * 0.3, -r * 0.4); ctx.moveTo(-r * 0.2, r * 0.5); ctx.lineTo(r * 0.4, r * 0.25); ctx.stroke(); ctx.restore();
+}
+H.draw.push(() => {
+  const ctx = window.Chalk && Chalk.ctx; if (!TK.L || !ctx || Wd.espace || Wd.trou || Wd.a < 0.05) return;
+  if (!Wd.props.includes(TK.g)) { TK.L = null; return; }
+  const C = Chalk, ink = (window.THEME && THEME.ink) || C.INK || '40,40,48', G = tkGeo(), now = Wd.t, dt = Math.min(0.05, now - (TK.tl ?? now)); TK.tl = now;
+  const pap = 'rgb(252,251,247)';   // (le papier thermique : plus blanc que la pièce, on le voit tout de suite)
+  if (TK.etat === 'imprime' || TK.etat === 'pret' || TK.etat === 'ravale') {
+    // l'avance du papier : par à-coups, une ligne à la fois (comme une vraie imprimante de caisse)
+    if (TK.etat === 'imprime') { const u = (now - TK.t0) * 3.2, n = Math.floor(u), f = Math.min(1, (u - n) * 3); TK.len = Math.min(G.tot, (n + f) * G.lh);
+      if (now > TK.bruit) { TK.bruit = now + 0.9; Wd.fx.push({ k: 'txt', text: pick(['trrrt', 'tik tik tik', 'trrrrrt']), x: G.x + G.w * 0.9, y: G.y - Math.min(TK.len, G.hMax) * 0.5, t0: now, life: 0.8, rot: rnd(-0.2, 0.1), size: 14 }); }
+      if (TK.len >= G.tot) { TK.etat = 'pret'; TK.tp = now; Wd.fx.push({ k: 'txt', text: 'ding !', x: G.x - G.w * 0.9, y: G.y - 10, t0: now, life: 1, rot: 0.1, size: 16 }); } }
+    if (TK.etat === 'pret' && !TK.tape && now - TK.tp > 1.5) { TK.tape = 1; const c = Wd.cats.filter(c => !c.temp && free4(c) && !c.hidden).sort((a, b) => Math.abs(a.x - G.x) - Math.abs(b.x - G.x))[0];
+      if (c) { const s = sgn(c.x - G.x) || 1; interrupt(c); c.q.push(go(G.x + s * sc(c) * 0.55, { g: 'trot' }), pose('assis', 0.6, { face: -s, fx: c => say(c, pick(['c’est quoi ?', 'hmm ?', 'un papier !'])) }), pose('tape', 0.5, { face: -s, fx: () => { TK.pan = now; } }), pose('tape', 0.5, { face: -s, fx: () => { TK.pan = now; } }), pose('assis', 1.2, { face: -s })); } }
+    if (TK.etat === 'pret' && now > TK.fin) { TK.etat = 'ravale'; Wd.fx.push({ k: 'txt', text: 'zzzip !', x: G.x + G.w * 0.8, y: G.y - 20, t0: now, life: 1.2, rot: -0.15, size: 18 }); }
+    if (TK.etat === 'ravale') { TK.len -= dt * G.tot * 1.6; if (TK.len <= 0) { TK.L = null; TK.g.wob = now; TK.g.wobA = 0.4; return; } }
+    // la hauteur visible, le rouleau au bout (ce qui ne tient pas sous le plafond s'enroule), le balancement (le chat qui tape le fait gigoter)
+    const h = Math.min(TK.len, G.hMax), ex = TK.len - h, rr = ex > 0 ? Math.min(G.w * 0.16, 3 + Math.sqrt(ex) * 1.3) : 0, pa = TK.pan ? Math.max(0, 1 - (now - TK.pan) / 0.9) : 0;
+    const ang = Math.sin(now * 1.6) * 0.025 + pa * Math.sin((now - TK.pan) * 18) * 0.12;
+    TK.box = { x: G.x, y: G.y, w: G.w, h: h + rr };
+    ctx.save(); ctx.globalAlpha = Wd.a; ctx.translate(G.x, G.y); ctx.rotate(ang);
+    tkPapier(ctx, G, TK.len, h, ex > 0, C, ink, pap);
+    if (rr) { ctx.fillStyle = pap; ctx.strokeStyle = `rgb(${ink})`; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.ellipse(0, h, G.w / 2 + 1, rr, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      // la spirale du rouleau, sur sa tranche
+      ctx.lineWidth = 1.2; ctx.beginPath(); for (let i = 0; i < 26; i++) { const a = i * 0.55, q = rr * (1 - i / 30); ctx.lineTo(-G.w / 2 + Math.cos(a) * q * 0.35, h + Math.sin(a) * q); } ctx.stroke(); }
+    // la fente
+    ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-G.w / 2 - 6, -1); ctx.lineTo(G.w / 2 + 6, -1); ctx.stroke(); ctx.restore(); return; }
+  // arraché : il descend en voletant (le papier plane), se froisse en boule en touchant le sol, puis la boule roule
+  const P = TK.P, sol = P.G.y + P.G.hMax + 8;
+  if (TK.etat === 'tombe') { const u = now - P.t0; P.vy = Math.min(110, P.vy + dt * 400); P.y += P.vy * dt; P.x += Math.sin(u * 3.1) * 90 * dt; P.rot = Math.sin(u * 3.1 + 0.6) * 0.45;
+    if (P.y + P.h / 2 > sol) { P.y = sol - P.h / 2; TK.etat = 'froisse'; P.tf = now; Wd.fx.push({ k: 'txt', text: 'scrountch', x: P.x, y: sol - 30, t0: now, life: 1, rot: -0.1, size: 16 }); }
+    ctx.save(); ctx.globalAlpha = Wd.a; ctx.translate(P.x, P.y); ctx.rotate(P.rot); ctx.translate(0, -P.h / 2); tkPapier(ctx, P.G, P.s, P.h, false, C, ink, pap); ctx.restore(); return; }
+  if (TK.etat === 'froisse') { const k = Math.min(1, (now - P.tf) / 0.5); ctx.save(); ctx.globalAlpha = Wd.a; ctx.translate(P.x, P.y + (sol - 8 - P.y) * k);
+    if (k < 1) { ctx.scale(1 - k * 0.85, 1 - k * 0.9); ctx.rotate(k * 2); ctx.translate(0, -P.h / 2); tkPapier(ctx, P.G, P.s, P.h, false, C, ink, pap); ctx.restore(); return; } ctx.restore();
+    TK.etat = 'boule'; Object.assign(P, { y: sol - 8, vx: 0, rot: 0, nk: 0, tc: now }); }
+  if (TK.etat === 'boule') {
+    // un chat la voit : il la chasse et l'envoie valser ; elle roule (et repart d'un coup de patte si elle s'arrête dans la pièce)
+    if (Math.abs(P.vx) < 25 && now > P.tc) { P.tc = now + 4; const c = Wd.cats.filter(c => free4(c) && !c.hidden).sort((a, b) => Math.abs(a.x - P.x) - Math.abs(b.x - P.x))[0];
+      if (c) { const s = P.x > Wd.W / 2 ? -1 : 1; interrupt(c); c.q.push(go(P.x + s * sc(c) * 0.5, { g: 'galop' }), pose('tape', 0.4, { face: -s, fx: c => { if (Math.abs(c.x - P.x) < sc(c) * 1.2 && Math.abs(P.vx) < 60) { P.vx = -s * rnd(420, 620) * Math.max(0.8, Wd.W / 1100); P.nk++; say(c, pick(['à moi !', 'but !', 'hop !', 'miaou !'])); } } }), pose('assis', 0.6)); }
+      else P.vx = (P.x > Wd.W / 2 ? 1 : -1) * 300; }
+    P.vx *= Math.exp(-dt * (P.nk > 2 ? 0.1 : 0.45)); P.x += P.vx * dt; P.rot += P.vx * dt / 8;
+    if (P.nk > 3 && Math.abs(P.vx) < 150) P.vx = sgn(P.vx || 1) * 150;
+    if (P.x < -30 || P.x > Wd.W + 30) { TK.L = null; return; }
+    tkBoule(ctx, P.x, P.y, 8, P.rot, ink, pap); }
+});
+// arracher le ticket : un clic dessus, « scriiitch », tout le ruban part (on l'écoute avant tout le reste : il est devant la machine,
+// sinon le clic attraperait le distributeur)
+addEventListener('pointerdown', e => { if (e.button > 0 || (e.target.closest && e.target.closest('a,button,select,input,label,.top,.film-ui,.tuto,nav,aside,dialog'))) return;
+  if (tkArrache(e.clientX, e.clientY)) { e.stopPropagation(); e.preventDefault(); } }, true);
+function tkArrache(x, y) {
+  const B = TK.L && TK.box; if (!B || !(TK.etat === 'pret' || TK.etat === 'imprime') || Wd.espace || Wd.trou) return false;
+  if (Math.abs(x - B.x) > B.w / 2 + 8 || y < B.y - 6 || y > B.y + B.h + 10) return false;
+  const G = tkGeo(), h = Math.min(TK.len, G.hMax);
+  TK.P = { G, s: TK.len, h, x: G.x, y: G.y + h / 2, vy: -40, t0: Wd.t };
+  TK.etat = 'tombe'; Wd.fx.push({ k: 'txt', text: 'scriiitch !', x: G.x, y: G.y - 18, t0: Wd.t, life: 1.2, rot: -0.12, size: 22 });
+  TK.g.wob = Wd.t; TK.g.wobA = 0.5; if (window.Dex && Dex.vu) Dex.vu('ticket'); return true;
 }
 // le festin : tous les chats du coin accourent (et ceux d'à côté débarquent), ils mangent tout
 function feast() {
@@ -1782,7 +1876,7 @@ function release(c, vx, vy) {
 
 // pour js/vie.js : le monde et ses outils
 const K = { Wd, H, porteTout, boutons, rectOf, ANIMS, STEPS, CARAC, SPEED, LOURD, I, sit, lie, blink, rnd, pick, clamp, sgn, sm, c01, lerp, later, sc, front, back, sOf, floorAt, zOf, xOf, grav, inView, groundAt, perchAt, beside,
-  PORTE, SCEN, drawFx, addCat, unCat, free, free4, zoomies, eat, play, climb, push, smash, interrupt, claim, go, pose, hop, fn, say, dust, startle, thud, drop, prop, unprop, kick, residents, leave, enter, catAt, propAt, freeD, stack, topOf, open, unbox, hide, sleep, idle, stroll, press, fire, folle, aspire,
+  PORTE, SCEN, TK, drawFx, addCat, unCat, free, free4, zoomies, eat, play, climb, push, smash, interrupt, claim, go, pose, hop, fn, say, dust, startle, thud, drop, prop, unprop, kick, residents, leave, enter, catAt, propAt, freeD, stack, topOf, open, unbox, hide, sleep, idle, stroll, press, fire, folle, aspire,
   get MAXC() { return MAXC; } };
 return { K, ANIMS, CARAC, frame, draw, hide: hideAll, click, grab, drag, release, get clicks() { return Wd.clicks; }, get world() { return Wd; }, horde, tower, aspire, folle: () => folle(Wd.P.distrib), ouvre: () => { const b = Wd.props.find(p => p.launched && p.kind === 'caisse' && !p.busy && !p.fall), c = Wd.cats.find(free4); if (b && c) { interrupt(c); open(c, b); } }, fight: () => { const L = Wd.cats.filter(free4).slice(0, 2); if (L.length > 1) fight(L); }, quarrel: () => { const L = Wd.cats.filter(free4); if (L.length > 1) quarrel(L[0], L[1]); } };
 })();

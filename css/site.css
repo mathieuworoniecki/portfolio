@@ -518,3 +518,6 @@ html:not(.locked) #gate:not(.open){display:none}
 
 /* (vague 99) l'aspirateur a avalé le curseur (js/chats.js, CUR) : la flèche dessinée le remplace un instant */
 html.sans-curseur,html.sans-curseur *{cursor:none!important}
+/* (vague 100) la frise arc-en-ciel laissée par le petit Nyan Cat sous la barre des chapitres : six bandes d'un pixel, pour toute la visite */
+#chap{position:relative}
+#chap .frise-arc{position:absolute;height:6px;width:0;pointer-events:none;background:linear-gradient(rgb(231,76,60) 0 16.6%,rgb(243,156,18) 0 33.3%,rgb(241,196,15) 0 50%,rgb(46,204,113) 0 66.6%,rgb(52,152,219) 0 83.3%,rgb(155,89,182) 0);opacity:.85}
