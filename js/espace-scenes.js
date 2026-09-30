@@ -499,14 +499,18 @@ S.skills = (() => {
       const it = lab.map((l, i) => { const e0 = sm((a - 0.2 - i * 0.35) / 0.8), u = a > 2.6 ? (a - 2.6 - i * 1.25) % 7.5 : -1, e = u > 0 && u < 1.3 ? Math.sin(Math.PI * u / 1.3) : 0;
         if (u > 0.55 && u < 1.1) flash = Math.max(flash, 1 - (u - 0.55) / 0.55); if (e0 >= 1) nb++;
         const t = i / 6 * TAU + rot, r = lerp(2.4, lerp(Rr, 0.62, e), e0), y = lerp(-1.4, Math.sin(now * 1.2 + i) * 0.08 - e * 0.12, e0), w = [Math.cos(t) * r, y, Math.sin(t) * r];
-        return { l, i, e, kind: KIND[i], w, p: V(...w) }; });
+        // (vague 55 de l'audit, « skills », immersion) : le module que la souris approche se tourne vers nous, grossit, et le rayon de la souris le tient
+        const p = V(...w), Sm = souris(), hv = Sm && window.Chats.K.Wd.t - Sm.moved < 2.5 ? c01(1.6 - Math.hypot(Sm.x - p[0], Sm.y - p[1]) / (k * 0.3)) : 0;
+        return { l, i, e: Math.max(e, hv), eb: e, hv, kind: KIND[i], w, p }; });
       // les orbites
       trait3(anneau(V, Rr, 0, 72), 0.6, 0.55); trait3(anneau(V, Rr * 0.72, 0.02, 60), 0.4, 0.3);
       const C = V(0, 0, 0), avant = q => q.p[2] >= 0;
       // les rayons tracteurs (sous les modules)
-      it.forEach(q => { if (q.e > 0.05) { const H = V(0, -0.02, 0); ctx.globalAlpha = q.e * 0.18; ctx.fillStyle = `rgb(${BL})`; const d = Math.hypot(q.p[0] - H[0], q.p[1] - H[1]) || 1, nx = -(q.p[1] - H[1]) / d, ny = (q.p[0] - H[0]) / d, lw = k * 0.08 * q.p[3];
+      it.forEach(q => { if (q.eb > 0.05) { const H = V(0, -0.02, 0); ctx.globalAlpha = q.eb * 0.18; ctx.fillStyle = `rgb(${BL})`; const d = Math.hypot(q.p[0] - H[0], q.p[1] - H[1]) || 1, nx = -(q.p[1] - H[1]) / d, ny = (q.p[0] - H[0]) / d, lw = k * 0.08 * q.p[3];
         ctx.beginPath(); ctx.moveTo(H[0] + nx * 3, H[1] + ny * 3); ctx.lineTo(q.p[0] + nx * lw, q.p[1] + ny * lw); ctx.lineTo(q.p[0] - nx * lw, q.p[1] - ny * lw); ctx.lineTo(H[0] - nx * 3, H[1] - ny * 3); ctx.fill();
-        for (let j = 0; j < 3; j++) { const v = (now * 1.6 + j / 3) % 1; brille(lerp(q.p[0], H[0], v), lerp(q.p[1], H[1], v), 1.8, q.e * 0.8, false, now, q.i * 3 + j); } } });
+        for (let j = 0; j < 3; j++) { const v = (now * 1.6 + j / 3) % 1; brille(lerp(q.p[0], H[0], v), lerp(q.p[1], H[1], v), 1.8, q.eb * 0.8, false, now, q.i * 3 + j); } } });
+      { const Sm = souris(); it.forEach(q => { if (!Sm || q.hv < 0.05) return; style(0.5, 0.5 * q.hv); ctx.setLineDash([3, 5]); ctx.lineDashOffset = -now * 30; ctx.beginPath(); ctx.moveTo(Sm.x, Sm.y); ctx.lineTo(q.p[0], q.p[1]); ctx.stroke(); ctx.setLineDash([]);
+        brille(q.p[0], q.p[1] - k * 0.12, 3, q.hv, true, now, q.i); }); }
       it.filter(q => !avant(q)).sort((p, q) => p.p[2] - q.p[2]).forEach(q => module(V, q, now, k, Vs, hx));
       // la station : un anneau épais (deux cercles, des rayons, des hublots qui s'allument), l'agent principal au milieu
       const Ra = 0.5, h0 = -0.04, h1 = 0.05, A0 = anneau(V, Ra, h0, 48), A1 = anneau(V, Ra, h1, 48), I0 = anneau(V, Ra * 0.82, h0, 48);
