@@ -1056,8 +1056,10 @@ function grele(f, tt) {
 function ondeCri(f, t) {
   const D = Math.hypot(Wd.W, Wd.H) * 1.25;
   for (let i = 0; i < 5; i++) { const tt = t - f.t0 - i * 0.11, R = tt * f.v; if (tt < 0 || R > D) continue;
-    const P = [], n = Math.min(120, 24 + Math.floor(R / 12)); for (let k = 0; k <= n; k++) { const a = k / n * Math.PI * 2, rr = R * (1 + 0.025 * Math.sin(a * 18 + tt * 40 + i)); P.push([f.x + Math.cos(a) * rr, f.y + Math.sin(a) * rr * 0.9]); }
-    Chalk.stroke(P, 1, { w: Math.max(1, 3.2 - i * 0.5) * (f.w || 1), a: 0.7 * Wd.a, seed: f.seed + i * 7, tip: false, color: f.col }); }
+    // (vague 112) les grands cercles restent des cercles : l'ondulation est bornée à quelques pixels et le trait tremble peu ; avant, un cercle
+    // de la taille de l'écran (le déblocage d'un haut fait, le MIAOU du géant) devenait des gribouillis orange qui barraient le titre
+    const P = [], n = Math.min(360, 24 + Math.floor(R / 5)), ond = Math.min(R * 0.025, 5); for (let k = 0; k <= n; k++) { const a = k / n * Math.PI * 2, rr = R + ond * Math.sin(a * 18 + tt * 40 + i); P.push([f.x + Math.cos(a) * rr, f.y + Math.sin(a) * rr * 0.9]); }
+    Chalk.stroke(P, 1, { w: Math.max(1, 3.2 - i * 0.5) * (f.w || 1), a: 0.7 * Wd.a, seed: f.seed + i * 7, tip: false, color: f.col, amp: R > 150 ? 0.3 : 1 }); }
 }
 // (vague 94 de l'audit, la finition des grands événements) : un grand mot (« NYAN NYAN NYAN ♪ ») ne s'écrit plus sur le titre ni sur les boutons :
 // posé une fois pour toutes à sa naissance, il descend juste sous ce qu'il aurait chevauché (on lit les deux)
