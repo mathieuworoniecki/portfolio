@@ -257,11 +257,56 @@ function installe(o, now) {
   o.fillStyle = ENC; o.textBaseline = 'middle'; o.fillText(q.l, 2, 1);
   o.restore();
 }
+// (vague 87, l'audit : « la course », elle sort d'elle-même) : on parie. La souris s'attarde sur une fusée avant ou au début de la course :
+// un ticket de papier s'envole de la fusée et s'accroche au pointeur (« PARI · fusée C », son rang en direct). Arrivée : si elle gagne, le
+// ticket est tamponné et crache une gerbe de pièces-étoiles sur tout l'écran, qui rebondissent sur les vrais boutons et tombent hors de
+// l'écran ; si elle perd, le ticket se déchire en deux et les moitiés tombent (jamais de fondu)
+const PARI = { i: -1, n: -1, h: 0, hi: -1, T: 0, t: -99, res: null, tr: -99, vu: -99, x: 0, y: 0, rg: 0, P: [], M: [], ui: [] };
+const pariOn = now => PARI.i >= 0 && now - PARI.vu < 1.5 && (PARI.res === null || now - PARI.tr < 5);
+function pariResout(now) {
+  PARI.tr = now; const P = souris(), x0 = P ? P.x + 22 : PARI.x, y0 = P ? P.y + 18 : PARI.y; PARI.P = []; PARI.M = [];
+  if (PARI.res) { if (reduitMvt()) return; PARI.ui = [...document.querySelectorAll('#brand, #lang-pick, .film-ui .ctrl > *, #chap > *')].map(e => ({ e, b: e.getBoundingClientRect(), tc: -9 })).filter(q => q.b.width > 0);
+    const dv = (window.innerWidth / 2 - x0) * 1.1; for (let j = 0; j < 46; j++) { const b = -Math.PI / 2 + (bruit(j * 3.1 + now) - 0.5) * 2.4, v = 520 + bruit(j * 7.7 + now) * 620; PARI.P.push({ x: x0 + 60, y: y0 + 16, vx: Math.cos(b) * v * 0.8 + dv * (0.4 + bruit(j * 9.1) * 0.8), vy: Math.sin(b) * v, rot: bruit(j) * TAU, vr: (bruit(j * 2.2) - 0.5) * 14, t0: now + j * 0.018, T: now + j * 0.018, reb: 0, r: 7 + bruit(j * 5.3) * 5 }); } }
+  else [0, 1].forEach(g => PARI.M.push({ x: x0 + (g ? 50 : 0), y: y0, vx: (g ? 1 : -1) * (60 + bruit(now) * 40), vy: -140, rot: 0, vr: (g ? 1 : -1) * 2.6, T: now }));
+}
+function pari(o, now) {
+  const P = souris(), cv = o.canvas, dp = dpDe(cv), t = now - PARI.t; o.save(); o.setTransform(dp, 0, 0, dp, 0, 0); o.lineCap = o.lineJoin = 'round';
+  const W = window.innerWidth, H = window.innerHeight, bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
+  o.beginPath(); o.rect(0, 0, W, H); if (bd) o.rect(bd.x - 16, bd.y - 12, bd.w + 32, bd.h + 24); if (Pc) { o.moveTo(Pc.x + Pc.r * 1.2, Pc.y); o.arc(Pc.x, Pc.y, Pc.r * 1.2, 0, TAU); } o.clip('evenodd');
+  const nom = String.fromCharCode(65 + PARI.i), tw = 124, th = 44;
+  // le ticket : une perforation à gauche, « PARI », la fusée et son rang ; il vole de la fusée au pointeur, puis pend et se balance
+  const billet = (w0, w1) => { o.beginPath(); o.moveTo(w0, 0); o.lineTo(w1, 0); if (w1 >= tw) { o.lineTo(tw, th); } else for (let j = 0; j <= 6; j++) o.lineTo(w1 + (j % 2 ? -3 : 3), j / 6 * th); o.lineTo(w0, th); if (w0 > 0) for (let j = 6; j >= 0; j--) o.lineTo(w0 + (j % 2 ? -3 : 3), j / 6 * th); o.closePath();
+    o.strokeStyle = `rgb(${BL})`; o.lineWidth = 5; o.stroke(); o.fillStyle = PAP; o.fill(); o.strokeStyle = ENC; o.lineWidth = 1.4; o.stroke(); };
+  const texte = (x0) => { o.fillStyle = ENC; o.textBaseline = 'middle'; o.textAlign = 'left'; o.font = '700 10px "Space Grotesk",system-ui,sans-serif'; o.fillText(en() ? 'BET' : 'PARI', 14 - x0, 12);
+    o.font = '700 15px "Space Grotesk",system-ui,sans-serif'; o.fillText((en() ? 'rocket ' : 'fusée ') + nom, 14 - x0, 29); };
+  if (PARI.res === null || (PARI.res && now - PARI.tr < 5)) {
+    const px = P ? P.x + 22 : PARI.x, py = P ? P.y + 18 : PARI.y, va = sm(c01(t / 0.55)), x = lerp(PARI.x, px, va), y = lerp(PARI.y, py, va) - Math.sin(Math.PI * va) * 70;
+    PARI.bx = x; PARI.by = y; o.save(); o.translate(x, y); o.rotate((1 - va) * 3 + Math.sin(now * 2.2) * 0.07); o.scale(0.4 + 0.6 * va, 0.4 + 0.6 * va);
+    if (va >= 1) { o.strokeStyle = `rgb(${BL})`; o.lineWidth = 1.2; o.beginPath(); o.moveTo(-22, -18); o.lineTo(6, 3); o.stroke(); }   // (son fil, jusqu'au pointeur)
+    billet(0, tw); o.setLineDash([2, 3]); o.strokeStyle = ENC; o.lineWidth = 1; o.beginPath(); o.moveTo(8, 3); o.lineTo(8, th - 3); o.stroke(); o.setLineDash([]); texte(0);
+    // le rang, en direct, à la craie ; à l'arrivée, le coup de tampon
+    if (PARI.res === null && PARI.rg) { o.strokeStyle = ENC; o.lineWidth = 1.3; o.beginPath(); o.arc(tw - 19, th / 2, 13, 0, TAU); o.stroke(); o.font = '700 12px "Space Grotesk",system-ui,sans-serif'; o.textAlign = 'center'; o.fillText(PARI.rg + (PARI.rg === 1 ? (en() ? 'st' : 'er') : (en() ? ['', '', 'nd', 'rd', 'th', 'th'][PARI.rg] : 'e')), tw - 19, th / 2 + 1); }
+    if (PARI.res) { const u = c01((now - PARI.tr) / 0.14), s = 2.2 - 1.2 * u * u; o.save(); o.translate(tw * 0.74, th * 0.5); o.rotate(-0.25); o.scale(s, s); o.globalAlpha = 0.4 + 0.55 * u;
+      o.strokeStyle = '#e8574a'; o.lineWidth = 2.2; o.strokeRect(-30, -11, 60, 22); o.fillStyle = '#e8574a'; o.font = '800 13px "Space Grotesk",system-ui,sans-serif'; o.textAlign = 'center'; o.fillText(en() ? 'WON' : 'GAGNÉ', 0, 1); o.restore(); }
+    o.restore(); }
+  // la gerbe de pièces : chacune tourne, retombe, rebondit sur le dessus d'un vrai bouton (qui encaisse le choc), et tombe hors de l'écran
+  PARI.P.forEach(q => { if (now < q.t0) return; const dt = Math.min(0.06, Math.max(0, now - q.T)); q.T = now; if (dt > 0) { const y0 = q.y; q.vy += 1500 * dt; q.x += q.vx * dt; q.y += q.vy * dt; q.rot += q.vr * dt;
+      if (q.vy > 0 && q.reb < 2) PARI.ui.forEach(u => { const b = u.b; if (q.x > b.left - 4 && q.x < b.right + 4 && y0 + q.r <= b.top + 2 && q.y + q.r > b.top) { q.y = b.top - q.r; q.vy *= -0.55; q.vx *= 0.8; q.reb++;
+        if (now - u.tc > 0.25) { u.tc = now; u.e.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(4px) scaleY(0.9)' }, { transform: 'translateY(-2px)' }, { transform: 'translateY(0)' }], { duration: 260, easing: 'ease-out', composite: 'add' }); } } }); }
+    if (q.y > H + 30) return; const w = Math.abs(Math.cos(q.rot)) * q.r + 1;
+    o.fillStyle = PAP; o.strokeStyle = `rgb(${BL})`; o.lineWidth = 4; o.beginPath(); o.ellipse(q.x, q.y, w, q.r, 0, 0, TAU); o.stroke(); o.fill(); o.strokeStyle = ENC; o.lineWidth = 1.3; o.stroke();
+    if (w > q.r * 0.5) { o.fillStyle = '#ffe9a8'; o.beginPath(); for (let i = 0; i < 10; i++) { const b = i / 10 * TAU - Math.PI / 2, r = (i % 2 ? 0.28 : 0.62) * q.r; o.lineTo(q.x + Math.cos(b) * r * w / q.r, q.y + Math.sin(b) * r); } o.closePath(); o.fill(); o.stroke(); } });
+  // raté : les deux moitiés du ticket déchiré tombent en tournoyant
+  PARI.M.forEach((q, g) => { const dt = Math.min(0.06, Math.max(0, now - q.T)); q.T = now; q.vy += 1100 * dt; q.x += q.vx * dt; q.y += q.vy * dt; q.rot += q.vr * dt; if (q.y > H + 60) return;
+    o.save(); o.translate(q.x, q.y); o.rotate(q.rot); o.translate(g ? -50 : 0, 0); billet(g ? 50 : 0, g ? tw : 50); o.save(); o.beginPath(); o.rect(g ? 50 : 0, 0, g ? tw : 50, th); o.clip(); texte(0); o.restore(); o.restore(); });
+  if (PARI.res === false && now - PARI.tr < 0.9) { const u = (now - PARI.tr) / 0.9, m = PARI.M[0]; if (m) { o.font = '700 16px "Space Grotesk",system-ui,sans-serif'; o.textAlign = 'center'; o.lineWidth = 4; o.strokeStyle = NUIT; o.strokeText(en() ? 'missed' : 'raté', m.x + 60, m.y - 22 - u * 20); o.fillStyle = `rgb(${BL})`; o.fillText(en() ? 'missed' : 'raté', m.x + 60, m.y - 22 - u * 20); } }
+  o.restore();
+}
 function vise(c0, now) {
   const c = VISE.c, P = souris(); VISE.c = null; const dt = Math.min(0.2, Math.max(0, now - (VISE.t || now))); VISE.t = now;
   if (c && P && (VISE.id === null || VISE.id === c.id || VISE.k < 0.05)) { VISE.id = c.id; VISE.k = Math.min(1.6, VISE.k + dt * 1.4); VISE.rb = c; }
   else { VISE.k = Math.max(0, VISE.k - dt * 3); if (VISE.k === 0) VISE.id = null; }
-  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); const sg = now - SURGE.t0 < 1.6 && now >= SURGE.t0, ins = now - INSP.t < 0.3 || INSP.k > 0; if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length && !FEUX.length && !sg && !ins && !INST.q) return; const o = toileVise(c0.canvas); if (sg) eclairs(o, now); if (ins) inspecteur(o, now); if (INST.q) installe(o, now);
+  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); const sg = now - SURGE.t0 < 1.6 && now >= SURGE.t0, ins = now - INSP.t < 0.3 || INSP.k > 0; if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length && !FEUX.length && !sg && !ins && !INST.q && !pariOn(now)) return; const o = toileVise(c0.canvas); if (sg) eclairs(o, now); if (pariOn(now)) pari(o, now); if (ins) inspecteur(o, now); if (INST.q) installe(o, now);
   TAMPON.forEach(q => tamponVitre(o, q, now - q.t0)); if (ENVOL.length) envols(o, now); if (FEUX.length) feux(o, now); if (!R || VISE.k <= 0 || !P) return;
   const W0 = window.Chats && Chats.K && Chats.K.Wd, chat = W0 && W0.cats.some(q => q.sp && q.sp.m === 'agrippe');
   const cv = o.canvas, dp = dpDe(cv), px = P.x * dp, py = P.y * dp, ln = Math.max(1, dp), k = VISE.k;
@@ -814,6 +859,15 @@ S.bench = (() => {
           cerne(() => { ctx.beginPath(); ctx.rect(x0, ty - h / 2, w, h); }, 0.7, 1);
           ctx.fillStyle = ENC; ctx.globalAlpha = 1; ctx.font = `700 ${fs}px ui-monospace,Menlo,Consolas,monospace`; ctx.textBaseline = 'middle'; ctx.fillText(txt, x0 + fs * 0.5, ty - h * 0.18);
           ctx.fillRect(x0 + fs * 0.5, ty + h * 0.18, (w - fs) * pr, fs * 0.28); ctx.strokeStyle = ENC; ctx.lineWidth = 1; ctx.strokeRect(x0 + fs * 0.5, ty + h * 0.18, w - fs, fs * 0.28); ctx.textBaseline = 'alphabetic'; } } }
+      // (vague 87) : le pari. La souris qui s'attarde 0,8 s sur une fusée, avant ou au début de la course, parie sur elle (voir pari())
+      { const Sm = souris(), dt = Math.min(0.2, Math.max(0, now - (PARI.T || now))); PARI.T = now; PARI.vu = now; { const m = ctx.getTransform(), dq = dpDe(ctx.canvas); PARI.mp = cour.map(q => [(m.a * q.p[0] + m.c * q.p[1] + m.e) / dq, (m.b * q.p[0] + m.d * q.p[1] + m.f) / dq, q.i]); PARI.g = g; }
+        if (PARI.n !== n && PARI.res === null && go <= 0) PARI.i = -1;
+        let b = null, bd = k * 0.3; if (Sm && !fin && go < 0.7 && window.Chats.K.Wd.t - Sm.moved < 3) cour.forEach(q => { const d = Math.hypot(q.p[0] - Sm.x, q.p[1] - Sm.y); if (d < bd) { bd = d; b = q; } });
+        PARI.h = b && b.i === PARI.hi ? PARI.h + dt : 0; PARI.hi = b ? b.i : -1;
+        if (b && PARI.h > 0.8 && PARI.n !== n && !reduitMvt()) { const m = ctx.getTransform(), dq = dpDe(ctx.canvas); PARI.i = b.i; PARI.n = n; PARI.t = now; PARI.res = null; PARI.P = []; PARI.M = [];
+          PARI.x = (m.a * b.p[0] + m.c * b.p[1] + m.e) / dq; PARI.y = (m.b * b.p[0] + m.d * b.p[1] + m.f) / dq; }
+        if (PARI.i >= 0 && PARI.n === n) { const ord = cour.slice().sort((p, q) => q.d - p.d || rang.indexOf(p.i) - rang.indexOf(q.i)); PARI.rg = go > 0 ? ord.findIndex(q => q.i === PARI.i) + 1 : 0;
+          if (fin && PARI.res === null) { PARI.res = PARI.i === g; pariResout(now); } } }
       // 3, 2, 1, go
       if (c < 1.35) { const w = c < 0.3 ? '3' : c < 0.6 ? '2' : c < 0.9 ? '1' : 'go !', u = c < 0.9 ? (c % 0.3) / 0.3 : (c - 0.9) / 0.45, C = V(0, -0.45, 0); mot(w, C[0], C[1], Math.max(24, k * 0.26) * (1.3 - u * 0.3), 1 - u * 0.6); }
       // le chrono de papier, au milieu de l'anneau : sa couronne, son aiguille
@@ -1559,5 +1613,5 @@ S.pilotage = (() => {
 S.rag = S.ia;
 
 // la toile, l'écran du ciel, les outils ; puis : une scène existe-t-elle ?
-return { S, vise, VISE, LUI, ENVOL, TH, FEUX, SURGE, INSP, INST, pose(c, g, o) { ctx = c; G = g; O = o; } };
+return { S, vise, VISE, LUI, ENVOL, TH, FEUX, SURGE, INSP, INST, PARI, pose(c, g, o) { ctx = c; G = g; O = o; } };
 })();
