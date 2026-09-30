@@ -872,6 +872,10 @@ function drawFx(S) {
   Wd.fx.forEach(f => {
     const u = (t - f.t0) / f.life, fade = (1 - sm((u - 0.6) / 0.4)) * Wd.a;
     if (f.k === 'txt') {
+      // (vague 110 de l'audit, « la tour », finition) : les petits bruits ne s'empilent plus. Pendant la tour, des dizaines de « tonk », « boing »
+      // tombaient au même endroit et faisaient une tache illisible (au téléphone, sur « Mode sérieux ») : un petit bruit qui naît à côté d'un autre,
+      // encore jeune, n'est pas écrit ; les mots des chats et les grands mots (PATATRAS, BAM) passent toujours
+      if (f.yA === undefined && !f.who && f.size < 24 && !f.garde) { const r0 = Math.max(46, f.size * K * 3.2); if (Wd.fx.some(g => g !== f && g.k === 'txt' && !g.who && g.yA !== undefined && t - g.t0 < g.life * 0.7 && Math.hypot(g.x - f.x, g.y - f.y) < r0)) { f.life = 0; return; } }
       if (f.text === '♥') heart(f.x, f.y - u * 20, 7 * K, fade);
       else { // (vague 43, l'audit : « la tour », finition) : un mot près du bord ne sort jamais de l'écran (« PATATRAS ! » était coupé à droite)
         const w2 = (f.w2 ??= String(f.text).length * f.size * K * 0.3 + 10), x = Math.max(w2 + (Wd.mode === 'large' ? 64 : 8), Math.min(Wd.W - w2 - 8, f.x)), y = (f.yA ??= horsTitre(f, x, w2, K));
