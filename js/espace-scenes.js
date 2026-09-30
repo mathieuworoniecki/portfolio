@@ -590,6 +590,15 @@ S.bench = (() => {
         ctx.restore();
         chabot(p[0] + Math.cos(ang) * r * 0.2, p[1] - r * 1.35 + (roule ? Math.sin(now * 16 + i) * r * 0.06 : 0), r * 0.62, { now, ph: i, a: al, lac: Math.cos(ang) > 0 ? 0.6 : -0.6, casque: false, bras: roule ? [-0.3, -0.3] : [0.2, 0.2] });
       });
+      // (vague 56 de l'audit, « la course », immersion) : tout mesurer, pour de vrai : la fusée que la souris survole sort sa fiche de mesure,
+      // un chrono qui tourne et une barre de progression, au bout d'un fil ; on suit la course comme au stand
+      { const Sm = souris(); if (Sm && !fin && go > 0 && window.Chats.K.Wd.t - Sm.moved < 3) { let b = null, bd = k * 0.32; cour.forEach(q => { const d = Math.hypot(q.p[0] - Sm.x, q.p[1] - Sm.y); if (d < bd) { bd = d; b = q; } });
+        if (b) { const r = k * 0.125 * b.p[3], fs = Math.max(12, k * 0.065), tx = b.p[0] + (b.p[0] > G.cx ? -1 : 1) * k * 0.28, ty = Math.max(G.haut + fs * 2, b.p[1] - r * 2.6), w = fs * 7.2, h = fs * 2.6, x0 = tx - w / 2;
+          const sec = (c - 1.1) * v[b.i] * 1.7, txt = `${NOMS[b.i]}  ${Math.floor(sec)}.${String(Math.floor(sec * 100) % 100).padStart(2, '0')} s`, pr = b.d;
+          style(0.5, 0.8); ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.moveTo(b.p[0], b.p[1] - r * 0.6); ctx.lineTo(tx, ty + h / 2); ctx.stroke(); ctx.setLineDash([]);
+          cerne(() => { ctx.beginPath(); ctx.rect(x0, ty - h / 2, w, h); }, 0.7, 1);
+          ctx.fillStyle = ENC; ctx.globalAlpha = 1; ctx.font = `700 ${fs}px ui-monospace,Menlo,Consolas,monospace`; ctx.textBaseline = 'middle'; ctx.fillText(txt, x0 + fs * 0.5, ty - h * 0.18);
+          ctx.fillRect(x0 + fs * 0.5, ty + h * 0.18, (w - fs) * pr, fs * 0.28); ctx.strokeStyle = ENC; ctx.lineWidth = 1; ctx.strokeRect(x0 + fs * 0.5, ty + h * 0.18, w - fs, fs * 0.28); ctx.textBaseline = 'alphabetic'; } } }
       // 3, 2, 1, go
       if (c < 1.35) { const w = c < 0.3 ? '3' : c < 0.6 ? '2' : c < 0.9 ? '1' : 'go !', u = c < 0.9 ? (c % 0.3) / 0.3 : (c - 0.9) / 0.45, C = V(0, -0.45, 0); mot(w, C[0], C[1], Math.max(24, k * 0.26) * (1.3 - u * 0.3), 1 - u * 0.6); }
       // le chrono de papier, au milieu de l'anneau : sa couronne, son aiguille
