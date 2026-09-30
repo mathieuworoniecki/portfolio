@@ -885,6 +885,7 @@ function drawFx(S) {
     else if (f.k === 'cri') ondeCri(f, t);
     else if (f.k === 'patte') empreinte(f, u);
     else if (f.k === 'vers') versNous(f, t - f.t0);
+    else if (f.k === 'grele') grele(f, t - f.t0);
     else if (f.k === 'bagarre') fightCloud(f, u, fade, K);
     else if (f.k === 'heart') heart(f.x, f.y - u * 26, f.r * K, fade);
   });
@@ -984,6 +985,24 @@ function versNous(f, tt) {
   [0.22, 0.78].forEach((k, j) => { const top = m(m(avant[0], avant[1], k), m(avant[3], avant[2], k), 0.62), bot = m(m(avant[0], avant[1], k), m(avant[3], avant[2], k), 0.82), L = S * 0.05;
     C.stroke([top, bot], 1, { w: 1.8, a: 0.8 * Wd.a, seed: f.seed + 20 + j, tip: false }); const an = Math.atan2(bot[1] - top[1], bot[0] - top[0]);
     C.stroke([[bot[0] - Math.cos(an - 0.5) * L, bot[1] - Math.sin(an - 0.5) * L], bot, [bot[0] - Math.cos(an + 0.5) * L, bot[1] - Math.sin(an + 0.5) * L]], 1, { w: 1.8, a: 0.8 * Wd.a, seed: f.seed + 30 + j, tip: false }); });
+}
+// (vague 74, l'audit : « le distributeur fou ») : au JACKPOT, une partie du geyser part vers nous : des croquettes grossissent en tournant,
+// claquent contre l'écran (une étoile de choc, « tic », « tac »), y restent une fraction de seconde puis tombent et sortent par le bas
+function grele(f, tt) {
+  const C = Chalk, ctx = C.ctx; if (!ctx) return; const H = Wd.H;
+  if (!f.pap) f.pap = getComputedStyle(document.documentElement).getPropertyValue('--bp-hi').trim() || '#eeeeea';
+  f.L.forEach(q => { const u = tt - q.d; if (u < 0) return; const ea = c01(u / 0.42), e = ea * ea, r = 2 + (q.r - 2) * e;
+    const chute = Math.max(0, u - 0.42 - q.colle), x = f.x + (q.x - f.x) * e + chute * q.vx, y = f.y + (q.y - f.y) * e - Math.sin(Math.PI * ea) * H * 0.12 * (1 - e) + chute * chute * H * 2.4;
+    if (y - r > H + 10) return; const a = q.a0 + u * q.w;
+    if (u >= 0.42 && !q.hit) { q.hit = true; if (q.mot) Wd.fx.push({ k: 'txt', text: q.mot, x: q.x + q.r * 1.6, y: q.y - q.r * 1.4, t0: Wd.t, life: 0.7, rot: rnd(-0.3, 0.3), size: 18 }); }
+    // l'étoile de choc, contre la vitre
+    if (u >= 0.42 && u < 0.62) { const k = (u - 0.42) / 0.2; for (let i = 0; i < 6; i++) { const b = i / 6 * Math.PI * 2 + q.a0, r1 = q.r * (1.3 + k * 0.8), r2 = r1 + q.r * 0.7 * (1 - k);
+      C.line(q.x + Math.cos(b) * r1, q.y + Math.sin(b) * r1, q.x + Math.cos(b) * r2, q.y + Math.sin(b) * r2, 1, { w: 1.4, a: 0.8 * Wd.a, seed: q.s + i, tip: false }); } }
+    // la croquette : un petit os arrondi, au trait, rempli de papier
+    const P = []; for (let i = 0; i <= 20; i++) { const b = i / 20 * Math.PI * 2, rr = r * (1 + 0.28 * Math.cos(2 * b)) * (u >= 0.42 && u < 0.5 ? 1.12 : 1); P.push([x + Math.cos(b + a) * rr, y + Math.sin(b + a) * rr * 0.72]); }
+    ctx.save(); ctx.fillStyle = f.pap; ctx.globalAlpha = Wd.a; ctx.beginPath(); P.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.fill(); ctx.restore();
+    C.stroke(P, 1, { w: Math.max(1.4, r * 0.14), a: 0.9 * Wd.a, seed: q.s, tip: false });
+    C.circle(x, y, r * 0.22, r * 0.16, 1, { w: 1.2, a: 0.7 * Wd.a, seed: q.s + 3, tip: false }); });
 }
 function ondeCri(f, t) {
   const D = Math.hypot(Wd.W, Wd.H) * 1.25;
@@ -1258,6 +1277,7 @@ function machines(dt) {
         // (vague 29, l'audit : « le distributeur fou ») : une machine à sous. Juste avant, trois rouleaux à la craie tournent au-dessus de lui
         // et s'arrêtent un à un sur 7 7 7 ; au jackpot, des rayons de lumière partent de lui et balaient toute la pièce
         Wd.fx.push({ k: 'rayons', x: m[0], y: m[1] - g.s * 0.2, t0: Wd.t, life: 2.4, seed: 5 });
+        if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) { const n = Wd.mode === 'large' ? 26 : 14; Wd.fx.push({ k: 'grele', x: m[0], y: m[1], t0: Wd.t, life: 3.2, L: Array.from({ length: n }, (_, i) => ({ x: rnd(0.06, 0.94) * Wd.W, y: rnd(0.08, 0.7) * Wd.H, r: rnd(14, 30) * Math.min(1.3, Wd.W / 1100 + 0.3), d: 0.1 + i * 0.045 + rnd(0, 0.05), colle: rnd(0.08, 0.35), vx: rnd(-40, 40), a0: rnd(0, 6.3), w: rnd(-9, 9), s: Math.floor(rnd(0, 99)), mot: i % 4 === 0 ? pick(['tic', 'tac', 'toc', 'tic !']) : null })) }); }
         for (let i = 0; i < 70 && Wd.kib.length < KIBMAX() + 60; i++) Wd.kib.push({ x: m[0], y: m[1], vx: rnd(-1, 1) * rnd(200, 1500) * k, vy: -rnd(900, 1900) * k, d: rnd(0, 0.5), t0: Wd.t, rest: false, spin: Math.random() * 6 }); }
       if (Wd.t > F.end) { g.folle = null; g.cour = 0; if (Math.abs(g.fx - F.fx0) > 0.002) g.rentre = { fx0: F.fx0 }; const m = Univers.at(g, [0, 0.8, 0]); dust(m[0], m[1], g.s * 0.3, 1); Wd.fx.push({ k: 'txt', text: 'pfff…', x: m[0], y: m[1] - 20, t0: Wd.t, life: 1.6, rot: -0.1, size: 18 }); g.clk = 0; }
     }
