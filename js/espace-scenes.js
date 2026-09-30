@@ -293,6 +293,7 @@ S.equipe = (() => {
       const P = places(), c = Math.min(a + 0.3, 9.2), N = P.N, rot = now * 0.06, pied = [G.cx, P.cyA], pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
       const rr0 = Math.max(18, P.bot * 2.6), podH = P.bot * 1.4, coeur = [pied[0], pied[1] - podH - rr0 * 1.9];
       let rentres = 0; const derriere = [], devant = [];
+      const Sm = souris(), tW = window.Chats.K.Wd.t, PO = Sm && tW - Sm.moved < 1.5 && c > 1.5 && c < 7.6 ? { u: ((Math.atan2((Sm.y - pied[1]) / Math.max(20, P[P.length - 1].ry), (Sm.x - pied[0]) / Math.max(20, P[P.length - 1].rx)) / TAU) % 1 + 1) % 1, f: c01((1.5 - (tW - Sm.moved)) / 0.5) } : null;
       // les gradins : chaque rang, son ellipse au sol (sa moitié du fond, puis sa moitié de devant, par-dessus lui)
       const al0 = c01((c - 0.6) / 0.8);
       [0, 1, 2, 3].forEach(i => { const f = P.find(q => q.i === i); if (!f) return; const L0 = [], L1 = [];
@@ -313,7 +314,10 @@ S.equipe = (() => {
           devant.push({ z: 98, f: () => { const Lq = [0.18, 0.12, 0.06, 0].map(d => at(Math.max(0, e - d))); trait(Lq, false, 0.6, 0.5); chabot(Lq[3][0], Lq[3][1] - r * 1.75, r * (1 - e * 0.7), { now, ph: f.id, bras: [1.5, 1.5], casque: r > 9 }); } });
           return; }
         // à sa place : les mains s'agitent ; la ola fait le tour de l'arène, deux fois (tous les rangs ensemble)
-        const u = ((th / TAU) % 1 + 1) % 1, v = ((c - 3.3) / 1.3) % 1, dd = Math.min(Math.abs(u - v), 1 - Math.abs(u - v)), ola = c > 3.3 && c < 5.9 ? Math.exp(-((dd * 7) ** 2)) : 0, ag = c01((c - t1 - 0.55) / 0.3);
+        const u = ((th / TAU) % 1 + 1) % 1, v = ((c - 3.3) / 1.3) % 1, dd = Math.min(Math.abs(u - v), 1 - Math.abs(u - v)), ola0 = c > 3.3 && c < 5.9 ? Math.exp(-((dd * 7) ** 2)) : 0, ag = c01((c - t1 - 0.55) / 0.3);
+        // (vague 54 de l'audit, « l'équipe », immersion) : c'est nous qui menons la ola. La souris fait le tour de l'arène : la vague de bras levés la suit,
+        // tous les rangs ensemble, là où elle pointe
+        const dp = PO ? Math.min(Math.abs(u - PO.u), 1 - Math.abs(u - PO.u)) : 1, ola = Math.max(ola0, PO ? Math.exp(-((dp * 7) ** 2)) * PO.f * ag * 1.2 : 0);
         const b = [0.6 + Math.sin(now * 7 + f.ph) * 0.45 * ag + ola * 1.1, 0.6 + Math.sin(now * 7.6 + f.ph + 1.3) * 0.45 * ag + ola * 1.1];
         L.push({ z, f: () => chabot(x, y - r * 1.75 - (ola * 0.9 + Math.abs(Math.sin(now * 5 + f.ph)) * 0.12 * ag) * r, r, { bras: b, now, ph: f.id, casque: r > 9, lac: Math.cos(th) * -0.6 + Math.sin(now * 0.5 + f.ph) * 0.3, cligne: Math.sin(now * 1.3 + f.ph * 3) > 0.985 }) });
       });
