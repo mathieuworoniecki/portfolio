@@ -184,6 +184,31 @@ function image() {
 // le mode sérieux est ouvert par-dessus (opaque) : on range la toile
 function range() { E = null; if (cvE) { xE.setTransform(1, 0, 0, 1, 0, 0); xE.clearRect(0, 0, cvE.width, cvE.height); cvE.style.display = 'none'; } }
 
+// (vague 69, l'audit : « le retour du mode sérieux ») : le mode sérieux se referme sur son bouton et laisse le plan bleu ; au lieu que la pièce
+// revienne d'un coup, les carreaux bleus se retournent en 3D, en vague depuis le bouton de retour : chacun se soulève, pivote,
+// montre sa face papier, et se pose en rapetissant jusqu'à rien ; la pièce apparaît dessous, carreau après carreau
+let D = null;
+function defait() {
+  if (reduit) return; const [W, Hh] = toileE(), T = 48, sx = document.getElementById('serieux'), st = sx && getComputedStyle(sx);
+  const o = { x: parseFloat(st && st.getPropertyValue('--ox')) || W / 2, y: parseFloat(st && st.getPropertyValue('--oy')) || Hh / 2 }, dmax = Math.hypot(Math.max(o.x, W - o.x), Math.max(o.y, Hh - o.y)), tu = [];
+  for (let y = 0; y < Hh; y += T) for (let x = 0; x < W; x += T) { const d = Math.hypot(x + T / 2 - o.x, y + T / 2 - o.y); tu.push({ x, y, t: d / dmax * 0.9 + Math.random() * 0.1 }); }
+  D = { t0: performance.now() / 1000, o, W, Hh, T, tu }; cvE.style.display = 'block'; requestAnimationFrame(defaitImage);
+}
+function defaitImage() {
+  if (!D || E) { D = null; return; } const t = (performance.now() / 1000 - D.t0) * vit, { W, Hh, T } = D, c = xE, DUR = 0.45; c.clearRect(0, 0, W, Hh);
+  const ink = `rgb(${(window.THEME && THEME.ink) || '34,36,40'})`; let reste = false;
+  D.tu.forEach(q => { const u = c01((t - q.t) / DUR); if (u >= 1) return; reste = true;
+    if (u <= 0) { c.drawImage(bleu, q.x, q.y, T, T, q.x, q.y, T, T); return; }
+    const cx = q.x + T / 2, cy = q.y + T / 2, e = u * u * (3 - 2 * u), th = Math.PI * e, co = Math.cos(th), si = Math.sin(th), dir = cx < D.o.x ? -1 : 1, lv = (1 + 0.22 * si) * (1 - sm((u - 0.55) / 0.45));
+    if (lv < 0.01) return;
+    c.save(); c.fillStyle = 'rgba(10,20,40,.18)'; c.fillRect(cx - T / 2 * Math.abs(co) * lv + 6 * si, cy - T / 2 * lv + 8 * si, T * Math.abs(co) * lv, T * lv); c.restore();
+    c.save(); c.translate(cx, cy); c.transform(co * lv, si * 0.28 * dir * Math.sign(co || 1), 0, lv, 0, 0);
+    if (co > 0) { c.drawImage(bleu, q.x, q.y, T, T, -T / 2, -T / 2, T, T); c.strokeStyle = 'rgba(238,245,255,.6)'; c.lineWidth = 1 / lv; c.strokeRect(-T / 2 + 0.5, -T / 2 + 0.5, T - 1, T - 1); }
+    else { c.scale(-1, 1); c.fillStyle = '#F2F1EC'; c.fillRect(-T / 2, -T / 2, T, T); c.strokeStyle = ink; c.globalAlpha = 0.35; c.lineWidth = 1 / lv; c.strokeRect(-T / 2, -T / 2, T, T); }
+    c.restore(); c.globalAlpha = 1; });
+  if (!reste) { D = null; range(); return; }
+  requestAnimationFrame(defaitImage);
+}
 // un trou s'ouvre sous l'objet ; il tremble, bascule, tombe dedans en rapetissant ; le trou se referme
 function avale(it) {
   if (!Wd.props.includes(it) || it.gone) return;
@@ -258,7 +283,7 @@ H.draw.push(S => {
 function retour() {
   if (!F || !F.ouvert) return; Wd.nextScen = Wd.t + rnd(20, 30); const o = F.o; F = null; Wd.fuite = false;
   // (29/09, vague 5) les trous s'ouvrent en vague, depuis le bouton (13 h 21, Mathieu : pas de fissures)
-  range();
+  range(); defait();
   // les lettres : elles ressortent de leur trou et remontent à leur place d'un bond ; les boutons aussi
   const Ls = window.Vie && Vie.LETTERS && Vie.LETTERS(), rt = Ls && Vie.RECT();
   if (Ls) Ls.forEach((Lt, i) => { if (Lt.st !== 'avale' && Lt.st !== 'trou') return; later(0.2 + i * 0.05, () => { const x = rt.left + Lt.cx, fl = Wd.floor - 2; trou(x, fl, Wd.s0 * 0.16, 0.15, 0.6);
