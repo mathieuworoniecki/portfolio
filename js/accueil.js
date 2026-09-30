@@ -52,6 +52,10 @@ function bienvenue() {
 const reduit = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 function naitre(x, y) {
   const k = hote = K.addCat({ x }); k.y = y ?? -sc(k) * 1.2; k.fall = true; k.vy = y != null ? -sc(k) * 1.5 : 0; k.vx = 0; k.spin = y != null ? 0 : Math.PI; k.stay = rnd(90, 160);
+  // (vague 108 de l'audit, « l'arrivée » vers 9,9) : le titre sursaute. Quand le dessin prend vie, une onde part de lui dans les lettres :
+  // chacune saute à son tour, de plus en plus loin, et se penche en s'écartant, comme une foule qui fait « oh ! »
+  if (y != null && !reduit && window.Vie && Vie.LETTERS) { const T = Vie.LETTERS(), r = T && Vie.RECT(); if (T && r) T.forEach(L => { if (L.st || L.a < 0.8) return; const lx = Vie.lx(L, r), d = Math.abs(lx - x), h = L.y1 - L.y0;
+    L.wob = Wd.t + 0.05 + d / Math.max(300, Wd.W) * 0.9; L.wobA = (lx < x ? -1 : 1) * 0.9; L.hopA = h * (0.34 - 0.18 * Math.min(1, d / Wd.W)); }); }
   if (y != null) { K.dust(x, y, sc(k) * 0.5, 0.9); Wd.fx.push({ k: 'txt', text: 'pop', x: x + sc(k) * 0.5, y: y - sc(k) * 0.6, t0: Wd.t, life: 0.9, rot: 0.15, size: 18 }); }
   K.later(1.3, () => { if (Wd.cats.includes(k)) say(k, pick([L_('tuto.coucou'), '♥'])); });
 }

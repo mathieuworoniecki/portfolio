@@ -78,6 +78,7 @@ const plen = P => { let L = 0; for (let i = 1; i < P.length; i++) L += Math.hypo
 function skeleton(a, w, h) {
   const B = new Uint8Array(w * h); let fg = [];
   for (let i = 0; i < w * h; i++) if (a[i * 4 + 3] > 110) { B[i] = 1; fg.push(i); }
+  const B0 = B.slice();   // (l'image avant l'amincissement : pour retrouver les petits points qu'il efface tout entiers)
   // l'épaisseur : distance au bord (chanfrein 3-4), en deux passes
   const D = new Uint16Array(w * h), INF = 60000;
   for (let i = 0; i < w * h; i++) D[i] = B[i] ? INF : 0;
@@ -104,6 +105,11 @@ function skeleton(a, w, h) {
   for (const i of fg) { if (!B[i]) continue; const N = B[i - w], E = B[i + 1], S = B[i + w], W = B[i - 1];
     if ((N && E && !B[i + w - 1] && !S && !W) || (E && S && !B[i - w - 1] && !N && !W) || (S && W && !B[i - w + 1] && !N && !E) || (W && N && !B[i + w + 1] && !S && !E)) B[i] = 0; }
   fg = fg.filter(i => B[i]);
+  // (vague 108 de l'audit, « le titre ») : le point du i disparaissait. Un point rond de quelques pixels est gommé en entier par l'amincissement
+  // (ses pixels s'effacent tous dans la même passe) : chaque tache de l'image d'origine qui n'a plus aucun pixel garde un pixel, en son centre
+  { const vu = new Uint8Array(w * h); for (let s0 = 0; s0 < w * h; s0++) { if (!B0[s0] || vu[s0]) continue; const pile = [s0], T = []; vu[s0] = 1; let reste = false;
+      while (pile.length) { const i = pile.pop(); T.push(i); if (B[i]) reste = true; for (const o of [-w, 1, w, -1]) { const j = i + o; if (j >= 0 && j < w * h && B0[j] && !vu[j]) { vu[j] = 1; pile.push(j); } } }
+      if (!reste && T.length > 3) { let sx = 0, sy = 0; T.forEach(i => { sx += i % w; sy += (i / w) | 0; }); const c = Math.round(sy / T.length) * w + Math.round(sx / T.length); B[c] = 1; fg.push(c); } } }
   let th = 0; fg.forEach(i => { th += D[i]; }); th = fg.length ? th / fg.length / 3 * 2 : 1;   // l'épaisseur moyenne du trait (px de l'image)
   // recoudre : partir des bouts (un seul voisin), suivre les voisins encore libres ; puis les boucles qui restent
   const O = [-w, 1, w, -1, -w + 1, w + 1, w - 1, -w - 1], seen = new Uint8Array(w * h), deg = i => { let n = 0; for (const o of O) n += B[i + o]; return n; };
