@@ -645,16 +645,22 @@ S.flotte = (() => {
       // (vague 29, l'audit : « la flotte ») : autour de la tour, tout un quartier se bâtit en même temps, sur toute la largeur du ciel :
       // les chantiers parallèles du workflow multi-agents ; chacun monte à son rythme, un petit chat-robot sur son toit, ses fenêtres s'allument
       quartier(V, k, a, now, c, Cy);
+      // (vague 57 : l'essaim, la tour et son drapeau restent entre la barre des chapitres et les sous-titres)
+      sousLaBarre(); ctx.beginPath(); ctx.rect(-1e4, G.haut - 4, 2e4, (G.caps || G.bas) - G.haut + 4); ctx.clip();
       // l'essaim : chacun son orbite ; de temps en temps, l'un plonge vers le sommet avec son bloc
       const Rm = Math.min(1.6, lx * 0.8), Q = E.map(q => { const t = now * q.v + q.ph, dv = (now * 0.9 + q.i * 0.37) % 4.5, porte = dv < 1.1, e = porte ? Math.sin(Math.PI * dv / 1.1) : 0, r = q.r * Rm / 1.45 * (1 - e * 0.85), y = lerp(q.h, top - 0.1, e);
         return { p: V(Math.cos(t) * r, y, Math.sin(t) * r), pp: V(Math.cos(t - 0.14 * Math.sign(q.v)) * r, y, Math.sin(t - 0.14 * Math.sign(q.v)) * r), porte: porte && e > 0.05, i: q.i }; });
       // (29/09, l'audit : « les agents sont des points minuscules ») : les quatorze premiers sont des chats-robots à réacteur, qui portent leur bloc
       // de papier ; les autres restent des étincelles (la nuée derrière eux)
+      // (vague 57 de l'audit, « la flotte », immersion) : l'essaim nous remarque. Ceux qui passent près de la souris s'en approchent, curieux,
+      // et nous font signe, puis retournent à leur orbite
+      { const Sm = souris(); if (Sm && window.Chats.K.Wd.t - Sm.moved < 2.5) { const Rs = k * 0.55; Q.forEach(q => { const dx = Sm.x - q.p[0], dy = Sm.y - q.p[1], d = Math.hypot(dx, dy); if (d > Rs) return;
+        const w = Math.pow(1 - d / Rs, 1.4) * 0.55; q.p = [q.p[0] + dx * w, q.p[1] + dy * w, q.p[2], q.p[3]]; q.pp = [q.pp[0] + dx * w, q.pp[1] + dy * w, q.pp[2], q.pp[3]]; q.salue = w > 0.15; }); } }
       const agent = q => { const al = prof(q.p[2]); if (q.i < 18) trait([q.pp, q.p], false, 0.5, al * 0.5);
         // (09:57, Mathieu : « pas assez élaboré ») : les autres ne sont plus des ronds à queue : de petits blocs de papier qui tournent sur eux-mêmes, en route
         if (q.i >= 18) { const s2 = k * 0.022 * q.p[3], t = now * 2 + q.i; ctx.save(); ctx.translate(q.p[0], q.p[1]); ctx.rotate(t); cerne(() => { ctx.beginPath(); ctx.rect(-s2, -s2 * 0.7, s2 * 2, s2 * 1.4); }, 0.5, al); ctx.restore(); return; }
         const r = k * 0.055 * q.p[3], dx = q.p[0] - q.pp[0]; brille(q.p[0] - Math.sign(dx) * r * 0.9, q.p[1] + r * 1.3, 2.2, al, true, now, q.i);
-        chabot(q.p[0], q.p[1], r, { now, ph: q.i, a: Math.max(0.55, al), lac: Math.sign(dx) * 0.7, casque: false, bras: q.porte ? [1.3, 1.3] : null, travaille: q.porte });
+        chabot(q.p[0], q.p[1], r, { now, ph: q.i, a: Math.max(0.55, al), lac: Math.sign(dx) * 0.7, casque: false, bras: q.porte ? [1.3, 1.3] : q.salue ? [0.2, 1.3 + Math.sin(now * 12 + q.i) * 0.35] : null, travaille: q.porte });
         if (q.porte) { const s2 = r * 0.8; cerne(() => { ctx.beginPath(); ctx.rect(q.p[0] - s2, q.p[1] - r * 2.3 - s2 * 1.4, s2 * 2, s2 * 1.4); }, 0.6, Math.max(0.55, al)); } };
       Q.filter(q => q.p[2] < -0.2).forEach(agent);
       // l'immeuble : ses étages ; les fenêtres qui s'allument
@@ -681,6 +687,7 @@ S.flotte = (() => {
       if (n >= NE && tas > 0.5) { const t = V(0, top, 0), m = [t[0], t[1] - k * 0.3]; trait([t, m], false, 1, 1); trait([m, [m[0] + k * 0.16, m[1] + k * (0.05 + Math.sin(now * 5) * 0.015)], [m[0], m[1] + k * 0.11]], true, 0.9, 1, true);
         mot('MARKO', t[0], t[1] - k * 0.38, Math.max(11, k * 0.08), 1);
         for (let j = 0; j < 4; j++) { const u = ((c - NE * 0.55) * 0.9 + j / 4) % 1, px = t[0] + (bruit(j * 7 + Math.floor((c - NE * 0.55) * 0.9 + j / 4)) - 0.5) * k * 1.6, py = t[1] - k * (0.2 + 0.4 * bruit(j * 3 + 1)); eclat(px, py, k * 0.07, u, 9, j); } }
+      ctx.restore();
     }
   };
 })();
