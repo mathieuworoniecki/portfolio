@@ -120,7 +120,7 @@ function chabot(x, y, r, o = {}) {
 const VISE = { c: null, k: 0, id: null, px: 0, py: 0, t: 0 };
 // (dessiné sur sa propre toile, tout en haut : par-dessus le chat qui s'agrippe au pointeur ; effacée dès qu'on ne l'appelle plus)
 let VC = null, VT = 0;
-const AGV = { t: 0, e: 0, p: null }, TH = { t: 0, e: 0, id: null }, OLA = { t: -99, el: null };
+const AGV = { t: 0, e: 0, p: null }, TH = { t: 0, e: 0, id: null }, ROUGE = { nc: -1, id: null, v: null }, OLA = { t: -99, el: null };
 const LUI = { t: 0, h: 0, t0: -99 }, TAMPON = [];
 function toileVise(cv0) {
   if (!VC) { VC = document.createElement('canvas'); VC.setAttribute('aria-hidden', 'true'); VC.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2'; document.body.appendChild(VC); }
@@ -865,6 +865,30 @@ S.terminaux = (() => {
         if (cyc > 2.4) { const p = at(0.86, 0.72); coche(p[0], p[1], (lv > 0.01 ? 9 : 5) * pop, (cyc - 2.4) / 0.3, 0.7); }
         if (lv > 0.5) brille(Q[1][0], Q[1][1], 3, lv, true, now, 1);
       });
+      // (vague 106 de l'audit, « les terminaux » vers 9,9) : rien n'est jamais simple. Toutes les 7 s, un terminal du mur passe au rouge (un test
+      // qui casse : « ✗ 1 test échoue ») ; l'agent de la fenêtre voisine le voit, saute d'un terminal à l'autre en arc, tape à sa place, le rouge
+      // vire au vert, il coche, et rentre chez lui d'un bond. Les agents s'entraident, sans qu'on ait à s'en mêler
+      if (a > 2.5 && !reduitMvt()) { const Tc = 7, Dh = 4.2, nc = Math.floor((a - 2.5) / Tc), u = Math.min(1, ((a - 2.5) % Tc) / Dh), parId = new Map(L.map(q => [q.id, q]));
+        if (ROUGE.nc !== nc) { ROUGE.nc = nc; ROUGE.id = null; const cand = L.filter(q => q.pop >= 1 && q.lv < 0.01 && ((q.id % COL) + COL) % COL > 0 && ((q.id % COL) + COL) % COL < COL - 1 && parId.has(q.id - 1) && parId.get(q.id - 1).pop >= 1 && q.Q[0][1] < G.bas - 40 && p3(q.x - W0 / 2, q.y - H0 / 2 - Dh * 0.32, 0, lac, tan, k)[1] > G.haut + 10).sort((A, B) => B.Q[0][1] - A.Q[0][1]).slice(0, 4);   // (parmi les plus bas : il reste à l'écran toute l'histoire)
+          if (cand.length) { const f = cand[Math.floor(bruit(nc * 3.7 + 1) * cand.length)]; ROUGE.id = f.id; ROUGE.v = f.id - 1; } }
+        const F = ROUGE.id != null && parId.get(ROUGE.id), V = F && parId.get(ROUGE.v);
+        if (F && V && F.lv < 0.01 && V.lv < 0.01) { const at = (Q, u, v) => [lerp(lerp(Q[0][0], Q[1][0], u), lerp(Q[3][0], Q[2][0], u), v), lerp(lerp(Q[0][1], Q[1][1], u), lerp(Q[3][1], Q[2][1], u), v)];
+          const lw = Math.hypot(F.Q[1][0] - F.Q[0][0], F.Q[1][1] - F.Q[0][1]), vert = sm(c01((u - 0.62) / 0.12)), rou = c01(u / 0.05) * (1 - vert) * (1 - sm(c01((u - 0.92) / 0.08)));
+          // la vitre qui passe au rouge (elle palpite), puis au vert ; son message en toutes lettres
+          const col = vert > 0 ? `rgba(143,224,160,${(vert * (1 - sm(c01((u - 0.9) / 0.1)))).toFixed(3)})` : `rgba(255,110,100,${(rou * (0.75 + 0.25 * Math.sin(now * 12))).toFixed(3)})`;
+          ctx.globalAlpha = 1; ctx.strokeStyle = col; ctx.lineWidth = G.lw * 1.6; ctx.lineJoin = 'round'; ctx.beginPath(); F.Q.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath(); ctx.stroke();
+          const d0 = [F.Q[1][0] - F.Q[0][0], F.Q[1][1] - F.Q[0][1]], d1 = [F.Q[3][0] - F.Q[0][0], F.Q[3][1] - F.Q[0][1]], msg = vert > 0.5 ? (en() ? '✓ fixed, all green' : '✓ corrigé, tout est vert') : (en() ? '✗ 1 test failing' : '✗ 1 test échoue');
+          const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, sous = q => bd && q[1] > bd.y - 14 && q[1] < bd.y + bd.h + 14 && q[0] > bd.x - 20 && q[0] < bd.x + bd.w + 20;   // (jamais de texte sur les sous-titres)
+          if ((rou > 0.2 || vert > 0.2) && !sous(at(F.Q, 0.3, 0.8))) { ctx.save(); ctx.transform(d0[0] / 100, d0[1] / 100, d1[0] / 62, d1[1] / 62, F.Q[0][0], F.Q[0][1]); ctx.font = '700 7px ui-monospace,Menlo,Consolas,monospace'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+            ctx.lineWidth = 3; ctx.strokeStyle = NUIT; ctx.strokeText(msg, 8, 50); ctx.fillStyle = vert > 0.5 ? '#8fe0a0' : '#ff8a7e'; ctx.fillText(msg, 8, 50); ctx.restore(); }
+          if (vert > 0.3) coche(...at(F.Q, 0.86, 0.72), 9, (vert - 0.3) / 0.4, 0.9);
+          // l'agent voisin : il saute, tape chez l'autre, rentre (un arc au-dessus des deux vitres)
+          const A = at(V.Q, 0.84, 0.6), B = at(F.Q, 0.2, 0.62), r = lw * 0.1, arc = (p, q, t) => [lerp(p[0], q[0], t), lerp(p[1], q[1], t) - Math.sin(Math.PI * t) * lw * 0.55];
+          let pos = null, tape = false; if (u < 0.18) pos = null; else if (u < 0.3) pos = arc(A, B, sm((u - 0.18) / 0.12)); else if (u < 0.78) { pos = B; tape = true; } else if (u < 0.9) pos = arc(B, A, sm((u - 0.78) / 0.12));
+          if (u > 0.12 && u < 0.18) { const p = at(V.Q, 0.84, 0.2); mot('!', p[0], p[1] - r, Math.max(12, r * 1.4), 1); }
+          if (pos) { chabot(pos[0], pos[1], r, { now, ph: V.id, casque: false, lac: u < 0.78 ? 0.4 : -0.4, travaille: tape, a: 1, bras: tape ? [0.3 + Math.sin(now * 16) * 0.5, 0.3 - Math.sin(now * 16) * 0.5] : [1.2, 1.2] });
+            if (tape && u > 0.34 && u < 0.6 && !sous(at(F.Q, 0.5, 0.35))) { const p = at(F.Q, 0.5, 0.35); mot(en() ? '› on it' : '› je m\u2019en occupe', p[0], p[1], Math.max(10, lw * 0.07), 0.9); } }
+          if (u > 0.62 && u < 0.7) eclat(...at(F.Q, 0.86, 0.72), lw * 0.12, (u - 0.62) / 0.08, 8, nc); } }
       ctx.restore();
     }
   };
