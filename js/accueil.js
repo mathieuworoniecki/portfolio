@@ -63,6 +63,18 @@ function plume(x, y, dx, dy, a) { const l = Math.hypot(dx, dy) || 1, ux = dx / l
   Chalk.stroke([[x, y], [x - ux * L + px * 7, y - uy * L + py * 7], [x - ux * L * 1.5, y - uy * L * 1.5], [x - ux * L + px * -7, y - uy * L - py * 7], [x, y]], 1, { w: 2.4, a, seed: 13, tip: false });
   Chalk.stroke([[x - ux * 8, y - uy * 8], [x - ux * L * 0.8, y - uy * L * 0.8]], 1, { w: 1.6, a, seed: 14, tip: false });
   Chalk.stroke([[x - ux * L * 1.5, y - uy * L * 1.5], [x - ux * L * 3.4 + px * 10, y - uy * L * 3.4 + py * 10]], 1, { w: 2.6, a, seed: 15, tip: false }); }
+// (vague 51 de l'audit, « l'arrivée », immersion) : toute la pièce regarde passer la plume. Les chats la suivent des yeux (Wd.mire, lu par chats.js),
+// celui qu'elle frôle sursaute d'un « ! », et elle sème derrière elle de petites étincelles de craie qui retombent en tournoyant
+const vus = new Set(), EC = [];
+function suit(x, y) { Wd.mire = { x, y, fin: Wd.t + 0.5 };
+  Wd.cats.forEach(c => { if (!c.hp || vus.has(c) || c.held || c.hidden) return; if (Math.hypot(c.hp[0] - x, c.hp[1] - y) < sc(c) * 1.6) { vus.add(c); say(c, pick(['!', '?!', '!!'])); } });
+  if (EC.length < 60 && Math.random() < 0.7) EC.push({ x, y, vx: rnd(-40, 40), vy: rnd(-30, 10), t0: Wd.t, r: rnd(3, 6), a0: rnd(0, 6) }); }
+H.draw.push(() => {
+  for (let i = EC.length - 1; i >= 0; i--) { const e = EC[i], age = Wd.t - e.t0, v = 1 - age / 1.4; if (v <= 0) { EC.splice(i, 1); continue; }
+    const x = e.x + e.vx * age, y = e.y + e.vy * age + 60 * age * age, r = e.r * v, a = e.a0 + age * 5;
+    Chalk.line(x - Math.cos(a) * r, y - Math.sin(a) * r, x + Math.cos(a) * r, y + Math.sin(a) * r, 1, { w: 1.6, a: 0.8 * Wd.a, seed: 50 + (i % 4) });
+    Chalk.line(x + Math.sin(a) * r, y - Math.cos(a) * r, x - Math.sin(a) * r, y + Math.cos(a) * r, 1, { w: 1.6, a: 0.8 * Wd.a, seed: 54 + (i % 4) }); }
+});
 function croquis(x, y, s) {
   const P = [], at = (u, v) => P.push([x + u * s, y + v * s]);
   // la queue, qui remonte en crochet ; le dos ; la tête avec ses deux oreilles ; le poitrail ; les pattes ; retour à la queue
@@ -79,12 +91,12 @@ H.draw.push(() => {
   if (R) { const e = Math.min(1, (Wd.t - R.t0) / 0.6), k = Math.floor(e * e * (R.F.length - 1)); if (e >= 1) R = null; else if (R.F.length - k > 1) Chalk.stroke(R.F.slice(k), 1, { w: 2.2, a: 0.8 * Wd.a, seed: 16, tip: false }); }
   if (!D) return;
   if (Wd.t < D.t0) { const v = Math.max(0, 1 - (D.t0 - Wd.t) / ENVOL), F = D.F, i = Math.min(F.length - 2, Math.floor(v * (F.length - 1)));
-    if (v > 0) { Chalk.stroke(F, v, { w: 2.2, a: 0.8 * Wd.a, seed: 16, tip: true }); plume(F[i + 1][0], F[i + 1][1], F[i + 1][0] - F[i][0], F[i + 1][1] - F[i][1], 0.95 * Wd.a); }
+    if (v > 0) { Chalk.stroke(F, v, { w: 2.2, a: 0.8 * Wd.a, seed: 16, tip: true }); plume(F[i + 1][0], F[i + 1][1], F[i + 1][0] - F[i][0], F[i + 1][1] - F[i][1], 0.95 * Wd.a); suit(F[i + 1][0], F[i + 1][1]); }
     return; }
   Chalk.stroke(D.F, 1, { w: 2.2, a: 0.8 * Wd.a, seed: 16, tip: false });
   const u = Math.min(1, (Wd.t - D.t0) / 1.0);
   Chalk.stroke(D.P, u, { w: 3, a: 0.95 * Wd.a, seed: 11, tip: u < 1 });
-  if (u < 0.85) { const P = D.P, i = Math.min(P.length - 2, Math.floor(u / 0.85 * (P.length - 1)) || 0); plume(P[i + 1][0], P[i + 1][1], P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1], 0.95 * Wd.a); }
+  if (u < 0.85) { const P = D.P, i = Math.min(P.length - 2, Math.floor(u / 0.85 * (P.length - 1)) || 0); plume(P[i + 1][0], P[i + 1][1], P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1], 0.95 * Wd.a); suit(P[i + 1][0], P[i + 1][1]); }
   if (u > 0.85) [-1, 1].forEach(sd => Chalk.circle(D.x + (-0.18 + sd * 0.11) * D.s, D.y - 0.3 * D.s, D.s * 0.05, D.s * 0.075, (u - 0.85) / 0.15, { w: 3.4, a: 0.95 * Wd.a, seed: 12 + sd }));
 });
 const L_ = k => (window.L ? L(k) : k);
