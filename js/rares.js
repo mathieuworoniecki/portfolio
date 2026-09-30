@@ -84,11 +84,18 @@ STEPS.rouleau = (c, T, dt) => {
     // (vague 34 de l'audit : « le MIAOU reste au milieu ») : le cri part en ondes sonores, des cercles au trait qui traversent tout l'écran ;
     // chaque chose est soufflée quand l'onde l'atteint (les voisins d'abord, les bords ensuite), et des lettres du titre se décrochent sur son passage
     const V = Math.hypot(Wd.W, Wd.H) / 1.1; T.onde = { t0: Wd.t, x: c.x + T.dir * T.Rb * 0.4, y: floorAt(c.d) - T.Rb * 1.7, V, vus: new Set() };
+    // (vague 70) le cri sort de la pièce : l'interface aussi est soufflée quand l'onde la touche (le logo, la langue, les boutons de la barre,
+    // les chapitres, le menu des événements) ; chaque élément bascule et se rattrape, dans le sens de l'onde
+    T.onde.ui = [...document.querySelectorAll('#brand, #lang-pick, #theme-pick, .film-ui .ctrl > *, #chap > *, .evts li, .ctas > *')].filter(e => e.getClientRects().length);
     Wd.fx.push({ k: 'cri', x: T.onde.x, y: T.onde.y, v: V, t0: Wd.t, life: 1.9, seed: Math.floor(Math.random() * 99) }); }
   if (T.onde && Wd.t - T.onde.t0 < 1.9) { const O = T.onde, R = (Wd.t - O.t0) * O.V, loin = (x, y) => Math.hypot(x - O.x, y - O.y) < R;
     Wd.cats.forEach(o => { if (o === c || o.rare || o.held || o.gone || o.hidden || O.vus.has(o) || !loin(o.x, o.y - sOf(o.d) * 0.5)) return; O.vus.add(o);
       const sd = sgn(o.x - O.x) || 1; interrupt(o); o.perch = null; o.fall = true; o.vx = sd * sOf(o.d) * rnd(3, 6); o.vy = -sOf(o.d) * rnd(2.5, 4.5); o.spin = sd * rnd(3, 7); if (Math.random() < 0.5) say(o, pick(['waaah', '!!', 'mes oreilles !'])); });
     Wd.props.forEach(it => { if (it.mur || it.held || LOURD[it.kind] || it.kind === 'distrib' || O.vus.has(it) || !Wd.props.includes(it) || !loin(it.x, it.y)) return; O.vus.add(it); kick(it, sgn(it.x - O.x) || 1); if (it.fall) { it.vx *= 2.5; it.vy *= 1.5; } });
+    (O.ui || []).forEach(e => { if (O.vus.has(e)) return; const q = e.getBoundingClientRect(), ex = q.left + q.width / 2, ey = q.top + q.height / 2; if (!loin(ex, ey)) return; O.vus.add(e);
+      const sd = sgn(ex - O.x) || 1, k = clamp(1.4 - Math.hypot(ex - O.x, ey - O.y) / (O.V * 1.6), 0.5, 1.2), up = sgn(ey - O.y) || -1;
+      if (e.animate) try { e.animate([{ transform: 'none' }, { transform: `translate(${sd * 16 * k}px,${up * 7 * k}px) rotate(${sd * 9 * k}deg)`, offset: 0.25 },
+        { transform: `translate(${-sd * 6 * k}px,${-up * 2 * k}px) rotate(${-sd * 4 * k}deg)`, offset: 0.55 }, { transform: `rotate(${sd * 1.5 * k}deg)`, offset: 0.8 }, { transform: 'none' }], { duration: 850, easing: 'ease-out', composite: 'add' }); } catch (x) {} });
     const Ls = window.Vie && Vie.LETTERS && Vie.LETTERS(), r = Ls && Vie.RECT();
     if (Ls && r) Ls.forEach(L => { if (L.st || L.a < 0.8 || O.vus.has(L) || !loin(Vie.lx(L, r), Vie.ly(L, r))) return; O.vus.add(L);
       if ((O.lettres || 0) < 3 && Math.random() < 0.18) { O.lettres = (O.lettres || 0) + 1; const sd = sgn(Vie.lx(L, r) - O.x) || 1; Vie.tumble(L, sd * Wd.s0 * rnd(0.6, 1.4), -Wd.s0 * rnd(0.4, 0.9), sd * rnd(4, 9)); } else { L.wob = Wd.t; L.wobA = 2.5; L.hopA = 12; } }); }
