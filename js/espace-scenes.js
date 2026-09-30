@@ -513,7 +513,14 @@ S.bench = (() => {
     cles: () => [[-1.2, -0.3], [1.2, -0.3], [-1, 0.6], [1, 0.6]],
     dessin(a, now) {
       const T0b = go => Math.PI / 2 + go * TAU * 1.5;
-      const [k, lx] = large(1.5, 2.1), V = cam(0.3 + Math.sin(a * 0.15) * 0.15, -0.46, k, 0, -0.14), Cy = 7.5, n = Math.floor(a / Cy), c = a % Cy, Rx = Math.min(1.55, lx * 0.82), Rz = 0.62;
+      // (vague 42, l'audit : « la course », finition) : le bord avant de la piste ne descend jamais sur les sous-titres ; sinon, tout rapetisse
+      let [k, lx] = large(1.5, 2.1), oyb = -0.14; const lac0 = 0.3 + Math.sin(a * 0.15) * 0.15; let V = cam(lac0, -0.46, k, 0, oyb);
+      for (let pas = 0; pas < 2; pas++) { const Rx0 = Math.min(1.55, lx * 0.82), bords = [0, 0.8, 1.6, 2.4].map(t => V(Math.cos(Math.PI / 2 + t * 0.5) * Rx0 * 1.2, 0, Math.sin(Math.PI / 2 + t * 0.5) * 0.62 * 1.2)[1]).concat([0, 0.8, 1.6].map(t => V(Math.cos(Math.PI / 2 - t * 0.5) * Rx0 * 1.2, 0, Math.sin(Math.PI / 2 - t * 0.5) * 0.62 * 1.2)[1])),
+          f = Math.max(...bords) + k * 0.03, lim = (G.caps || G.bas) - 4, c0 = V(0, 0, 0)[1];
+        if (f <= lim) break;
+        if (!pas) { oyb -= Math.min(f - lim, k * 0.22) / G.s; V = cam(lac0, -0.46, k, 0, oyb); }   // d'abord, on remonte un peu (les tribunes ont de la place en haut)
+        else if (f > c0) { k *= Math.max(0.6, (lim - c0) / (f - c0)); V = cam(lac0, -0.46, k, 0, oyb); } }   // puis, s'il le faut, on rapetisse
+      const Cy = 7.5, n = Math.floor(a / Cy), c = a % Cy, Rx = Math.min(1.55, lx * 0.82), Rz = 0.62;
       const v = NOMS.map((_, i) => 0.75 + 0.5 * bruit(n * 11 + i * 3.7)), g = v.indexOf(Math.max(...v)), rang = v.map((x, i) => [x, i]).sort((p, q) => q[0] - p[0]).map(q => q[1]);
       // la piste : un anneau relevé (le bord intérieur plus bas), ses lignes de couloir, les traits de vitesse
       const piste = (t, l, y = 0) => { const r = 1 + (l - 2) * 0.07; return V(Math.cos(t) * Rx * r, y - (l - 2) * 0.025, Math.sin(t) * Rz * r); };
@@ -865,7 +872,7 @@ S.front = (() => {
   return {
     cles: () => [[-1, -0.62], [1, -0.62], [1, 0.62], [-1, 0.62]],
     dessin(a, now) {
-      const [k0, lx] = large(1.2, 1.8), k = k0 * 0.84, Pk = (x, y) => [G.cx + x * k, G.cy + (y - 0.16) * k], Cy = 12, c = a % Cy, b1 = a < Cy;   // (09:57 : l'écran passait sous les sous-titres : plus petit, remonté)
+      const [k0, lx] = large(1.2, 1.8), bT = G.haut + 6, bB = (G.caps || G.bas) - 6, k = Math.max(20, Math.min(k0 * 0.84, (bB - bT) / 1.8)), Yc = Math.max(bT + 0.9 * k, Math.min(bB - 0.9 * k, G.cy - 0.16 * k)), Pk = (x, y) => [G.cx + x * k, Yc + y * k], Cy = 12, c = a % Cy, b1 = a < Cy;   // (09:57 : l'écran passait sous les sous-titres : plus petit, remonté)
       const FO = [[Math.min(1.5, lx * 0.85), 0.66, 3], [0.64, 0.8, 2], [0.36, 0.86, 1]];
       let A = 0, B = 0, u = 0;
       if (c > 4.4 && c < 5.2) [A, B, u] = [0, 1, sm((c - 4.4) / 0.8)]; else if (c >= 5.2 && c < 7.2) A = B = 1; else if (c >= 7.2 && c < 8) [A, B, u] = [1, 2, sm((c - 7.2) / 0.8)]; else if (c >= 8 && c < 10.4) A = B = 2; else if (c >= 10.4 && c < 11.4) [A, B, u] = [2, 0, sm((c - 10.4) / 1)];
@@ -999,7 +1006,11 @@ S.devops = (() => ({
       prisme((u, v, d) => c(u, d, v), [[-0.08, 0], [0.08, 0], [0.08, -0.09], [-0.08, -0.09]], 0.1, prof(c(0, 0, 0)[2], 1), 0.6);
       if (q === 0) { const h = c(0, 0, -0.09), r = k * 0.05 * h[3]; chabot(h[0], h[1] - r * 1.7, r, { now, v: 1, lac: 0.5, bras: [1.3, 1.3] }); } });
     // le monitoring : un écran, son pouls qui défile
-    ST.forEach((t, i) => { const p = at(t), m = V(p[0], p[1] - 0.47, p[2]); mot(lab[i], m[0], m[1], Math.max(11, k * 0.08), 1); });
+    // (vague 42, l'audit : « devops », finition) : l'étiquette ne sort jamais de l'écran, et un liseré d'encre la détache des portiques
+    ST.forEach((t, i) => { const p = at(t), m = V(p[0], p[1] - 0.47, p[2]), px = Math.max(11, k * 0.08); ctx.font = `600 ${px}px "Space Grotesk",system-ui,sans-serif`;
+      const w2 = ctx.measureText(lab[i]).width / 2 + 4, x = Math.max(G.gauche + w2, Math.min(G.droite - w2, m[0]));
+      ctx.globalAlpha = 1; ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, px * 0.32); ctx.strokeStyle = 'rgb(9,11,18)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.strokeText(lab[i], x, m[1]);
+      mot(lab[i], x, m[1], px, 1); });
     const mw = Math.min(0.9, lx * 0.5) * k, mh = 0.2 * k, mc = [G.cx, G.cy - k * 0.72]; ecran(mc[0] - mw / 2, mc[1] - mh / 2, mw, mh, k * 0.06, 5);
     const M = []; for (let i = 0; i <= 70; i++) { const u = i / 70, t = u * 3.5 - now * 0.8, f = t - Math.floor(t), b = f > 0.4 && f < 0.5 ? Math.sin((f - 0.4) / 0.1 * TAU) * 0.35 : 0; M.push([mc[0] - mw * 0.45 + u * mw * 0.9, mc[1] - b * mh]); } trait(M, false, 0.8, 1);
   }
