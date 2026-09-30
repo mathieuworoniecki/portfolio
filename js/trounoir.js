@@ -409,6 +409,11 @@ function flotte(c, dt, Q, acc) {
   if (bx + r > W - 4 && S.vx > 0) { bord(S.vx, [1, 0]); S.vx = -S.vx * 0.8; c.x -= bx + r - W + 4; }
   if (by - r < HAUT() && S.vy < 0) { bord(S.vy, [0, -1]); S.vy = -S.vy * 0.8; c.y += HAUT() - (by - r); }
   if (by + r > BAS() && S.vy > 0) { bord(S.vy, [0, 1]); S.vy = -S.vy * 0.8; c.y -= by + r - BAS(); }
+  // (vague 61 de l'audit : un chat passait sur les sous-titres) : la légende est une vitre ; on y rebondit (« bonk »), on ne la traverse pas
+  { const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande; const rb = r * (c.rare === 'interminable' ? 2.6 : 1.3);   // (le corps dépasse le rayon, surtout chez le chat interminable)
+    if (bd && bx + rb > bd.x && bx - rb < bd.x + bd.w && by + rb > bd.y && by - rb < bd.y + bd.h) {
+      const pen = [[bx + rb - bd.x, -1, 0], [bd.x + bd.w - (bx - rb), 1, 0], [by + rb - bd.y, 0, -1], [bd.y + bd.h - (by - rb), 0, 1]].sort((p, q) => p[0] - q[0])[0], [d, nx, ny] = pen;
+      c.x += nx * d; c.y += ny * d; const vn = S.vx * nx + S.vy * ny; if (vn < 0) { bord(vn, [-nx, -ny]); S.vx -= 1.8 * vn * nx; S.vy -= 1.8 * vn * ny; } } }
   c.z = 8000 + c.id * 3;
 }
 function agrippe(c, Q, acc) {

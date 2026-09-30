@@ -1037,6 +1037,11 @@ S.back = (() => ({
       if (t < 0.65) { cerne(() => { ctx.beginPath(); ctx.rect(p[0] - s, p[1] - s * 0.7, s * 2, s * 1.4); }, 0.6, al); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath(); ctx.moveTo(p[0] - s, p[1] - s * 0.7); ctx.lineTo(p[0], p[1]); ctx.lineTo(p[0] + s, p[1] - s * 0.7); ctx.stroke(); }
       else { cerne(() => { ctx.beginPath(); ctx.rect(p[0] - s * 0.75, p[1] - s, s * 1.5, s * 2); }, 0.6, al); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath(); for (let j = 0; j < 3; j++) { ctx.moveTo(p[0] - s * 0.45, p[1] - s * 0.5 + j * s * 0.45); ctx.lineTo(p[0] + s * (j === 2 ? 0.1 : 0.45), p[1] - s * 0.5 + j * s * 0.45); } ctx.stroke(); }
       if (t > 0.94) { const m = V(xD + 0.12, yS - 0.5, z); mot('+1', m[0], m[1] - (t - 0.94) * k * 1.2, Math.max(10, k * 0.07), 1 - (t - 0.94) / 0.06); } }
+    // (vague 61 de l'audit, « back-end », immersion) : nous aussi, on est un client. La souris porte sa propre requête (une enveloppe) ;
+    // présentée au videur, elle passe (« 200 OK ») si on arrive calmement, elle est refoulée (« 429 ») si on arrive en trombe
+    { const Sm = souris(); if (Sm && window.Chats.K.Wd.t - Sm.moved < 2.5 && Sm.y > G.haut && Sm.y < (G.caps || G.bas)) { const s = k * 0.05, ex = Sm.x + s * 1.4, ey = Sm.y + s * 1.2, P = V(xA - 0.2, yS - 0.1, 0), d = Math.hypot(Sm.x - P[0], Sm.y - P[1]), vit = Math.hypot(Sm.vx || 0, Sm.vy || 0);
+      ctx.save(); ctx.translate(ex, ey); ctx.rotate(Math.sin(now * 3) * 0.12); cerne(() => { ctx.beginPath(); ctx.rect(-s, -s * 0.7, s * 2, s * 1.4); }, 0.7, 1); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.4; ctx.beginPath(); ctx.moveTo(-s, -s * 0.7); ctx.lineTo(0, 0); ctx.lineTo(s, -s * 0.7); ctx.stroke(); ctx.restore();
+      if (d < k * 0.45) { const trop = vit > 900; mot(trop ? '429' : '200 OK', P[0] - k * 0.12, Math.max(G.haut + k * 0.06, P[1] - k * 0.66), Math.max(13, k * 0.08), 1); if (!trop) coche(ex + s * 1.4, ey - s, s * 0.6, 1, 1.1); else { style(1.2, 1); ctx.beginPath(); ctx.moveTo(ex + s, ey - s * 1.6); ctx.lineTo(ex + s * 1.8, ey - s * 0.8); ctx.moveTo(ex + s * 1.8, ey - s * 1.6); ctx.lineTo(ex + s, ey - s * 0.8); ctx.stroke(); } } } }
     ctx.restore();
   }
 }))();
