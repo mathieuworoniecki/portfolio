@@ -72,7 +72,13 @@ X.grab.push((x, y) => { if (!C || C.porte || Math.hypot(x - C.x, y - C.y) > C.r 
 // le dessin : la bulle, son reflet, le col, l'antenne ; posé sur un chat, par-dessus sa tête
 function dessine(ctx, x, y, r, rot, now, porte) {
   ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.lineCap = ctx.lineJoin = 'round'; ctx.strokeStyle = `rgb(${BL})`;
+  // (vague 46, l'audit : « le casque », finition) : un vrai verre. Une teinte bleutée, plus dense sur les bords (le bombé) ; un liseré d'encre
+  // sous le bord blanc qui détache la bulle de tout ce qui passe derrière ; dans le bas du verre, le reflet courbe de l'horizon de la Terre
+  { const g = ctx.createRadialGradient(-r * 0.25, -r * 0.3, r * 0.1, 0, 0, r); g.addColorStop(0, 'rgba(170,210,255,0)'); g.addColorStop(0.7, 'rgba(170,210,255,0.05)'); g.addColorStop(1, 'rgba(170,210,255,0.2)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill(); }
+  ctx.strokeStyle = 'rgba(7,8,12,0.9)'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(0, 0, r + 1.5, 0, TAU); ctx.stroke(); ctx.strokeStyle = `rgb(${BL})`;
   ctx.lineWidth = 2.4; ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke();
+  ctx.save(); ctx.rotate(-rot); ctx.strokeStyle = 'rgba(150,200,255,0.45)'; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.ellipse(0, r * 1.9, r * 1.55, r * 1.2, 0, Math.PI * 1.3, Math.PI * 1.7); ctx.stroke(); ctx.restore();
   // le reflet sur le verre : deux arcs, en haut à gauche
   ctx.lineWidth = 2; ctx.strokeStyle = `rgba(${BL},0.75)`; ctx.beginPath(); ctx.arc(0, 0, r * 0.78, Math.PI * 1.08, Math.PI * 1.38); ctx.stroke();
   ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(0, 0, r * 0.78, Math.PI * 1.45, Math.PI * 1.52); ctx.stroke();
@@ -92,6 +98,7 @@ function dessine(ctx, x, y, r, rot, now, porte) {
   // le col : un anneau épais en bas
   ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.ellipse(0, r * 0.9, r * 0.62, r * 0.16, 0, 0, TAU); ctx.stroke();
   ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(0, r * 0.9, r * 0.5, r * 0.1, 0, 0, Math.PI); ctx.stroke();
+  ctx.fillStyle = `rgb(${BL})`; for (let i = 0; i < 6; i++) { const a = Math.PI * (0.12 + i * 0.152); ctx.beginPath(); ctx.arc(Math.cos(a) * r * 0.62, r * 0.9 + Math.sin(a) * r * 0.16, Math.max(0.9, r * 0.035), 0, TAU); ctx.fill(); }   // (ses rivets)
   // l'antenne, avec sa petite boule qui clignote
   ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(r * 0.45, -r * 0.89); ctx.lineTo(r * 0.62, -r * 1.3); ctx.stroke();
   ctx.fillStyle = `rgba(${BL},${0.5 + 0.5 * (Math.sin(now * 5) > 0 ? 1 : 0.2)})`; ctx.beginPath(); ctx.arc(r * 0.64, -r * 1.36, r * 0.07, 0, TAU); ctx.fill();
