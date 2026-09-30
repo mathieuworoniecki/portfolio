@@ -119,17 +119,37 @@ function chabot(x, y, r, o = {}) {
 const VISE = { c: null, k: 0, id: null, px: 0, py: 0, t: 0 };
 // (dessiné sur sa propre toile, tout en haut : par-dessus le chat qui s'agrippe au pointeur ; effacée dès qu'on ne l'appelle plus)
 let VC = null, VT = 0;
+const LUI = { t: 0, h: 0, t0: -99 }, TAMPON = [];
 function toileVise(cv0) {
   if (!VC) { VC = document.createElement('canvas'); VC.setAttribute('aria-hidden', 'true'); VC.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2'; document.body.appendChild(VC); }
   if (VC.width !== cv0.width || VC.height !== cv0.height) { VC.width = cv0.width; VC.height = cv0.height; }
   const o = VC.getContext('2d'); o.setTransform(1, 0, 0, 1, 0, 0); o.clearRect(0, 0, VC.width, VC.height);
   const n = ++VT; requestAnimationFrame(() => requestAnimationFrame(() => { if (n === VT && VC) VC.getContext('2d').clearRect(0, 0, VC.width, VC.height); })); return o;
 }
+// le coup de tampon sur la vitre : il descend de haut (grand, un peu flou de vitesse), frappe (une onde, des éclaboussures d'encre), reste,
+// encré de travers avec ses manques ; puis se ratatine sur lui-même (jamais de fondu)
+function tamponVitre(o, q, t) {
+  const dp = q.dp, R = 58 * dp, desc = c01(t / 0.14), sc = t < 0.14 ? 2.4 - 1.4 * desc * desc : 1 + Math.max(0, 0.12 - (t - 0.14)) * 0.8, fin = 1 - sm(c01((t - 2.9) / 0.5));
+  if (fin <= 0) return; o.save(); o.setTransform(1, 0, 0, 1, 0, 0); o.translate(q.x, q.y); o.lineCap = o.lineJoin = 'round';
+  if (t > 0.14 && t < 0.6) { const u = (t - 0.14) / 0.46; o.globalAlpha = 1 - u; o.strokeStyle = `rgb(${BL})`; o.lineWidth = 2 * dp * (1 - u); o.beginPath(); o.arc(0, 0, R * (1.1 + u * 1.6), 0, TAU); o.stroke();
+    for (let i = 0; i < 9; i++) { const b = i / 9 * TAU + q.rot * 3, d = R * (1.15 + u * (0.6 + (i % 3) * 0.3)); o.globalAlpha = 1; o.fillStyle = `rgb(${BL})`; o.beginPath(); o.arc(Math.cos(b) * d, Math.sin(b) * d, dp * (2.2 - u * 1.6) * (1 + (i % 2)), 0, TAU); o.fill(); } }
+  o.rotate(q.rot + (1 - desc) * 0.4); o.scale(sc * fin, sc * fin); o.globalAlpha = t < 0.14 ? 0.35 + 0.5 * desc : 0.92;
+  // (un liseré de nuit sous chaque trait : le tampon se lit aussi posé sur du papier blanc)
+  const dbl = (lw, f) => { o.strokeStyle = NUIT; o.lineWidth = lw + 3.5 * dp; f(); o.stroke(); o.strokeStyle = `rgb(${BL})`; o.lineWidth = lw; f(); o.stroke(); };
+  dbl(3.4 * dp, () => { o.beginPath(); o.arc(0, 0, R, 0, TAU); }); dbl(1.5 * dp, () => { o.beginPath(); o.arc(0, 0, R * 0.84, 0, TAU); });
+  dbl(2 * dp, () => { o.beginPath(); o.moveTo(-R * 0.52, R * 0.17); o.lineTo(R * 0.52, R * 0.17); });
+  const mt = (t, px, y) => { o.font = `700 ${Math.round(px * dp)}px "Space Grotesk",system-ui,sans-serif`; o.textAlign = 'center'; o.textBaseline = 'middle'; o.strokeStyle = NUIT; o.lineWidth = 4 * dp; o.strokeText(t, 0, y); o.fillStyle = `rgb(${BL})`; o.fillText(t, 0, y); };
+  mt(en() ? 'APPROVED' : 'VALIDÉ', 18, -R * 0.08); mt(en() ? 'HUMAN IN THE LOOP' : 'DÉCISION HUMAINE', 9.5, R * 0.4);
+  // l'encre qui a mal pris : des manques (on gratte des petits trous dans ce qu'on vient d'encrer)
+  if (t >= 0.14) { o.globalCompositeOperation = 'destination-out'; o.globalAlpha = 1; for (let i = 0; i < 26; i++) { const b = bruit(i * 7.3 + q.rot * 50) * TAU, d = bruit(i * 3.1 + q.rot * 20) * R * 1.05; o.beginPath(); o.arc(Math.cos(b) * d, Math.sin(b) * d, dp * (0.8 + bruit(i * 1.7) * 2.2), 0, TAU); o.fill(); } o.globalCompositeOperation = 'source-over'; }
+  o.restore();
+}
 function vise(c0, now) {
   const c = VISE.c, P = souris(); VISE.c = null; const dt = Math.min(0.2, Math.max(0, now - (VISE.t || now))); VISE.t = now;
   if (c && P && (VISE.id === null || VISE.id === c.id || VISE.k < 0.05)) { VISE.id = c.id; VISE.k = Math.min(1.6, VISE.k + dt * 1.4); VISE.rb = c; }
   else { VISE.k = Math.max(0, VISE.k - dt * 3); if (VISE.k === 0) VISE.id = null; }
-  const R = VISE.rb; if (!VC && (!R || VISE.k <= 0)) return; const o = toileVise(c0.canvas); if (!R || VISE.k <= 0 || !P) return;
+  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); if (!VC && (!R || VISE.k <= 0) && !TAMPON.length) return; const o = toileVise(c0.canvas);
+  TAMPON.forEach(q => tamponVitre(o, q, now - q.t0)); if (!R || VISE.k <= 0 || !P) return;
   const W0 = window.Chats && Chats.K && Chats.K.Wd, chat = W0 && W0.cats.some(q => q.sp && q.sp.m === 'agrippe');
   const cv = o.canvas, dp = (cv.width / (cv.clientWidth || cv.width)) || 1, px = P.x * dp, py = P.y * dp, ln = Math.max(1, dp), k = VISE.k;
   o.save(); o.setTransform(1, 0, 0, 1, 0, 0); o.lineCap = o.lineJoin = 'round';
@@ -226,7 +246,12 @@ function lui(x, y, r, o = {}) {
   const nw = o.now || 0, P = sourisIci(), regard = P ? (() => { const dx = P.x - x, dy = P.y - y, d = Math.hypot(dx, dy) || 1; return [dx / d, dy / d]; })() : [Math.sin(nw * 0.5) * 0.6, 0.2];
   // (vague 50, l'audit : « toi, dans le style des chats », immersion) : il nous voit arriver. La souris tout près : il hoche la tête et nous salue,
   // « salut ! » écrit au-dessus de lui (le petit chat de l'épaule regarde aussi) ; le reste du temps, il travaille
-  const pres = P ? Math.hypot(P.x - x, P.y - y) < r * 3.6 : false; if (pres) { o = Object.assign({}, o, { hoche: Math.sin(nw * 7) * 0.8 }); if (r > 8) mot(en() ? 'hi!' : 'salut !', x + r * 0.2, y - r * 2.1 + Math.sin(nw * 5) * r * 0.05, Math.max(11, r * 0.42), o.a ?? 1); }
+  const pres = P ? Math.hypot(P.x - x, P.y - y) < r * 3.6 : false;
+  // (vague 79, l'audit : « toi », il sort de la scène) : la souris reste près de lui : il lève son tampon et le frappe sur la vitre, sous la souris
+  { const m = ctx.getTransform(); LUI.x = m.a * x + m.c * y + m.e; LUI.y = m.b * x + m.d * y + m.f; LUI.r = r * Math.hypot(m.a, m.b);
+    const dtl = Math.min(0.2, Math.max(0, nw - (LUI.t || nw))); LUI.t = nw; LUI.h = pres && r > 8 ? LUI.h + dtl : 0;
+    if (LUI.h > 1.3 && nw - LUI.t0 > 7) { LUI.t0 = nw; LUI.h = 0; const S = souris(), cv = ctx.canvas, dp = (cv.width / (cv.clientWidth || cv.width)) || 1; if (S) TAMPON.push({ x: S.x * dp, y: S.y * dp, t0: nw, rot: (Math.random() - 0.5) * 0.5, dp }); }
+    const ft = nw - LUI.t0; if (ft < 0.9) o = Object.assign({}, o, { tp: ft < 0.25 ? 1 - ft / 0.25 * 0.2 : Math.max(o.tp || 0, 1 - (ft - 0.25) / 0.65) }); } if (pres) { o = Object.assign({}, o, { hoche: Math.sin(nw * 7) * 0.8 }); if (r > 8) mot(en() ? 'hi!' : 'salut !', x + r * 0.2, y - r * 2.1 + Math.sin(nw * 5) * r * 0.05, Math.max(11, r * 0.42), o.a ?? 1); }
   const a = o.a ?? 1, w = clamp01(r / 30) * 0.7 + 0.45, hy = y + (o.hoche || 0) * r * 0.1, by = y + r * 0.95, bw = r * 1.2, bh = r * 1.45, g = o.cote || -1, tp = o.tp || 0;
   // le bras qui ne tamponne pas, derrière le corps
   cerne(() => { ctx.beginPath(); ctx.moveTo(x - g * bw * 0.8, by + r * 0.35); ctx.quadraticCurveTo(x - g * bw * 1.25, by + bh * 0.55, x - g * bw * 0.7, by + bh * 0.85); }, w * 1.9, a, null);
@@ -1385,5 +1410,5 @@ S.pilotage = (() => {
 S.rag = S.ia;
 
 // la toile, l'écran du ciel, les outils ; puis : une scène existe-t-elle ?
-return { S, vise, VISE, pose(c, g, o) { ctx = c; G = g; O = o; } };
+return { S, vise, VISE, LUI, pose(c, g, o) { ctx = c; G = g; O = o; } };
 })();
