@@ -70,7 +70,7 @@ function sortBouton(b, dl) {
 const reduit = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 let cvE = null, xE = null, bleu = null, E = null, vit = 1;   // (vit : pour les captures, on ralentit)
 const FONTE = '"Barlow Condensed","Arial Narrow",sans-serif';
-const T_TRACE = 1.0, T_TUILES = 2.25, FLIP = 0.3;
+const T_TRACE = 1.0, T_TUILES = 2.25, FLIP = 0.42;
 function toileE() {
   if (!cvE) { cvE = document.createElement('canvas'); cvE.className = 'passage'; cvE.setAttribute('aria-hidden', 'true');
     Object.assign(cvE.style, { position: 'fixed', inset: '0', width: '100%', height: '100%', zIndex: '57', pointerEvents: 'none', display: 'none' }); document.body.appendChild(cvE); xE = cvE.getContext('2d'); }
@@ -166,7 +166,14 @@ function image() {
   let tous = true; const faits = [];
   E.tu.forEach(q => { const u = c01((t - q.t) / FLIP); if (u < 1) tous = false; if (u <= 0) return; const cx = q.x + T / 2, cy = q.y + T / 2;
     const e = u < 1 ? 1 + 2.2 * Math.pow(u - 1, 3) + 1.2 * Math.pow(u - 1, 2) : 1, w = T * Math.max(0.01, Math.min(1.12, e));
-    if (u < 1) { c.drawImage(bleu, q.x, q.y, T, T, cx - w / 2, cy - w / 2, w, w); c.strokeStyle = 'rgba(238,245,255,.5)'; c.lineWidth = 1; c.strokeRect(cx - w / 2 + 0.5, cy - w / 2 + 0.5, w - 1, w - 1); }
+    // (vague 68, l'audit : « le passage au mode sérieux ») : un vrai carreau qui se retourne en 3D, autour de son axe vertical, du côté opposé
+    // au bouton : il se soulève (plus grand, une ombre), montre d'abord sa face papier (qui s'amincit en perspective), puis sa face bleue
+    if (u < 1) { const th = Math.PI * Math.min(1, e), co = Math.cos(th), si = Math.sin(th), dir = cx < E.o.x ? -1 : 1, lv = 1 + 0.22 * si, h2 = T / 2 * lv;
+      c.save(); c.fillStyle = 'rgba(10,20,40,.18)'; c.fillRect(cx - T / 2 * Math.abs(co) * lv + 6 * si, cy - h2 + 8 * si, T * Math.abs(co) * lv, T * lv); c.restore();
+      c.save(); c.translate(cx, cy); c.transform(co * lv, si * 0.28 * dir * Math.sign(co || 1), 0, lv, 0, 0);
+      if (co > 0) { c.fillStyle = '#F2F1EC'; c.fillRect(-T / 2, -T / 2, T, T); c.strokeStyle = ink; c.globalAlpha = 0.35; c.lineWidth = 1 / lv; c.strokeRect(-T / 2, -T / 2, T, T); }
+      else { c.scale(-1, 1); c.drawImage(bleu, q.x, q.y, T, T, -T / 2, -T / 2, T, T); c.strokeStyle = 'rgba(238,245,255,.6)'; c.lineWidth = 1 / lv; c.strokeRect(-T / 2 + 0.5, -T / 2 + 0.5, T - 1, T - 1); }
+      c.restore(); c.globalAlpha = 1; }
     else c.drawImage(bleu, q.x, q.y, T, T, q.x, q.y, T, T); faits.push([cx - w / 2, cy - w / 2, w]); });
   // sur le bleu, l'esquisse passe au blanc : le plan bleu du mode sérieux
   if (faits.length) { c.save(); c.beginPath(); faits.forEach(([x, y, w]) => c.rect(x, y, w, w)); c.clip(); esquisse(c, t, 'rgba(238,245,255,.85)', null); c.restore(); }
