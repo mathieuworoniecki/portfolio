@@ -68,10 +68,86 @@ function geant(x) {
   const dir = x == null ? (Math.random() < 0.5 ? 1 : -1) : x < Wd.W / 2 ? 1 : -1;
   const c = spawn('geant', { d: 0.02, face: dir }, Math.min(Wd.H * 1.25, Wd.W * 1.3)); c.zo = 3000;
   const Rb = sc(c) * 0.36; c.x = dir > 0 ? -Rb * 2.2 : Wd.W + Rb * 2.2;
-  c.q = [{ k: 'rouleau', dir, Rb, air: true }, fn(c => { c.gone = true; })];
+  c.q = [{ k: 'rouleau', dir, Rb, air: true }, fn(c => { c.gone = true; oeil(dir); })];
   later(0.4, () => panique(dir > 0 ? 0 : Wd.W));
   return c;
 }
+/* (vague 98 de l'audit, « le chat géant », pour l'inoubliable) : il ne disparaît pas, il habite dehors. Parti de la pièce, il fait le tour
+   de la maison : son œil, énorme, vient se coller à la fenêtre, du côté où il est sorti. L'œil suit la souris, cligne ; les chats de la pièce
+   lèvent la tête vers lui (« !! ») ; un clic sur la fenêtre, et il cligne, la vitre tremble (un petit « miaou » étouffé) ; puis il se retire
+   en glissant. Il revient parfois de lui-même, plus tard : on sait maintenant qu'il est là, dehors. */
+const OE = { t0: -99, dur: 0, dir: 1, cl: -99, clic: -99, suivant: Infinity };
+function oeil(dir) {
+  if (Wd.espace || Wd.trou || Wd.fuite) return; const f = window.Piece && Piece.fen && Piece.fen() || { x: (dir || 1) > 0 ? Wd.W * 0.85 : Wd.W * 0.15, y: Wd.H * 0.4, w: 1, h: 1 };
+  Object.assign(OE, { t0: Wd.t + 1.2, dur: 7.5, dir: dir || 1, cl: Wd.t + 4, suivant: Wd.t + rnd(70, 140) });
+  later(1.9, () => { watchers(f.x + f.w / 2, 3).forEach((c, i) => later(i * 0.25, () => { if (alive(c)) { c.face = sgn(f.x + f.w / 2 - c.x) || 1; say(c, pick(['!!', 'il est là', 'le géant !', '…'])); } })); if (window.Dex && Dex.vu) Dex.vu('miaou-geant'); });
+}
+H.click.push((x, y) => { const u = Wd.t - OE.t0; if (u < 0.6 || u > OE.dur - 0.6) return false; const f = window.Piece && Piece.fen && Piece.fen(), B = OE.b;
+  const dans = f ? x >= f.x && x <= f.x + f.w && y >= f.y && y <= f.y + f.h : B && Math.hypot(x - B.x, y - B.y) < B.r; if (!dans) return false;
+  OE.clic = Wd.t; OE.cl = Wd.t; Wd.shake = { t0: Wd.t, a: f ? 5 : 9 }; word(pick(['miaou…', 'mrrr', 'miaou ?']), f ? f.x + f.w / 2 : B.x - OE.dir * B.r * 0.3, f ? f.y - 10 : B.y - B.r * 0.9, f ? 18 : 30); return true; });
+H.draw.push(() => {
+  if (Wd.t > OE.suivant && Wd.t - OE.t0 > OE.dur) oeil(pick([1, -1]));
+  const u = Wd.t - OE.t0; if (u < 0 || u > OE.dur || Wd.a < 0.5) { OE.b = null; return; } const f = window.Piece && Piece.fen && Piece.fen();
+  const ctx = window.Chalk && Chalk.ctx; if (!ctx) return;
+  const ink = (window.THEME && THEME.ink) || (window.Chalk && Chalk.INK) || '34,36,40';
+  if (!f) { tete(ctx, ink, u); return; }   // (pas de fenêtre, sur les écrans larges et bas : il passe la tête par le bord de l'écran)
+  // il arrive en glissant du côté où il est sorti, et repart de même (aucun fondu)
+  const e = sm(u / 0.9) * (1 - sm((u - OE.dur + 0.9) / 0.9)), off = (1 - e) * f.w * 1.1 * -OE.dir;
+  const P = Wd.ptr, ix = f.x + 4, iy = f.y + 4, iw = f.w - 8, ih = f.h - 8, cx = ix + iw * 0.5 + off, cy = iy + ih * 0.55;
+  const vx = P && P.on ? clamp((P.x - cx) / Wd.W, -0.5, 0.5) : 0, vy = P && P.on ? clamp((P.y - cy) / Wd.H, -0.5, 0.5) : 0;
+  const cl = Wd.t - OE.cl, bl = cl >= 0 && cl < 0.22 ? 1 - Math.abs(cl / 0.11 - 1) : 0;   // le clignement
+  if (cl > 0.3 && Math.random() < 0.004) OE.cl = Wd.t;
+  ctx.save(); ctx.beginPath(); ctx.rect(ix, iy, iw, ih); ctx.clip(); ctx.lineCap = ctx.lineJoin = 'round';
+  // le papier du dedans de la vitre : le ciel s'efface derrière la tête qui bouche tout
+  ctx.fillStyle = (getComputedStyle(document.documentElement).getPropertyValue('--bp').trim() || '#DADBD8'); ctx.globalAlpha = e; ctx.fillRect(ix, iy, iw, ih); ctx.globalAlpha = 1;
+  ctx.strokeStyle = `rgb(${ink})`; ctx.fillStyle = `rgb(${ink})`;
+  // la tête, trop grande pour la fenêtre : on n'en voit que le bord (la courbe de la joue, une oreille qui dépasse en haut), des moustaches
+  const R = ih * 1.35; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.arc(cx + OE.dir * iw * 0.1, cy + R * 0.62, R, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx - iw * 0.62, iy + ih * 0.12); ctx.lineTo(cx - iw * 0.48, iy - ih * 0.2); ctx.lineTo(cx - iw * 0.3, iy + ih * 0.06); ctx.stroke();
+  // l'œil : un grand ovale noir, deux reflets blancs ; il suit la souris
+  const ex = cx + vx * iw * 0.2, ey = cy + vy * ih * 0.14, rx = iw * 0.2, ry = ih * 0.3 * (1 - bl * 0.94);
+  ctx.beginPath(); ctx.ellipse(ex, ey, rx, Math.max(1.5, ry), 0, 0, Math.PI * 2); ctx.fill();
+  if (bl < 0.6) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(ex - rx * 0.32 + vx * rx * 0.4, ey - ry * 0.36 + vy * ry * 0.3, rx * 0.26, ry * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(ex + rx * 0.3 + vx * rx * 0.3, ey + ry * 0.3, rx * 0.1, 0, Math.PI * 2); ctx.fill(); }
+  ctx.lineWidth = 1.6; ctx.globalAlpha = 0.8; for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(cx + OE.dir * iw * 0.35, cy + ih * 0.3 + i * 7); ctx.lineTo(cx + OE.dir * iw * 0.9, cy + ih * 0.26 + i * 12); ctx.stroke(); }
+  // la buée de son souffle sur la vitre, qui grandit et rapetisse
+  const bu = 0.5 + 0.5 * Math.sin(Wd.t * 1.6); ctx.globalAlpha = 0.18 * e; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(cx + OE.dir * iw * 0.3, cy + ih * 0.32, iw * (0.12 + bu * 0.08), ih * (0.07 + bu * 0.04), 0, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  // la croisée et le cadre, par-dessus : il est bien derrière la vitre (au clic, la vitre tremble)
+  const tr = Wd.t - OE.clic < 0.35 ? Math.sin((Wd.t - OE.clic) * 60) * 2 * (1 - (Wd.t - OE.clic) / 0.35) : 0;
+  ctx.save(); ctx.strokeStyle = `rgb(${ink})`; ctx.globalAlpha = 0.75; ctx.lineWidth = 1.6; ctx.translate(tr, 0); ctx.beginPath();
+  ctx.moveTo(f.x + f.w / 2, iy); ctx.lineTo(f.x + f.w / 2, iy + ih); ctx.moveTo(ix, f.y + f.h * 0.46); ctx.lineTo(ix + iw, f.y + f.h * 0.46); ctx.stroke();
+  ctx.lineWidth = 1.1; ctx.globalAlpha = 0.4; ctx.strokeRect(ix, iy, iw, ih); ctx.restore();
+});
+
+// la tête du géant qui entre par le bord de l'écran, du côté où il est sorti : la pièce est une maison de poupée, il regarde dedans
+function tete(ctx, ink, u) {
+  const d = OE.dir, W = Wd.W, Hh = Wd.H, R = Math.min(W * 0.2, Hh * 0.36), e = sm(u / 1.1) * (1 - sm((u - OE.dur + 1) / 1)), P = Wd.ptr;
+  const cy = ((Wd.ceil || Hh * 0.3) + Wd.floor) / 2 + R * 0.15, cx = d > 0 ? W + R * (1.25 - e * 1.45) : -R * (1.25 - e * 1.45), pen = Math.sin(u * 0.9) * 0.05 * d;
+  OE.b = { x: cx, y: cy, r: R };
+  const vx = P && P.on ? clamp((P.x - cx) / W, -0.6, 0.6) : -d * 0.3, vy = P && P.on ? clamp((P.y - cy) / Hh, -0.5, 0.5) : 0;
+  const cl = Wd.t - OE.cl, bl = cl >= 0 && cl < 0.24 ? 1 - Math.abs(cl / 0.12 - 1) : 0; if (cl > 0.3 && Math.random() < 0.004) OE.cl = Wd.t;
+  const tr = Wd.t - OE.clic < 0.4 ? Math.sin((Wd.t - OE.clic) * 50) * 5 * (1 - (Wd.t - OE.clic) / 0.4) : 0;
+  ctx.save(); ctx.translate(cx + tr, cy); ctx.rotate(pen); ctx.lineCap = ctx.lineJoin = 'round';
+  const papier = (getComputedStyle(document.documentElement).getPropertyValue('--bp').trim() || '#DADBD8');
+  // la tête (le même trait que les chats : un contour, deux oreilles), remplie de papier : elle passe devant la pièce
+  ctx.beginPath(); ctx.moveTo(-R, R * 0.1); ctx.quadraticCurveTo(-R, -R * 0.75, -R * 0.72, -R * 0.86); ctx.lineTo(-R * 0.62, -R * 1.42); ctx.lineTo(-R * 0.22, -R * 0.96);
+  ctx.quadraticCurveTo(0, -R * 1.03, R * 0.22, -R * 0.96); ctx.lineTo(R * 0.62, -R * 1.42); ctx.lineTo(R * 0.72, -R * 0.86); ctx.quadraticCurveTo(R, -R * 0.75, R, R * 0.1);
+  ctx.quadraticCurveTo(R, R * 0.92, 0, R * 0.92); ctx.quadraticCurveTo(-R, R * 0.92, -R, R * 0.1); ctx.closePath();
+  ctx.fillStyle = papier; ctx.fill(); ctx.strokeStyle = `rgb(${ink})`; ctx.lineWidth = Math.max(3, R * 0.022); ctx.stroke();
+  ctx.lineWidth = Math.max(2, R * 0.014); ctx.globalAlpha = 0.6; [-1, 1].forEach(sd => { ctx.beginPath(); ctx.moveTo(sd * R * 0.6, -R * 0.95); ctx.lineTo(sd * R * 0.58, -R * 1.25); ctx.lineTo(sd * R * 0.36, -R * 1.0); ctx.stroke(); }); ctx.globalAlpha = 1;
+  // les yeux : deux grands ovales noirs, deux reflets ; ils suivent la souris ; il cligne
+  ctx.fillStyle = `rgb(${ink})`; [-1, 1].forEach(sd => { const ex = sd * R * 0.4 + vx * R * 0.22, ey = -R * 0.05 + vy * R * 0.16, rx = R * 0.15, ry = R * 0.22 * (1 - bl * 0.94);
+    ctx.beginPath(); ctx.ellipse(ex, ey, rx, Math.max(1.5, ry), 0, 0, Math.PI * 2); ctx.fill();
+    if (bl < 0.6) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(ex - rx * 0.3 + vx * rx * 0.4, ey - ry * 0.35 + vy * ry * 0.3, rx * 0.3, ry * 0.22, 0, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(ex + rx * 0.32, ey + ry * 0.32, rx * 0.12, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = `rgb(${ink})`; } });
+  // le nez, la bouche en w, les moustaches qui dépassent vers la pièce
+  const ny = R * 0.3 + vy * R * 0.08, nx = vx * R * 0.18; ctx.lineWidth = Math.max(2, R * 0.016);
+  ctx.beginPath(); ctx.moveTo(nx - R * 0.05, ny); ctx.quadraticCurveTo(nx, ny - R * 0.03, nx + R * 0.05, ny); ctx.quadraticCurveTo(nx, ny + R * 0.05, nx - R * 0.05, ny); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(nx - R * 0.12, ny + R * 0.1); ctx.quadraticCurveTo(nx - R * 0.06, ny + R * 0.16, nx, ny + R * 0.06); ctx.quadraticCurveTo(nx + R * 0.06, ny + R * 0.16, nx + R * 0.12, ny + R * 0.1); ctx.stroke();
+  ctx.globalAlpha = 0.75; for (let i = -1; i <= 1; i++) { const sd = -d; ctx.beginPath(); ctx.moveTo(sd * R * 0.55, ny + i * R * 0.07); ctx.lineTo(sd * R * (1.35 + Math.abs(i) * 0.05), ny - R * 0.05 + i * R * 0.16 + Math.sin(Wd.t * 2 + i) * 3); ctx.stroke(); }
+  ctx.restore();
+}
+
 STEPS.rouleau = (c, T, dt) => {
   // (vague 9, l'audit : « il passe, c'est tout ») : au milieu de la pièce, il s'arrête. Il se balance, nous regarde (« …? »),
   // puis pousse un MIAOU énorme : l'écran tremble, le souffle balaie les chats et les objets légers ; puis il repart en roulant
@@ -426,5 +502,5 @@ try { const q = new URLSearchParams(location.search).get('rare'); if (q && LIST[
 
 // pour js/contacts.js : la réaction d'un visiteur à ce qui le touche (o.main : un geste léger, rien à renvoyer)
 const react = (c, o) => { if (c.rare && REACT[c.rare] && alive(c)) REACT[c.rare](c, o, zone(c)); };
-return { ...LIST, lance: go1, R, react, zone, panique };
+return { ...LIST, lance: go1, R, react, zone, panique, oeil, OE };
 })();

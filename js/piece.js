@@ -12,7 +12,7 @@ const stage = document.getElementById('stage'); if (!stage) return null;
 const cv = document.createElement('canvas'); cv.id = 'piece'; cv.setAttribute('aria-hidden', 'true');
 cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none';
 stage.appendChild(cv); const ctx = cv.getContext('2d');
-let cle = '', lune = null;
+let cle = '', lune = null, fen = null;   // (fen : la fenêtre, pour l'œil du géant, js/rares.js)
 const ink = () => (window.THEME && THEME.ink) || (window.Chalk && Chalk.INK) || '34,36,40';
 const ciel = () => { const h = new Date().getHours(); return h >= 18 ? 'soir' : 'jour'; };
 
@@ -51,7 +51,7 @@ function dessine() {
   for (let i = 0; i <= n; i++) { const x0 = W * (i / n - 0.5) * 1.1 + vx, k = (bas - yB) / (bas - vy), xb = vx + (x0 - vx) / (1 - k) * 1, xh = x0; ligne(xh, yB, vx + (xh - vx) * (bas - vy) / (yB - vy), bas, 0.09, 1, 20 + i); }
   for (let j = 1; j <= 3; j++) { const y = yB + (bas - yB) * Math.pow(j / 4, 1.6); ligne(0, y, W, y, 0.07, 1, 40 + j); }
   // la fenêtre
-  lune = null;
+  lune = null; fen = null;
   const fw = s0 * (large ? 1.5 : 1.1), fh = Math.min(s0 * 1.25, yB - s0 * 1.2 - top);
   if (fh > s0 * 0.55) {
     // (au-dessus des meubles du fond : elle peut passer derrière eux ; on préfère un vide, sinon le milieu)
@@ -59,7 +59,7 @@ function dessine() {
     // même quand on déplace un meuble — un mur ne change pas de fenêtre)
     const cx = fixe('fen', W, Hh, () => vide(W * 0.22, W * 0.8, fw * 0.9) ?? W * 0.5);
     {
-      const x = cx - fw / 2, y = yB - s0 * 1.25 - fh, c = ciel();
+      const x = cx - fw / 2, y = yB - s0 * 1.25 - fh, c = ciel(); fen = { x, y, w: fw, h: fh };
       // le ciel, derrière les carreaux
       ctx.save(); ctx.beginPath(); ctx.rect(x + 4, y + 4, fw - 8, fh - 8); ctx.clip();
       if (c === 'jour') {
@@ -140,5 +140,5 @@ H.pre.push(() => {
   if (k === cle) return; cle = k; dessine();
 });
 
-return { lune: () => lune, dessine };
+return { lune: () => lune, fen: () => fen, dessine };
 })();
