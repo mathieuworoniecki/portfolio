@@ -342,11 +342,46 @@ function gardeFou(o, now) {
       if (u >= 1) { o.font = '600 10px ui-monospace,Menlo,Consolas,monospace'; o.fillStyle = '#8fe0a0'; o.fillText(en() ? 'passed' : 'validé', P.x + 16, P.y + 22); } }
     o.restore(); }
 }
+// (vague 88, l'audit : « IA et données », elle sort d'elle-même) : la question de la souris ne cherche plus seulement dans le nuage : elle
+// cherche dans le vrai site. La souris s'arrête : des fils de recherche partent du pointeur vers chaque élément de l'interface (logo, langue,
+// chapitres, boutons), chacun reçoit son score de similarité ; le meilleur s'entoure de crochets, son texte se détache en fiche de papier et
+// revient en arc jusqu'au pointeur, où il se range dans la question (la réponse est retrouvée) ; la souris bouge : les fils se rétractent
+const RAG = { t: -99, T: 0, k: 0, ui: null, uiT: -9, sel: null, x: 0, y: 0 };
+function ragUI(o, now) {
+  const P = souris(), W0 = window.Chats && Chats.K && Chats.K.Wd; if (!P || !W0) { RAG.k = 0; return; }
+  const on = now - RAG.t < 0.3 && !reduitMvt(), st = W0.t - P.moved, dt = Math.min(0.2, Math.max(0, now - (RAG.T || now))); RAG.T = now;
+  if (!RAG.ui || now - RAG.uiT > 1) { RAG.uiT = now; RAG.ui = [...document.querySelectorAll('#brand, #lang-pick, .film-ui .ctrl > *, #chap > *')].filter(e => !e.closest('.scenes, #stage')).map(e => {
+    const b = e.getBoundingClientRect(), tx = (e.innerText || e.getAttribute('aria-label') || e.title || e.id || '').replace(/\s+/g, ' ').trim().slice(0, 22); return { e, b, tx: tx || (e.id === 'brand' ? 'Mathieu' : '·') }; }).filter(q => q.b.width > 0); }
+  const actif = on && st > 0.8; if (actif && RAG.k === 0) { RAG.x = P.x; RAG.y = P.y; RAG.sel = null; }
+  RAG.k = actif ? RAG.k + dt : Math.max(0, Math.min(0.6, RAG.k) - dt * 2); if (RAG.k <= 0) return;
+  const u = RAG.k, px = P.x, py = P.y, cv = o.canvas, dp = dpDe(cv);
+  const Uq = RAG.ui.map((q, i) => { const cx = (q.b.left + q.b.right) / 2, cy = (q.b.top + q.b.bottom) / 2, d = Math.hypot(cx - RAG.x, cy - RAG.y);
+    return { ...q, cx, cy, s: Math.min(0.97, 0.35 + 0.5 * Math.exp(-d / 500) + (bruit(i * 7.7 + Math.round(RAG.x / 40) * 3.1 + Math.round(RAG.y / 40)) - 0.5) * 0.2) }; });
+  if (!RAG.sel && Uq.length) RAG.sel = Uq.reduce((a, b) => b.s > a.s ? b : a).e; const best = Uq.find(q => q.e === RAG.sel); if (best) best.s = Math.max(best.s, 0.87 + bruit(RAG.x * 0.01) * 0.1);
+  o.save(); o.setTransform(dp, 0, 0, dp, 0, 0); o.lineCap = o.lineJoin = 'round';
+  const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
+  o.beginPath(); o.rect(0, 0, cv.width / dp, cv.height / dp); if (bd) o.rect(bd.x - 16, bd.y - 12, bd.w + 32, bd.h + 24); if (Pc) { o.moveTo(Pc.x + Pc.r * 1.2, Pc.y); o.arc(Pc.x, Pc.y, Pc.r * 1.2, 0, TAU); } o.clip('evenodd');
+  // les fils : ils poussent du pointeur vers chaque élément (les plus proches d'abord), leurs tirets courent vers nous
+  Uq.forEach((q, i) => { const d = Math.hypot(q.cx - px, q.cy - py), g = c01((u - d / 2600) / 0.45); if (g <= 0) return; const ex = lerp(px, q.cx, g), ey = lerp(py, q.cy, g), mx = (px + ex) / 2, my = (py + ey) / 2 - d * 0.08 * g;
+    const moi = q === best && u > 1; o.setLineDash([3, 5]); o.lineDashOffset = now * 30; o.strokeStyle = moi ? '#ffe9a8' : `rgba(${BL},0.6)`; o.lineWidth = moi ? 1.8 : 1; o.beginPath(); o.moveTo(px, py); o.quadraticCurveTo(mx, my, ex, ey); o.stroke(); o.setLineDash([]);
+    if (g >= 1) { const sc = q.s.toFixed(2).replace('.', en() ? '.' : ','), ty = q.cy > window.innerHeight / 2 ? q.b.top - 12 : q.b.bottom + 14; o.font = '600 10px ui-monospace,Menlo,Consolas,monospace'; o.textAlign = 'center'; o.textBaseline = 'middle';
+      const tw = o.measureText(sc).width + 8; o.fillStyle = moi ? '#ffe9a8' : PAP; o.strokeStyle = ENC; o.lineWidth = 1; o.beginPath(); o.rect(q.cx - tw / 2, ty - 7, tw, 14); o.fill(); o.stroke(); o.fillStyle = ENC; o.fillText(sc, q.cx, ty + 0.5); } });
+  // le meilleur : ses crochets se referment ; son texte se détache et revient au pointeur, puis se range dans la question
+  if (best && u > 1) { const f = sm(c01((u - 1) / 0.35)), m = 6 + (1 - f) * 18, b = best.b, L = 8; o.strokeStyle = NUIT; o.lineWidth = 4.5;
+    const cro = () => { o.beginPath(); [[b.left - m, b.top - m, 1, 1], [b.right + m, b.top - m, -1, 1], [b.right + m, b.bottom + m, -1, -1], [b.left - m, b.bottom + m, 1, -1]].forEach(([x, y, sx, sy]) => { o.moveTo(x + sx * L, y); o.lineTo(x, y); o.lineTo(x, y + sy * L); }); };
+    cro(); o.stroke(); o.strokeStyle = '#ffe9a8'; o.lineWidth = 2; cro(); o.stroke();
+    if (u > 1.35) { const v = sm(c01((u - 1.35) / 0.8)), ran = sm(c01((u - 2.3) / 0.4)), x = lerp(best.cx, px + 16, v), y = lerp(best.cy, py - 18, v) - Math.sin(Math.PI * v) * 90, s = (1 - ran * 0.85);
+      if (ran < 1) { o.save(); o.translate(x, y); o.rotate(Math.sin(v * 7) * 0.25 * (1 - v)); o.scale(s, s); o.font = '600 12px "Space Grotesk",system-ui,sans-serif'; const tw = o.measureText(best.tx).width + 16;
+        o.beginPath(); o.rect(-tw / 2, -11, tw, 22); o.strokeStyle = `rgb(${BL})`; o.lineWidth = 5; o.stroke(); o.fillStyle = PAP; o.fill(); o.strokeStyle = ENC; o.lineWidth = 1.3; o.stroke(); o.fillStyle = ENC; o.textAlign = 'center'; o.textBaseline = 'middle'; o.fillText(best.tx, 0, 1); o.restore(); }
+      if (ran >= 1 && u < 3.4) { const w = c01((u - 2.7) / 0.7); o.strokeStyle = '#ffe9a8'; o.lineWidth = 2 * (1 - w) + 0.5; o.beginPath(); o.arc(px, py, 14 + w * 30, 0, TAU); o.stroke();
+        o.font = '600 10px ui-monospace,Menlo,Consolas,monospace'; o.fillStyle = '#ffe9a8'; o.textAlign = 'left'; o.fillText(en() ? 'found' : 'trouvé', px + 18, py + 24); } } }
+  o.restore();
+}
 function vise(c0, now) {
   const c = VISE.c, P = souris(); VISE.c = null; const dt = Math.min(0.2, Math.max(0, now - (VISE.t || now))); VISE.t = now;
   if (c && P && (VISE.id === null || VISE.id === c.id || VISE.k < 0.05)) { VISE.id = c.id; VISE.k = Math.min(1.6, VISE.k + dt * 1.4); VISE.rb = c; }
   else { VISE.k = Math.max(0, VISE.k - dt * 3); if (VISE.k === 0) VISE.id = null; }
-  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); const sg = now - SURGE.t0 < 1.6 && now >= SURGE.t0, ins = now - INSP.t < 0.3 || INSP.k > 0; if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length && !FEUX.length && !sg && !ins && !INST.q && !pariOn(now) && !(now - GF.t < 0.3 || GF.k > 0)) return; const o = toileVise(c0.canvas); if (now - GF.t < 0.3 || GF.k > 0) gardeFou(o, now); if (sg) eclairs(o, now); if (pariOn(now)) pari(o, now); if (ins) inspecteur(o, now); if (INST.q) installe(o, now);
+  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); const sg = now - SURGE.t0 < 1.6 && now >= SURGE.t0, ins = now - INSP.t < 0.3 || INSP.k > 0; if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length && !FEUX.length && !sg && !ins && !INST.q && !pariOn(now) && !(now - GF.t < 0.3 || GF.k > 0) && !(now - RAG.t < 0.3 || RAG.k > 0)) return; const o = toileVise(c0.canvas); if (now - RAG.t < 0.3 || RAG.k > 0) ragUI(o, now); if (now - GF.t < 0.3 || GF.k > 0) gardeFou(o, now); if (sg) eclairs(o, now); if (pariOn(now)) pari(o, now); if (ins) inspecteur(o, now); if (INST.q) installe(o, now);
   TAMPON.forEach(q => tamponVitre(o, q, now - q.t0)); if (ENVOL.length) envols(o, now); if (FEUX.length) feux(o, now); if (!R || VISE.k <= 0 || !P) return;
   const W0 = window.Chats && Chats.K && Chats.K.Wd, chat = W0 && W0.cats.some(q => q.sp && q.sp.m === 'agrippe');
   const cv = o.canvas, dp = dpDe(cv), px = P.x * dp, py = P.y * dp, ln = Math.max(1, dp), k = VISE.k;
@@ -1220,6 +1255,7 @@ S.ia = (() => {
       Q.slice(0, nb).map((q, i) => [q, i]).sort((p, r) => p[0][2] - r[0][2]).forEach(([q, i]) => { const al = prof(q[2]); if (q[2] < -0.1) { rond(q[0], q[1], 1.3 + q[3] * 0.9, 0.5, al, true); return; }
         const w = k * 0.03 * q[3], h = w * 0.72, rt = bruit(i * 3.3) - 0.5; ctx.save(); ctx.translate(q[0], q[1]); ctx.rotate(rt); cerne(() => { ctx.beginPath(); ctx.rect(-w, -h, 2 * w, 2 * h); }, 0.45, al);
         if (w > 5) { ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.3; ctx.beginPath(); ctx.moveTo(-w * 0.6, -h * 0.25); ctx.lineTo(w * 0.6, -h * 0.25); ctx.moveTo(-w * 0.6, h * 0.3); ctx.lineTo(w * 0.2, h * 0.3); ctx.stroke(); } ctx.restore(); });
+      RAG.t = now;   // (vague 88 : la question cherche aussi dans le vrai site, voir ragUI())
       // (vague 60 de l'audit, « IA et données », immersion) : la souris pose sa propre question au nuage. Ses cinq plus proches voisins s'allument
       // et se relient à elle par des fils pointillés qui courent vers le pointeur (une recherche par similarité, en direct)
       { const Sm = souris(); if (Sm && window.Chats.K.Wd.t - Sm.moved < 2.5) { const Nv = Q.slice(0, nb).map((q, i) => [Math.hypot(q[0] - Sm.x, q[1] - Sm.y), i]).filter(d => d[0] < k * 0.7).sort((p, r) => p[0] - r[0]).slice(0, 5);
@@ -1654,5 +1690,5 @@ S.pilotage = (() => {
 S.rag = S.ia;
 
 // la toile, l'écran du ciel, les outils ; puis : une scène existe-t-elle ?
-return { S, vise, VISE, LUI, ENVOL, TH, FEUX, SURGE, INSP, INST, PARI, GF, pose(c, g, o) { ctx = c; G = g; O = o; } };
+return { S, vise, VISE, LUI, ENVOL, TH, FEUX, SURGE, INSP, INST, PARI, GF, RAG, pose(c, g, o) { ctx = c; G = g; O = o; } };
 })();
