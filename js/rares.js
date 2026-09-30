@@ -80,7 +80,7 @@ const OE = { t0: -99, dur: 0, dir: 1, cl: -99, clic: -99, suivant: Infinity };
 function oeil(dir) {
   if (Wd.espace || Wd.trou || Wd.fuite) return; const f = window.Piece && Piece.fen && Piece.fen() || { x: (dir || 1) > 0 ? Wd.W * 0.85 : Wd.W * 0.15, y: Wd.H * 0.4, w: 1, h: 1 };
   Object.assign(OE, { t0: Wd.t + 1.2, dur: 7.5, dir: dir || 1, cl: Wd.t + 4, suivant: Wd.t + rnd(70, 140) });
-  later(1.9, () => { watchers(f.x + f.w / 2, 3).forEach((c, i) => later(i * 0.25, () => { if (alive(c)) { c.face = sgn(f.x + f.w / 2 - c.x) || 1; say(c, pick(['!!', 'il est là', 'le géant !', '…'])); } })); if (window.Dex && Dex.vu) Dex.vu('miaou-geant'); });
+  later(1.9, () => { watchers(f.x + f.w / 2, 3).forEach((c, i) => later(i * 0.25, () => { if (alive(c)) { c.face = sgn(f.x + f.w / 2 - c.x) || 1; say(c, pick(['!!', 'il est là', 'le géant !', '…'])); } })); if (window.Dex && Dex.vu) Dex.vu('oeil-geant'); });
 }
 H.click.push((x, y) => { const u = Wd.t - OE.t0; if (u < 0.6 || u > OE.dur - 0.6) return false; const f = window.Piece && Piece.fen && Piece.fen(), B = OE.b;
   const dans = f ? x >= f.x && x <= f.x + f.w && y >= f.y && y <= f.y + f.h : B && Math.hypot(x - B.x, y - B.y) < B.r; if (!dans) return false;

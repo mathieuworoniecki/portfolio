@@ -1092,6 +1092,15 @@ function horde(grand, dir0) {
     Wd.rue = { t0: Wd.t, fin: Wd.t + 6, dir: -from, dit: 0 };
     later(0.8, () => Wd.fx.push({ k: 'txt', text: 'SQUIIIIK', x: from > 0 ? Wd.W * 0.75 : Wd.W * 0.25, y: floorAt(d2) - s2 * 3.4, t0: Wd.t, life: 1.8, rot: 0.1 * from, size: 48 }));
     if (window.Dex && Dex.vu) Dex.vu('souris-geante');
+    // (vague 98 de l'audit, « la horde », l'inoubliable) : quand tout est fini, la pièce vide, les empreintes encore au sol… un chaton arrive,
+    // tout petit, en retard, à bout de souffle (« attendez-moi ! »). Il s'arrête au milieu, souffle, regarde partout : « …j'ai raté quoi ? »,
+    // puis repart en trottinant, dans le mauvais sens
+    later(6.5, () => { if (Wd.espace || Wd.trou || Wd.fuite || Wd.cats.length > MAXC + 6) return; const dd = rnd(0.15, 0.4), k = addCat({ id: Chat.IDS.includes('chaton') ? 'chaton' : undefined, temp: true, d: dd, face: -from });
+      k.retard = true; k.x = from > 0 ? -sc(k) * 1.5 : Wd.W + sc(k) * 1.5; const mid = Wd.W * rnd(0.42, 0.58);
+      k.q = [go(mid, { g: 'galop', v: 0.8 }), pose('assis', 1.6, { fx: k => { say(k, pick(['hff… hff…', 'pff…'])); dust(k.x, floorAt(k.d), sc(k) * 0.5, 0.6); } }),
+        pose('affut', 1.1, { face: from, fx: k => say(k, pick(['…j’ai raté quoi ?', '…ils sont où ?', 'c’était ici, la fête ?'])) }), pose('affut', 0.9, { face: -from }),
+        go(from > 0 ? Wd.W + sc(k) * 2 : -sc(k) * 2, { v: 0.9 }), fn(k => { k.gone = true; })];
+      later(0.3, () => say(k, pick(['attendez-moi !', 'hééé ! attendez !', 'j’arrive !!']))); if (window.Dex && Dex.vu) Dex.vu('retard'); });
   };
   if (grand) later(3, retour);
   if (grand) { Wd.rue = { t0: Wd.t, fin: Wd.t + 7, dir, dit: 0 }; later(0.3, () => Wd.fx.push({ k: 'txt', text: 'BADABOUM', x: dir > 0 ? W * 0.2 : W * 0.8, y: floorAt(0.3) - sOf(0.3) * 2.2, t0: Wd.t, life: 1.8, rot: -0.12 * dir, size: 40 })); }
