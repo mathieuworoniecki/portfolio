@@ -464,6 +464,8 @@ html:not(.locked) #gate:not(.open){display:none}
 @keyframes hf-rayons{0%{opacity:0;rotate:0deg}12%{opacity:1}75%{opacity:.8}100%{opacity:0;rotate:120deg}}
 @keyframes hf-badge{0%{scale:0;rotate:-540deg}70%{scale:1.2;rotate:10deg}100%{scale:1;rotate:0deg}}
 @keyframes hf-mot{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:none}}
+/* (vague 95 de l'audit) : dans l'espace, au bureau, la planète des chats est en haut à droite : le haut fait s'annonce en haut à gauche, jamais sur elle */
+@media (min-width:601px){.espace .hf-show{right:auto;left:14px;transform-origin:0 0}}
 @media (max-width:600px){.hf-show{top:auto;bottom:calc(92px + env(safe-area-inset-bottom,0px));right:10px;max-width:min(270px,calc(100vw - 80px));padding:5px 12px 5px 5px;gap:6px;transform-origin:100% 100%}.hf-show .hf-badge{width:50px;height:auto}.hf-rayons{left:30px;width:120px}.hf-show h2{font-size:1.05rem}.hf-sur{font-size:.55rem}}
 .hf-btn svg{fill:none}
 .hf-grille{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))!important}
