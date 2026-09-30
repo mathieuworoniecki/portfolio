@@ -301,6 +301,12 @@ H.draw.push(() => {
 function tumble(L, vx, vy, vr) { if (!L.out0) L.out0 = Wd.t; L.st = 'fall'; L.vx = vx; L.vy = vy; L.vr = vr; L.t = Wd.t; }
 H.pre.push(dt => {
   const Ls = LETTERS(); if (!Ls) return; const r = RECT(), g = K.grav() * 0.9, fl = Wd.floor - 2;
+  // (vague 51 de l'audit, « le titre », immersion) : la souris qui passe sur le titre le fait onduler comme un champ de blé. Chaque lettre frôlée
+  // se penche dans le sens du geste et saute un peu, d'autant plus que le geste est vif
+  if (ptr.on && Wd.t - ptr.moved < 0.1 && !TL.jeu) { const sp = Math.hypot(ptr.vx, ptr.vy); if (sp > 120) Ls.forEach(L => {
+    if (L.st || L.a < 0.8 || Wd.t - (L.frole || -9) < 0.7) return; const x = lx(L, r), y = r.top + L.cy, h = L.y1 - L.y0, d = Math.abs(ptr.x - x);
+    if (d > (L.x1 - L.x0) * 0.9 + 6 || Math.abs(ptr.y - y) > h * 0.9) return; L.frole = Wd.t; const f = Math.min(1.4, sp / 900);
+    L.wob = Wd.t; L.wobA = (ptr.vx >= 0 ? 1 : -1) * (0.5 + f); L.hopA = h * 0.12 * f; }); }
   Ls.forEach(L => {
     const w = L.x1 - L.x0, h = L.y1 - L.y0;
     if (!L.st) { if (L.wob) { const u = Wd.t - L.wob; if (u < 0) return; L.rot = Math.sin(u * 22) * 0.07 * (L.wobA || 1) * Math.exp(-u * 3);
