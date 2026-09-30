@@ -884,6 +884,7 @@ function drawFx(S) {
     else if (f.k === 'vague') vaguePoussiere(f, u, K);
     else if (f.k === 'cri') ondeCri(f, t);
     else if (f.k === 'patte') empreinte(f, u);
+    else if (f.k === 'griffe') griffe(f, t - f.t0);
     else if (f.k === 'vers') versNous(f, t - f.t0);
     else if (f.k === 'grele') grele(f, t - f.t0);
     else if (f.k === 'bagarre') fightCloud(f, u, fade, K);
@@ -952,6 +953,18 @@ function vaguePoussiere(f, u, K) {
 }
 // le MIAOU du géant (js/rares.js) : cinq ondes sonores au trait, qui ondulent et traversent tout l'écran ; elles sortent par les bords (rien ne s'efface)
 // une empreinte de la horde : le coussinet et quatre doigts, à plat sur le plancher (écrasés par la perspective) ; à la fin elle rétrécit jusqu'à rien
+// (vague 78) : la patte d'un chat vient griffer la vitre sous la souris : trois traits de craie en biais, tracés d'un coup,
+// un éclat au bout ; ils restent un moment puis se résorbent vers leur milieu (jamais d'effacement en fondu)
+function griffe(f, tt) {
+  const L = f.s * 1.1, tr = c01(tt / 0.12), fin = 1 - sm(c01((tt - f.life * 0.72) / (f.life * 0.28))), a = 0.8 * Wd.a;
+  if (fin < 0.02) return; const an = -0.9 * f.face, ca = Math.cos(an), sa = Math.sin(an);
+  for (let i = 0; i < 3; i++) {
+    const o = (i - 1) * f.s * 0.2, mx = f.x - sa * o, my = f.y + ca * o, l = L * (1 - Math.abs(i - 1) * 0.2) * fin, q = Math.sin(i * 2.1 + f.seed) * 0.08;
+    const P = []; for (let j = 0; j <= 6; j++) { const u = j / 6 - 0.5; P.push([mx + ca * u * l - sa * u * u * l * q * 4, my + sa * u * l + ca * u * u * l * q * 4]); }
+    Chalk.stroke(P, tr, { w: 4.2 - Math.abs(i - 1) * 0.9, a, seed: f.seed + i, tip: true });
+    if (tr >= 1 && tt < 0.4) { const e = P[6], k = 1 - tt / 0.4; for (let j = 0; j < 3; j++) { const b = an + (j - 1) * 0.7; Chalk.line(e[0], e[1], e[0] + Math.cos(b) * f.s * 0.12 * k, e[1] + Math.sin(b) * f.s * 0.12 * k, 1, { w: 1, a: a * 0.7, seed: f.seed + 9 + j }); } }
+  }
+}
 function empreinte(f, u) {
   const k = u < 0.85 ? 1 : 1 - (u - 0.85) / 0.15, r = f.r * k; if (r < 0.6) return; const a = 0.55 * Wd.a;
   Chalk.circle(f.x, f.y, r, r * 0.5, 1, { w: 1.3, a, seed: f.seed });

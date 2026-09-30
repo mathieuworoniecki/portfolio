@@ -99,6 +99,23 @@ H.post.push(dt => {
     else c.chaseCool = Wd.t + rnd(1, 3);
   });
 });
+// (vague 78, l'audit : « la pièce nous voit ») : le pointeur seul ne lance plus de chasse (la plume, oui) ; mais s'il reste immobile tout près
+// d'un chat, de temps en temps, celui-ci se tapit, se dandine… et bondit dessus : sa patte griffe la vitre, trois traits de craie sous la souris
+H.post.push(dt => {
+  if (ptr.plume > Wd.t || !ptr.on || Wd.fuite || busyHand() || Wd.t < (Wd.guetteChk || 12)) return; Wd.guetteChk = Wd.t + 0.4;
+  const calme = Wd.t - ptr.moved; if (calme < 0.7 || calme > 6 || Wd.t < (Wd.guetteCool || 0)) return;
+  const [ax, ay] = aim(), c = Wd.cats.find(c => !c.temp && !c.rare && !c.hidden && c.hp && free4(c) && Wd.t > (c.chaseCool || 0)
+    && Math.hypot(ax - c.hp[0], ay - c.hp[1]) < sc(c) * 2.2 && floorAt(c.d) - ay > -sc(c) * 0.2 && K.catAt(ax, ay) !== c);
+  if (!c || Math.random() > 0.35) return;
+  Wd.guetteCool = Wd.t + rnd(25, 45); c.chaseCool = Wd.t + rnd(12, 20);
+  const s = sc(c), f = sgn(ax - c.x) || c.face, d = c.d; let px, py;
+  interrupt(c); c.q = [pose('affut', rnd(0.9, 1.4), { face: f, fx: c => say(c, pick(['…', 'chut…', '…!'])) }),
+    fn(c => { [px, py] = aim(); const tx = inView(px - f * front(c) * 0.5), h = clamp((floorAt(d) - py) * 0.9, s * 0.4, s * 2.4);
+      c.q.unshift(hop(() => groundAt(tx, d), { h, dur: 0.38 + h / s * 0.08 }), pose('tape', 0.5, { face: f, fx: c => {
+        const [qx, qy] = aim(), bouge = Math.hypot(qx - px, qy - py) > s * 0.6;
+        if (!bouge) { Wd.fx.push({ k: 'griffe', x: qx, y: qy, face: f, s, t0: Wd.t, life: 2.8, seed: Math.floor(Math.random() * 99) }); say(c, pick(['kss !', 'à moi !', 'tchac !'])); }
+        else say(c, pick(['raté…', 'hé !', 'triche !'])); } }), pose('assis', rnd(1.2, 2), { fx: c => Math.random() < 0.5 && say(c, pick(['c’était quoi ?', 'la vitre…', 'hm.'])) })); })];
+});
 STEPS.chasse = (c, T, dt) => {
   if (T.t0 === undefined) { T.t0 = Wd.t; T.w = 0; T.wait = rnd(0.5, 1.1); T.n = 0; }
   // la proie : la plume de la canne ; ou une autre (T.aim : la mouche…)
