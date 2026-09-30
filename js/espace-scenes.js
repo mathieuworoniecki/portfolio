@@ -302,11 +302,51 @@ function pari(o, now) {
   if (PARI.res === false && now - PARI.tr < 0.9) { const u = (now - PARI.tr) / 0.9, m = PARI.M[0]; if (m) { o.font = '700 16px "Space Grotesk",system-ui,sans-serif'; o.textAlign = 'center'; o.lineWidth = 4; o.strokeStyle = NUIT; o.strokeText(en() ? 'missed' : 'raté', m.x + 60, m.y - 22 - u * 20); o.fillStyle = `rgb(${BL})`; o.fillText(en() ? 'missed' : 'raté', m.x + 60, m.y - 22 - u * 20); } }
   o.restore();
 }
+// (vague 87, l'audit : « la vitesse sans perdre le contrôle », elle sort d'elle-même) : pendant la scène, les garde-fous gardent aussi le vrai
+// site. La souris s'approche d'un bouton, d'une flèche, d'un chapitre : une barrière rayée tombe du haut devant lui, côté souris, son feu
+// rouge qui clignote, un trait de contrôle balaie le pointeur ; si on attend, le feu passe au vert, coche, et la barrière se lève ; on s'en
+// va : elle remonte d'où elle vient (jamais de fondu)
+const GF = { t: -99, el: null, b: null, k: 0, s: 0, T: 0, ok: false, cote: 0, ui: null, uiT: -9 };
+function gardeFou(o, now) {
+  const P = souris(), dt = Math.min(0.2, Math.max(0, now - (GF.T || now))); GF.T = now;
+  if (!GF.ui || now - GF.uiT > 1) { GF.uiT = now; GF.ui = [...document.querySelectorAll('#brand, #lang-pick, .film-ui .ctrl > *, #chap > *, .nav, [class*="fleche"]')].filter(e => !e.closest('.scenes, #stage')).map(e => ({ e, b: e.getBoundingClientRect() })).filter(q => q.b.width > 0); }
+  let el = null, bb = null, bd = 90; const on = now - GF.t < 0.3 && P && !reduitMvt();
+  if (on) GF.ui.forEach(q => { const b = q.b, dx = Math.max(b.left - P.x, 0, P.x - b.right), dy = Math.max(b.top - P.y, 0, P.y - b.bottom), d = Math.hypot(dx, dy); if (d < bd) { bd = d; el = q.e; bb = b; } });
+  if (el && el !== GF.el && GF.k < 0.05) { GF.el = el; GF.b = bb; GF.s = 0; GF.ok = false; const cx = (bb.left + bb.right) / 2, cy = (bb.top + bb.bottom) / 2, ux = (P.x - cx) / (bb.width / 2 + 20), uy = (P.y - cy) / (bb.height / 2 + 20); GF.cote = Math.abs(ux) > Math.abs(uy) ? (ux > 0 ? 1 : 3) : (uy > 0 ? 2 : 0); }
+  const ici = el && el === GF.el; GF.k = ici ? Math.min(1, GF.k + dt / 0.35) : Math.max(0, GF.k - dt / 0.3); if (ici) GF.s += dt;
+  if (!GF.el || GF.k <= 0) { if (!el) GF.el = null; return; }
+  if (!GF.ok && GF.s > 1.1) { GF.ok = true; GF.tok = now; GF.el.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }], { duration: 320, easing: 'ease-out', composite: 'add' }); }
+  const cv = o.canvas, dp = dpDe(cv); o.save(); o.setTransform(dp, 0, 0, dp, 0, 0); o.lineCap = o.lineJoin = 'round';
+  // (on travaille dans le repère du côté gardé : l'axe x le long du côté, y vers la souris)
+  const b = GF.b, m = 12, c = GF.cote, L = c % 2 ? b.height + 2 * m : b.width + 2 * m;
+  const org = [[b.left - m, b.top - m], [b.right + m, b.top - m], [b.right + m, b.bottom + m], [b.left - m, b.bottom + m]][c], ang = [0, Math.PI / 2, Math.PI, -Math.PI / 2][c];
+  const chute = 1 - (1 - sm(GF.k)) * (1 - sm(GF.k)) , rebond = GF.k < 1 ? 0 : Math.max(0, 0.25 - GF.s) * Math.sin(GF.s * 40) * 6;
+  o.translate(org[0], org[1]); o.rotate(ang); o.translate(0, -(1 - chute) * 140 * (c === 0 ? 1 : 0.6) + rebond); o.scale(0.3 + 0.7 * chute, 0.3 + 0.7 * chute);
+  const dbl = (lw, f, col) => { o.strokeStyle = NUIT; o.lineWidth = lw + 3.5; f(); o.stroke(); o.strokeStyle = col || `rgb(${BL})`; o.lineWidth = lw; f(); o.stroke(); };
+  // les deux poteaux, leurs pieds
+  [0, L].forEach(x => { dbl(2.2, () => { o.beginPath(); o.moveTo(x, 0); o.lineTo(x, -22); }); dbl(1.6, () => { o.beginPath(); o.moveTo(x - 5, 0); o.lineTo(x + 5, 0); }); });
+  // le feu, sur le poteau de gauche : rouge qui clignote, puis vert
+  const vert = GF.ok, cl = vert || Math.floor(now * 5) % 2; o.fillStyle = vert ? '#8fe0a0' : cl ? '#e8574a' : NUIT; o.strokeStyle = `rgb(${BL})`; o.lineWidth = 1.4; o.beginPath(); o.arc(0, -28, 5, 0, TAU); o.fill(); o.stroke();
+  // la lisse rayée : charnière à gauche, elle se lève quand c'est bon
+  const lev = vert ? sm(c01((now - GF.tok) / 0.45)) : 0, la = L - 4; o.save(); o.translate(0, -16); o.rotate(-lev * 1.35);
+  o.beginPath(); o.rect(0, -3.5, la, 7); o.fillStyle = NUIT; o.fill(); o.save(); o.clip(); o.fillStyle = '#e8574a'; for (let x = -8; x < la + 8; x += 14) { o.beginPath(); o.moveTo(x, 4); o.lineTo(x + 7, 4); o.lineTo(x + 14, -4); o.lineTo(x + 7, -4); o.closePath(); o.fill(); } o.restore();
+  o.strokeStyle = `rgb(${BL})`; o.lineWidth = 1.4; o.strokeRect(0, -3.5, la, 7); o.restore();
+  o.restore();
+  // le trait de contrôle : du feu jusqu'au pointeur, en tirets qui courent ; puis la coche, près du pointeur
+  if (P && GF.k >= 1) { const f = [org[0] + Math.cos(ang) * 0 - Math.sin(ang) * -28, org[1] + Math.sin(ang) * 0 + Math.cos(ang) * -28];
+    o.save(); o.setTransform(dp, 0, 0, dp, 0, 0); o.lineCap = 'round';
+    if (!vert) { o.setLineDash([4, 5]); o.lineDashOffset = -now * 40; o.strokeStyle = '#e8574a'; o.lineWidth = 1.3; o.beginPath(); o.moveTo(f[0], f[1]); o.lineTo(P.x, P.y); o.stroke(); o.setLineDash([]);
+      const u = (now * 1.6) % 1; o.strokeStyle = `rgb(${BL})`; o.lineWidth = 1.2; o.beginPath(); o.moveTo(P.x - 14, P.y - 14 + u * 28); o.lineTo(P.x + 14, P.y - 14 + u * 28); o.stroke();
+      o.font = '600 10px ui-monospace,Menlo,Consolas,monospace'; o.fillStyle = `rgb(${BL})`; o.fillText(en() ? 'checking…' : 'contrôle…', P.x + 16, P.y + 22); }
+    else { const u = c01((now - GF.tok) / 0.3), x = P.x + 18, y = P.y - 14; o.strokeStyle = NUIT; o.lineWidth = 6; o.beginPath(); o.moveTo(x - 7, y); o.lineTo(x - 2, y + 5 * Math.min(1, u * 2)); if (u > 0.5) o.lineTo(x - 2 + 10 * (u - 0.5) * 2, y + 5 - 11 * (u - 0.5) * 2); o.stroke(); o.strokeStyle = '#8fe0a0'; o.lineWidth = 2.5; o.stroke();
+      if (u >= 1) { o.font = '600 10px ui-monospace,Menlo,Consolas,monospace'; o.fillStyle = '#8fe0a0'; o.fillText(en() ? 'passed' : 'validé', P.x + 16, P.y + 22); } }
+    o.restore(); }
+}
 function vise(c0, now) {
   const c = VISE.c, P = souris(); VISE.c = null; const dt = Math.min(0.2, Math.max(0, now - (VISE.t || now))); VISE.t = now;
   if (c && P && (VISE.id === null || VISE.id === c.id || VISE.k < 0.05)) { VISE.id = c.id; VISE.k = Math.min(1.6, VISE.k + dt * 1.4); VISE.rb = c; }
   else { VISE.k = Math.max(0, VISE.k - dt * 3); if (VISE.k === 0) VISE.id = null; }
-  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); const sg = now - SURGE.t0 < 1.6 && now >= SURGE.t0, ins = now - INSP.t < 0.3 || INSP.k > 0; if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length && !FEUX.length && !sg && !ins && !INST.q && !pariOn(now)) return; const o = toileVise(c0.canvas); if (sg) eclairs(o, now); if (pariOn(now)) pari(o, now); if (ins) inspecteur(o, now); if (INST.q) installe(o, now);
+  const R = VISE.rb; while (TAMPON.length && now - TAMPON[0].t0 > 3.4) TAMPON.shift(); const sg = now - SURGE.t0 < 1.6 && now >= SURGE.t0, ins = now - INSP.t < 0.3 || INSP.k > 0; if (!VC && (!R || VISE.k <= 0) && !TAMPON.length && !ENVOL.length && !FEUX.length && !sg && !ins && !INST.q && !pariOn(now) && !(now - GF.t < 0.3 || GF.k > 0)) return; const o = toileVise(c0.canvas); if (now - GF.t < 0.3 || GF.k > 0) gardeFou(o, now); if (sg) eclairs(o, now); if (pariOn(now)) pari(o, now); if (ins) inspecteur(o, now); if (INST.q) installe(o, now);
   TAMPON.forEach(q => tamponVitre(o, q, now - q.t0)); if (ENVOL.length) envols(o, now); if (FEUX.length) feux(o, now); if (!R || VISE.k <= 0 || !P) return;
   const W0 = window.Chats && Chats.K && Chats.K.Wd, chat = W0 && W0.cats.some(q => q.sp && q.sp.m === 'agrippe');
   const cv = o.canvas, dp = dpDe(cv), px = P.x * dp, py = P.y * dp, ln = Math.max(1, dp), k = VISE.k;
@@ -1018,6 +1058,7 @@ S.gardefous = (() => {
           cerne(() => { ctx.beginPath(); ctx.ellipse(m1[0], m1[1], r * Math.abs(Math.cos(t)) + 1, r, 0, 0, TAU); }, 0.8, 1); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.5; ctx.beginPath(); ctx.moveTo(m1[0], m1[1]); ctx.lineTo(m1[0] + Math.sin(t) * r * 1.4, m1[1] - r * 0.2); ctx.stroke();
           style(0.5, 0.35); ctx.beginPath(); ctx.moveTo(m1[0], m1[1]); ctx.lineTo(m1[0] + Math.sin(t) * k * 0.6, m1[1] + k * 0.25); ctx.stroke(); }
         const L = V(g, yT - (i === 2 ? 0.84 : i === 1 ? 1.0 : 0.76), -0.34); const fl = Math.max(10, k * 0.07); mot(lab[i], L[0], Math.max(L[1], G.haut + fl * 1.1), fl, 0.9); });   // (vague 58 : jamais sur la barre des chapitres)
+      GF.t = now;   // (vague 87 : les garde-fous du vrai site, voir gardeFou())
       // l'humain : il regarde, hoche la tête, tamponne
       const hp = V(xS + 0.34, yT, -0.28), rr = k * 0.15 * hp[3], hoche = Math.max(0, Math.sin(now * 2.2)) ** 6, ci = V(xS - 0.05, yT - 0.02, 0);
       lui(hp[0], hp[1] - rr * 2.5, rr, { now, hoche, tp: tampon, cible: ci, cote: -1 }); mot(lab[3], hp[0], hp[1] + k * 0.06, Math.max(10, k * 0.07), 0.85);
@@ -1613,5 +1654,5 @@ S.pilotage = (() => {
 S.rag = S.ia;
 
 // la toile, l'écran du ciel, les outils ; puis : une scène existe-t-elle ?
-return { S, vise, VISE, LUI, ENVOL, TH, FEUX, SURGE, INSP, INST, PARI, pose(c, g, o) { ctx = c; G = g; O = o; } };
+return { S, vise, VISE, LUI, ENVOL, TH, FEUX, SURGE, INSP, INST, PARI, GF, pose(c, g, o) { ctx = c; G = g; O = o; } };
 })();
