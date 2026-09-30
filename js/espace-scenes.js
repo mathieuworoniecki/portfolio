@@ -1302,7 +1302,10 @@ S.puce = (() => {
       const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, lim = bd ? bd.y - gap * 0.6 : G.bas, dep = Math.max(0, TY[5] - lim); if (dep) TY.forEach((y, j) => { TY[j] = y - dep; });
       LB = { x: xcol, TY: TY.slice(), EQ: EQ.map(q => [q[0], q[1]]), gap };
       EQ.forEach((R, j) => { const ty = TY[j]; const tx = xcol;
-        trait([R, [tx - 16, ty], [tx - 6, ty]], false, 0.45, 0.6 * (1 - ferme)); rond(R[0], R[1], 2, 0.6, 0.8 * (1 - ferme), true); mot(lab[j].toUpperCase(), tx + lev[j] * 8, ty, Math.max(11, k * (j === 1 ? 0.085 : 0.065) * (1 + lev[j] * 0.3)), (j === 1 || lev[j] > 0.3 ? 1 : 0.85) * (1 - ferme), 'left'); });
+        trait([R, [tx - 16, ty], [tx - 6, ty]], false, 0.45, 0.6 * (1 - ferme)); rond(R[0], R[1], 2, 0.6, 0.8 * (1 - ferme), true);
+        // (vague 91, finition : au téléphone, les couches passaient sur les noms ; un liseré de nuit les détache)
+        { const px = Math.max(11, k * (j === 1 ? 0.085 : 0.065) * (1 + lev[j] * 0.3)); ctx.font = `600 ${px}px "Space Grotesk",system-ui,sans-serif`; ctx.globalAlpha = 1 - ferme; ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, px * 0.35); ctx.strokeStyle = 'rgb(9,11,18)'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.strokeText(lab[j].toUpperCase(), tx + lev[j] * 8, ty); }
+        mot(lab[j].toUpperCase(), tx + lev[j] * 8, ty, Math.max(11, k * (j === 1 ? 0.085 : 0.065) * (1 + lev[j] * 0.3)), (j === 1 || lev[j] > 0.3 ? 1 : 0.85) * (1 - ferme), 'left'); });
       if (ferme > 0.9 && now - SURGE.t0 > 2) { const C = V0(0, 0, 0), m = ctx.getTransform(), dp = dpDe(ctx.canvas); surge((m.a * C[0] + m.c * C[1] + m.e) / dp, (m.b * C[0] + m.d * C[1] + m.f) / dp, now); }
       if (ferme > 0.9) { const C = V0(0, 0, 0); eclat(C[0], C[1], k * 0.6, (ferme - 0.9) * 10, 14, 0.3); mot('clac', C[0] + k * 0.5, C[1] - k * 0.3, Math.max(14, k * 0.1), 1); }
     }
@@ -1543,7 +1546,7 @@ S.devops = (() => ({
       mot(lab[i], x, m[1], px, 1); });
     const mw = Math.min(0.9, lx * 0.5) * k, mh = 0.2 * k, mc = [G.cx, G.cy - k * 0.72]; ecran(mc[0] - mw / 2, mc[1] - mh / 2, mw, mh, k * 0.06, 5);
     const M = []; for (let i = 0; i <= 70; i++) { const u = i / 70, t = u * (3.5 + CHG * 4) - now * (0.8 + CHG * 1.6), f = t - Math.floor(t), b = f > 0.4 && f < 0.5 ? Math.sin((f - 0.4) / 0.1 * TAU) * (0.35 + CHG * 0.1) : 0; M.push([mc[0] - mw * 0.45 + u * mw * 0.9, mc[1] - b * mh]); } trait(M, false, 0.8, 1);
-    if (CHG > 0.25) mot((en() ? 'autoscale ×' : 'mise à l’échelle ×') + (nC / 12).toFixed(1).replace('.0', ''), mc[0], mc[1] + mh * 0.95, Math.max(11, k * 0.06), c01((CHG - 0.25) / 0.2));
+    if (CHG > 0.25) mot((en() ? 'autoscale ×' : 'mise à l’échelle ×') + (nC / 12).toFixed(1).replace('.0', ''), mc[0], mc[1] + mh * 0.95, G.sw < 500 ? 9 : Math.max(11, k * 0.06), c01((CHG - 0.25) / 0.2));
   }
 }))();
 
