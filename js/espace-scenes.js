@@ -62,7 +62,7 @@ function chabot(x, y, r, o = {}) {
   const Sp = r >= 6 ? sourisIci() : null;
   const dS = Sp ? Math.hypot(Sp.x - x, Sp.y - y) : 1e9, voit = dS < r * 6 ? 1 - dS / (r * 6) : 0;
   if (dS < r * 2.8) { const i = Sp.x > x ? 1 : 0; bras = bras.slice(); bras[i] = 1.25 + Math.sin(now * 14 + ph) * 0.4; }
-  if (Sp && r >= 8 && dS < r * 4.5 && (!VISE.c || dS / r < VISE.c.d)) { const m = ctx.getTransform(), q = { d: dS / r, id: ph, x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f, r: r * Math.hypot(m.a, m.b) }; if (q.x > 0 && q.y > 0 && q.x < ctx.canvas.width && q.y < ctx.canvas.height && q.r < ctx.canvas.height * 0.3) VISE.c = q; }
+  if (Sp && r >= 8 && o.vise !== false && !(AGV.e > 0.3 && now - AGV.t < 0.3) && dS < r * 4.5 && (!VISE.c || dS / r < VISE.c.d)) { const m = ctx.getTransform(), q = { d: dS / r, id: ph, x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f, r: r * Math.hypot(m.a, m.b) }; if (q.x > 0 && q.y > 0 && q.x < ctx.canvas.width && q.y < ctx.canvas.height && q.r < ctx.canvas.height * 0.3) VISE.c = q; }
   [-1, 1].forEach((g, i) => { const b = bras[i], ex = x + g * bw * 0.86, ey = by - bh * 0.35, mx = ex + g * Math.cos(b) * r * 0.42, my = ey - Math.sin(b) * r * 0.42;
     cerne(() => { ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(mx, my); }, w * 1.5, a, null); cerne(() => { ctx.beginPath(); ctx.arc(mx, my, r * 0.13, 0, TAU); }, w, a); });
   // (vague 32, l'audit : « le chat-robot ») : une queue de chat mécanique, en anneaux qui rapetissent, qui ondule derrière lui ; le bout, une petite boule
@@ -119,6 +119,7 @@ function chabot(x, y, r, o = {}) {
 const VISE = { c: null, k: 0, id: null, px: 0, py: 0, t: 0 };
 // (dessiné sur sa propre toile, tout en haut : par-dessus le chat qui s'agrippe au pointeur ; effacée dès qu'on ne l'appelle plus)
 let VC = null, VT = 0;
+const AGV = { t: 0, e: 0, p: null };
 const LUI = { t: 0, h: 0, t0: -99 }, TAMPON = [];
 function toileVise(cv0) {
   if (!VC) { VC = document.createElement('canvas'); VC.setAttribute('aria-hidden', 'true'); VC.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2'; document.body.appendChild(VC); }
@@ -539,6 +540,20 @@ S.agents = (() => {
             ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.3; ctx.beginPath(); ctx.moveTo(-sz * 0.6, -sz * 0.15); ctx.lineTo(sz * 0.5, -sz * 0.15); ctx.moveTo(-sz * 0.6, sz * 0.3); ctx.lineTo(sz * 0.2, sz * 0.3); ctx.stroke(); ctx.restore(); }
           if (u > 0 && u < 1) { const x = lerp(B[0], A[0], u), y = lerp(B[1], A[1], u), r = sz * 0.9; trait([[lerp(B[0], A[0], Math.max(0, u - 0.25)), lerp(B[1], A[1], Math.max(0, u - 0.25))], [x, y]], false, 0.5, al * 0.6);
             cerne(() => { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); }, 0.6, al); if (r > 3) coche(x, y, r * 0.55, 1, 0.5); brille(x, y, 2.2 * B[3], al * 0.6, true, now, q.i); } } });
+      // (vague 81, l'audit : « agents et sous-agents ») : on entre dans l'arbre. La souris sur le ciel : la branche la plus proche pousse jusqu'à
+      // elle, un sous-agent de plus s'y accroche (« vous »), pendu au pointeur ; les fiches de tâche descendent jusqu'à lui, les pastilles cochées remontent
+      { const Sp = sourisIci(), bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, dtA = Math.min(0.2, Math.max(0, now - (AGV.t || now))); AGV.t = now;
+        const ok = Sp && a > 2.3 && Sp.y > G.haut && !(bd && Sp.y > bd.y - 30); AGV.e = c01(AGV.e + (ok ? dtA / 0.6 : -dtA / 0.3));
+        if (AGV.e > 0 && (Sp || AGV.p)) { if (Sp && ok) AGV.p = [Sp.x, Sp.y]; const P = AGV.p; let A = null, bd2 = 1e9;
+          N.forEach(q => { if (q.n !== 2 || nait(q) < 1) return; const d = Math.hypot(pos[q.i][0] - P[0], pos[q.i][1] - P[1]); if (d < bd2) { bd2 = d; A = pos[q.i]; } });
+          if (A) { const e = sm(AGV.e), E = [lerp(A[0], P[0], e), lerp(A[1], P[1], e)], r = Math.max(14, k * 0.075) * e;
+            ctx.save(); ctx.setLineDash([G.lw * 4, G.lw * 3]); trait([A, E], false, 1.1, 1); ctx.restore();
+            if (r > 3) { chabot(E[0], E[1] + r * 1.9, r, { now, ph: 77, vise: false, casque: true, lac: Math.sin(now * 0.9) * 0.5, bras: [1.45 + Math.sin(now * 6) * 0.1, 1.45 - Math.sin(now * 6) * 0.1], travaille: c > 1.3 && c < 2.9 });
+              if (e > 0.9) { const px = Math.max(11, k * 0.045); ctx.font = `600 ${px}px "Space Grotesk",system-ui,sans-serif`; const t = en() ? 'you' : 'vous', w = ctx.measureText(t).width + px, lx = E[0] + r * 1.5, ly = E[1] + r * 1.2;
+                ctx.globalAlpha = 1; ctx.fillStyle = PAP; ctx.strokeStyle = ENC; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.rect(lx, ly, w, px * 1.5); ctx.fill(); ctx.stroke(); ctx.fillStyle = ENC; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, lx + w / 2, ly + px * 0.78); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; }
+              if (c >= 0 && e > 0.95) { const d = c01((c - 1.35) / 0.5), u = c01((c - 2.75) / 0.5), sz = k * 0.03;
+                if (d > 0 && d < 1) { const x = lerp(A[0], E[0], d), y = lerp(A[1], E[1], d) + sz; cerne(() => { ctx.beginPath(); ctx.rect(x - sz, y - sz * 0.7, sz * 2, sz * 1.4); }, 0.5, 1); }
+                if (u > 0 && u < 1) { const x = lerp(E[0], A[0], u), y = lerp(E[1], A[1], u); cerne(() => { ctx.beginPath(); ctx.arc(x, y, sz * 0.9, 0, TAU); }, 0.6, 1); coche(x, y, sz * 0.5, 1, 0.5); brille(x, y, 2.2, 0.6, true, now, 77); } } } } } }
       N.slice().sort((p, q) => pos[p.i][2] - pos[q.i][2]).forEach(q => { const e = nait(q); if (e <= 0) return; const [x, y, z, f] = pos[q.i], pop = e < 1 ? 1 + 0.35 * Math.sin(Math.PI * e) : 1, al = 1;
         if (q.n < 3) robot(x, y, k * [0.14, 0.09, 0.06][q.n] * f * pop * (q.n ? Math.min(1.4, hx * 0.55) : 1), al, Math.sin(now * 1.5 + q.i) > 0.97, { now, ph: q.i, lac: Math.sin(now * 0.6 + q.i * 1.7) * 0.7, travaille: c > 1.3 && c < 2.9 });
         else { const r = k * 0.028 * f * pop * Math.min(1.6, hx * 0.6); if (r > 5) { chabot(x, y, r * 1.25, { now, ph: q.i, a: al, casque: false, lac: Math.sin(now * 0.8 + q.i) * 0.6, travaille: c > 1.3 && c < 2.9 }); } else rond(x, y, r, 0.8, al, 'nuit'); if (c > 1.3 && c < 2.9) { style(0.6, al); ctx.beginPath(); ctx.arc(x, y, r * 1.9, now * 6 + q.i, now * 6 + q.i + 2); ctx.stroke(); } } });
