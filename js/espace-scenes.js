@@ -826,6 +826,7 @@ S.puce = (() => {
     ctx.restore();
   }
   const fr = v => v - Math.floor(v);
+  let LB = null; const HV = [0, 0, 0, 0, 0, 0];   // (vague 59 : où sont les étiquettes, et la couche que la souris ouvre)
   return {
     cles: () => [[-0.45, 0], [0.45, 0], [0, -0.3], [0, 0.3]],
     dessin(a, now) {
@@ -833,7 +834,13 @@ S.puce = (() => {
       // (en escalier : chaque couche décalée en biais, pour qu'on voie l'objet posé sur chacune)
       const V0 = cam(0.35 + Math.sin(a * 0.2) * 0.25, -0.5, k * 0.93, -0.12, 0.02), ec = sm(a / 1.6) * (1 - ferme * 0.92), th = 0.05, ks = 0.62;
       // (vague 3) une couche après l'autre se soulève et s'allume, de haut en bas : on voit enfin ce que porte chacune
-      const act = c > 1.9 && c < 6.1 ? Math.min(5, Math.floor((c - 1.9) / 0.7)) : -1, lev = lab.map((l, j) => j === act ? Math.sin(Math.PI * c01((c - 1.9 - j * 0.7) / 0.7)) : 0);
+      const act = c > 1.9 && c < 6.1 ? Math.min(5, Math.floor((c - 1.9) / 0.7)) : -1, lev0 = lab.map((l, j) => j === act ? Math.sin(Math.PI * c01((c - 1.9 - j * 0.7) / 0.7)) : 0);
+      // (vague 59 de l'audit, « la puce », immersion) : on ouvre soi-même les tiroirs. La souris sur une étiquette (ou sur le coin d'une couche)
+      // fait glisser cette couche hors de la pile, allumée, tant qu'on reste dessus
+      { const Sm = souris(), ok = Sm && LB && window.Chats.K.Wd.t - Sm.moved < 4 && ferme < 0.1; let hj = -1;
+        if (ok) { let bd = 1e9; LB.TY.forEach((y, j) => { const d = Sm.x > LB.x - 30 && Sm.x < LB.x + 190 ? Math.abs(Sm.y - y) : Math.hypot(Sm.x - LB.EQ[j][0], Sm.y - LB.EQ[j][1]); if (d < bd && d < LB.gap * 0.8) { bd = d; hj = j; } }); }
+        HV.forEach((v, j) => { HV[j] += ((j === hj ? 1 : 0) - v) * 0.12; }); }
+      const lev = lev0.map((v, j) => Math.max(v, sm(HV[j])));
       // (comme un tiroir : elle glisse hors de la pile, vers nous, puis rentre)
       const ys = lab.map((l, j) => (j - 2.5) * 0.34 * ec - lev[j] * 0.05), dxs = lab.map((l, j) => (j - 2.5) * 0.46 * ec + lev[j] * 0.55), dzs = lab.map((l, j) => -(j - 2.5) * 0.1 * ec + lev[j] * 0.45);
       // les broches du socle (sous la couche du bas), les pistes gravées
@@ -862,6 +869,7 @@ S.puce = (() => {
       let yl = -1e9; const gap = Math.max(15, k * 0.085), TY = EQ.map(R => (yl = Math.max(R[1], yl + gap)));
       // (vague 12) la colonne ne descend jamais sous le haut des sous-titres : si elle déborde, elle remonte d'un bloc
       const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, lim = bd ? bd.y - gap * 0.6 : G.bas, dep = Math.max(0, TY[5] - lim); if (dep) TY.forEach((y, j) => { TY[j] = y - dep; });
+      LB = { x: xcol, TY: TY.slice(), EQ: EQ.map(q => [q[0], q[1]]), gap };
       EQ.forEach((R, j) => { const ty = TY[j]; const tx = xcol;
         trait([R, [tx - 16, ty], [tx - 6, ty]], false, 0.45, 0.6 * (1 - ferme)); rond(R[0], R[1], 2, 0.6, 0.8 * (1 - ferme), true); mot(lab[j].toUpperCase(), tx + lev[j] * 8, ty, Math.max(11, k * (j === 1 ? 0.085 : 0.065) * (1 + lev[j] * 0.3)), (j === 1 || lev[j] > 0.3 ? 1 : 0.85) * (1 - ferme), 'left'); });
       if (ferme > 0.9) { const C = V0(0, 0, 0); eclat(C[0], C[1], k * 0.6, (ferme - 0.9) * 10, 14, 0.3); mot('clac', C[0] + k * 0.5, C[1] - k * 0.3, Math.max(14, k * 0.1), 1); }
