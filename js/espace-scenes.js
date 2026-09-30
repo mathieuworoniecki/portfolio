@@ -484,6 +484,20 @@ S.skills = (() => {
       const rb = k * 0.14 * (1 + flash * 0.08); chabot(C[0], C[1] - rb * 1.1, rb, { now, v: 3, lac: Math.sin(now * 0.5) * 0.5, travaille: true, bras: flash > 0.2 ? [1.5, 1.5] : null });
       if (flash > 0) eclat(C[0], C[1] - rb * 1.1, k * 0.3, 1 - flash, 10, now);
       it.filter(avant).sort((p, q) => p.p[2] - q.p[2]).forEach(q => module(V, q, now, k, Vs, hx));
+      // (vague 40 de l'audit : « skills, peu original ») : la forge, sur le côté : la même tâche revient, trois fois (trois feuilles identiques
+      // tombent sur la pile : ×1, ×2, ×3) ; la presse s'abat, « CLAC », et il en sort une cartouche neuve qui file rejoindre l'orbite
+      { const cy = 5, u = now % cy, fx = G.gauche + (G.droite - G.gauche) * 0.1, fy = C[1] + k * 0.42, s = Math.max(10, k * 0.07), n = Math.min(3, Math.floor(u / 0.8));
+        cerne(() => { ctx.beginPath(); ctx.rect(fx - s * 1.6, fy, s * 3.2, s * 0.35); }, 0.8, 1);
+        for (let j = 0; j < 3; j++) { const t0 = j * 0.8, v = c01((u - t0) / 0.45); if (u >= 3.2 || v <= 0) continue; const y = lerp(fy - k * 0.9, fy - s * 0.25 * (j + 1), sm(v));
+          ctx.save(); ctx.translate(fx + Math.sin(v * 6 + j) * s * 0.3 * (1 - v), y); ctx.rotate((1 - v) * 0.6 * (j % 2 ? 1 : -1)); cerne(() => { ctx.beginPath(); ctx.rect(-s, -s * 0.12, s * 2, s * 0.24); }, 0.6, 1);
+          ctx.restore(); if (v >= 1 && u < 3.2) mot('×' + (j + 1), fx + s * 1.9, fy - s * 0.25 * (j + 1), Math.max(10, s * 0.6), j + 1 === n ? 1 : 0.4, 'left'); }
+        const pr = u < 2.6 ? 0 : u < 3.0 ? sm((u - 2.6) / 0.4) : u < 3.3 ? 1 : 1 - sm((u - 3.3) / 0.5), ph = fy - s * 2.4 - k * 0.3 * (1 - pr);
+        cerne(() => { ctx.beginPath(); ctx.moveTo(fx - s * 1.9, fy); ctx.lineTo(fx - s * 1.9, fy - s * 2.6 - k * 0.35); ctx.lineTo(fx + s * 1.9, fy - s * 2.6 - k * 0.35); ctx.lineTo(fx + s * 1.9, fy); }, 0.9, 1, null);
+        cerne(() => { ctx.beginPath(); ctx.moveTo(fx, fy - s * 2.6 - k * 0.35); ctx.lineTo(fx, ph); }, 1.1, 1, null); cerne(() => { ctx.beginPath(); ctx.rect(fx - s * 1.4, ph, s * 2.8, s * 0.8); }, 0.9, 1);
+        if (u > 3.0 && u < 3.5) { mot('CLAC', fx, fy - s * 3.4 - k * 0.3, Math.max(14, s * 0.9), 1 - (u - 3.0) / 0.5); eclat(fx, fy - s * 0.5, s * 2, (u - 3.0) / 0.5, 8, 0.3); }
+        if (u > 3.3) { const v = sm(c01((u - 3.3) / 1.5)), mx = lerp(fx, C[0] - Rr * k * 0.88 * hx * 0.9, v), my = lerp(fy - s, C[1] - k * 0.1, v) - Math.sin(Math.PI * v) * k * 0.5;
+          ctx.save(); ctx.translate(mx, my); ctx.rotate(v * TAU); cerne(() => { ctx.beginPath(); ctx.moveTo(-s * 0.7, -s); ctx.lineTo(s * 0.4, -s); ctx.lineTo(s * 0.7, -s * 0.7); ctx.lineTo(s * 0.7, s); ctx.lineTo(-s * 0.7, s); ctx.closePath(); }, 0.8, 1);
+          ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath(); for (let l = 0; l < 3; l++) { ctx.moveTo(-s * 0.45, s * (0.2 + l * 0.22)); ctx.lineTo(s * 0.45, s * (0.2 + l * 0.22)); } ctx.stroke(); ctx.restore(); brille(mx, my, 3, 1 - v * 0.5, true, now, 5); } }
       ctx.restore();
     }
   };
