@@ -1259,7 +1259,7 @@ function preuve(M) {
   ann.add(jauge); ann.add(jauge5); ann.add(trait(cercleH(1.34, 128), L[4].s, true));
   ann.add(traits([0, 95].map(n => { const a = n / 100 * TAU - Math.PI / 2; return [[Math.cos(a) * 1.24, 0, Math.sin(a) * 1.24], [Math.cos(a) * 1.4, 0, Math.sin(a) * 1.4]]; }).flat(), L[4].l));
   /* la caméra de chaque étape : [rx, ry, zoom] */
-  const VUE = [[0.42, -0.5, 0.95], [0.32, -0.3, 1.0], [0.95, 0.2, 1.05], [0.14, -0.55, 1.0], [0.72, 0, 0.92], [0.5, -0.4, 0.95]];
+  const VUE = [[0.3, -0.72, 1.4], [0.32, -0.3, 1.0], [0.95, 0.2, 1.05], [0.14, -0.55, 1.0], [0.72, 0, 0.92], [0.5, -0.4, 0.95]];
   const cam = { rx: 0.4, ry: -0.5, z: 1 };
   o.rot = t => [cam.rx, cam.ry + Math.sin(t * 0.15) * 0.05];
   o.tick = (t, v) => {
