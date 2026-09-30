@@ -190,8 +190,48 @@ function ouvre() {
     <div class="dex-barre"><span style="width:${(k / tot * 100).toFixed(1)}%"></span></div><button type="button" class="dex-x" aria-label="${T('Fermer', 'Close')}">×</button></header>
     ${Object.keys(RANG).map(r => { const L = HFs.filter(h => h.rang === r); return `<section><h3>${T(RANG[r].fr, RANG[r].en)} <small>${L.filter(h => M.got[h.id]).length}/${L.length}</small></h3>
       <ul class="hf-grille">${L.map(h => { const got = !!M.got[h.id], cache = !got && r === 'secret';
-        return `<li class="${got ? 'ok' : ''}" style="--c:${RANG[r].c}">${badge(h, got, 84)}<b>${cache ? T('Haut fait secret', 'Secret achievement') : h.nom()}</b><span>${h.h()}</span>${got ? `<i>${new Date(M.got[h.id]).toLocaleDateString(EN() ? 'en' : 'fr')}</i>` : ''}</li>`; }).join('')}</ul></section>`; }).join('')}</div>`;
-  vitrine.hidden = false; vitrine.querySelector('.dex-x').focus(); vitrine.querySelector('.dex-x').onclick = fermeV;
+        return `<li class="${got ? 'ok' : ''}" data-id="${h.id}" style="--c:${RANG[r].c}">${badge(h, got, 84)}<b>${cache ? T('Haut fait secret', 'Secret achievement') : h.nom()}</b><span>${h.h()}</span>${got ? `<i>${new Date(M.got[h.id]).toLocaleDateString(EN() ? 'en' : 'fr')}</i>` : ''}</li>`; }).join('')}</ul></section>`; }).join('')}</div>`;
+  vitrine.hidden = false; vitrine.querySelector('.dex-x').focus(); vitrine.querySelector('.dex-x').onclick = fermeV; medailles();
+}
+/* (vague 101 de l'audit, « la vitrine » vers 9,9) : les hauts faits gagnés ne sont plus des vignettes, ce sont de vraies médailles.
+   Chacune pend à son clou par un ruban de la couleur du rang ; le pointeur qui passe les fait balancer (en 3D, elles tournent un peu
+   sur elles-mêmes), faire défiler la vitrine les fait toutes osciller ; un clic la retourne : au dos, gravés, le rang, son numéro
+   d'ordre (la combientième gagnée) et la date. La dernière gagnée depuis la visite précédente de la vitrine tombe sur son clou à l'ouverture. */
+let MED = null;
+function medailles() {
+  if (MED) cancelAnimationFrame(MED.raf); const ordre = Object.entries(M.got).sort((a, b) => a[1] - b[1]).map(e => e[0]), vu = M.vuV || 0, L = [];
+  const recents = ordre.filter(id => M.got[id] > vu), neuve = vu ? recents[recents.length - 1] : null;
+  vitrine.querySelectorAll('.hf-grille li.ok').forEach((li, i) => { const b = li.querySelector('.hf-badge'), h = PAR[li.dataset.id]; if (!b || !h) return;
+    const R = RANG[h.rang], n = ordre.indexOf(h.id) + 1, d = new Date(M.got[h.id]).toLocaleDateString(EN() ? 'en' : 'fr', { day: 'numeric', month: 'short', year: 'numeric' });
+    const m = document.createElement('span'); m.className = 'hf-med'; m.innerHTML = `<i class="hf-clou"></i><span class="hf-pend"><svg class="hf-ruban" viewBox="0 0 40 30" aria-hidden="true"><path d="M8 0 L20 26 L32 0 L25 0 L20 12 L15 0Z"/></svg>
+      <span class="hf-face"></span><span class="hf-dos"><small>${T(R.fr, R.en)}</small><b>n° ${n}</b><small>${d}</small></span></span>`;
+    b.replaceWith(m); m.querySelector('.hf-face').appendChild(b); li.tabIndex = 0; li.setAttribute('role', 'button'); li.setAttribute('aria-label', h.nom() + T(' : retourner la médaille', ': flip the medal'));
+    const o = { li, m, p: m.querySelector('.hf-pend'), fa: m.querySelector('.hf-face'), ds: m.querySelector('.hf-dos'), vd: false, a: 0, v: 0, f: 0, fv: 0, dos: false, y: 0, vy: 0 };
+    if (h.id === neuve) { o.y = -260; o.tombe = true; li.classList.add('hf-neuve'); }
+    else o.v = (i % 2 ? 1 : -1) * (40 + (i * 37) % 50);   // (à l'ouverture, elles bougent encore un peu : on vient de pousser la porte)
+    const flip = e => { if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return; e.preventDefault(); o.dos = !o.dos; o.fv += o.dos ? 900 : -900; o.v += (Math.random() < 0.5 ? -1 : 1) * 60; };
+    li.addEventListener('click', flip); li.addEventListener('keydown', flip); L.push(o); });
+  M.vuV = Date.now(); garde();
+  if (!L.length || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const page = vitrine.querySelector('.dex-page'), nv = L.find(o => o.tombe);
+  // (la nouvelle est plus bas ? la vitrine s'ouvre directement sur elle, pour la voir tomber)
+  if (nv) { const r = nv.li.getBoundingClientRect(), rp = page.getBoundingClientRect(); if (r.bottom > rp.bottom - 40 || r.top < rp.top) page.scrollTop += r.top - rp.top - rp.height * 0.35; }
+  let px = null, pt = 0, sc = page.scrollTop, t0 = performance.now();
+  MED = { raf: 0 };
+  page.addEventListener('pointermove', e => { const now = performance.now(); if (px != null && now > pt) { const vx = (e.clientX - px) / Math.max(8, now - pt) * 1000;
+      L.forEach(o => { const r = o.m.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height * 0.55); const k = 1 - Math.hypot(dx, dy * 0.8) / 80; if (k > 0) o.v += vx * 0.09 * k; }); }
+    px = e.clientX; pt = now; });
+  page.addEventListener('scroll', () => { const d = page.scrollTop - sc; sc = page.scrollTop; L.forEach((o, i) => { o.v += d * (1.4 + (i % 3) * 0.3) * (i % 2 ? 1 : -1); }); }, { passive: true });
+  const pas = now => { if (vitrine.hidden) { MED = null; return; } const dt = Math.min(0.04, (now - t0) / 1000); t0 = now;
+    L.forEach(o => {
+      o.v += (-o.a * 55 - o.v * 1.6) * dt; o.a += o.v * dt; o.a = Math.max(-40, Math.min(40, o.a));
+      const cible = o.dos ? 180 : 0; o.fv += ((cible - o.f) * 70 - o.fv * 9) * dt; o.f += o.fv * dt;
+      if (o.tombe) { o.vy += 2600 * dt; o.y += o.vy * dt; if (o.y >= 0) { o.y = 0; if (o.vy > 300) { o.vy *= -0.32; o.v += 160; if (!o.clink) { o.clink = 1; const r = o.m.getBoundingClientRect(), G = window.Scenarios && Scenarios.gerbe; if (G && Wd.W) G(r.left + r.width / 2, r.top + 8, 10, 160); } } else { o.vy = 0; o.tombe = false; } } }
+      const ry = o.f + o.a * 1.8, dos = Math.cos(ry * Math.PI / 180) < 0;   // (quelle face on voit : calculé ici, plus sûr que backface-visibility)
+      if (dos !== o.vd) { o.vd = dos; o.fa.style.visibility = dos ? 'hidden' : ''; o.ds.style.visibility = dos ? 'visible' : ''; }
+      o.p.style.transform = `translateY(${o.y.toFixed(1)}px) rotate(${o.a.toFixed(2)}deg) rotateY(${ry.toFixed(1)}deg)`; });
+    MED.raf = requestAnimationFrame(pas); };
+  MED.raf = requestAnimationFrame(pas);
 }
 function fermeV() { vitrine.hidden = true; if (btn) btn.focus(); }
 vitrine.addEventListener('click', e => { if (e.target === vitrine) fermeV(); });

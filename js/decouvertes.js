@@ -307,12 +307,32 @@ function ouvre() {
   panneau.innerHTML = `<div class="dex-page"><header><h2>${T('Carnet de découvertes', 'Discovery notebook')}</h2><p>${k} / ${total}</p>
     <div class="dex-barre"><span style="width:${(k / total * 100).toFixed(1)}%"></span></div><button type="button" class="dex-x" aria-label="${T('Fermer', 'Close')}">×</button></header>
     ${(() => { let i = 0; return FAM.map(f => `<section><h3>${f.nom} <small>${f.L.filter(d => vus[d.id]).length}/${f.L.length}</small></h3><ul>${f.L.map(d => { const st = `--i:${Math.min(40, i++)};--r:${((bruitD(d.id) - 0.5) * 16).toFixed(1)}deg`; return vus[d.id]
-      ? (photos[d.id] ? `<li class="ok ph" style="${st}"><figure><img src="${photos[d.id]}" alt=""><figcaption>${quand(vus[d.id])}</figcaption></figure><b>${d.t}</b><span>${d.ok || d.h}</span></li>` : `<li class="ok" style="${st}"><b>${d.t}</b><span>${d.ok || d.h}</span></li>`)
+      ? (photos[d.id] ? `<li class="ok ph" data-id="${d.id}" style="${st}"><figure><img src="${photos[d.id]}" alt=""><figcaption>${quand(vus[d.id])}</figcaption></figure><b>${d.t}</b><span>${d.ok || d.h}</span></li>` : `<li class="ok" data-id="${d.id}" style="${st}"><b>${d.t}</b><span>${d.ok || d.h}</span></li>`)
       : (/^(race|rare)-/.test(d.id) ? `<li class="ph" style="${st}"><figure class="dex-ombre">${OMBRE}</figure><b>???</b><span>${d.h}</span></li>` : `<li style="${st}"><b>???</b><span>${d.h}</span></li>`); }).join('')}</ul></section>`).join(''); })()}
     <footer><button type="button" class="dex-raz">${T('Tout oublier', 'Forget everything')}</button></footer></div>`;
   panneau.hidden = false; panneau.querySelector('.dex-x').focus();
-  panneau.querySelector('.dex-x').onclick = ferme; guetteur(); folioscope();
+  panneau.querySelector('.dex-x').onclick = ferme; guetteur(); folioscope(); tampons();
   const raz = panneau.querySelector('.dex-raz'); raz.onclick = () => { if (raz.dataset.sur) { vus = {}; garde(); photos = {}; gardePh(); compte(); ouvre(); } else { raz.dataset.sur = 1; raz.textContent = T('Sûr ? Cliquer encore', 'Sure? Click again'); } };
+}
+/* (vague 101 de l'audit, « le carnet » vers 9,9) : ce qu'on a découvert depuis la dernière fois qu'on l'a ouvert est tamponné sous nos yeux.
+   Un gros tampon encreur (une patte et « nouveau ! ») descend sur chaque case neuve, l'une après l'autre : la page encaisse le coup, l'encre
+   gicle en petites taches, et le carnet défile tout seul jusqu'à la suivante. Le tampon reste : on sait ce qui a changé. */
+const CLEVU = 'pf-carnet-vu';
+function tampons() {
+  let vu = 0; try { vu = +localStorage.getItem(CLEVU) || 0; } catch (e) {} try { localStorage.setItem(CLEVU, Date.now()); } catch (e) {}
+  if (!vu) return;   // (la toute première ouverture : tout serait neuf, on ne tamponne rien)
+  const page = panneau.querySelector('.dex-page'), L = [...panneau.querySelectorAll('li.ok[data-id]')].filter(li => vus[li.dataset.id] > vu).slice(0, 8), reduit = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  L.forEach((li, i) => { const t = document.createElement('i'); t.className = 'dex-tampon'; t.style.setProperty('--tr', ((bruitD(li.dataset.id + 't') - 0.5) * 24).toFixed(1) + 'deg');
+    t.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="15.5" rx="5" ry="4.2"/><ellipse cx="5.6" cy="9.6" rx="2.1" ry="2.6"/><ellipse cx="10" cy="6.2" rx="2.1" ry="2.7"/><ellipse cx="14.8" cy="6.2" rx="2.1" ry="2.7"/><ellipse cx="18.8" cy="9.8" rx="2.1" ry="2.6"/></svg><span>${T('nouveau !', 'new!')}</span>`;
+    if (reduit) { li.appendChild(t); return; }
+    t.hidden = true; li.appendChild(t);
+    setTimeout(() => { if (panneau.hidden) return; const r = li.getBoundingClientRect(), rp = page.getBoundingClientRect();
+      if (r.top < rp.top + 40 || r.bottom > rp.bottom - 20) page.scrollTo({ top: page.scrollTop + r.top - rp.top - rp.height * 0.4, behavior: 'smooth' });
+      setTimeout(() => { if (panneau.hidden) return; t.hidden = false; t.classList.add('pan');
+        setTimeout(() => { li.animate([{ transform: 'none' }, { transform: 'translateY(3px) scale(.97)' }, { transform: 'none' }], { duration: 260, easing: 'ease-out', composite: 'add' });
+          page.animate([{ transform: 'none' }, { transform: 'translateY(2px)' }, { transform: 'none' }], { duration: 200, composite: 'add' });
+          for (let k = 0; k < 7; k++) { const g = document.createElement('b'); g.className = 'dex-encre'; const a = k / 7 * 6.28 + Math.random(), d = 26 + Math.random() * 22;
+            g.style.cssText = `--gx:${(Math.cos(a) * d).toFixed(0)}px;--gy:${(Math.sin(a) * d * 0.7).toFixed(0)}px;--gs:${(3 + Math.random() * 4).toFixed(1)}px`; t.appendChild(g); } }, 230); }, 380); }, 700 + i * 1000); });
 }
 function ferme() { panneau.hidden = true; cancelAnimationFrame(G.raf); if (btn) btn.focus(); }
 /* (vague 7, l'audit : « le carnet est un panneau, pas un moment ») : un chat passe la tête par-dessus le bord du carnet, les pattes posées sur la tranche.

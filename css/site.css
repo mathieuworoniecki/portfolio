@@ -521,3 +521,24 @@ html.sans-curseur,html.sans-curseur *{cursor:none!important}
 /* (vague 100) la frise arc-en-ciel laissée par le petit Nyan Cat sous la barre des chapitres : six bandes d'un pixel, pour toute la visite */
 #chap{position:relative}
 #chap .frise-arc{position:absolute;height:6px;width:0;pointer-events:none;background:linear-gradient(rgb(231,76,60) 0 16.6%,rgb(243,156,18) 0 33.3%,rgb(241,196,15) 0 50%,rgb(46,204,113) 0 66.6%,rgb(52,152,219) 0 83.3%,rgb(155,89,182) 0);opacity:.85}
+/* (vague 101) la vitrine des hauts faits : des médailles qui pendent à leur clou par un ruban, se balancent, se retournent */
+.hf-med{position:relative;display:block;padding-top:14px;perspective:600px}
+.hf-clou{position:absolute;left:50%;top:0;width:8px;height:8px;margin-left:-4px;border-radius:50%;border:2px solid rgb(var(--ink));background:var(--bp-hi,#eeeeea);z-index:2}
+.hf-pend{position:relative;display:block;transform-origin:50% 0;transform-style:preserve-3d;will-change:transform}
+.hf-ruban{display:block;width:34px;height:26px;margin:-6px auto -8px;fill:var(--c);stroke:rgb(var(--ink));stroke-width:2;stroke-linejoin:round;position:relative;z-index:1}
+.hf-face{display:block}
+.hf-dos{visibility:hidden}
+.hf-dos{position:absolute;left:50%;top:16px;width:74px;height:74px;margin-left:-37px;border-radius:50%;border:3px solid rgb(var(--ink));background:var(--bp-hi,#eeeeea);box-shadow:inset 0 0 0 5px var(--c);transform:rotateY(180deg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;text-align:center}
+.hf-dos b{font:400 1.25rem/1 var(--hand)!important}
+.hf-dos small{font:500 .5rem/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase;opacity:.75}
+.hf-grille li.ok{cursor:pointer}
+.hf-grille li.ok:focus-visible{outline:2px solid rgb(var(--ink));outline-offset:2px}
+/* (vague 101) le carnet : le tampon « nouveau ! » sur ce qu'on a découvert depuis la dernière ouverture */
+.dex-tampon{position:absolute;right:-6px;bottom:-8px;z-index:3;display:flex;align-items:center;gap:3px;padding:3px 7px 3px 5px;border:2.4px solid rgb(192,57,43);border-radius:6px 4px 7px 5px;color:rgb(192,57,43);background:transparent;rotate:var(--tr,-8deg);pointer-events:none;mix-blend-mode:multiply}
+.dex-tampon svg{width:17px;height:17px;fill:rgb(192,57,43)}
+.dex-tampon span{font:400 .95rem/1 var(--hand);white-space:nowrap}
+.dex-tampon.pan{animation:dex-tampon .42s cubic-bezier(.5,0,.6,1.4) both}
+@keyframes dex-tampon{0%{scale:3.2;translate:40px -70px;filter:blur(1.5px)}55%{scale:.92;translate:0 0;filter:none}75%{scale:1.05}100%{scale:1}}
+.dex-encre{position:absolute;left:50%;top:50%;width:var(--gs);height:var(--gs);border-radius:50%;background:rgb(192,57,43);translate:var(--gx) var(--gy);animation:dex-encre .3s ease-out both}
+@keyframes dex-encre{from{translate:0 0;scale:.2}to{translate:var(--gx) var(--gy);scale:1}}
+.dex-page li.ok:has(.dex-tampon){overflow:visible}
