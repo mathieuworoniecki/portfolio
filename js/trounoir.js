@@ -157,6 +157,7 @@ function dessineTrou(u) {
   // (vague 26, l'audit : « le meilleur moment du site » doit aller plus loin) : la page ne fait pas que s'enrouler, elle se déchire ;
   // des lambeaux se détachent juste avant que leur anneau parte, et filent en vrille, plus vite que la page, vers le trou
   lambeaux(u);
+  souris(u, rh);
   if (rh > 0.5) {
     const clair0 = sm((u - 0.3) / 0.4), col0 = melange(T.ink, [244, 244, 238], clair0);
     // le disque d'accrétion au stylo : sa moitié arrière passe derrière le trou, et la lumière courbée la fait réapparaître en arc au-dessus
@@ -222,6 +223,37 @@ function lambeaux(u) {
     ctx.lineJoin = 'round'; ctx.strokeStyle = `rgba(${melange(T.ink, [244, 244, 238], sm((u - 0.3) / 0.4))},0.9)`; ctx.lineWidth = 1.4 / f; ctx.stroke();
     ctx.restore();
   }
+}
+// (vague 65) ta souris y passe aussi : la pointe se fait étirer vers le trou (spaghettification) et s'effrite
+// en grains de craie qui spiralent jusqu'à lui ; plus on s'approche, plus ça tire
+function souris(u, rh) {
+  const P = Wd.ptr; if (!T.GR) T.GR = []; const GR = T.GR, { cx, cy } = T, dt = Math.min(0.05, u * DUREE - (T.uS ?? u * DUREE)); T.uS = u * DUREE;
+  const vit = sm(u / 0.15) * (1 - sm((u - 0.88) / 0.08));
+  if (P && P.on && vit > 0) {
+    const dx = cx - P.x, dy = cy - P.y, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, prox = clamp(1 - d / (Math.hypot(W, H) * 0.6), 0, 1), tire = vit * (0.25 + 0.75 * prox * prox);
+    // des grains s'arrachent de la pointe
+    const n = Math.round((2 + 10 * tire) * (W < 760 ? 0.5 : 1));
+    for (let i = 0; i < n && GR.length < 420; i++) GR.push({ r: d + rnd(-4, 4), a: Math.atan2(P.y - cy, P.x - cx) + rnd(-0.03, 0.03), v: rnd(0.6, 1.4), w: rnd(0.8, 2) });
+    // la flèche, étirée vers le trou : elle ne quitte pas sa place, elle s'allonge
+    const L = 18 * (1 + 7 * tire), ang = Math.atan2(uy, ux);
+    ctx.save(); ctx.translate(P.x, P.y); ctx.rotate(ang); ctx.lineJoin = ctx.lineCap = 'round';
+    for (let k = 3; k >= 0; k--) { const f = 1 - k * 0.22;
+      ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(L * f, -3.5 * (1 - 0.5 * tire) * f); ctx.lineTo(L * f * 0.72, 0); ctx.lineTo(L * f, 3.5 * (1 - 0.5 * tire) * f); ctx.closePath();
+      // (double trait : une gaine d'encre sous un cœur de craie, lisible sur le papier comme sur l'espace)
+      ctx.globalAlpha = k ? 0.25 : 0.9; ctx.strokeStyle = `rgb(${T.ink.join(',')})`; ctx.lineWidth = k ? 1.6 : 3.4; ctx.stroke();
+      ctx.strokeStyle = '#F4F4EE'; ctx.lineWidth = k ? 0.8 : 1.6; ctx.stroke(); }
+    ctx.restore(); ctx.globalAlpha = 1;
+  }
+  // les grains : ils orbitent de plus en plus vite en tombant (Kepler), s'étirent en traits, et passent sous le disque
+  ctx.save(); ctx.lineCap = 'round';
+  for (let i = GR.length - 1; i >= 0; i--) { const g = GR[i];
+    const om = 2.2 * Math.pow(Math.max(rh, 8) / Math.max(g.r, rh * 0.9), 1.5) * g.v * 2.4 + 0.4;
+    g.r -= dt * (90 + 1400 * Math.pow(Math.max(rh, 8) / Math.max(g.r, 1), 0.8)) * g.v; g.a += dt * om;
+    if (g.r < rh * 0.95 || !(rh > 0.5)) { GR.splice(i, 1); continue; }
+    const x = cx + Math.cos(g.a) * g.r, y = cy + Math.sin(g.a) * g.r * 0.82, qa = g.a - Math.min(0.5, om * 0.06), x2 = cx + Math.cos(qa) * (g.r + 3), y2 = cy + Math.sin(qa) * (g.r + 3) * 0.82;
+    ctx.globalAlpha = 0.9; ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x, y);
+    ctx.strokeStyle = `rgb(${T.ink.join(',')})`; ctx.lineWidth = g.w + 1.6; ctx.stroke(); ctx.strokeStyle = '#F4F4EE'; ctx.lineWidth = g.w * 0.7; ctx.stroke(); }
+  ctx.restore(); ctx.globalAlpha = 1;
 }
 // le menu, le cadre : ils tournent vers le trou, eux aussi (en CSS : ils sont en HTML)
 function tourneCouches(u) {
