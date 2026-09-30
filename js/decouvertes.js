@@ -163,6 +163,8 @@ fam('espace', 'L’espace', 'Space', [
   ['fronde', 'La fronde', 'The slingshot', 'Trop près d’une planète, on fait un tour… et on repart plus vite.', 'Too close to a planet, you go around… and leave faster.'],
   ['petitprince', 'Le Petit Prince', 'The Little Prince', 'Un chat qui se pose sur sa planète.', 'A cat landing on its planet.'],
   ['astronaute', 'L’astronaute', 'The astronaut', 'Quelque chose flotte, un chat le veut.', 'Something floats by, a cat wants it.'],
+  ['eternue', 'À tes souhaits', 'Bless you', 'Des chats posés sur la planète chat… ça chatouille.', 'Cats sitting on the cat planet… it tickles.'],
+  ['statique', 'Électricité statique', 'Static electricity', 'Un casque qu’on arrache, ça frotte les poils.', 'A helmet pulled off rubs the fur.'],
   ['rentree', 'Rentrée atmosphérique', 'Re-entry', 'Lancer un chat très fort vers la Terre.', 'Throw a cat really hard at the Earth.'],
   ['nyanespace', 'Nyan dans les étoiles', 'Nyan among the stars', 'Un arc-en-ciel qui traverse l’espace.', 'A rainbow crossing space.'],
   ['cinema', 'La séance', 'Showtime', 'Assis sur la Terre, le nez vers les étoiles.', 'Sitting on the Earth, nose up to the stars.'],

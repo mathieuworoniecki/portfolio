@@ -24,9 +24,36 @@ function met(c) {
 function enleve(vx, vy) {
   const c = C.porte, h = tete(c); C.porte = null; C.x = h.x; C.y = h.y; C.vx = vx ?? rnd(-60, 60); C.vy = vy ?? -rnd(70, 120); C.w = rnd(-3, 3); C.lache = Wd.t;
   Wd.fx.push({ k: 'txt', text: 'pop', x: h.x, y: h.y - h.r, t0: Wd.t, life: 0.9, rot: rnd(-0.2, 0.2), size: 16 });
+  // (vague 105 de l'audit, « le casque » vers 9,9) : l'électricité statique. Le casque arraché a frotté ses poils : ils se dressent tout autour
+  // de sa tête, grésillent de petits éclairs ; s'il passe près d'un autre chat, un arc saute de l'un à l'autre (« bzzt ! ») et le repousse
+  if (c && Wd.cats.includes(c)) { STAT.push({ c, t0: Wd.t, fin: Wd.t + rnd(6, 8), zap: 0, seed: Math.random() * 99 });
+    K.later(0.5, () => say(c, pick(en() ? ['bzzt', 'my fur!', 'static…'] : ['bzzt', 'mes poils !', 'ça grésille…', 'statique !']))); if (window.Dex && Dex.vu) Dex.vu('statique'); }
+}
+const STAT = [];
+function statique(ctx, now) {
+  for (let i = STAT.length - 1; i >= 0; i--) { const E = STAT[i], c = E.c; if (Wd.t > E.fin || !Wd.cats.includes(c) || c.gone || (c.sp && c.sp.m === 'aspire') || (C && C.porte === c)) { STAT.splice(i, 1); continue; }
+    const h = tete(c), hr = h.r / 1.75, u = Wd.t - E.t0, k = Math.min(1, u / 0.25, (E.fin - Wd.t) / 1.5);   // (ils se dressent d'un coup, et retombent en raccourcissant)
+    ctx.save(); ctx.translate(h.x, h.y); ctx.lineCap = ctx.lineJoin = 'round';
+    // les poils hérissés : des mèches en zigzag, qui frémissent
+    const n = 18; ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = Math.max(1.7, hr * 0.07);
+    for (let j = 0; j < n; j++) { const a = j / n * TAU + E.seed, L = hr * (0.55 + 0.45 * Math.abs(Math.sin(j * 2.7 + E.seed))) * k, fr = Math.sin(now * 38 + j * 1.9) * hr * 0.03, r0 = hr * 0.95;
+      if (L < 1) continue; const cs = Math.cos(a), sn = Math.sin(a), tx = -sn, ty = cs; ctx.beginPath(); ctx.moveTo(cs * r0, sn * r0);
+      for (let q = 1; q <= 3; q++) { const d = r0 + L * q / 3, o = (q % 2 ? 1 : -1) * hr * 0.08 + fr; ctx.lineTo(cs * d + tx * o, sn * d + ty * o); } ctx.stroke(); }
+    // les petits éclairs qui courent d'une mèche à l'autre (bleu pâle, ils changent de place à chaque instant)
+    const f = Math.floor(now * 14); ctx.strokeStyle = 'rgba(170,215,255,0.95)'; ctx.lineWidth = 1.8;
+    for (let j = 0; j < 4; j++) { const rr = ((f * 7 + j * 13 + E.seed * 3) % 29) / 29; if (rr > 0.55 * k) continue; const a0 = (f * 0.9 + j * 2.1) % TAU, a1 = a0 + 0.5 + rr, R = hr * (1.35 + rr * 0.45);
+      ctx.beginPath(); for (let q = 0; q <= 5; q++) { const a = a0 + (a1 - a0) * q / 5, rq = R + (q % 2 ? 1 : -1) * hr * 0.12; ctx[q ? 'lineTo' : 'moveTo'](Math.cos(a) * rq, Math.sin(a) * rq); } ctx.stroke(); }
+    ctx.restore();
+    // un autre chat passe près : l'arc saute de tête en tête, il est repoussé (une fois de temps en temps)
+    if (k >= 1 && Wd.t > E.zap) { const o = Wd.cats.find(o => o !== c && o.sp && !o.held && o.sp.m !== 'aspire' && o.sp.m !== 'planete' && o.hp && Math.hypot(o.hp[0] - h.x, o.hp[1] - h.y) < hr * 4.5);
+      if (o) { E.zap = Wd.t + 1.1; E.arc = { o, t: Wd.t }; const dx = o.hp[0] - h.x, dy = o.hp[1] - h.y, d = Math.hypot(dx, dy) || 1; if (o.sp.m === 'derive' || o.sp.m === 'nage') { o.sp.m = 'derive'; o.sp.vx = (o.sp.vx || 0) + dx / d * 260; o.sp.vy = (o.sp.vy || 0) + dy / d * 260; o.sp.w = (o.sp.w || 0) + rnd(-5, 5); }
+        Wd.fx.push({ k: 'txt', text: pick(['bzzt !', 'zap !', 'bzz']), x: (h.x + o.hp[0]) / 2, y: (h.y + o.hp[1]) / 2 - hr, t0: Wd.t, life: 0.8, rot: rnd(-0.3, 0.3), size: 15 }); if (Math.random() < 0.6) K.later(0.3, () => say(o, pick(en() ? ['ouch!', 'hey!'] : ['aïe !', 'ça pique !', 'hé !']))); } }
+    if (E.arc && Wd.t - E.arc.t < 0.28 && E.arc.o.hp) { const o = E.arc.o, x1 = o.hp[0], y1 = o.hp[1], dx = x1 - h.x, dy = y1 - h.y, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d;
+      ctx.save(); ctx.lineCap = ctx.lineJoin = 'round'; [[6, 'rgba(120,180,255,0.35)'], [2.2, 'rgba(225,240,255,1)']].forEach(([lw, col]) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); ctx.moveTo(h.x, h.y);
+        for (let q = 1; q < 8; q++) { const g = (q % 2 ? 1 : -1) * (0.4 + 0.6 * Math.abs(Math.sin(q * 12.9 + Math.floor(now * 30) * 3.1))) * Math.min(d * 0.12, hr * 0.8); ctx.lineTo(h.x + dx * q / 8 + nx * g, h.y + dy * q / 8 + ny * g); } ctx.lineTo(x1, y1); ctx.stroke(); }); ctx.restore(); } }
 }
 X.entre.push(() => { C = null; prochain = Wd.t + rnd(8, 14); });
-X.retour.push(() => { C = null; prochain = null; });
+X.retour.push(() => { C = null; prochain = null; STAT.length = 0; });
 
 X.pas.push(dt => {
   if (prochain == null) return;
@@ -119,6 +146,7 @@ function dessine(ctx, x, y, r, rot, now, porte) {
   ctx.restore();
 }
 X.devant.push((ctx, now) => {
+  if (STAT.length) statique(ctx, now);
   if (!C) return;
   // la traînée du décollage : une flamme de papier (deux traits qui s'effilent) derrière le chat
   if (C.trace && C.trace.length > 2) { ctx.save(); ctx.lineCap = 'round';
@@ -141,5 +169,5 @@ X.devant.push((ctx, now) => {
   else dessine(ctx, C.x, C.y, C.r, C.rot, now);
 });
 
-return { get C() { return C; }, arrive, met };
+return { get C() { return C; }, arrive, met, enleve, STAT };
 })();

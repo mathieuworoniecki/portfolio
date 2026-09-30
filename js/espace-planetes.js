@@ -109,6 +109,21 @@ function pose(c, ang) { const S = c.sp;
   // (pas deux chats au même endroit de la planète : il se pose à côté de ceux qui y sont déjà)
   const gap = rayon(c) * 1.3 / P.chat.r, autres = Wd.cats.filter(o => o !== c && o.sp && o.sp.m === 'planete').map(o => o.sp.ang), loin = a => autres.every(b => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))) > gap);
   if (!loin(ang)) { const k = [1, -1, 2, -2, 3, -3, 4, -4].map(i => ang + i * gap).find(loin); if (k == null) { S.vx = Math.cos(ang) * 120; S.vy = Math.sin(ang) * 120; return; } ang = k; } Object.assign(S, { m: 'planete', ang, fin: Wd.t + rnd(6, 14), anim: pick(['assis', 'pain', 'toilette', 'debout', 'dodo'].filter(a => ANIMS[a])), vx: 0, vy: 0, marche: Math.random() < 0.4 ? sgn(rnd(-1, 1)) * rnd(0.15, 0.3) : 0 }); if (Math.random() < 0.6) say(c, pick(['chez moi', 'ma planète', 'on est bien', '♥'])); if (window.Dex && Dex.vu) Dex.vu('petitprince'); }
+const GERBE = [];   // la gerbe de l'éternuement : des étincelles qui partent du nez, freinent et rapetissent (pas de fondu)
+function gerbe(ctx, now) { for (let i = GERBE.length - 1; i >= 0; i--) { const g = GERBE[i], u = now - g.t0; if (u > g.life) { GERBE.splice(i, 1); continue; } if (u < 0) continue;
+    const e = (1 - Math.exp(-u * 2.2)) / 2.2, px = g.x + g.vx * e, py = g.y + g.vy * e + 30 * u * u, k = 1 - u / g.life, rr = g.r * k, vx = g.vx * Math.exp(-u * 2.2), vy = g.vy * Math.exp(-u * 2.2);
+    ctx.strokeStyle = `rgba(${BL},0.5)`; ctx.lineWidth = rr * 0.7; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px - vx * 0.05, py - vy * 0.05); ctx.stroke();
+    ctx.fillStyle = `rgb(${BL})`; ctx.beginPath(); for (let j = 0; j < 8; j++) { const a = j * Math.PI / 4 + u * 3, q = j % 2 ? rr * 0.35 : rr * 1.6; ctx[j ? 'lineTo' : 'moveTo'](px + Math.cos(a) * q, py + Math.sin(a) * q); } ctx.closePath(); ctx.fill(); } }
+function atchoum(x, y, r) {
+  Wd.cats.forEach(c => { const S = c.sp; if (!S || c.held) return; const [cx, cy] = centreDe(c), dx = cx - x, dy = cy - y, d = Math.hypot(dx, dy) || 1;
+    if (S.m === 'planete') { const up = S.ang; S.m = 'derive'; S.vx = Math.cos(up) * rnd(380, 520); S.vy = Math.sin(up) * rnd(380, 520); S.w = rnd(-6, 6); S.next = Wd.t + rnd(2, 4); S.anim = 'apesanteur'; S.lache = Wd.t; c.spin = 0;
+      K.later(0.25, () => say(c, pick(en() ? ['bless you!', 'eww!', 'whoaaa'] : ['à tes souhaits !', 'beurk !', 'waaah']))); }
+    else if (S.m === 'derive' && d < r * 4.5) { const f = (1 - d / (r * 4.5)) * 420; S.vx += dx / d * f; S.vy += dy / d * f; S.w += rnd(-3, 3); } });
+  // la gerbe : de la poussière d'étoiles part du nez, vers le bas et les côtés
+  const t0 = performance.now() / 1000; for (let i = 0; i < 46; i++) { const a = Math.PI / 2 + rnd(-1.4, 1.4), v = rnd(90, 520); GERBE.push({ x, y: y + r * 0.3, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.8, t0: t0 + rnd(0, 0.12), life: rnd(0.9, 1.8), r: rnd(2.2, 4.6) * Math.max(1, r / 60) }); }
+  if (0) for (let i = 0; i < 26; i++) { const a = Math.PI / 2 + rnd(-1.3, 1.3); Wd.fx.push({ k: 'etoile', x, y: y + r * 0.12, vx: Math.cos(a) * rnd(120, 420), vy: Math.sin(a) * rnd(60, 300), g: 0, frein: 1.2, t0: Wd.t, life: rnd(0.8, 1.4), col: pick(['255,255,255', '200,230,255', '255,240,200']), r: rnd(1.5, 3), tw: true }); }
+  if (window.Dex && Dex.vu) Dex.vu('eternue');
+}
 X.mode.planete = (c, dt) => {
   const S = c.sp, Cp = P && P.chat; if (!Cp || P.aspire) { S.m = 'derive'; return; }
   S.ang += S.marche * dt; c.anim = S.marche ? 'pas' : S.anim;
@@ -271,17 +286,28 @@ function planete(ctx, now) {
   // (vague 6, l'audit : « elle ne fait que regarder ») : elle a ses humeurs, de temps en temps : elle bâille (les oreilles se couchent,
   // la gueule s'ouvre grand), tire la langue au poisson-lune quand il passe devant elle, fait un clin d'œil ; sans curseur, elle suit les chats des yeux
   const Hm = P.hum || (P.hum = { k: null, next: now + 5 });
-  if (!Hm.k && now > Hm.next && z === 0 && t >= 1 && !reduit) { Hm.k = Math.sin(la) > 0.2 && Math.abs(Math.cos(la)) < 0.7 ? 'langue' : pick(['baille', 'baille', 'clin', 'ronron', 'ronron']); Hm.t0 = now; Hm.d = { baille: 2.6, langue: 1.6, clin: 0.9, ronron: 3.4 }[Hm.k]; }
+  if (!Hm.k && now > Hm.next && z === 0 && t >= 1 && !reduit) { Hm.k = Math.sin(la) > 0.2 && Math.abs(Math.cos(la)) < 0.7 ? 'langue' : pick(['baille', 'baille', 'clin', 'ronron', 'ronron']); Hm.t0 = now; if (Wd.cats.some(c => c.sp && c.sp.m === 'planete') && Math.random() < 0.45) Hm.k = 'atchoum'; Hm.d = { baille: 2.6, langue: 1.6, clin: 0.9, ronron: 3.4, atchoum: 2.4 }[Hm.k]; }
   if (Hm.k && now - Hm.t0 > Hm.d) { Hm.k = null; Hm.next = now + rnd(6, 12); }
   // (vague 80, l'audit : « la planète chat ») : on la caresse (la souris posée dessus un moment) : elle ronronne aussitôt ; et son ronron
   // sort de l'espace : chaque onde, en atteignant un élément de l'interface (logo, langue, boutons, chapitres), le fait vibrer
-  if (P.survol > 0.85 && z === 0 && t >= 1 && !reduit && Hm.k !== 'ronron' && now > (Hm.cal || 0)) { Hm.k = 'ronron'; Hm.t0 = now; Hm.d = 4.2; Hm.cal = now + 9; }
+  if (P.survol > 0.85 && z === 0 && t >= 1 && !reduit && Hm.k !== 'ronron' && Hm.k !== 'atchoum' && now > (Hm.cal || 0)) { Hm.k = 'ronron'; Hm.t0 = now; Hm.d = 4.2; Hm.cal = now + 9; }
   if (Hm.k === 'ronron' && z === 0 && !reduit) { if (Hm.ui0 !== Hm.t0) { Hm.ui0 = Hm.t0; Hm.ui = [...document.querySelectorAll('#brand, #lang-pick, #theme-pick, .film-ui .ctrl > *, #chap > *')].map(e => { const b = e.getBoundingClientRect(); return { e, d: Math.hypot(b.left + b.width / 2 - x, b.top + b.height / 2 - y), n: 0 }; }).filter(q => q.d > 0); }
     const u = now - Hm.t0, v = Math.hypot(O.W, O.H) * 1.1 / 2.2;
     Hm.ui.forEach(q => { const n = [0, 1, 2].filter(i => r * 1.15 + (u - i * 0.42) * v >= q.d).length; if (n > q.n && q.n < 3) { q.n = n; const k = 2.4 - q.n * 0.5;
       q.e.animate(Array.from({ length: 9 }, (_, j) => ({ transform: j === 0 || j === 8 ? 'translate(0,0)' : `translate(${(j % 2 ? k : -k).toFixed(1)}px,${(j % 3 - 1) * k * 0.5}px) rotate(${(j % 2 ? 1 : -1) * k * 0.6}deg)` })), { duration: 380, easing: 'linear', composite: 'add' }); } }); }
-  const hu = Hm.k ? Math.sin(Math.min(1, (now - Hm.t0) / Hm.d) * Math.PI) : 0, bai = Hm.k === 'baille' ? sm(hu * 1.4) : 0, lan = Hm.k === 'langue' ? sm(hu * 1.6) : 0, cli = Hm.k === 'clin' && hu > 0.3;
-  const ear = trace(1.4, 0.5) * (1 - bai * 0.45);
+  const hu = Hm.k ? Math.sin(Math.min(1, (now - Hm.t0) / Hm.d) * Math.PI) : 0; let bai = Hm.k === 'baille' ? sm(hu * 1.4) : 0; const lan = Hm.k === 'langue' ? sm(hu * 1.6) : 0, cli = Hm.k === 'clin' && hu > 0.3;
+  // (vague 105 de l'audit, « la planète chat » vers 9,9) : les chats posés sur elle la chatouillent. Elle retient son souffle (« a… a… »),
+  // tremble de plus en plus, les oreilles couchées… et ATCHOUM : tous les chats posés sur elle décollent d'un coup, ceux qui passaient près
+  // sont soufflés, une gerbe de poussière d'étoiles part de son nez
+  const at = Hm.k === 'atchoum' && z === 0 ? now - Hm.t0 : -1, pre = at >= 0 && at < 1.3 ? at / 1.3 : 0;
+  // (la tête qu'elle fait : les yeux se plissent, la gueule s'entrouvre… puis grande ouverte au moment où ça part, et ça se referme)
+  if (at >= 0) bai = Math.max(bai, at < 1.3 ? sm(c01((at - 0.3) / 1)) * 0.55 : at < 1.75 ? 1 : c01(1 - (at - 1.75) * 1.6));
+  if (at >= 0) { if (at < 1.3) { const j = pre * pre * r * 0.05; ctx.translate(Math.sin(now * 55) * j, Math.cos(now * 47) * j * 0.6); }
+    if (at >= 1.3 && !Hm.eter) { Hm.eter = Hm.t0; atchoum(x, y, r); } if (Hm.eter !== Hm.t0 && at < 1.3) Hm.eter = 0;
+    const mot = at < 0.55 ? 'a…' : at < 1.3 ? 'a… a…' : at < 2.2 ? 'ATCHOUM !' : ''; if (mot) { ctx.save(); ctx.fillStyle = `rgb(${BL})`; ctx.font = `600 ${Math.max(14, r * (at >= 1.3 ? 0.42 : 0.26))}px "Caveat","Segoe Print",cursive`; ctx.textAlign = 'right';
+      // (à côté d'elle, du côté de l'écran : jamais sur le menu des langues en haut)
+      const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, ty = Math.max(70, y - r * 0.75); if (!(bd && ty > bd.y - 20 && ty < bd.y + bd.h + 20)) { ctx.translate(Math.max(ctx.measureText(mot).width + 8, x - r * 1.25), ty); ctx.rotate(at >= 1.3 ? -0.12 : -0.05); ctx.fillText(mot, 0, 0); } ctx.restore(); } }
+  const ear = trace(1.4, 0.5) * (1 - bai * 0.45) * (1 - pre * 0.35);
   // un halo, très léger (deux fins cercles, comme l'atmosphère de la Terre)
   if (z === 0 && t > 0.5) [[1.12, 0.1], [1.24, 0.05]].forEach(([k, al]) => { ctx.strokeStyle = `rgba(${BL},${al * t})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r * k, 0, TAU); ctx.stroke(); });
   // (vague 44, l'audit : « la planète chat », immersion) : elle ronronne. Les yeux mi-clos, « rrrr », et son ronron se voit : des ondes tremblées
@@ -399,7 +425,7 @@ function constructions(ctx, x, y, r, now) {
     ctx.stroke(); ctx.restore();
   });
 }
-X.fond.unshift((ctx, now) => { if (!P) return; terre(ctx, now); if (trace(0.8, 0.1) > 0 && !(P.aspire && P.aspire.zoom > 0)) planete(ctx, now); });
+X.fond.unshift((ctx, now) => { if (!P) return; terre(ctx, now); if (trace(0.8, 0.1) > 0 && !(P.aspire && P.aspire.zoom > 0)) planete(ctx, now); if (GERBE.length) { ctx.save(); gerbe(ctx, now); ctx.restore(); } });
 // (le zoom final passe devant tout : la planète grossit jusqu'à remplir l'écran)
 X.devant.push((ctx, now) => { if (P && P.aspire && P.aspire.zoom > 0) planete(ctx, now); });
 
