@@ -403,8 +403,14 @@ S.agents = (() => {
       N.forEach(q => { if (q.p < 0) return; const e = nait(q); if (e <= 0) return; const A = pos[q.p], B = pos[q.i], al = prof(B[2]);
         trait([A, [lerp(A[0], B[0], e), lerp(A[1], B[1], e)]], false, q.n === 3 ? 0.55 : 0.85, al * 0.85);
         if (c >= 0) { const d = c01((c - (q.n - 1) * 0.45) / 0.45), u = c01((c - 2.7 - (3 - q.n) * 0.45) / 0.45);
-          if (d > 0 && d < 1) brille(lerp(A[0], B[0], d), lerp(A[1], B[1], d), 2.6 * B[3], al, false, now, q.i);
-          if (u > 0 && u < 1) brille(lerp(B[0], A[0], u), lerp(B[1], A[1], u), 3.2 * B[3], al, true, now, q.i); } });
+          // (vague 39 de l'audit : « agents, peu original ») : ce qui descend se lit : une fiche de tâche pliée glisse le long de la branche comme
+          // sur une tyrolienne ; ce qui remonte, c'est le résultat : une pastille cochée qui tire derrière elle un petit fil
+          const sz = k * (q.n === 3 ? 0.022 : 0.03) * B[3], ang = Math.atan2(B[1] - A[1], B[0] - A[0]);
+          if (d > 0 && d < 1) { const x = lerp(A[0], B[0], d), y = lerp(A[1], B[1], d) + sz * 0.9; ctx.save(); ctx.translate(x, y); ctx.rotate(ang * 0.3 + Math.sin(now * 8 + q.i) * 0.15);
+            cerne(() => { ctx.beginPath(); ctx.moveTo(-sz, -sz * 0.7); ctx.lineTo(sz * 0.6, -sz * 0.7); ctx.lineTo(sz, -sz * 0.3); ctx.lineTo(sz, sz * 0.7); ctx.lineTo(-sz, sz * 0.7); ctx.closePath(); }, 0.5, al);
+            ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.3; ctx.beginPath(); ctx.moveTo(-sz * 0.6, -sz * 0.15); ctx.lineTo(sz * 0.5, -sz * 0.15); ctx.moveTo(-sz * 0.6, sz * 0.3); ctx.lineTo(sz * 0.2, sz * 0.3); ctx.stroke(); ctx.restore(); }
+          if (u > 0 && u < 1) { const x = lerp(B[0], A[0], u), y = lerp(B[1], A[1], u), r = sz * 0.9; trait([[lerp(B[0], A[0], Math.max(0, u - 0.25)), lerp(B[1], A[1], Math.max(0, u - 0.25))], [x, y]], false, 0.5, al * 0.6);
+            cerne(() => { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); }, 0.6, al); if (r > 3) coche(x, y, r * 0.55, 1, 0.5); brille(x, y, 2.2 * B[3], al * 0.6, true, now, q.i); } } });
       N.slice().sort((p, q) => pos[p.i][2] - pos[q.i][2]).forEach(q => { const e = nait(q); if (e <= 0) return; const [x, y, z, f] = pos[q.i], pop = e < 1 ? 1 + 0.35 * Math.sin(Math.PI * e) : 1, al = 1;
         if (q.n < 3) robot(x, y, k * [0.14, 0.09, 0.06][q.n] * f * pop * (q.n ? Math.min(1.4, hx * 0.55) : 1), al, Math.sin(now * 1.5 + q.i) > 0.97, { now, ph: q.i, lac: Math.sin(now * 0.6 + q.i * 1.7) * 0.7, travaille: c > 1.3 && c < 2.9 });
         else { const r = k * 0.028 * f * pop * Math.min(1.6, hx * 0.6); if (r > 5) { chabot(x, y, r * 1.25, { now, ph: q.i, a: al, casque: false, lac: Math.sin(now * 0.8 + q.i) * 0.6, travaille: c > 1.3 && c < 2.9 }); } else rond(x, y, r, 0.8, al, 'nuit'); if (c > 1.3 && c < 2.9) { style(0.6, al); ctx.beginPath(); ctx.arc(x, y, r * 1.9, now * 6 + q.i, now * 6 + q.i + 2); ctx.stroke(); } } });
