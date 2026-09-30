@@ -951,6 +951,22 @@ S.agents = (() => {
         ctx.globalAlpha = (e - 0.5) * 2; ctx.fillStyle = '#07080C'; ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx0, ly0, w, px * 1.6, px * 0.5) : ctx.rect(lx0, ly0, w, px * 1.6); ctx.fill(); ctx.stroke();
         mot(MET[j], lx0 + w / 2, ly0 + px * 0.8, px, (e - 0.5) * 2); });
       if (c > 4.1 && c < 5.6) { const [x, y] = pos[0]; coche(x + k * 0.24, y - k * 0.12, k * 0.06, (c - 4.1) / 0.4, 1); eclat(x, y, k * 0.2, (c - 4.1) / 0.6, 10); }
+      // (vague 106 de l'audit, « agents et sous-agents » vers 9,9) : le travail livré. Tout est coché : une onde de lumière redescend du sommet
+      // par chaque branche jusqu'au dernier sous-agent, puis l'agent principal plie la PR en avion de papier et la lance : elle fait
+      // une boucle au-dessus du lustre et quitte l'écran par la gauche, un fil de tirets derrière elle (jamais vers la planète ni les sous-titres)
+      if (c > 4.1 && c < 5.2 && !reduitMvt()) { const w = (c - 4.1) / 1.1 * 3.4;
+        N.forEach(q => { if (q.p < 0 || nait(q) < 1) return; const t = c01(w - (q.n - 1)); if (t <= 0 || t >= 1) return; const A = pos[q.p], B = pos[q.i], x = lerp(A[0], B[0], t), y = lerp(A[1], B[1], t), al = prof(B[2]);
+          trait([[lerp(A[0], B[0], Math.max(0, t - 0.35)), lerp(A[1], B[1], Math.max(0, t - 0.35))], [x, y]], false, 1.5, al); brille(x, y, 2.6 * (B[3] || 1), al, true, now, q.i); }); }
+      if (c > 4.5 && c < 6 && !reduitMvt()) { const u = (c - 4.5) / 1.5, [x0, y0] = pos[0], xe = G.gauche - 80, ye = y0 + k * 0.1, R = k * 0.3;
+        // (la trajectoire : un départ vers la droite, une boucle, puis la sortie vers la gauche)
+        const at = t => { const lo = sm(c01(t / 0.55)) * TAU, g = 1 - c01((t - 0.45) / 0.3), bx = lerp(x0, xe, sm(c01((t - 0.35) / 0.65))), by = lerp(y0, ye, sm(c01((t - 0.35) / 0.65))); return [bx - Math.sin(lo) * R * g, by + (1 - Math.cos(lo)) * R * 0.5 * g]; };   // (la boucle descend, à gauche du sommet, sous la barre)
+        ctx.save(); ctx.setLineDash([G.lw * 3, G.lw * 4]); const Tr = []; for (let j = 0; j <= 18; j++) Tr.push(at(Math.max(0, u - 0.3 + j / 18 * 0.3))); trait(Tr, false, 0.9, 0.75); ctx.restore();
+        const p = at(u), q = at(Math.min(1, u + 0.02)), ang = Math.atan2(q[1] - p[1], q[0] - p[0]), sz = Math.max(18, k * 0.1);
+        ctx.save(); ctx.translate(p[0], p[1]); ctx.rotate(ang); const fl = Math.sin(now * 9) * 0.15;
+        cerne(() => { ctx.beginPath(); ctx.moveTo(sz, 0); ctx.lineTo(-sz * 0.8, -sz * (0.55 + fl)); ctx.lineTo(-sz * 0.45, 0); ctx.closePath(); }, 0.7, 1);
+        cerne(() => { ctx.beginPath(); ctx.moveTo(sz, 0); ctx.lineTo(-sz * 0.8, sz * 0.45); ctx.lineTo(-sz * 0.45, 0); ctx.closePath(); }, 0.7, 1);
+        ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.4; ctx.beginPath(); ctx.moveTo(sz, 0); ctx.lineTo(-sz * 0.45, 0); ctx.stroke(); ctx.restore();
+        { const px = Math.max(11, sz * 0.8) * (1 - sm(c01((u - 0.2) / 0.15))); if (px > 2) mot('PR', p[0], p[1] - sz * 1.3, px, 1); } }   // (l'étiquette rapetisse, pas de fondu)
       ctx.restore();
     }
   };
