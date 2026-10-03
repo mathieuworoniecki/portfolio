@@ -2002,7 +2002,9 @@ S.pilotage = (() => {
     dessin(a, now) {
       const dt = E.t == null ? 0 : Math.min(0.05, Math.max(0, now - E.t)); E.t = now; if (a < 0.1) { E.obs = []; E.jal = 0; E.n = 0; }
       // (le bus se pose juste au-dessus des sous-titres ; la caméra est un peu à gauche : on voit son flanc)
-      const hz = G.haut + (G.caps - G.haut) * 0.2, zb = 2.5, hc = 1.35, f = (G.caps - 8 - hz) * zb / hc, D = G.caps - hz, V = 9.5, camX = G.sw < 300 ? -0.75 : -1.5, cx = G.cx + camX * f / zb * 0.8;
+      const hz = G.haut + (G.caps - G.haut) * 0.2, zb = 2.5, hc = 1.35, f = (G.caps - 8 - hz) * zb / hc, D = G.caps - hz, V = 9.5, tel = G.sw < 500, camX0 = G.sw < 300 ? -0.75 : -1.5, cx = G.cx + camX0 * f / zb * (tel ? 0.95 : 0.8);
+      // (vague 149 de l'audit : « le bus ») : la caméra suit le bus d'une voie à l'autre (au téléphone surtout : il ne sort plus par le bord gauche)
+      const camX = camX0 + E.bx * (tel ? 0.75 : 0.25);
       const Pp = (x, y, z) => { const zz = Math.max(0.3, z); return [cx + (x - camX) * f / zz, hz + (hc - y) * f / zz, zz]; };
       // le ciel : la planète à anneaux se lève derrière l'horizon, ses anneaux ; les étoiles filent vers nous
       ctx.save(); ctx.beginPath(); ctx.rect(G.gauche - 40, G.haut + 4, G.droite - G.gauche + 80, hz - G.haut - 4); ctx.clip();
@@ -2028,12 +2030,16 @@ S.pilotage = (() => {
         for (let x = xa + ((E.roul * 40) % 40); x < xb; x += 40) rond(x, y + ep * 0.5, Math.max(1.2, ep * 0.18), 0.6, 0.6); }
       // (vague 22 de l'audit : « le bus ») : le long de la route défilent des lampadaires de papier à tête de chat, en alternance à gauche et à droite ;
       // leurs oreilles, leurs yeux-ampoules qui s'allument : la vitesse se sent, la route a un décor
+      // (vague 149 de l'audit : « le bus ») : portiques et lampadaires ne passent plus sur la planète-chat ni sous la barre du haut
+      const horsPlanete = () => { sousLaBarre(); ctx.beginPath(); ctx.rect(G.gauche - 60, G.haut + 4, G.droite - G.gauche + 120, G.caps - G.haut - 4); ctx.clip(); };
+      horsPlanete();
       for (let j = 13; j >= 0; j--) { const z = 1.7 + j * 3.2 - (E.roul * 1.6) % 3.2, sd = j % 2 ? 1 : -1; if (z < 1.6 || z > 40) continue;
         const b = Pp(sd * 2.5, 0, z), h = Pp(sd * 2.5, 1.5, z), bras = Pp(sd * 2.05, 1.5, z), r = Math.max(2, (b[1] - h[1]) * 0.16), al = c01(9 / z);
         cerne(() => { ctx.beginPath(); ctx.moveTo(b[0], b[1]); ctx.lineTo(h[0], h[1]); ctx.lineTo(bras[0], bras[1]); }, Math.max(0.35, 0.9 * al), 1, null);
         if (r > 3) { cerne(() => { ctx.beginPath(); ctx.arc(bras[0], bras[1] + r, r, 0, TAU); ctx.moveTo(bras[0] - r * 0.9, bras[1] + r * 0.6); ctx.lineTo(bras[0] - r * 0.7, bras[1] - r * 0.3); ctx.lineTo(bras[0] - r * 0.2, bras[1] + r * 0.1); ctx.moveTo(bras[0] + r * 0.9, bras[1] + r * 0.6); ctx.lineTo(bras[0] + r * 0.7, bras[1] - r * 0.3); ctx.lineTo(bras[0] + r * 0.2, bras[1] + r * 0.1); }, 0.7, 1);
           [-1, 1].forEach(g => { ctx.globalAlpha = 1; ctx.fillStyle = z < 12 ? '#ffe9a8' : ENC; ctx.beginPath(); ctx.ellipse(bras[0] + g * r * 0.35, bras[1] + r * 1.05, r * 0.16, r * 0.24, 0, 0, TAU); ctx.fill(); ctx.strokeStyle = ENC; ctx.lineWidth = 1; ctx.stroke(); }); }
         else rond(bras[0], bras[1], 1.5, 0.5, al, true); }
+      ctx.restore();
       // (vague 131 de l'audit : « de très bien à inoubliable ») : le grand saut. Toutes les quinze secondes, la route s'ouvre sur un trou dans le
       // planning, annoncé par un panneau ; un tremplin rayé le précède : le bus y monte, décolle avec toute l'équipe (« tous ensemble ! »),
       // survole le vide plein d'étoiles, son ombre glisse en dessous, et retombe de l'autre côté en rebondissant
@@ -2071,7 +2077,7 @@ S.pilotage = (() => {
       // (les mots du sous-titre) ; ils arrivent de l'horizon et passent au-dessus du bus
       const PQ = en() ? ['Tech lead', 'Management', 'Mentoring', 'Augmented dev', 'Agile', 'ADR', 'Pre-sales'] : ['Tech lead', 'Management', 'Mentorat', 'Dév. augmenté', 'Agile', 'ADR', 'Avant-vente'];
       const portique = () => { const per = 4.6, n = Math.floor(now / per), z = 44 - (now / per - n) * per * V; if (z < 1.2 || z > 44) return null; return { z, txt: PQ[n % PQ.length] }; }, pq = portique();
-      const dessinePortique = ({ z, txt }) => { ctx.save(); ctx.beginPath(); ctx.rect(G.gauche - 60, G.haut + 4, G.droite - G.gauche + 120, G.caps - G.haut - 4); ctx.clip();
+      const dessinePortique = ({ z, txt }) => { horsPlanete();
         const al = c01((44 - z) / 5), H2 = 2.3, g0 = Pp(-2.3, 0, z), g1 = Pp(-2.3, H2, z), d0 = Pp(2.3, 0, z), d1 = Pp(2.3, H2, z), pa = Pp(-1.35, H2 + 0.1, z), pb = Pp(1.35, H2 - 0.6, z);
         cerne(() => { ctx.beginPath(); ctx.moveTo(g0[0], g0[1]); ctx.lineTo(g1[0], g1[1]); ctx.lineTo(d1[0], d1[1]); ctx.lineTo(d0[0], d0[1]); }, Math.max(0.4, 1.1 * c01(8 / z)), al, null);
         cerne(() => { ctx.beginPath(); ctx.rect(pa[0], pa[1], pb[0] - pa[0], pb[1] - pa[1]); }, 0.9, al);
@@ -2090,13 +2096,16 @@ S.pilotage = (() => {
       { const kb = G.sw < 500 ? 0.72 : 1, cote = E.bx - camX > 0 ? -1 : 1;
         for (let j = 0; j < 7; j++) { const t = fr2(now * 1.6 + j / 7), x = E.bx + (-cote * 0.3 + (bruit(j * 3.1 + Math.floor(now * 1.6 + j / 7)) - 0.5) * 0.3) * kb, y = (0.12 + t * 0.9) * kb, z = zb - 0.1 - t * 1.6, p = Pp(x, y, z), r = (4 + t * 16) * p[2] ** -0.4 * (G.sw < 500 ? 0.7 : 1) * (now - E.bonk < 0.8 ? 1.8 : 1);
           if (z < 0.4 || p[1] > G.caps) continue; cerne(() => { ctx.beginPath(); for (let q = 0; q < 4; q++) { const aq = q / 4 * TAU + j; ctx.moveTo(p[0] + Math.cos(aq) * r * 0.55 + r * 0.45, p[1] + Math.sin(aq) * r * 0.4); ctx.arc(p[0] + Math.cos(aq) * r * 0.55, p[1] + Math.sin(aq) * r * 0.4, r * 0.45, 0, TAU); } }, 0.6, 1 - t * 0.6); }
-        if (now - E.bonk < 0.6) { const p = Pp(E.bx, 1.5 * kb, zb + 1.2); mot(en() ? 'honk!' : 'pouêt !', p[0], p[1] - 10, Math.max(13, D * 0.06), 1 - (now - E.bonk) / 0.6); } }
+        if (now - E.bonk < 0.6) { const p = Pp(E.bx, 1.5 * kb, zb + 1.2); const kp = (now - E.bonk) / 0.6; mot(en() ? 'honk!' : 'pouêt !', p[0], p[1] - 10, Math.max(13, D * 0.06) * (1 + 0.3 * Math.sin(Math.min(1, kp * 4) * Math.PI)) * Math.max(0.05, 1 - kp * kp), 1); } }
       if (pq && pq.z <= zb + 0.5) dessinePortique(pq);
       E.obs.filter(o => o.z <= zb + 1).sort((p, q) => q.z - p.z).forEach(o => obstacle(o, Pp, now, D));
-      E.mots = E.mots.filter(m => now - m.t0 < 0.9); E.mots.forEach(m => { const u = (now - m.t0) / 0.9, p = Pp(m.x, 1.3 + u * 0.6, m.z); mot(m.t, p[0], p[1], Math.max(14, D * 0.08), 1 - u); });
+      E.mots = E.mots.filter(m => now - m.t0 < 0.9); E.mots.forEach(m => { const u = (now - m.t0) / 0.9, p = Pp(m.x, 1.3 + u * 0.6, m.z); mot(m.t, p[0], Math.max(G.haut + 24, p[1]), Math.max(14, D * 0.08) * (1 + 0.4 * Math.sin(Math.min(1, u * 4) * Math.PI)) * Math.max(0.05, 1 - u * u * u), 1); });   // (vague 149 : le mot bondit puis rapetisse, sans fondu)
       // le compteur des jalons ; la consigne (la souris prend le volant)
-      const t0 = [G.gauche + 24, G.haut + 18]; mot(`${en() ? 'milestones' : 'jalons'} ★ ${E.jal}`, t0[0], t0[1], Math.max(12, D * 0.055), 0.9, 'left');
-      mot(P ? (en() ? 'you drive' : 'c’est vous qui conduisez') : (en() ? 'mouse: take the wheel' : 'la souris : prenez le volant'), t0[0], t0[1] + Math.max(16, D * 0.075), Math.max(10, D * 0.042), P ? 0.9 : 0.55, 'left');
+      const t0 = [G.gauche + 24, G.haut + 18], ue = now - (E.etoileT ?? -9), pop = ue < 0.6 ? Math.sin(ue / 0.6 * Math.PI) * (1 - ue / 0.6 * 0.5) : 0;
+      // (vague 149 : le compteur bondit à chaque jalon, son étoile s'allume puis se rétracte)
+      { const px = Math.max(12, D * 0.055) * (1 + 0.45 * pop), lb = `${en() ? 'milestones' : 'jalons'} ★ `; mot(lb, t0[0], t0[1], px, 1, 'left'); ctx.font = `600 ${px}px "Space Grotesk",system-ui,sans-serif`; const xw = t0[0] + ctx.measureText(lb).width;
+        mot(String(E.jal), xw, t0[1], px, 1, 'left'); if (pop > 0.02) brille(xw - px * 0.62, t0[1], px * 0.9 * pop, 1, true, now, E.jal); }
+      mot(P ? (en() ? 'you drive' : 'c’est vous qui conduisez') : (en() ? 'mouse: take the wheel' : 'la souris : prenez le volant'), t0[0], t0[1] + Math.max(16, D * 0.075), Math.max(10, D * 0.042), 0.9, 'left');
     }
   };
   function pick2(L, n) { return L[Math.floor(bruit(n * 5.7) * L.length)]; }
@@ -2192,7 +2201,7 @@ S.pilotage = (() => {
     // les feux (rouges : ils brillent au freinage), la plaque, le pot et ses bouffées
     [[-w * 0.78, 0.25], [w * 0.78, 0.25]].forEach(([x, y]) => { const p = Q(x, y, 0); cerne(() => { ctx.beginPath(); ctx.arc(p[0], p[1], vw * 0.045, 0, TAU); }, 0.7, 1); brille(p[0], p[1], vw * 0.03, 0.9, Math.abs(roulis) > 0.02, now, x); });
     const pl = Q(0, 0.3, 0), pw = vw * 0.34, ph = vw * 0.1; boite(pl[0] - pw / 2, pl[1] - ph / 2, pw, ph, 3, 0.7, 1, true); mot('MW · 2026', pl[0], pl[1] + 1, Math.max(8, ph * 0.62), 1);
-    for (let j = 0; j < 4; j++) { const u = (now * 2 + j / 4) % 1, p = Q(w * 0.6 + u * 0.1, 0.16 + u * 0.3, -u * 1.2); rond(p[0], p[1], vw * (0.03 + u * 0.07), 0.6, 0.6 * (1 - u)); }
+    for (let j = 0; j < 4; j++) { const u = (now * 2 + j / 4) % 1, p = Q(w * 0.6 + u * 0.1, 0.16 + u * 0.3, -u * 1.2); rond(p[0], p[1], vw * (0.03 + u * 0.07) * (1 - u * u), 0.6, 0.8); }   // (vague 149 : la bouffée se dégonfle au lieu de s'effacer)
   }
 })();
 S.rag = S.ia;
