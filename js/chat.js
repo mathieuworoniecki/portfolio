@@ -322,6 +322,9 @@ function apply(c, opts) {
     g.rotation.set(0, ry, rz); c.tailM[i].scale.set(1, puff, puff); });
   tailOutline(c, puff);
   const a = c.a * (opts && opts.a !== undefined ? opts.a : 1);
+  // (vague 153 de l'audit : « les chats ») : le trait suit la taille du chat ; un petit chat (au fond, au téléphone) n'a plus un contour de gros feutre
+  const kp = Math.max(0.7, Math.min(1, 0.55 + 0.45 * c.s * b.s / 140));
+  if (c.kp !== kp) { c.kp = kp; c.mats.forEach(m => [m.line, m.soft, m.out, m.out2].forEach(q => { const u = q && q.uniforms && q.uniforms.width; if (u) { q.w0 ??= u.value; u.value = q.w0 * kp; } })); }
   c.mats.forEach(m => { m.line.opacity = Math.min(1, 0.95 * a); m.soft.opacity = 0.5 * a; if (m.out) m.out.opacity = m.line.opacity; if (m.out2) m.out2.opacity = m.line.opacity; const f = Math.min(1, a); [m.fill, m.occ, m.occ2].forEach(o => { if (o && o.paper) o.opacity = f; }); }); c.discs.forEach(m => { m.opacity = Math.min(1, a); });
   c.root.visible = a > 0.01;
 }
