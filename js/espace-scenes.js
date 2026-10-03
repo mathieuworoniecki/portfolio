@@ -2189,7 +2189,8 @@ S.pilotage = (() => {
       E.obs.filter(o => o.z <= zb + 1).sort((p, q) => q.z - p.z).forEach(o => obstacle(o, Pp, now, D));
       E.mots = E.mots.filter(m => now - m.t0 < 0.9); E.mots.forEach(m => { const u = (now - m.t0) / 0.9, p = Pp(m.x, 1.3 + u * 0.6, m.z); mot(m.t, p[0], Math.max(G.haut + 24, p[1]), Math.max(14, D * 0.08) * (1 + 0.4 * Math.sin(Math.min(1, u * 4) * Math.PI)) * Math.max(0.05, 1 - u * u * u), 1); });   // (vague 149 : le mot bondit puis rapetisse, sans fondu)
       // le compteur des jalons ; la consigne (la souris prend le volant)
-      const t0 = [G.gauche + 24, G.haut + 18], ue = now - (E.etoileT ?? -9), pop = ue < 0.6 ? Math.sin(ue / 0.6 * Math.PI) * (1 - ue / 0.6 * 0.5) : 0;
+      // (vague 169) hors de la bande estompée du bord (au bureau, le compteur y grisaillait)
+      const bdJ = Math.min(90, (G.droite + 16) * 0.1) + 6, t0 = [Math.max(G.gauche + 24, bdJ), G.haut + 18], ue = now - (E.etoileT ?? -9), pop = ue < 0.6 ? Math.sin(ue / 0.6 * Math.PI) * (1 - ue / 0.6 * 0.5) : 0;
       // (vague 149 : le compteur bondit à chaque jalon, son étoile s'allume puis se rétracte)
       { const px = Math.max(12, D * 0.055) * (1 + 0.45 * pop), lb = `${en() ? 'milestones' : 'jalons'} ★ `; mot(lb, t0[0], t0[1], px, 1, 'left'); ctx.font = `600 ${px}px "Space Grotesk",system-ui,sans-serif`; const xw = t0[0] + ctx.measureText(lb).width;
         mot(String(E.jal), xw, t0[1], px, 1, 'left'); if (pop > 0.02) brille(xw - px * 0.62, t0[1], px * 0.9 * pop, 1, true, now, E.jal); }
