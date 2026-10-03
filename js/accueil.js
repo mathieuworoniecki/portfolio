@@ -123,6 +123,14 @@ H.draw.push(() => {
   Chalk.stroke(D.P, u, { w: 3, a: 0.95 * Wd.a, seed: 11, tip: u < 1 });
   if (u < 0.85) { const P = D.P, i = Math.min(P.length - 2, Math.floor(u / 0.85 * (P.length - 1)) || 0); plume(P[i + 1][0], P[i + 1][1], P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1], 0.95 * Wd.a); suit(P[i + 1][0], P[i + 1][1]); }
   if (u > 0.85) [-1, 1].forEach(sd => Chalk.circle(D.x + (-0.18 + sd * 0.11) * D.s, D.y - 0.3 * D.s, D.s * 0.05, D.s * 0.075, (u - 0.85) / 0.15, { w: 3.4, a: 0.95 * Wd.a, seed: 12 + sd }));
+  // (vague 158 de l'audit : « l'arrivée », vers 9,7) : la plume ne disparaît plus d'un coup à la fin du trait : elle pique sur chaque œil
+  // (l'un puis l'autre), puis s'envole d'un coup d'aile hors de l'écran, par le haut, du côté opposé au chat ; son sillage la suit
+  if (u >= 0.85) { const ex = sd => [D.x + (-0.18 + sd * 0.11) * D.s, D.y - 0.3 * D.s], fin = D.P[D.P.length - 1];
+    if (u < 1) { const g = u < 0.925 ? -1 : 1, e = ex(g), v = ((u - 0.85) / 0.075) % 1, dep = g < 0 ? fin : ex(-1), x = dep[0] + (e[0] - dep[0]) * Math.min(1, v * 2), y = dep[1] + (e[1] - dep[1]) * Math.min(1, v * 2) - Math.sin(Math.PI * Math.min(1, v * 2)) * D.s * 0.2;
+      plume(x, y, e[0] - dep[0] || 1, (e[1] - dep[1]) || -1, 0.95 * Wd.a); }
+    else { const w = Math.min(1, (Wd.t - D.t0 - 1.0) / 0.22), o = ex(1), sens = D.x < Wd.W / 2 ? 1 : -1, cx = o[0] + sens * D.s * 2.2, cy = o[1] + D.s * 0.6, tx = sens > 0 ? Wd.W + 80 : -80, ty = -80, q = t => [(1 - t) * (1 - t) * o[0] + 2 * (1 - t) * t * cx + t * t * tx, (1 - t) * (1 - t) * o[1] + 2 * (1 - t) * t * cy + t * t * ty];
+      if (w < 1) { const ww = w * w, A = q(Math.max(0, ww - 0.04)), B = q(ww), S = []; for (let i = 0; i <= 8; i++) S.push(q(Math.max(0, ww - 0.3 + i * 0.3 / 8)));
+        Chalk.stroke(S, 1, { w: 1.4, a: 0.8 * Wd.a, seed: 17, tip: true }); plume(B[0], B[1], B[0] - A[0] || sens, B[1] - A[1] || -1, 0.95 * Wd.a); } } }
 });
 const L_ = k => (window.L ? L(k) : k);
 const vivant = c => c && Wd.cats.includes(c) && !c.gone && c.hp && !c.hidden;
