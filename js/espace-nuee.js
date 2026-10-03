@@ -403,11 +403,21 @@ X.fond.push((ctx, now) => {
   if (pts && pts.lg && !reduit) { plume(ctx, pts, dt, now, br); FIN = { x: pts.lg[pts.lg.length - 1].x1, y: pts.lg[pts.lg.length - 1].y, id: C.nid, t: 0 }; }
   // (vague 52 de l'audit, « les titres en étoiles », immersion) : quand le titre se défait, là où la plume s'est arrêtée part une onde de choc
   // d'étoiles, deux anneaux qui balaient tout l'écran jusqu'aux bords ; les étoiles de l'anneau rapetissent en s'éloignant (aucun fondu)
-  else if (FIN && C && FIN.id === C.nid && !reduit) { if (!FIN.t) FIN.t = Wd.t; const e = Wd.t - FIN.t, Rm = Math.hypot(Math.max(FIN.x, W - FIN.x), Math.max(FIN.y, H - FIN.y));
+  else if (FIN && C && FIN.id === C.nid && !reduit) { if (!FIN.t) { FIN.t = Wd.t; CHOC.x = FIN.x; CHOC.y = FIN.y; CHOC.t = Wd.t; CHOC.Rm = Math.hypot(Math.max(FIN.x, W - FIN.x), Math.max(FIN.y, H - FIN.y)); CHOC.vus = new Set(); CHOC.dit = false; } const e = Wd.t - FIN.t, Rm = Math.hypot(Math.max(FIN.x, W - FIN.x), Math.max(FIN.y, H - FIN.y));
     if (e > 1.1) FIN = null; else for (let j = 0; j < 2; j++) { const u = c01((e - j * 0.16) / 0.95); if (u <= 0 || u >= 1) continue; const R = Rm * (1 - Math.pow(1 - u, 2.2)), n = 64, rr = br * (5 - j * 1.6) * (1 - u);
       ctx.globalAlpha = 1; for (let i = 0; i < n; i++) { const an = i / n * TAU + j * 0.05 + Math.sin(i * 2.3) * 0.02, x = FIN.x + Math.cos(an) * R, y = FIN.y + Math.sin(an) * R * 0.92;
         if (x < -rr || x > W + rr || y < -rr || y > H + rr || bd && y > bd.y && y < bd.y + bd.h && x > bd.x && x < bd.x + bd.w) continue; ctx.drawImage(LUEUR, x - rr, y - rr, rr * 2, rr * 2); } } }
   ctx.restore(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+});
+/* (vague 120, l'audit : « les titres en étoiles ») : l'onde de choc du titre qui se défait n'est plus une image : elle souffle.
+   Chaque chat qu'elle rattrape est projeté vers l'extérieur, en vrille, sonné ; les plus proches de la fin du titre volent le plus loin */
+const CHOC = { t: -9, x: 0, y: 0, Rm: 1, vus: new Set(), dit: false };
+X.pas.push((dt, cats) => {
+  const e = Wd.t - CHOC.t; if (reduit || e < 0 || e > 1.1) return; const u = c01(e / 0.95), R = CHOC.Rm * (1 - Math.pow(1 - u, 2.2));
+  cats.forEach(c => { const S = c.sp; if (!S || c.held || CHOC.vus.has(c) || X.mode[S.m] || S.m === 'crache' || S.m === 'agrippe') return;
+    const [x, y] = O.centreDe(c), dx = x - CHOC.x, dy = (y - CHOC.y) / 0.92, d = Math.hypot(dx, dy) || 1; if (d > R) return; CHOC.vus.add(c);
+    const f = (1 - u * 0.7) * Wd.s0 * 3.2, sd = Math.random() < 0.5 ? -1 : 1; S.m = 'derive'; S.vx += dx / d * f; S.vy += dy / d * f * 0.92; S.w = (S.w || 0) + sd * (5 + 5 * (1 - u)); S.bonk = Wd.t;
+    if (!CHOC.dit) { CHOC.dit = true; K.say(c, ['ouaaah !', 'pfiou !', 'hé !', 'whoosh'][Math.floor(Math.random() * 4)]); if (window.Dex && Dex.vu) Dex.vu('souffle-titre'); } });
 });
 /* (vague 119, l'audit : « la nuée ») : la nuée n'est plus un décor derrière les chats. Quand elle se rassemble en tête de chat géante,
    les chats qui flottent se tournent vers elle (l'un d'eux lui parle) ; quand elle se disperse vers la forme suivante, son tourbillon
