@@ -1356,7 +1356,9 @@ S.gardefous = (() => {
       // un compteur de papier en haut du ciel, son aiguille qui grimpe dans la zone hachurée ; les feuilles filent, les portiques suivent,
       // les recalées sont toujours éjectées : rien ne passe sans contrôle. (aw : le temps du tapis, qui avance plus vite pendant le turbo)
       const CYT = 9, ut = a % CYT, bt = ut < 3 ? Math.sin(Math.PI * ut / 3) ** 2 : 0, It = u => u / 2 - 3 / (4 * Math.PI) * Math.sin(2 * Math.PI * u / 3), aw = a + 2 * (Math.floor(a / CYT) * 1.5 + It(Math.min(ut, 3))), vt = 1 + 2 * bt;
-      const [k, lx] = large(1.55, 2.1), V = cam(-0.3, -0.42, k * 1.02, -0.08, -0.14), yT = 0.3, x0 = -lx, xS = lx * 0.5, xs = [-lx * 0.62, -lx * 0.28, lx * 0.06], lab = LAB(), vit = 0.36, T = 1.0;
+      // (vague 142, l'audit : « la vitesse », immersion) : en turbo, on y est. La caméra pivote le long du tapis, descend vers lui et s'approche,
+      // comme un travelling embarqué ; elle vibre un peu avec la vitesse ; le turbo passé, elle reprend sa place
+      const [k, lx] = large(1.55, 2.1), V = cam(-0.3 + 0.2 * bt + Math.sin(now * 37) * 0.006 * bt, -0.42 + 0.08 * bt + Math.sin(now * 29) * 0.005 * bt, k * 1.02 * (1 + 0.05 * bt), -0.08 - 0.06 * bt, -0.14), yT = 0.3, x0 = -lx, xS = lx * 0.5, xs = [-lx * 0.62, -lx * 0.28, lx * 0.06], lab = LAB(), vit = 0.36, T = 1.0;
       // (vague 17 de l'audit : « le tapis part du bord gauche, le reste du ciel est vide ») : les changements arrivent de tout le ciel, par dizaines,
       // comme des feuilles de papier qui planent, et se posent au début du tapis
       sousLaBarre();
@@ -1375,7 +1377,8 @@ S.gardefous = (() => {
       const xP = xS + 0.35, zP = -0.55, nb = Math.floor(aw / T) + 1; let pile = 0;
       for (let q = 0; q < nb; q++) { const t = aw - q * T, rate = bruit(q * 13.3) < 0.3 ? 1 + Math.floor(bruit(q * 5.1) * 3) : 0; if (!rate && t > (xS - 0.05 - x0) / vit + 1.4) pile++; }
       for (let j = 0; j < Math.min(14, pile); j++) carte(xP, yT - j * 0.03, zP, 0.9);
-      if (pile) mot(`✓ ${pile} ${lab[4]}`, V(xP, yT - Math.min(14, pile) * 0.03 - 0.16, zP)[0], V(xP, yT - Math.min(14, pile) * 0.03 - 0.16, zP)[1], Math.max(10, k * 0.065), 0.85);
+      // (vague 142, finition : le compteur des fusionnés passait derrière l'humain ; il est écrit après lui, par-dessus)
+      const motPile = yh => { if (!pile) return; const q = V(xP, yT - Math.min(14, pile) * 0.03 - 0.16, zP), fs = Math.max(10, k * 0.065); mot(`✓ ${pile} ${lab[4]}`, q[0], Math.max(G.haut + fs, Math.min(q[1], yh)), fs, 0.85); };
       let tampon = 0;
       for (let q = Math.max(0, nb - 10); q < nb; q++) { const t = aw - q * T, x = x0 + t * vit, rate = bruit(q * 13.3) < 0.3 ? 1 + Math.floor(bruit(q * 5.1) * 3) : 0, g = rate ? xs[rate - 1] : 99;
         if (x > g + 0.03) { const d = (x - g - 0.03) / vit, px = g + 0.03 + d * 0.12, pz = d * 1.0, py = yT - Math.sin(Math.min(d, 0.5) * Math.PI) * 0.2 + Math.max(0, d - 0.25) ** 2 * 3; if (py > 1.4) continue;
@@ -1421,7 +1424,7 @@ S.gardefous = (() => {
       GF.t = now;   // (vague 87 : les garde-fous du vrai site, voir gardeFou())
       // l'humain : il regarde, hoche la tête, tamponne
       const hp = V(xS + 0.34, yT, -0.28), rr = k * 0.15 * hp[3], hoche = Math.max(0, Math.sin(now * 2.2)) ** 6, ci = V(xS - 0.05, yT - 0.02, 0);
-      lui(hp[0], hp[1] - rr * 2.5, rr, { now, hoche, tp: tampon, cible: ci, cote: -1 }); mot(lab[3], hp[0], hp[1] + k * 0.06, Math.max(10, k * 0.07), 0.85);
+      lui(hp[0], hp[1] - rr * 2.5, rr, { now, hoche, tp: tampon, cible: ci, cote: -1 }); mot(lab[3], hp[0], hp[1] + k * 0.06, Math.max(10, k * 0.07), 0.85); motPile(hp[1] - rr * 4.4);
       // (vague 58 de l'audit, « la vitesse sans perdre le contrôle », immersion) : l'humain dans la boucle, c'est nous. La souris devient une loupe
       // de relecture : sous le verre, le diff grossi défile (lignes ajoutées +, retirées −) ; si on s'attarde, on le valide d'une coche
       { const Sm = souris(), tW = window.Chats.K.Wd.t; if (Sm && tW - Sm.moved < 3 && Sm.y > G.haut + 10 && Sm.y < (G.caps || G.bas) - 10) { const R = Math.max(34, k * 0.2), x = Sm.x, y = Math.min(Sm.y, (G.caps || G.bas) - R - 8), fs = Math.max(8, R * 0.2);
