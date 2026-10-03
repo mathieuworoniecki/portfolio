@@ -1143,12 +1143,15 @@ S.bench = (() => {
     dessin(a, now) {
       const T0b = go => Math.PI / 2 + go * TAU * 1.5;
       // (vague 42, l'audit : « la course », finition) : le bord avant de la piste ne descend jamais sur les sous-titres ; sinon, tout rapetisse
-      let [k, lx] = large(1.5, 2.1), oyb = -0.14; const lac0 = 0.3 + Math.sin(a * 0.15) * 0.15; let V = cam(lac0, -0.46, k, 0, oyb);
+      // (vague 140, l'audit : « la course », immersion) : la caméra suit la course comme une retransmission : pendant la course, elle pivote
+      // pour garder la tête de course face à nous, plonge un peu plus bas sur la piste et s'approche ; à l'arrivée, elle revient sur le podium
+      const cS = a % 7.5, goS = c01((cS - 1.1) / 3.4), suivi = sm(c01((cS - 0.9) / 0.6)) * (1 - sm(c01((cS - 4.6) / 0.9)));
+      let [k, lx] = large(1.5, 2.1), oyb = -0.14; k *= 1 + 0.07 * suivi; const lac0 = 0.3 + Math.sin(a * 0.15) * 0.15 + suivi * (G.s > 300 ? 0.28 : 0.42) * Math.sin(goS * Math.PI * 3), tan0 = -0.46 + 0.09 * suivi; let V = cam(lac0, tan0, k, 0, oyb);
       for (let pas = 0; pas < 2; pas++) { const Rx0 = Math.min(1.55, lx * 0.82), bords = [0, 0.8, 1.6, 2.4].map(t => V(Math.cos(Math.PI / 2 + t * 0.5) * Rx0 * 1.2, 0, Math.sin(Math.PI / 2 + t * 0.5) * 0.62 * 1.2)[1]).concat([0, 0.8, 1.6].map(t => V(Math.cos(Math.PI / 2 - t * 0.5) * Rx0 * 1.2, 0, Math.sin(Math.PI / 2 - t * 0.5) * 0.62 * 1.2)[1])),
           f = Math.max(...bords) + k * 0.03, lim = (G.caps || G.bas) - 4, c0 = V(0, 0, 0)[1];
         if (f <= lim) break;
-        if (!pas) { oyb -= Math.min(f - lim, k * 0.22) / G.s; V = cam(lac0, -0.46, k, 0, oyb); }   // d'abord, on remonte un peu (les tribunes ont de la place en haut)
-        else if (f > c0) { k *= Math.max(0.6, (lim - c0) / (f - c0)); V = cam(lac0, -0.46, k, 0, oyb); } }   // puis, s'il le faut, on rapetisse
+        if (!pas) { oyb -= Math.min(f - lim, k * 0.22) / G.s; V = cam(lac0, tan0, k, 0, oyb); }   // d'abord, on remonte un peu (les tribunes ont de la place en haut)
+        else if (f > c0) { k *= Math.max(0.6, (lim - c0) / (f - c0)); V = cam(lac0, tan0, k, 0, oyb); } }   // puis, s'il le faut, on rapetisse
       const Cy = 7.5, n = Math.floor(a / Cy), c = a % Cy, Rx = Math.min(1.55, lx * 0.82), Rz = 0.62;
       const v = NOMS.map((_, i) => 0.75 + 0.5 * bruit(n * 11 + i * 3.7)), g = v.indexOf(Math.max(...v)), rang = v.map((x, i) => [x, i]).sort((p, q) => q[0] - p[0]).map(q => q[1]);
       // la piste : un anneau relevé (le bord intérieur plus bas), ses lignes de couloir, les traits de vitesse
@@ -1161,7 +1164,7 @@ S.bench = (() => {
       { const go0 = c01((c - 1.1) / 3.4), tete = T0b(go0), R = [];
         for (let j = 0; j <= 40; j++) { const t = Math.PI + j / 40 * Math.PI; R.push(piste(t, 5.4, -0.06)); } trait(R, false, 0.8, 0.8);
         for (let j = 0; j < 34; j++) { const t = Math.PI + (j + 0.5) / 34 * Math.PI, p = piste(t, 6.1 + (j % 2) * 0.9, -0.05 - (j % 2) * 0.05), r = k * 0.045 * p[3] * (j % 2 ? 1.05 : 1);
-          if (p[1] - r * 3 < G.haut) continue; const d = Math.abs(Math.atan2(Math.sin(t - tete), Math.cos(t - tete))), ola = go0 > 0 && go0 < 1 ? Math.exp(-((d * 2.2) ** 2)) : c > 4.6 ? 0.5 + 0.5 * Math.sin(now * 6 + j) : 0;
+          if (p[1] - r * 3 < G.haut) continue; { const pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat; if (pc && Math.hypot(p[0] - pc.x, p[1] - r * 1.75 - pc.y) < pc.r * 1.25 + r) continue; } const d = Math.abs(Math.atan2(Math.sin(t - tete), Math.cos(t - tete))), ola = go0 > 0 && go0 < 1 ? Math.exp(-((d * 2.2) ** 2)) : c > 4.6 ? 0.5 + 0.5 * Math.sin(now * 6 + j) : 0;
           chabot(p[0], p[1] - r * 1.75 - ola * r * 0.8, r, { now, ph: j + 50, casque: false, lac: Math.cos(t) * 0.6, bras: [0.3 + ola * 1.2 + Math.sin(now * 7 + j) * 0.2 * ola, 0.3 + ola * 1.2] }); } }
       // la ligne d'arrivée (un damier de papier sur la largeur de la piste)
       for (let l = 0; l < 5; l++) for (let j = 0; j < 2; j++) { const t0 = Math.PI / 2 - 0.02 + j * 0.04, Q = [piste(t0, l - 0.5), piste(t0 + 0.04, l - 0.5), piste(t0 + 0.04, l + 0.5), piste(t0, l + 0.5)];
