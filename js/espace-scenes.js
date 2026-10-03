@@ -51,6 +51,7 @@ function perso(x, y, k, o = {}) {
 const PAP = 'rgb(250,248,242)', ENC = 'rgb(34,36,40)';
 function cerne(path, w, a, remplir = PAP) { ctx.globalAlpha = a; ctx.lineJoin = ctx.lineCap = 'round';
   ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = G.lw * w * 2.3; path(); ctx.stroke(); if (remplir) { ctx.fillStyle = remplir; path(); ctx.fill(); } ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.95; path(); ctx.stroke(); }
+const BUEE = { vu: false };
 function chabot(x, y, r, o = {}) {
   const a = o.a ?? 1, lac = o.lac ?? 0, sl = Math.sin(lac), w = clamp01(r / 30) * 0.7 + 0.35, now = o.now || 0, ph = o.ph || 0;
   if (r < 3) { rond(x, y, Math.max(1.2, r), 0.6, a, true); return; }
@@ -63,6 +64,11 @@ function chabot(x, y, r, o = {}) {
   const Sp = r >= 6 ? sourisIci() : null;
   const dS = Sp ? Math.hypot(Sp.x - x, Sp.y - y) : 1e9, voit = dS < r * 6 ? 1 - dS / (r * 6) : 0;
   if (dS < r * 2.8) { const i = Sp.x > x ? 1 : 0; bras = bras.slice(); bras[i] = 1.25 + Math.sin(now * 14 + ph) * 0.4; }
+  // (vague 133 de l'audit : « le chat-robot », de très bien à inoubliable) : la buée. De temps en temps, chacun à son heure, il soupire dans son
+  // casque : une tache de buée gagne le bas de la vitre, il y dessine un cœur du bout du doigt, puis la buée se resserre et disparaît en rétrécissant
+  const cyB = 16 + bruit(ph * 1.7 + 3) * 10, tB = window.__bue ?? (now + bruit(ph * 2.3 + 1) * cyB) % cyB,   // (__bue : pour les captures de test)
+    bue = o.casque !== false && r >= 12 && !o.cligne && tB < 2.8 && !(dS < r * 2.8) ? tB : -1, gB = bruit(ph * 4.1) < 0.5 ? -1 : 1;
+  if (bue >= 0 && bue > 0.35 && bue < 2.1) { bras = bras.slice(); bras[gB < 0 ? 0 : 1] = 1.05 + Math.sin(bue * 9) * 0.18; }
   if (Sp && r >= 8 && o.vise !== false && !INST.q && !(AGV.e > 0.3 && now - AGV.t < 0.3) && dS < r * 4.5 && (!VISE.c || dS / r < VISE.c.d)) { const m = ctx.getTransform(), q = { d: dS / r, id: ph, x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f, r: r * Math.hypot(m.a, m.b) }; if (q.x > 0 && q.y > 0 && q.x < ctx.canvas.width && q.y < ctx.canvas.height && q.r < ctx.canvas.height * 0.3) VISE.c = q; }
   [-1, 1].forEach((g, i) => { const b = bras[i], ex = x + g * bw * 0.86, ey = by - bh * 0.35, mx = ex + g * Math.cos(b) * r * 0.42, my = ey - Math.sin(b) * r * 0.42;
     cerne(() => { ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(mx, my); }, w * 1.5, a, null); cerne(() => { ctx.beginPath(); ctx.arc(mx, my, r * 0.13, 0, TAU); }, w, a); });
@@ -113,6 +119,15 @@ function chabot(x, y, r, o = {}) {
     ctx.beginPath(); ctx.moveTo(sx, sy + r * 0.12); ctx.quadraticCurveTo(sx, y + r * 0.42, hx + (sl * 0.32 + 0.22) * r, y + r * 0.36); ctx.stroke(); ctx.beginPath(); ctx.arc(hx + (sl * 0.32 + 0.2) * r, y + r * 0.36, r * 0.05, 0, TAU); ctx.fill(); }
   // le casque de verre : un rond au trait blanc, un reflet
   if (o.casque !== false) { style(0.55 * w, a * 0.8); ctx.beginPath(); ctx.arc(hx, y - r * 0.08, r * 1.32, 0, TAU); ctx.stroke(); style(0.9 * w, a * 0.7); ctx.beginPath(); ctx.arc(hx, y - r * 0.08, r * 1.16, -2.5, -1.9); ctx.stroke(); }
+  if (bue >= 0) { const gr = sm(c01(bue / 0.45)) * (1 - sm(c01((bue - 2.1) / 0.6))), fx = hx + gB * r * 0.78, fy = y + r * 0.5, rx = r * 0.5 * gr, ry = r * 0.36 * gr;
+    if (gr > 0.02) { ctx.save(); ctx.beginPath(); ctx.arc(hx, y - r * 0.08, r * 1.3, 0, TAU); ctx.clip(); ctx.globalAlpha = a * 0.62; ctx.fillStyle = 'rgb(176,196,232)'; ctx.beginPath(); ctx.ellipse(fx, fy, rx, ry, gB * 0.3, 0, TAU); ctx.fill();
+      for (let j = 0; j < 5; j++) { const t = j / 5 * TAU + ph; ctx.beginPath(); ctx.arc(fx + Math.cos(t) * rx * 0.95, fy + Math.sin(t) * ry * 0.95, r * 0.12 * gr, 0, TAU); ctx.fill(); }
+      // le cœur, tracé du doigt : un seul trait qui avance
+      const tc = c01((bue - 0.45) / 1.3), hs = r * 0.24 * gr; if (tc > 0) { ctx.globalAlpha = a; ctx.strokeStyle = '#ff7f9f'; ctx.lineWidth = Math.max(1.4, G.lw * w * 0.8); ctx.lineCap = 'round'; ctx.beginPath(); const N = Math.ceil(40 * tc);
+        for (let i = 0; i <= N; i++) { const t = i / 40 * TAU, px = 16 * Math.sin(t) ** 3, py = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t), X = fx + px / 16 * hs, Y = fy - py / 16 * hs; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); } ctx.stroke(); }
+      ctx.restore();
+      if (bue < 0.5 && r >= 16) mot(en() ? 'haaa' : 'pfff', hx - gB * r * 1.2, y - r * 1.2, Math.max(10, r * 0.32), 1);
+      if (tc >= 1 && !BUEE.vu && window.Dex && Dex.vu) { BUEE.vu = true; Dex.vu('buee'); } } }
 }
 // (vague 79, l'audit : « le chat-robot », il sort de sa scène) : c'est une IA, il nous analyse. La souris s'attarde près d'un chat-robot : de ses
 // yeux partent deux traits de balayage jusqu'à elle, puis un cadre de détection se referme autour du pointeur, par-dessus tout l'écran, avec son
