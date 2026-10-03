@@ -53,6 +53,9 @@ function cerne(path, w, a, remplir = PAP) { ctx.globalAlpha = a; ctx.lineJoin = 
   ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = G.lw * w * 2.3; path(); ctx.stroke(); if (remplir) { ctx.fillStyle = remplir; path(); ctx.fill(); } ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.95; path(); ctx.stroke(); }
 const BUEE = { vu: false };
 function chabot(x, y, r, o = {}) {
+  // (vague 173 de l'audit : « le chat-robot astronaute ») : plus jamais à demi transparent (le fond le traversait, il devenait gris boueux) :
+  // au loin ou en train d'arriver, il est plus petit, toujours à l'encre pleine ; sa transparence ne sert plus que tout au début
+  if ((o.a ?? 1) < 1) { const g = clamp01((o.a ?? 1) * 2.5); r *= 0.4 + 0.6 * g * g * (3 - 2 * g); o = Object.assign({}, o, { a: Math.min(1, (o.a ?? 1) * 4) }); }
   const a = o.a ?? 1, lac = o.lac ?? 0, sl = Math.sin(lac), w = clamp01(r / 30) * 0.7 + 0.35, now = o.now || 0, ph = o.ph || 0;
   if (r < 3) { rond(x, y, Math.max(1.2, r), 0.6, a, true); return; }
   // le corps : une combinaison arrondie, un sac à dos qui dépasse du côté où il ne regarde pas ; les bras
