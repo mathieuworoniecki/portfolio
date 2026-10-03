@@ -466,6 +466,8 @@ html:not(.locked) #gate:not(.open){display:none}
 @keyframes hf-mot{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:none}}
 /* (vague 95 de l'audit) : dans l'espace, au bureau, la planète des chats est en haut à droite : le haut fait s'annonce en haut à gauche, jamais sur elle */
 @media (min-width:601px){.espace .hf-show{right:auto;left:14px;transform-origin:0 0}}
+/* (vague 115, l'audit : au téléphone, la carte « Découverte ! » et celle du haut fait tombaient l'une sur l'autre en bas de l'écran) : quand un haut fait est là, la petite carte du carnet monte d'un cran au-dessus de lui, en glissant */
+@media (max-width:600px){.dex-toast{transition:bottom .4s cubic-bezier(.3,1.5,.5,1)}body:has(.hf-show:not([hidden])) .dex-toast{bottom:calc(92px + 74px + env(safe-area-inset-bottom,0px))}}
 @media (max-width:600px){.hf-show{top:auto;bottom:calc(92px + env(safe-area-inset-bottom,0px));right:10px;max-width:min(270px,calc(100vw - 80px));padding:5px 12px 5px 5px;gap:6px;transform-origin:100% 100%}.hf-show .hf-badge{width:50px;height:auto}.hf-rayons{left:30px;width:120px}.hf-show h2{font-size:1.05rem}.hf-sur{font-size:.55rem}}
 .hf-btn svg{fill:none}
 .hf-grille{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))!important}
