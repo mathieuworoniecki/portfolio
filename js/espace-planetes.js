@@ -18,7 +18,11 @@ function place() {
   const r = clamp(Math.min(W, H) * 0.09, 38, 90), large = W >= 760;
   // (la planète des chats : à la place que lui laissent les constellations des compétences, js/espace-plume.js)
   const top = bas - h + 18, pl = window.EspacePlume && EspacePlume.planete;
-  return { terre: { cx: W / 2, cy: bas - h + R + 18, R, top }, chat: pl ? { x: pl[0], y: pl[1], r } : { x: large ? W * 0.9 : W * 0.8, y: large ? H * 0.2 : H * 0.22, r } };
+  const ch = pl ? { x: pl[0], y: pl[1], r } : { x: large ? W * 0.9 : W * 0.8, y: large ? H * 0.2 : H * 0.22, r };
+  // (vague 189, finition : au téléphone, l'anneau, l'oreille et les moustaches de droite sortaient de l'écran, coupés net au bord) : la planète
+  // garde son anneau entier dans l'écran
+  if (W < 700) ch.x = Math.min(ch.x, W - r * 1.4);
+  return { terre: { cx: W / 2, cy: bas - h + R + 18, R, top }, chat: ch };
 }
 function naissance() { if (P) return; P = Object.assign(place(), { W: O.W, H: O.H, t0: Wd.t, survol: 0, pousse: 0, aspire: null, seed: Math.random() * 99 }); }
 // (28/09, Mathieu : « fais apparaître la Terre et la planète des chats plus vite ») : elles se dessinent dès l'arrivée, pendant que la présentation s'écrit
