@@ -180,6 +180,7 @@ fam('espace', 'L’espace', 'Space', [
   ['nid-epis', 'Le nid dans les épis', 'A nest in the spikes', 'Dans l’espace, le petit chat de l’épaule saute sur la tête de Mathieu et fait la sieste dans ses épis.', 'In space, the little shoulder cat hops onto Mathieu’s head and naps in his spiky hair.'],
   ['trappe-toit', 'La trappe du toit', 'The roof hatch', 'Dans le bus, chaque jalon attrapé fait jaillir un chat-robot de la trappe du toit, fanion au vent.', 'On the bus, every milestone caught pops a cat-robot out of the roof hatch, waving a pennant.'],
   ['splotch', 'SPLOTCH', 'SPLOTCH', 'À l’arrivée dans l’espace, un chat file droit vers nous et s’écrase sur la vitre, les coussinets à plat.', 'Arriving in space, a cat flies straight at us and squashes against the glass, paw pads flat.'],
+  ['dix-en-un', 'Dix en un', 'Ten in one', 'À la fin de l’arène, l’équipe de dix apparaît en pointillés autour de lui, puis rentre en lui, un par un.', 'At the end of the arena, the ten-person team appears in dotted lines around him, then steps into him, one by one.'],
   ['troublanc', 'Le petit trou blanc', 'The little white hole', 'Là-haut aussi, un clic dans le vide.', 'Up there too, a click on empty space.'],
   ['agrippe', 'Accroché', 'Hanging on', 'Le curseur, tout près d’un chat qui flotte.', 'The cursor, close to a floating cat.'],
   ['fronde', 'La fronde', 'The slingshot', 'Trop près d’une planète, on fait un tour… et on repart plus vite.', 'Too close to a planet, you go around… and leave faster.'],

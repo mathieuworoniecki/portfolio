@@ -747,7 +747,7 @@ const S = {};
 // jusqu'au fond ; mains en l'air, une ola passe ; puis tout le monde est aspiré en tourbillon et rentre en lui : ×10 ; et ça recommence
 // (vague 14 de l'audit : « la foule reste une bande au milieu ») : les gradins font maintenant le tour de lui, en arène, sur toute la largeur
 // du ciel : quatre rangs en ellipse, les plus loin plus hauts ; l'arène tourne lentement, la ola en fait le tour ; plus d'une centaine d'agents
-const LIVRE = { vu: false };
+const LIVRE = { vu: false }; const DIX = { vu: false };
 S.equipe = (() => {
   let F = null, cle = '';
   // les places : quatre rangs d'ellipses autour de lui (calculés à la taille de l'écran)
@@ -833,7 +833,23 @@ S.equipe = (() => {
         if (n >= 12 && !LIVRE.vu && window.Dex && Dex.vu) { LIVRE.vu = true; Dex.vu('livrables'); } }
       devant.filter(d => d.z >= 90).forEach(d => d.f());
       if (c > 0.7 && c < 2.6) { const j = Math.floor((c - 0.7) / 0.45), u = ((c - 0.7) % 0.45) / 0.45; mot('pop !', coeur[0] + (j % 2 ? -1 : 1) * G.s * (0.4 + 0.2 * bruit(j)), coeur[1] - G.s * (0.25 + 0.2 * bruit(j * 3)) - u * 12, Math.max(13, G.s * 0.1), 1 - u); }
-      if (c > 7.9) { const u = sm((c - 7.9) / 0.5); eclat(coeur[0], coeur[1], G.s * 0.35, (c - 7.9) / 0.7, 12, 0.2); mot('×10', pied[0] + G.s * 0.55, coeur[1] - G.s * 0.2, Math.max(22, G.s * 0.26) * (0.6 + 0.4 * u), u); }
+      // (vague 139, l'audit : « l'équipe », originalité) : « là où il fallait une équipe de dix ». Le tourbillon fini, l'équipe qu'il aurait fallu
+      // apparaît autour de lui en pointillés, dix silhouettes de développeurs penchés sur leur portable, une par une, un fil pointillé jusqu'à lui ;
+      // puis elles rentrent en lui l'une après l'autre (elles rapetissent en filant, jamais de fondu), et chaque entrée fait monter le « ×10 »
+      const GH = { t0: 7.0, pas: 0.07, ent: 8.0, pe: 0.09 }, gh = Math.max(8, G.s * 0.062), Rg = G.s * 0.62, ryG = Math.max(gh * 3, Math.min(Rg * 0.5, coeur[1] - G.haut - gh * 3.2));
+      let entres = 0;
+      if (c > GH.t0) for (let i = 0; i < 10; i++) { const ta = GH.t0 + i * GH.pas, te = GH.ent + i * GH.pe, ap = c01((c - ta) / 0.25), en1 = sm(c01((c - te) / 0.35)); if (ap <= 0) break; if (en1 >= 1) { entres++; continue; }
+        const an = Math.PI * (1.1 + 0.8 * i / 9), x0 = coeur[0] + Math.cos(an) * Rg, y0 = coeur[1] + Math.sin(an) * ryG, x = lerp(x0, coeur[0], en1), y = lerp(y0, coeur[1], en1) - Math.sin(Math.PI * en1) * gh * 2,
+          k = (0.4 + 0.6 * sm(ap) + 0.25 * Math.sin(Math.PI * c01(ap))) * (1 - en1 * 0.85), g = gh * k, hoche = Math.sin(now * 5 + i) * 0.08;
+        ctx.save(); ctx.setLineDash([g * 0.28, g * 0.32]); style(0.55, 0.5 * ap); ctx.beginPath(); ctx.moveTo(x, y + g * 0.6); ctx.lineTo(lerp(x, coeur[0], 0.82), lerp(y + g * 0.6, coeur[1], 0.82)); ctx.stroke();
+          style(0.8, 0.95); ctx.translate(x, y); ctx.rotate(hoche);
+          ctx.beginPath(); ctx.arc(0, -g * 1.25, g * 0.55, 0, TAU); ctx.stroke();   // la tête
+          ctx.beginPath(); ctx.moveTo(-g * 0.95, g * 0.9); ctx.quadraticCurveTo(-g * 0.9, -g * 0.55, 0, -g * 0.55); ctx.quadraticCurveTo(g * 0.9, -g * 0.55, g * 0.95, g * 0.9); ctx.stroke();   // les épaules
+          ctx.beginPath(); ctx.moveTo(-g * 0.75, g * 0.9); ctx.lineTo(g * 0.75, g * 0.9); ctx.lineTo(g * 0.55, g * 0.2); ctx.lineTo(-g * 0.55, g * 0.2); ctx.closePath(); ctx.stroke();   // le portable
+          ctx.restore(); }
+      if (entres && !DIX.vu && entres >= 10 && window.Dex && Dex.vu) { DIX.vu = true; Dex.vu('dix-en-un'); }
+      if (c > 7.9) { const u = sm((c - 7.9) / 0.5), nx = Math.max(1, entres), pop = c > GH.ent ? 1 + 0.18 * Math.max(0, 1 - ((c - GH.ent) % GH.pe) / GH.pe) * (entres < 10 ? 1 : 0) : 1;
+        eclat(coeur[0], coeur[1], G.s * 0.35, (c - 7.9) / 0.7, 12, 0.2); if (entres) mot('×' + nx, pied[0] + G.s * 0.55, coeur[1] - G.s * 0.2, Math.max(22, G.s * 0.26) * (0.6 + 0.4 * u) * pop, u); }
     }
   };
 })();
