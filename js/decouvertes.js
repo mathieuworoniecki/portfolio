@@ -125,6 +125,7 @@ fam('evts', 'Les événements', 'Events', [
   ['miaou-geant', 'Le grand miaou', 'The giant meow', 'Le géant s’arrête au milieu de la pièce… et miaule. Tout s’envole.', 'The giant stops mid-room… and meows. Everything flies.'],
   ['patte-geant', 'La patte d’essai', 'The test paw', 'Avant de rouler, il tâte le sol.', 'Before rolling in, he tests the floor.'],
   ['bosse-tuyau', 'Ça monte !', 'Going up!', 'Ce qu’il avale se voit passer dans le tuyau.', 'You can see what it swallows travel up the hose.'],
+  ['toise', 'La toise', 'The height chart', 'La grande tour mesure six chats ou plus.', 'The great tower measures six cats or more.'],
   ['oeil-geant', 'Il habite dehors', 'He lives outside', 'Le géant est parti… vraiment ?', 'The giant is gone… is he?'],
   ['frise', 'La frise arc-en-ciel', 'The rainbow trim', 'Après la parade, regarde tout en bas de l’écran.', 'After the parade, look at the very bottom of the screen.'],
   ['toboggan', 'Le toboggan arc-en-ciel', 'The rainbow slide', 'Grimper sur l’arche des Nyan Cats, et redescendre en glissant.', 'Climb the Nyan Cats’ arch, and slide back down.'],

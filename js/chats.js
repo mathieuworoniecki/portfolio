@@ -1242,6 +1242,33 @@ function climbers(T) {
     k.q.push(pose('miaule', 2, { fx: k => say(k, 'miaou !') }));
   });
 }
+// (vague 114 de l'audit, « la tour de cartons », l'inoubliable) : la toise. Comme les traits au crayon sur le chambranle d'une porte, une règle
+// dessinée pousse à côté de la grande tour à mesure qu'elle monte, graduée en chats (« 1 », « 2 »… et en haut « 7 chats ! ») ; quand la tour
+// s'écroule, la toise bascule comme un bâton, claque au sol (« clac ») et rapetisse jusqu'à rien
+const EN = () => !/^fr/.test(document.documentElement.lang || 'fr');
+const TOISE = { T: null, h: 0, n: 0, chute: -1, dir: 1, x: 0, sol: 0, k: 1 };
+H.draw.push(() => {
+  const T = Wd.tower, O = TOISE, C = Chalk; if (!C.ctx || Wd.espace || Wd.trou) return;
+  if (T && T.grand && T !== O.T && T.boxes.length) Object.assign(O, { T, h: 0, n: 0, chute: -1, k: 1, clac: false });
+  if (!O.T) return; const t0 = O.T, b0 = t0.boxes[0];
+  if (O.chute < 0) { if (!b0 || !Wd.props.includes(b0)) { O.T = null; return; }
+    const s = sOf(t0.d), sd = xOf(b0) < Wd.W / 2 ? 1 : -1; O.x = xOf(b0) + sd * (b0.box.w / 2 * s + Math.max(22, s * 0.35)); O.sol = floorAt(t0.d); O.u = s * 0.62;
+    let top = O.sol; t0.boxes.forEach(b => { const posee = (b.on && t0.boxes.includes(b.on)) || (b.y > 0 && Math.abs(b.y - (b.toiseY ?? -1e4)) < 1.5); b.toiseY = b.y; if (posee && Wd.props.includes(b)) top = Math.min(top, b.y - topOf(b)); }); O.h += (O.sol - top - O.h) * 0.12;   // (une caisse posée : elle ne bouge plus d'une image à l'autre)
+    if (t0.phase !== 'pile' && t0.phase !== 'debout') { O.chute = Wd.t; O.dir = t0.dir || 1; } }
+  const u = O.u, n = Math.floor(O.h / u + 0.05); if (n > O.n) { O.n = n; if (n >= 2) Wd.fx.push({ k: 'txt', text: pick(['hop', 'et ' + n + ' !', '+1']), x: O.x + 26, y: O.sol - n * u, t0: Wd.t, life: 0.6, rot: rnd(-0.2, 0.2), size: 14 }); }
+  // la chute : elle pivote sur son pied, de plus en plus vite, claque au sol ; puis rapetisse jusqu'à rien
+  let ang = 0; if (O.chute > 0) { const e = Wd.t - O.chute; ang = O.dir * Math.min(Math.PI / 2, 1.2 * e * e * 3.2);
+    if (Math.abs(ang) >= Math.PI / 2 - 1e-3 && !O.clac) { O.clac = true; Wd.fx.push({ k: 'txt', text: 'clac', x: O.x + O.dir * O.h * 0.8, y: O.sol - 12, t0: Wd.t, life: 0.8, rot: 0, size: 18 }); dust(O.x + O.dir * O.h * 0.7, O.sol, u * 0.6, 0.8); }
+    if (e > 2.2) O.k = Math.max(0, 1 - (e - 2.2) / 0.8); if (O.k <= 0) { O.T = null; return; } }
+  const ctx = C.ctx, a = 0.85 * Wd.a, L = O.h * O.k; if (L < 4) return;
+  ctx.save(); ctx.translate(O.x, O.sol); ctx.rotate(ang); ctx.scale(O.k, O.k);
+  C.line(0, 0, 0, -O.h, 1, { w: 2, a, seed: 501, tip: false }); C.line(5, 0, 5, -O.h, 1, { w: 1.2, a: a * 0.6, seed: 502, tip: false });
+  for (let i = 1; i <= n; i++) { const y = -i * u, big = i === n; C.line(-6, y, big ? 12 : 9, y, 1, { w: big ? 2 : 1.4, a, seed: 510 + i, tip: false });
+    C.text(String(i), -10, y, 1, { size: 13, a, align: 'right' }); }
+  if (n >= 2) C.text(n + (EN() ? ' cats' : ' chats') + (O.chute < 0 && t0.phase === 'debout' ? ' !' : ''), 14, -n * u - 8, 1, { size: 15, a });
+  ctx.restore();
+  if (n >= 6 && window.Dex && Dex.vu) Dex.vu('toise');
+});
 function towerFrame(dt) {
   const T = Wd.tower; if (!T) return; T.t += dt;
   if (!T.boxes || !T.boxes.length) { Wd.tower = null; return; }   // (27/09, l'audit : une tour vidée en route plantait ici)
@@ -1917,7 +1944,7 @@ function release(c, vx, vy) {
 }
 
 // pour js/vie.js : le monde et ses outils
-const K = { Wd, H, porteTout, boutons, rectOf, ANIMS, STEPS, CARAC, SPEED, LOURD, I, sit, lie, blink, rnd, pick, clamp, sgn, sm, c01, lerp, later, sc, front, back, sOf, floorAt, zOf, xOf, grav, inView, groundAt, perchAt, beside,
+const K = { Wd, H, TOISE, porteTout, boutons, rectOf, ANIMS, STEPS, CARAC, SPEED, LOURD, I, sit, lie, blink, rnd, pick, clamp, sgn, sm, c01, lerp, later, sc, front, back, sOf, floorAt, zOf, xOf, grav, inView, groundAt, perchAt, beside,
   PORTE, SCEN, TK, drawFx, addCat, unCat, free, free4, zoomies, eat, play, climb, push, smash, interrupt, claim, go, pose, hop, fn, say, dust, startle, thud, drop, prop, unprop, kick, residents, leave, enter, catAt, propAt, freeD, stack, topOf, open, unbox, hide, sleep, idle, stroll, press, fire, folle, aspire,
   get MAXC() { return MAXC; } };
 return { K, ANIMS, CARAC, frame, draw, hide: hideAll, click, grab, drag, release, get clicks() { return Wd.clicks; }, get world() { return Wd; }, horde, tower, aspire, folle: () => folle(Wd.P.distrib), ouvre: () => { const b = Wd.props.find(p => p.launched && p.kind === 'caisse' && !p.busy && !p.fall), c = Wd.cats.find(free4); if (b && c) { interrupt(c); open(c, b); } }, fight: () => { const L = Wd.cats.filter(free4).slice(0, 2); if (L.length > 1) fight(L); }, quarrel: () => { const L = Wd.cats.filter(free4); if (L.length > 1) quarrel(L[0], L[1]); } };
