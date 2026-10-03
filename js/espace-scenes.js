@@ -1538,7 +1538,7 @@ S.ia = (() => {
         if (!j) { ctx.lineWidth = G.lw * 0.4; ctx.beginPath(); for (let l = 0; l < 7; l++) { ctx.moveTo(-0.13 * k, (-0.2 + l * 0.08) * k); ctx.lineTo((0.13 - (l % 3) * 0.05) * k, (-0.2 + l * 0.08) * k); } ctx.stroke(); } ctx.restore(); });
       const lb = -0.32 + ((now * 0.35) % 1) * 0.6, A0 = Pk(xd - 0.25, lb), A1 = Pk(xd + 0.25, lb); trait([A0, A1], false, 1.1, 1); brille(A1[0], A1[1], 3, 1, false, now, 1);
       // le nuage : il tourne ; ses liens ; il se remplit
-      const Q = Vs.map(([x, y, z]) => V(x * R, y * R, z * R)), nb = Math.min(Nn, 30 + Math.floor(a * 16));
+      const Q = Vs.map(([x, y, z]) => V(x * R, y * R, z * R)), nb = Math.max(1, Math.min(Nn, 30 + Math.floor(a * 16)));
       sousLaBarre();   // (vague 60 : le nuage ne passe plus sur la barre des chapitres)
       for (let i = 0; i < nb; i++) VO[i].forEach(j => { if (j < nb) trait([Q[i], Q[j]], false, 0.35, prof(Q[i][2], 0.35)); });
       // (vague 4 : « un nuage de points trop sage ») : chaque vecteur est une petite fiche de papier ; celles de devant, plus grandes, portent deux lignes d'encre
@@ -1601,6 +1601,7 @@ S.ia = (() => {
 
 // front & interfaces : une page se monte toute seule (l'en-tête glisse, les cartes se retournent) ; un clic : un cube en 3D jaillit de l'écran ;
 // puis la même page devient tablette, puis téléphone : le cadre se resserre, les cartes se réorganisent (3 colonnes, 2, 1), le menu devient burger ; et retour
+const FOCUS = { vu: false };
 S.front = (() => {
   const NOMS = () => en() ? ['desktop', 'tablet', 'mobile'] : ['ordinateur', 'tablette', 'mobile'];
   return {
@@ -1651,7 +1652,25 @@ S.front = (() => {
       if (ec > 0.01) { const s = 0.1 + ec * 0.17, Cm = cam(now * 0.6, now * 0.4, k), o = Pk(0, -0.05 - ec * 0.12);
         const Vc = (u, v, d) => { const q = Cm(u * s, v * s, d * s); return [q[0] + o[0] - G.cx, q[1] + o[1] - G.cy, q[2], q[3]]; }, F = prisme(Vc, [[-1, -1], [1, -1], [1, 1], [-1, 1]], 2, 1, 1); encre('</>', F, 1, 0.3);
         [[-1, -1, -1], [1, 1, 1], [1, -1, 1], [-1, 1, -1]].forEach(([x, y, z], i) => { const q = Vc(x, y, z); brille(q[0], q[1], 2, ec, false, now, i); }); }
-      const nom = NOMS()[u < 0.5 ? A : B], al = u > 0 ? Math.abs(u - 0.5) * 2 : 1, L = Pk(0, h + 0.12); if (c > 4) mot(nom, L[0], L[1], Math.max(10, k * 0.07), al * 0.85);
+      // (vague 127 de l'audit : « rapides, animées, accessibles » : l'accessible ne se voyait pas) : sur la tablette, quelqu'un navigue au clavier.
+      // La touche Tab s'enfonce, l'anneau de focus saute de l'en-tête aux cartes puis au bouton, et le lecteur d'écran lit chaque élément à voix haute
+      if (c > 5.3 && c < 7.15) { const pas = 0.36, st = Math.min(4, Math.floor((c - 5.3) / pas)), f = (c - 5.3 - st * pas) / pas, gl = sm(c01(f / 0.35)),
+          R = [[-w + 0.08, -h + 0.21, 2 * w - 0.16, 0.09], ...CC.map(([x, y, cw, ch]) => [x, y, cw, ch]), [bx - bw / 2, by - 0.06, bw, 0.12]],
+          r0 = R[Math.max(0, st - 1)], r1 = R[st], rr = st ? r0.map((v, j) => lerp(v, r1[j], gl)) : r1, o = k * 0.035, q = Pk(rr[0], rr[1]), ap = c01((c - 5.3) / 0.15) * c01((7.15 - c) / 0.15);
+        ctx.save(); ctx.globalAlpha = 1; ctx.strokeStyle = '#ffd34d'; ctx.lineWidth = Math.max(2.5, G.lw * 1.1); ctx.lineJoin = 'round'; ctx.beginPath();
+        const X0 = q[0] - o * ap, Y0 = q[1] - o * ap, Wf = rr[2] * k + 2 * o * ap, Hf = rr[3] * k + 2 * o * ap, rad = Math.min(8, Hf / 2); ctx.moveTo(X0 + rad, Y0); ctx.arcTo(X0 + Wf, Y0, X0 + Wf, Y0 + Hf, rad); ctx.arcTo(X0 + Wf, Y0 + Hf, X0, Y0 + Hf, rad); ctx.arcTo(X0, Y0 + Hf, X0, Y0, rad); ctx.arcTo(X0, Y0, X0 + Wf, Y0, rad); ctx.closePath(); ctx.stroke();
+        ctx.lineWidth = 1; ctx.setLineDash([3, 4]); ctx.lineDashOffset = -now * 20; ctx.strokeRect(X0 - 4, Y0 - 4, Wf + 8, Hf + 8); ctx.restore();
+        if (gl >= 1 && f < 0.6) brille(X0 + Wf, Y0, 3, 1, true, now, 50 + st);
+        // la touche Tab (enfoncée au début de chaque pas) et la bulle du lecteur d'écran
+        const fs = Math.max(12, k * 0.07), yR = Math.min(Pk(0, h + 0.15)[1] + fs * 0.4, (G.caps || G.bas) - fs * 0.9), kw = fs * 3.2, kh = fs * 1.7, enf = f < 0.18 ? fs * 0.18 : 0, kx = G.cx - kw - fs * 5.2;
+        ctx.save(); ctx.translate(G.cx, yR); ctx.scale(Math.max(0.01, ap), Math.max(0.01, ap)); ctx.translate(-G.cx, -yR);   // pas de fondu : la rangée grandit puis rapetisse
+        ctx.globalAlpha = 1; ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(kx + 2, yR - kh / 2 + 3, kw, kh); boite(kx, yR - kh / 2 + enf, kw, kh, 4, 0.95, 1, true); mot('⇥ Tab', kx + kw / 2, yR + enf, fs * 0.85, 1);
+        const L = en() ? ['heading, level 1', 'card 1 of 3', 'card 2 of 3', 'card 3 of 3', 'button, Send'] : ['titre, niveau 1', 'carte 1 sur 3', 'carte 2 sur 3', 'carte 3 sur 3', 'bouton, Envoyer'], tx = kx + kw + fs * 1.6;
+        ctx.save(); ctx.globalAlpha = 1; ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 1.2; ctx.lineCap = 'round'; for (let n = 1; n <= 3; n++) { ctx.beginPath(); ctx.arc(tx - fs * 0.9, yR, fs * 0.28 * n, -0.7, 0.7); ctx.stroke(); } ctx.restore();
+        const lu = L[st], nch = Math.ceil(lu.length * c01(f / 0.5)); mot('« ' + lu.slice(0, nch) + (nch < lu.length ? '' : ' »'), tx, yR, fs, 1, 'left'); ctx.restore();
+        if (st === 4 && f > 0.55 && f < 0.95) { const v = (f - 0.55) / 0.4, bq = Pk(bx, by); style(0.8, 1 - v); ctx.beginPath(); ctx.arc(bq[0], bq[1], k * 0.2 * v, 0, TAU); ctx.stroke(); mot(en() ? 'Enter ↵' : 'Entrée ↵', bq[0], bq[1] - k * 0.13 - v * k * 0.05, fs * 0.8, 1 - v * 0.5); }
+        if (st === 4 && !FOCUS.vu && window.Dex && Dex.vu) { FOCUS.vu = true; Dex.vu('focus-clavier'); } }
+      const nom = NOMS()[u < 0.5 ? A : B], al = u > 0 ? Math.abs(u - 0.5) * 2 : 1, L = Pk(0, h + 0.12); if (c > 4 && !(c > 5.3 && c < 7.15)) mot(nom, L[0], L[1], Math.max(10, k * 0.07), al * 0.85);
     }
   };
 })();

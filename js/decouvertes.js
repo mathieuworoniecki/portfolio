@@ -170,6 +170,7 @@ fam('espace', 'L’espace', 'Space', [
   ['turbo', 'Le turbo', 'Turbo', 'Le tapis passe à ×3, et les garde-fous tiennent.', 'The belt hits ×3, and the guardrails hold.'],
   ['paquet', 'Le voyage du paquet', 'The packet’s trip', 'Dans la puce, une requête traverse les six couches, de l’écran au livré.', 'In the chip, a request crosses all six layers, from screen to shipped.'],
   ['citations', 'Sources citées', 'Sources cited', 'Dans le nuage de vecteurs, la réponse numérote ses sources et un fil relie chaque renvoi à sa fiche.', 'In the vector cloud, the answer numbers its sources and a thread ties each reference to its card.'],
+  ['focus-clavier', 'Au clavier', 'By keyboard', 'Sur la tablette, la touche Tab promène l’anneau de focus et le lecteur d’écran lit chaque élément.', 'On the tablet, the Tab key walks the focus ring and the screen reader reads each element aloud.'],
   ['troublanc', 'Le petit trou blanc', 'The little white hole', 'Là-haut aussi, un clic dans le vide.', 'Up there too, a click on empty space.'],
   ['agrippe', 'Accroché', 'Hanging on', 'Le curseur, tout près d’un chat qui flotte.', 'The cursor, close to a floating cat.'],
   ['fronde', 'La fronde', 'The slingshot', 'Trop près d’une planète, on fait un tour… et on repart plus vite.', 'Too close to a planet, you go around… and leave faster.'],
