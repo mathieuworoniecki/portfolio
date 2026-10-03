@@ -1401,7 +1401,7 @@ S.gardefous = (() => {
       const CYT = 9, ut = a % CYT, bt = ut < 3 ? Math.sin(Math.PI * ut / 3) ** 2 : 0, It = u => u / 2 - 3 / (4 * Math.PI) * Math.sin(2 * Math.PI * u / 3), aw = a + 2 * (Math.floor(a / CYT) * 1.5 + It(Math.min(ut, 3))), vt = 1 + 2 * bt;
       // (vague 142, l'audit : « la vitesse », immersion) : en turbo, on y est. La caméra pivote le long du tapis, descend vers lui et s'approche,
       // comme un travelling embarqué ; elle vibre un peu avec la vitesse ; le turbo passé, elle reprend sa place
-      const [k, lx] = large(1.55, 2.1), V = cam(-0.3 + 0.2 * bt + Math.sin(now * 37) * 0.006 * bt, -0.42 + 0.08 * bt + Math.sin(now * 29) * 0.005 * bt, k * 1.02 * (1 + 0.05 * bt), -0.08 - 0.06 * bt, -0.14), yT = 0.3, x0 = -lx, xS = lx * 0.5, xs = [-lx * 0.62, -lx * 0.28, lx * 0.06], lab = LAB(), vit = 0.36, T = 1.0;
+      const [k, lx0] = large(1.55, 2.1), lx = lx0 * (G.droite > 700 ? 0.88 : 1), V = cam(-0.3 + 0.2 * bt + Math.sin(now * 37) * 0.006 * bt, -0.42 + 0.08 * bt + Math.sin(now * 29) * 0.005 * bt, k * 1.02 * (1 + 0.05 * bt), -0.08 - 0.06 * bt, -0.14), yT = 0.3, x0 = -lx, xS = lx * 0.5, xs = [-lx * 0.62, -lx * 0.28, lx * 0.06], lab = LAB(), vit = 0.36, T = 1.0;
       // (vague 17 de l'audit : « le tapis part du bord gauche, le reste du ciel est vide ») : les changements arrivent de tout le ciel, par dizaines,
       // comme des feuilles de papier qui planent, et se posent au début du tapis
       sousLaBarre();
@@ -1438,7 +1438,7 @@ S.gardefous = (() => {
           if (Math.sin(now * 9) > 0.8) mot('tac', c[0] + s0 * 2, c[1] - s0 * 1.5, Math.max(9, k * 0.05), 0.8); }
         else { const v = sm((u - 1.6) / 1.0), x = lerp(B[0], x0 + 0.08, v), y = lerp(B[1] - 0.1, yT - 0.02, v) - Math.sin(Math.PI * v) * 0.55, z = lerp(B[2], 0, v); carte(x, y, z, 1, v * 6);
           const rs = V(B[0], B[1] - 0.1, B[2]); style(0.8, 1); ctx.beginPath(); for (let j = 0; j <= 8; j++) { const yy = rs[1] - j / 8 * s0 * 2 * (1 - v * 0.6); ctx.lineTo(rs[0] + (j % 2 ? s0 * 0.6 : -s0 * 0.6), yy); } ctx.stroke();
-          if (v < 0.4) mot(en() ? 'fixed!' : 'réparé !', rs[0], rs[1] - s0 * 3, Math.max(10, k * 0.055), 1 - v * 2.5); } }
+          if (v < 0.4) mot(en() ? 'fixed!' : 'réparé !', rs[0], rs[1] - s0 * 3 - v * k * 0.1, Math.max(10, k * 0.055) * (1 + 0.25 * Math.sin(Math.PI * Math.min(1, v * 6))) * (1 - sm((v - 0.2) / 0.2) * 0.9), 1); } }
       // les portiques : l'arche, son nom, son faisceau qui balaie
       xs.forEach((g, i) => { bloc(V, g - 0.03, g + 0.03, yT, yT - 0.5, -0.34, -0.27, 1, 0.7); bloc(V, g - 0.035, g + 0.035, yT - 0.46, yT - 0.55, -0.34, 0.34, 1, 0.7); bloc(V, g - 0.03, g + 0.03, yT, yT - 0.5, 0.27, 0.34, 1, 0.7);
         const v = (now * 1.3 + i * 0.3) % 1, y = yT - 0.46 + v * 0.44; trait([V(g, y, -0.28), V(g, y, 0.28)], false, 0.8, 0.9); brille(V(g, y, 0.28)[0], V(g, y, 0.28)[1], 2.2, 0.8, false, now, i);
@@ -1452,7 +1452,8 @@ S.gardefous = (() => {
           style(0.5, 0.35); ctx.beginPath(); ctx.moveTo(m1[0], m1[1]); ctx.lineTo(m1[0] + Math.sin(t) * k * 0.6, m1[1] + k * 0.25); ctx.stroke(); }
         const L = V(g, yT - (i === 2 ? 0.84 : i === 1 ? 1.0 : 0.76), -0.34); const fl = Math.max(10, k * 0.07); mot(lab[i], L[0], Math.max(L[1], G.haut + fl * 1.1), fl, 0.9); });   // (vague 58 : jamais sur la barre des chapitres)
       // le compteur (en haut à gauche du ciel) : un demi-cadran de papier, ses graduations ×1 ×2 ×3, la zone rapide hachurée, l'aiguille
-      { const rg = Math.max(36, Math.min(60, k * 0.18)), gx = G.gauche + rg * 1.25, gy = G.haut + rg * 1.35, A0 = Math.PI, A1 = TAU, an = A0 + (A1 - A0) * (vt - 1) / 2.2;
+      { const rg = Math.max(36, Math.min(60, k * 0.18)), gx = Math.max(G.gauche + rg * 1.25, Math.min(90, (G.droite + 16) * 0.1) + rg + 4),   // (vague 163 : hors de la bande estompée du bord, où le cadran virait au gris)
+           gy = G.haut + rg * 1.35, A0 = Math.PI, A1 = TAU, an = A0 + (A1 - A0) * (vt - 1) / 2.2;
         cerne(() => { ctx.beginPath(); ctx.arc(gx, gy, rg, A0, A1); ctx.closePath(); }, 0.8, 1);
         ctx.save(); ctx.beginPath(); ctx.arc(gx, gy, rg * 0.92, A0 + (A1 - A0) * 0.62, A1); ctx.arc(gx, gy, rg * 0.66, A1, A0 + (A1 - A0) * 0.62, true); ctx.closePath(); ctx.clip();
         ctx.strokeStyle = ENC; ctx.globalAlpha = 0.7; ctx.lineWidth = 1; for (let h = -rg * 2; h < rg * 2; h += 4) { ctx.beginPath(); ctx.moveTo(gx + h, gy); ctx.lineTo(gx + h + rg, gy - rg); ctx.stroke(); } ctx.restore();
