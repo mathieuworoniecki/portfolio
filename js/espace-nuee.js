@@ -285,7 +285,7 @@ function titre(txt, W, H, y1, y2) {
     const X0 = xx / k, Y0 = yy / k, li = Math.max(0, Math.min(L.length - 1, Math.round((yy - y0) / lh))), g = lg[li];
     pts.push([X0, Y0, (li + c01((X0 - g.x0) / Math.max(1, g.x1 - g.x0))) / L.length]); }
   for (let i = pts.length - 1; i > 0; i--) { const j = Math.floor(h(i * 3.7 + 0.5) * (i + 1)); const t = pts[i]; pts[i] = pts[j]; pts[j] = t; }
-  pts.lg = lg; pts.px = px / k; TXT = { cle, pts }; return pts;
+  pts.lg = lg; pts.px = px / k; pts.y2 = y2; TXT = { cle, pts }; return pts;
 }
 let NID = 0, sauter = false, FIN = null;   // (FIN : où la plume a fini le titre, pour l'onde de choc)   // (sauter : pour les captures, js de test : pas de transformation)
 // les étoiles sur les lettres (écran) ; une lueur passe de gauche à droite ; elles frémissent
@@ -303,14 +303,30 @@ const ecrit = (pts, tl, W, now) => { const M = pts.length;
     const e = tl - PLUME.d - q[2] * PLUME.v, l = e > 0 ? Math.exp(-e * 5) : 0; o.s = 0.9 + l * 0.6; o.a = (dup ? 0.45 : 1.3) + l * 0.5; }; };
 // la plume-comète : une tête blanche, une queue d'étincelles qui retombent derrière elle ; elle file sur chaque ligne, saute à la suivante, puis s'éteint en fin de titre
 function plume(ctx, pts, tl, now, br) {
-  const u = plumeU(tl); if (tl < PLUME.d || u >= 1 && tl > PLUME.d + PLUME.v + 0.25) return;
-  const [x, y] = plumeXY(pts, Math.min(u, 0.999)), px = pts.px || 40, fin = u >= 1 ? 1 - c01((tl - PLUME.d - PLUME.v) / 0.25) : 1, yy = y + Math.sin(now * 23) * px * 0.18;
+  const u = plumeU(tl); if (tl < PLUME.d || u >= 1 && tl > PLUME.d + PLUME.v + PARA.d) return;
+  const [x, y] = plumeXY(pts, Math.min(u, 0.999)), px = pts.px || 40, fin = u >= 1 ? 1 - 0.5 * c01((tl - PLUME.d - PLUME.v) / PARA.d) : 1, yy = y + Math.sin(now * 23) * px * 0.18;
   ctx.globalAlpha = 0.5 * fin; ctx.lineWidth = 1.2;
   for (let i = 1; i <= 14; i++) { const uu = u - i * 0.012; if (uu < 0) break; const [sx, sy] = plumeXY(pts, uu), dy = i * i * 0.35 + Math.sin(i * 1.7 + now * 9) * px * 0.2, rr = br * (2.6 - i * 0.14) * 2.2;
     ctx.globalAlpha = (1 - i / 15) * 0.8 * fin; ctx.drawImage(LUEUR, sx - rr, sy + dy - rr, rr * 2, rr * 2); }
   const R0 = br * 11 * (0.9 + 0.1 * Math.sin(now * 31)); ctx.globalAlpha = fin; ctx.drawImage(LUEUR, x - R0, yy - R0, R0 * 2, R0 * 2);
   ctx.globalAlpha = 0.9 * fin; ctx.lineWidth = 1.4; ctx.beginPath(); for (let k = 0; k < 4; k++) { const a = k * Math.PI / 4 + now * 2; ctx.moveTo(x - Math.cos(a) * R0 * 0.9, yy - Math.sin(a) * R0 * 0.9); ctx.lineTo(x + Math.cos(a) * R0 * 0.9, yy + Math.sin(a) * R0 * 0.9); } ctx.stroke();
 }
+/* (vague 138, l'audit : « les titres en étoiles », design) : la plume signe. Le titre écrit, elle ne s'éteint plus au bout de la ligne : elle boucle
+   et revient en paraphe sous tout le titre, une volute d'étoiles épaisse au milieu, fine aux deux bouts, comme un trait de plume ; au moment où le
+   titre se défait, le paraphe rapetisse jusqu'à rien et l'onde de choc part de là où la plume a levé */
+const PARA = { d: 0.08, v: 0.5 };
+function paraphe(pts, s) {   // s de 0 à 1 : de la fin de la dernière ligne, une boucle, puis le trait vers la gauche, sous tout le titre
+  const lg = pts.lg, g = lg[lg.length - 1], px = pts.px || 40, xL = Math.min(...lg.map(l => l.x0)) + px * 0.3, xR = g.x1 + px * 0.15, rl = px * 0.26;
+  const yb = Math.min(g.y + px * 0.62, (pts.y2 || 1e9) - rl * 1.4 - 4), q = (1 - s) * (1 - s);
+  return [xR - (xR - xL) * s + rl * Math.sin(TAU * s * 2.2) * q * 1.4, yb + rl * (1 - Math.cos(TAU * s * 2.2)) * q * 0.7 - Math.sin(Math.PI * s) * px * 0.1]; }
+function signe(ctx, pts, tl, now, br, tFin) {
+  const t0 = PLUME.d + PLUME.v + PARA.d, p = c01((tl - t0) / PARA.v); if (p <= 0) return null;
+  const pe = eio(p), rap = 1 - sm(c01((tl - (tFin - 0.28)) / 0.26)), n = 70; if (rap <= 0) return paraphe(pts, 1);
+  for (let i = 0; i <= n; i++) { const s = i / n; if (s > pe) break; const [x, y] = paraphe(pts, s), ep = 0.45 + 1.1 * Math.sin(Math.PI * Math.min(1, s * 1.15)), age = (pe - s) * PARA.v,
+      rr = br * 2.6 * ep * rap * (1 + 0.9 * Math.exp(-age * 9)) * (0.9 + 0.1 * Math.sin(now * 3 + i));
+    ctx.globalAlpha = Math.min(1, 0.75 + Math.exp(-age * 9) * 0.5); ctx.drawImage(i % 3 ? LUEUR : (i % 2 ? BLEUE : DOREE), x - rr, y - rr, rr * 2, rr * 2); }
+  if (p < 1) { const [x, y] = paraphe(pts, pe), R0 = br * 10 * (0.9 + 0.1 * Math.sin(now * 31)); ctx.globalAlpha = 1; ctx.drawImage(LUEUR, x - R0, y - R0, R0 * 2, R0 * 2); }
+  return paraphe(pts, pe); }
 
 /* (vague 42, l'audit : « la nuée », originalité) : entre deux formes, toute la nuée se rassemble un instant en une immense tête de chat
    qui nous fait un clin d'œil, puis se disperse vers la forme suivante ; u : la place de l'étoile sur le dessin, cl : l'œil droit fermé (0 → 1) */
@@ -381,7 +397,9 @@ X.fond.push((ctx, now) => {
       // (elle grossit, s'écarte du centre), laisse une traînée de vitesse derrière elle, et s'allume en se posant
       const x0 = F[j], y0 = F[j + 1], x1 = x, y1 = y, vol = ee => { const lx = lerp(x0, x1, ee) - mx, ly = lerp(y0, y1, ee) - my, b = Math.sin(Math.PI * ee), an = b * (0.5 + r.a * 0.7) * rot, gr = 1 + b * (0.2 + 0.6 * r.b * r.b);
         return [mx + (lx * Math.cos(an) - ly * Math.sin(an)) * gr, my + (lx * Math.sin(an) + ly * Math.cos(an)) * gr]; };
-      [x, y] = vol(e); s = lerp(F[j + 2], s, e) * (1 + Math.sin(Math.PI * e) * 1.3 * r.b * r.b); al = lerp(F[j + 3], al, e);
+      // (vague 138, finition : la traînée de la forme d'arrivée partait de la cible, pas de l'étoile en vol : au début et à la fin d'un vol, de longs traits
+      // barraient l'écran pendant quelques images ; en vol, seule la traînée du vol compte)
+      tl = null; [x, y] = vol(e); s = lerp(F[j + 2], s, e) * (1 + Math.sin(Math.PI * e) * 1.3 * r.b * r.b); al = lerp(F[j + 3], al, e);
       // (la traînée : là où l'étoile était un peu plus tôt sur son chemin, pas à l'image d'avant : nette même si l'écran rame)
       if (e > 0.06 && e < 0.9) { const q = vol(e - 0.035), d2 = (q[0] - x) ** 2 + (q[1] - y) ** 2; tl = d2 > 16 && d2 < 14400 ? q : null; }
       if (e > 0.82) al *= 1 + 1.6 * Math.sin(Math.PI * (e - 0.82) / 0.18); }
@@ -411,7 +429,7 @@ X.fond.push((ctx, now) => {
       ctx.globalAlpha = Math.min(0.75, k * 0.5); ctx.lineWidth = Math.max(0.5, s * 0.35);
       for (let q = 0; q < 2; q++) { const ca = Math.cos(an + q * Math.PI / 2) * lg, sa = Math.sin(an + q * Math.PI / 2) * lg; ctx.beginPath(); ctx.moveTo(x - ca, y - sa); ctx.lineTo(x + ca, y + sa); ctx.stroke(); } }
   }
-  if (pts && pts.lg && !reduit) { plume(ctx, pts, dt, now, br); FIN = { x: pts.lg[pts.lg.length - 1].x1, y: pts.lg[pts.lg.length - 1].y, id: C.nid, t: 0 }; }
+  if (pts && pts.lg && !reduit) { plume(ctx, pts, dt, now, br); const sg = signe(ctx, pts, dt, now, br, D.A - 0.35); FIN = sg ? { x: sg[0], y: sg[1], id: C.nid, t: 0 } : { x: pts.lg[pts.lg.length - 1].x1, y: pts.lg[pts.lg.length - 1].y, id: C.nid, t: 0 }; }
   // (vague 52 de l'audit, « les titres en étoiles », immersion) : quand le titre se défait, là où la plume s'est arrêtée part une onde de choc
   // d'étoiles, deux anneaux qui balaient tout l'écran jusqu'aux bords ; les étoiles de l'anneau rapetissent en s'éloignant (aucun fondu)
   else if (FIN && C && FIN.id === C.nid && !reduit) { if (!FIN.t) { FIN.t = Wd.t; CHOC.x = FIN.x; CHOC.y = FIN.y; CHOC.t = Wd.t; CHOC.Rm = Math.hypot(Math.max(FIN.x, W - FIN.x), Math.max(FIN.y, H - FIN.y)); CHOC.vus = new Set(); CHOC.dit = false; } const e = Wd.t - FIN.t, Rm = Math.hypot(Math.max(FIN.x, W - FIN.x), Math.max(FIN.y, H - FIN.y));
