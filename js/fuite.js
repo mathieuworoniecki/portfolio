@@ -66,8 +66,10 @@ function tombeBouton(b) {
 // au retour, il ressort de son trou et reprend sa place d'un bond
 function sortBouton(b, dl) {
   if (b.style.visibility !== 'hidden') return; setTimeout(() => {
-    b.style.visibility = ''; const r = b.getBoundingClientRect(), fl = floorAt(0.35), dy = fl - (r.top + r.height / 2); trou(r.left + r.width / 2, fl, Math.max(Wd.s0 * 0.3, r.width * 0.42), 0.15, 0.6);
-    if (b.animate && !reduit) b.animate([{ transform: `translateY(${dy}px) scale(.35)` }, { transform: 'translateY(-18px) scale(1.04)', offset: 0.7 }, { transform: 'none' }], { duration: 650, easing: 'cubic-bezier(.3,1.3,.5,1)' }); }, dl);
+    b.style.visibility = ''; const r = b.getBoundingClientRect(), x = r.left + r.width / 2, fl = floorAt(0.35), dy = fl - (r.top + r.height / 2); trou(x, fl, Math.max(Wd.s0 * 0.3, r.width * 0.42), 0.15, 0.6);
+    // (vague 185) il ressort en disant « pop » au-dessus de son trou, et s'écrase un peu en reprenant sa place, comme il s'était écrasé en tombant
+    word(pick(['pop', 'hop', 'plop']), Math.max(x, Wd.s0 * 0.5), fl - Wd.s0 * 0.25, 16);
+    if (b.animate && !reduit) b.animate([{ transform: `translateY(${dy}px) scale(.35)` }, { transform: 'translateY(-18px) scale(.94, 1.08)', offset: 0.62 }, { transform: 'translateY(2px) scale(1.06, .93)', offset: 0.84 }, { transform: 'none' }], { duration: 700, easing: 'cubic-bezier(.3,1.3,.5,1)' }); }, dl);
 }
 
 /* ——— étapes 2 et 3 : le plan tracé à la plume, puis les carreaux qui se retournent en bleu ——— */
