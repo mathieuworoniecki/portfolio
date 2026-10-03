@@ -336,9 +336,10 @@ function ouvre() {
   const total = TOUS.length, k = n();
   panneau.innerHTML = `<div class="dex-page"><header><h2>${T('Carnet de découvertes', 'Discovery notebook')}</h2><p>${k} / ${total}</p>
     <div class="dex-barre"><span style="width:${(k / total * 100).toFixed(1)}%"></span></div><button type="button" class="dex-x" aria-label="${T('Fermer', 'Close')}">×</button></header>
-    ${(() => { let i = 0; return FAM.map(f => `<section><h3>${f.nom} <small>${f.L.filter(d => vus[d.id]).length}/${f.L.length}</small></h3><ul>${f.L.map(d => { const st = `--i:${Math.min(40, i++)};--r:${((bruitD(d.id) - 0.5) * 16).toFixed(1)}deg`; return vus[d.id]
+    ${(() => { let i = 0; return FAM.map(f => { const nh = {}; f.L.forEach(d => { if (!vus[d.id]) nh[d.h] = (nh[d.h] || 0) + 1; }), hc = Object.keys(nh).find(h => nh[h] >= 3);   // (vague 181 de l'audit : « le carnet ») : un indice répété sur chaque case « ??? » ne s'écrit plus qu'une fois, sous le titre de la famille
+      return `<section><h3>${f.nom} <small>${f.L.filter(d => vus[d.id]).length}/${f.L.length}</small></h3>${hc ? `<p class="dex-fam-h">${hc}</p>` : ''}<ul>${f.L.map(d => { const hs = hc && d.h === hc ? '' : `<span>${d.h}</span>`; const st = `--i:${Math.min(40, i++)};--r:${((bruitD(d.id) - 0.5) * 16).toFixed(1)}deg`; return vus[d.id]
       ? (photos[d.id] ? `<li class="ok ph" data-id="${d.id}" style="${st}"><figure><img src="${photos[d.id]}" alt=""><figcaption>${quand(vus[d.id])}</figcaption></figure><b>${d.t}</b><span>${d.ok || d.h}</span></li>` : `<li class="ok" data-id="${d.id}" style="${st}"><b>${d.t}</b><span>${d.ok || d.h}</span></li>`)
-      : (/^(race|rare)-/.test(d.id) ? `<li class="ph" style="${st}"><figure class="dex-ombre">${OMBRE}</figure><b>???</b><span>${d.h}</span></li>` : `<li style="${st}"><b>???</b><span>${d.h}</span></li>`); }).join('')}</ul></section>`).join(''); })()}
+      : (/^(race|rare)-/.test(d.id) ? `<li class="ph" style="${st}"><figure class="dex-ombre">${OMBRE}</figure><b>???</b>${hs}</li>` : `<li style="${st}"><b>???</b>${hs}</li>`); }).join('')}</ul></section>`; }).join(''); })()}
     <footer><button type="button" class="dex-raz">${T('Tout oublier', 'Forget everything')}</button></footer></div>`;
   panneau.hidden = false; panneau.querySelector('.dex-x').focus();
   panneau.querySelector('.dex-x').onclick = ferme; guetteur(); folioscope(); tampons();
