@@ -1108,7 +1108,10 @@ S.skills = (() => {
   return {
     cles: () => [0, 1, 2, 3, 4, 5].map(i => { const t = i / 6 * TAU; return [Math.cos(t) * 0.35, Math.sin(t) * 0.35]; }),
     dessin(a, now) {
-      const lab = LAB(), [k, lx] = large(1.5, 2), V0 = cam(0, -0.3, k * 0.88, 0, -0.34), Vs = (x, y, z) => V0(x, y, z * 0.5), Rr = Math.min(1.5, lx * 0.8), rot = now * 0.25;
+      const lab = LAB(), [k, lx] = large(1.5, 2), tel = G.sw < 500,
+        // (vague 188, finition : au téléphone, l'orbite écrasée n'était qu'un trait au milieu d'un ciel haut et vide) : la caméra plonge davantage
+        // et l'orbite garde plus de profondeur ; elle s'ouvre en ellipse et occupe la hauteur
+        V0 = cam(0, tel ? -0.5 : -0.3, k * 0.88, 0, tel ? -0.4 : -0.34), Vs = (x, y, z) => V0(x, y, z * (tel ? 0.95 : 0.5)), Rr = Math.min(1.5, lx * 0.8), rot = now * 0.25;
       // (vague 14 de l'audit : « l'orbite reste petite au milieu ») : l'orbite s'étire sur toute la largeur du ciel (les modules gardent leur forme :
       // seul leur centre est écarté)
       const hx = Math.max(1, ((G.droite - G.gauche) / 2 * 0.8) / (Rr * k * 0.88 * 1.05)), V = (x, y, z) => { const p = Vs(x, y, z); p[0] = G.cx + (p[0] - G.cx) * hx; return p; };
@@ -1156,7 +1159,7 @@ S.skills = (() => {
         }
       // (vague 40 de l'audit : « skills, peu original ») : la forge, sur le côté : la même tâche revient, trois fois (trois feuilles identiques
       // tombent sur la pile : ×1, ×2, ×3) ; la presse s'abat, « CLAC », et il en sort une cartouche neuve qui file rejoindre l'orbite
-      { const cy = 5, u = now % cy, fx = G.gauche + (G.droite - G.gauche) * 0.1, fy = C[1] + k * 0.42, s = Math.max(10, k * 0.07), n = Math.min(3, Math.floor(u / 0.8));
+      { const cy = 5, u = now % cy, s = Math.max(10, k * 0.07), fx = Math.max(G.gauche + (G.droite - G.gauche) * 0.1, tel ? s * 1.9 + 40 : 0), fy = C[1] + k * (tel ? 0.62 : 0.42), n = Math.min(3, Math.floor(u / 0.8));
         cerne(() => { ctx.beginPath(); ctx.rect(fx - s * 1.6, fy, s * 3.2, s * 0.35); }, 0.8, 1);
         for (let j = 0; j < 3; j++) { const t0 = j * 0.8, v = c01((u - t0) / 0.45); if (u >= 3.2 || v <= 0) continue; const y = lerp(fy - k * 0.9, fy - s * 0.25 * (j + 1), sm(v));
           ctx.save(); ctx.translate(fx + Math.sin(v * 6 + j) * s * 0.3 * (1 - v), y); ctx.rotate((1 - v) * 0.6 * (j % 2 ? 1 : -1)); cerne(() => { ctx.beginPath(); ctx.rect(-s, -s * 0.12, s * 2, s * 0.24); }, 0.6, 1);
