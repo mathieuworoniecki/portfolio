@@ -167,6 +167,7 @@ fam('espace', 'L’espace', 'Space', [
   ['livrables', 'La pile de livrables', 'The stack of deliverables', 'Dans l’arène, les agents lancent leur travail ; il l’empile sur le podium.', 'In the arena, the agents toss their work; he stacks it on the podium.'],
   ['photo-finish', 'Le photo-finish', 'The photo finish', 'Dans la course, le gagnant se mesure au centième.', 'In the race, the winner is measured to the hundredth.'],
   ['patrouille', 'La patrouille', 'The flyover', 'La tour livrée, la flotte trace une coche géante dans le ciel.', 'Tower delivered, the fleet draws a giant check across the sky.'],
+  ['turbo', 'Le turbo', 'Turbo', 'Le tapis passe à ×3, et les garde-fous tiennent.', 'The belt hits ×3, and the guardrails hold.'],
   ['troublanc', 'Le petit trou blanc', 'The little white hole', 'Là-haut aussi, un clic dans le vide.', 'Up there too, a click on empty space.'],
   ['agrippe', 'Accroché', 'Hanging on', 'Le curseur, tout près d’un chat qui flotte.', 'The cursor, close to a floating cat.'],
   ['fronde', 'La fronde', 'The slingshot', 'Trop près d’une planète, on fait un tour… et on repart plus vite.', 'Too close to a planet, you go around… and leave faster.'],

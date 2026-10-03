@@ -1295,11 +1295,16 @@ S.flotte = (() => {
 
 // la vitesse sans perdre le contrôle : un tapis en perspective ; chaque changement de code passe les portiques (tests, revue CI, scanners), chacun avec
 // son faisceau ; ceux qui échouent sont éjectés (✗) ; les autres arrivent devant l'humain, qui hoche la tête et tamponne : ✓, sur la pile des fusionnés
+const TURBO = { vu: false };
 S.gardefous = (() => {
   const LAB = () => en() ? ['tests', 'CI review', 'scanners', 'human', 'merged'] : ['tests', 'revue CI', 'scanners', 'humain', 'fusionnés'];
   return {
     cles: () => [[-0.95, -0.2], [-0.35, -0.2], [0.25, -0.2], [1.2, -0.3]],
     dessin(a, now) {
+      // (vague 124, l'audit : « la vitesse sans perdre le contrôle ») : la vitesse, pour de vrai. Toutes les 9 s, le tapis passe en turbo (jusqu'à ×3) :
+      // un compteur de papier en haut du ciel, son aiguille qui grimpe dans la zone hachurée ; les feuilles filent, les portiques suivent,
+      // les recalées sont toujours éjectées : rien ne passe sans contrôle. (aw : le temps du tapis, qui avance plus vite pendant le turbo)
+      const CYT = 9, ut = a % CYT, bt = ut < 3 ? Math.sin(Math.PI * ut / 3) ** 2 : 0, It = u => u / 2 - 3 / (4 * Math.PI) * Math.sin(2 * Math.PI * u / 3), aw = a + 2 * (Math.floor(a / CYT) * 1.5 + It(Math.min(ut, 3))), vt = 1 + 2 * bt;
       const [k, lx] = large(1.55, 2.1), V = cam(-0.3, -0.42, k * 1.02, -0.08, -0.14), yT = 0.3, x0 = -lx, xS = lx * 0.5, xs = [-lx * 0.62, -lx * 0.28, lx * 0.06], lab = LAB(), vit = 0.36, T = 1.0;
       // (vague 17 de l'audit : « le tapis part du bord gauche, le reste du ciel est vide ») : les changements arrivent de tout le ciel, par dizaines,
       // comme des feuilles de papier qui planent, et se posent au début du tapis
@@ -1312,16 +1317,16 @@ S.gardefous = (() => {
           ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.3; ctx.beginPath(); ctx.moveTo(-w * 0.55, -h * 0.4); ctx.lineTo(w * 0.55, -h * 0.4); ctx.moveTo(-w * 0.55, 0); ctx.lineTo(w * 0.3, 0); ctx.stroke(); ctx.restore(); } }
       ctx.restore();
       [-0.2, 0.2].forEach(z => trait([V(x0, yT, z), V(xS + 0.1, yT, z)], false, 0.9, prof(z)));
-      for (let j = 0; j < 26; j++) { const x = x0 + ((j * 0.13 + a * vit) % (xS + 0.1 - x0)); trait([V(x, yT, -0.2), V(x, yT, 0.2)], false, 0.35, 0.4); }
+      for (let j = 0; j < 26; j++) { const x = x0 + ((j * 0.13 + aw * vit) % (xS + 0.1 - x0)); trait([V(x, yT, -0.2), V(x, yT, 0.2)], false, 0.35, 0.4); }
       const carte = (x, y, z, al, rt = 0) => { const R = (u, w) => [x + u * Math.cos(rt) - w * Math.sin(rt), z + u * Math.sin(rt) + w * Math.cos(rt)], Q = [[-0.09, -0.13], [0.09, -0.13], [0.09, 0.13], [-0.09, 0.13]].map(([u, w]) => { const [px, pz] = R(u, w); return V(px, y, pz); });
         cerne(() => { ctx.beginPath(); Q.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); }, 0.6, al); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; [[-0.06, 0.05], [0.02, 0.05]].forEach(([u1, u2], l) => { const [a1, b1] = R(-0.05, -0.06 + l * 0.08), [a2, b2] = R(u2 + 0.02, -0.06 + l * 0.08), A = V(a1, y, b1), B = V(a2, y, b2); ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke(); }); return Q; };
       // la pile des fusionnés, derrière l'humain
-      const xP = xS + 0.35, zP = -0.55, nb = Math.floor(a / T) + 1; let pile = 0;
-      for (let q = 0; q < nb; q++) { const t = a - q * T, rate = bruit(q * 13.3) < 0.3 ? 1 + Math.floor(bruit(q * 5.1) * 3) : 0; if (!rate && t > (xS - 0.05 - x0) / vit + 1.4) pile++; }
+      const xP = xS + 0.35, zP = -0.55, nb = Math.floor(aw / T) + 1; let pile = 0;
+      for (let q = 0; q < nb; q++) { const t = aw - q * T, rate = bruit(q * 13.3) < 0.3 ? 1 + Math.floor(bruit(q * 5.1) * 3) : 0; if (!rate && t > (xS - 0.05 - x0) / vit + 1.4) pile++; }
       for (let j = 0; j < Math.min(14, pile); j++) carte(xP, yT - j * 0.03, zP, 0.9);
       if (pile) mot(`✓ ${pile} ${lab[4]}`, V(xP, yT - Math.min(14, pile) * 0.03 - 0.16, zP)[0], V(xP, yT - Math.min(14, pile) * 0.03 - 0.16, zP)[1], Math.max(10, k * 0.065), 0.85);
       let tampon = 0;
-      for (let q = Math.max(0, nb - 10); q < nb; q++) { const t = a - q * T, x = x0 + t * vit, rate = bruit(q * 13.3) < 0.3 ? 1 + Math.floor(bruit(q * 5.1) * 3) : 0, g = rate ? xs[rate - 1] : 99;
+      for (let q = Math.max(0, nb - 10); q < nb; q++) { const t = aw - q * T, x = x0 + t * vit, rate = bruit(q * 13.3) < 0.3 ? 1 + Math.floor(bruit(q * 5.1) * 3) : 0, g = rate ? xs[rate - 1] : 99;
         if (x > g + 0.03) { const d = (x - g - 0.03) / vit, px = g + 0.03 + d * 0.12, pz = d * 1.0, py = yT - Math.sin(Math.min(d, 0.5) * Math.PI) * 0.2 + Math.max(0, d - 0.25) ** 2 * 3; if (py > 1.4) continue;
           carte(px, py, pz, 1, d * 4); if (d < 0.8) { const c = V(px + 0.12, py - 0.2, pz); trait([[c[0] - 6, c[1] - 6], [c[0] + 6, c[1] + 6]], false, 1.1, 1); trait([[c[0] + 6, c[1] - 6], [c[0] - 6, c[1] + 6]], false, 1.1, 1); } continue; }
         const xa = xS - 0.05; if (x < xa) { carte(x, yT - 0.015, 0, 1); continue; }
@@ -1349,6 +1354,19 @@ S.gardefous = (() => {
           cerne(() => { ctx.beginPath(); ctx.ellipse(m1[0], m1[1], r * Math.abs(Math.cos(t)) + 1, r, 0, 0, TAU); }, 0.8, 1); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.5; ctx.beginPath(); ctx.moveTo(m1[0], m1[1]); ctx.lineTo(m1[0] + Math.sin(t) * r * 1.4, m1[1] - r * 0.2); ctx.stroke();
           style(0.5, 0.35); ctx.beginPath(); ctx.moveTo(m1[0], m1[1]); ctx.lineTo(m1[0] + Math.sin(t) * k * 0.6, m1[1] + k * 0.25); ctx.stroke(); }
         const L = V(g, yT - (i === 2 ? 0.84 : i === 1 ? 1.0 : 0.76), -0.34); const fl = Math.max(10, k * 0.07); mot(lab[i], L[0], Math.max(L[1], G.haut + fl * 1.1), fl, 0.9); });   // (vague 58 : jamais sur la barre des chapitres)
+      // le compteur (en haut à gauche du ciel) : un demi-cadran de papier, ses graduations ×1 ×2 ×3, la zone rapide hachurée, l'aiguille
+      { const rg = Math.max(36, Math.min(60, k * 0.18)), gx = G.gauche + rg * 1.25, gy = G.haut + rg * 1.35, A0 = Math.PI, A1 = TAU, an = A0 + (A1 - A0) * (vt - 1) / 2.2;
+        cerne(() => { ctx.beginPath(); ctx.arc(gx, gy, rg, A0, A1); ctx.closePath(); }, 0.8, 1);
+        ctx.save(); ctx.beginPath(); ctx.arc(gx, gy, rg * 0.92, A0 + (A1 - A0) * 0.62, A1); ctx.arc(gx, gy, rg * 0.66, A1, A0 + (A1 - A0) * 0.62, true); ctx.closePath(); ctx.clip();
+        ctx.strokeStyle = ENC; ctx.globalAlpha = 0.7; ctx.lineWidth = 1; for (let h = -rg * 2; h < rg * 2; h += 4) { ctx.beginPath(); ctx.moveTo(gx + h, gy); ctx.lineTo(gx + h + rg, gy - rg); ctx.stroke(); } ctx.restore();
+        ctx.globalAlpha = 1; ctx.strokeStyle = ENC; ctx.fillStyle = ENC; ctx.lineWidth = G.lw * 0.45; ctx.font = `700 ${Math.max(8, rg * 0.24)}px "Space Grotesk",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        for (let j = 0; j <= 11; j++) { const t = A0 + (A1 - A0) * j / 11, gr = j % 5 === 0; ctx.beginPath(); ctx.moveTo(gx + Math.cos(t) * rg * (gr ? 0.7 : 0.8), gy + Math.sin(t) * rg * (gr ? 0.7 : 0.8)); ctx.lineTo(gx + Math.cos(t) * rg * 0.9, gy + Math.sin(t) * rg * 0.9); ctx.stroke(); }
+        [1, 2, 3].forEach(m => { const t = A0 + (A1 - A0) * (m - 1) / 2.2; ctx.fillText('×' + m, gx + Math.cos(t) * rg * 0.5, gy + Math.sin(t) * rg * 0.5); });
+        const tr = Math.sin(now * 40) * 0.025 * bt; ctx.lineWidth = G.lw * 0.9; ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx + Math.cos(an + tr) * rg * 0.86, gy + Math.sin(an + tr) * rg * 0.86); ctx.stroke(); ctx.beginPath(); ctx.arc(gx, gy, rg * 0.08, 0, TAU); ctx.fill();
+        ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+        mot((en() ? 'speed ×' : 'vitesse ×') + vt.toFixed(1).replace('.', en() ? '.' : ','), gx, gy + Math.max(10, rg * 0.32), Math.max(10, rg * 0.26), 0.95);
+        if (bt > 0.3) for (let j = 0; j < 3; j++) { const yy = G.haut + (G.caps - G.haut) * (0.45 + j * 0.08), xx = G.gauche + ((now * 900 * bt + j * 260) % ((G.droite - G.gauche) * 1.2)); trait([[xx, yy], [xx + k * 0.25 * bt, yy]], false, 0.5, 0.5); }
+        if (vt > 2.9 && !TURBO.vu && window.Dex && Dex.vu) { TURBO.vu = true; Dex.vu('turbo'); } }
       GF.t = now;   // (vague 87 : les garde-fous du vrai site, voir gardeFou())
       // l'humain : il regarde, hoche la tête, tamponne
       const hp = V(xS + 0.34, yT, -0.28), rr = k * 0.15 * hp[3], hoche = Math.max(0, Math.sin(now * 2.2)) ** 6, ci = V(xS - 0.05, yT - 0.02, 0);
