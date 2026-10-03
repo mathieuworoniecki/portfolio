@@ -177,6 +177,7 @@ X.grab.push((x, y) => {
 function arc(ctx, x, y, r, a0, p, ry) { ctx.beginPath(); ctx.ellipse(x, y, r, ry ?? r, 0, a0, a0 + TAU * p); ctx.stroke(); }
 // un contour tremblé et fermé (un continent), autour de (x, y)
 function blob(ctx, x, y, r, seed) { ctx.beginPath(); for (let i = 0; i <= 24; i++) { const a = i / 24 * TAU, k = 1 + 0.28 * Math.sin(a * 3 + seed) + 0.16 * Math.sin(a * 5 + seed * 2.3); const px = x + Math.cos(a) * r * k * 1.4, py = y + Math.sin(a) * r * k * 0.7; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.closePath(); }
+const UIT = { t: -9, L: null };
 function terre(ctx, now) {
   const T = P.terre, t = trace(0, 1.5), fr = P.frisson ? Math.sin((Wd.t - P.frisson) * 30) * Math.exp(-(Wd.t - P.frisson) * 4) * 3 : 0;
   ctx.save(); ctx.translate(0, fr);
@@ -187,7 +188,10 @@ function terre(ctx, now) {
   [[10, 0.28], [22, 0.12]].forEach(([d, al]) => { ctx.strokeStyle = `rgba(150,200,255,${al * t})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(T.cx, T.cy, T.R + d, a0 - half * t, a0 + half * t); ctx.stroke(); });
   // les continents et les nuages : ils tournent doucement (dans le disque seulement)
   const tc = trace(1.2, 1.2);
-  if (tc > 0) { ctx.save(); ctx.beginPath(); ctx.arc(T.cx, T.cy, T.R - 2, 0, TAU); ctx.clip(); ctx.globalAlpha = tc;
+  // (vague 190, finition : les continents passaient sous « Lecture · Rejouer · Son » et sous les noms des chapitres ; les mots se lisaient
+  // sur un trait de côte) : la mer s'ouvre autour des commandes, les continents passent derrière elles sans les rayer
+  if (!UIT.L || Wd.t - UIT.t > 1) { UIT.t = Wd.t; UIT.L = [...document.querySelectorAll('.film-ui .ctrl > *, #chap > *')].map(e => e.getBoundingClientRect()).filter(b => b.width > 0 && b.bottom > T.top - 20); }
+  if (tc > 0) { ctx.save(); ctx.beginPath(); ctx.arc(T.cx, T.cy, T.R - 2, 0, TAU); ctx.clip(); if (UIT.L.length) { ctx.beginPath(); ctx.rect(0, 0, O.W, O.H); UIT.L.forEach(b => ctx.roundRect ? ctx.roundRect(b.left - 8, b.top - 6, b.width + 16, b.height + 12, 8) : ctx.rect(b.left - 8, b.top - 6, b.width + 16, b.height + 12)); ctx.clip('evenodd'); } ctx.globalAlpha = tc;
     const off = (Wd.t * 12) % (O.W * 1.5);
     for (let i = 0; i < 7; i++) { const x = ((i * O.W * 0.27 + off + P.seed * 50) % (O.W * 1.5)) - O.W * 0.25, y = T.top + 18 + (i % 3) * 16 + 10, r = (22 + (i * 37 % 30)) * clamp(O.W / 1200, 0.45, 1);
       blob(ctx, x, y + (T.cy - T.R - T.top) * 0 + Math.pow((x - T.cx) / T.R, 2) * T.R * 0.5, r, i * 1.7 + P.seed); ctx.strokeStyle = `rgba(${BL},0.75)`; ctx.lineWidth = 2; ctx.stroke(); }
