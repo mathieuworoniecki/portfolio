@@ -1742,10 +1742,12 @@ S.front = (() => {
 // back-end & données : un plan en 3D, vu d'en haut. Les requêtes arrivent de partout ; la passerelle (API) les range dans la file de leur client ;
 // les engrenages les traitent ; chaque client a sa propre base, séparée des autres par un mur (l'isolation)
 const ISOLE = { vu: false };
+const ETQ = [];
 S.back = (() => ({
   cles: () => [[-0.62, -0.5], [-0.62, 0.5], [0.85, -0.45], [0.85, 0.45]],
   dessin(a, now) {
-    sousLaBarre(); const [k, lx] = large(1.5, 2.1), V = cam(0.42, -0.5, k * 0.92, 0, -0.26), xA = -lx * 0.55, xW = lx * 0.05, xD = lx * 0.68, zs = [-0.45, 0, 0.45], yS = 0.3;
+    // (vague 146, l'audit : « back-end », design : au téléphone, la scène tenait dans le bas du ciel, le haut vide ; elle remonte et grandit)
+    sousLaBarre(); const [k, lx] = large(1.5, 2.1), tel = G.sw < 500, V = cam(0.42, -0.5, k * (tel ? 1.02 : 0.92), 0, tel ? -0.42 : -0.26), xA = -lx * 0.55, xW = lx * 0.05, xD = lx * 0.68, zs = [-0.45, 0, 0.45], yS = 0.3;
     // les murs entre les bases
     [-0.225, 0.225].forEach(z => { const Q = [V(xD - 0.32, yS, z), V(xD + 0.32, yS, z), V(xD + 0.32, yS - 0.42, z), V(xD - 0.32, yS - 0.42, z)]; trait(Q, true, 0.7, 0.6);
       for (let j = 1; j < 4; j++) trait([V(xD - 0.32, yS - j * 0.105, z), V(xD + 0.32, yS - j * 0.105, z)], false, 0.35, 0.4); });
@@ -1769,7 +1771,7 @@ S.back = (() => ({
         ctx.globalAlpha = 0.8; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath();
         for (let j = 1; j * 0.105 < ext; j++) { const yy = y0 - j * 0.105, A0 = V(xD - 0.32, yy, zw), B0 = V(xD + 0.32, yy, zw); ctx.moveTo(A0[0], A0[1]); ctx.lineTo(B0[0], B0[1]);
           for (let m = 0; m < 4; m++) { const xx = xD - 0.32 + (m + (j % 2 ? 0.5 : 0.25)) * 0.16, P0 = V(xx, yy, zw), P1 = V(xx, Math.max(yy - 0.105, y0 - ext), zw); if (xx < xD + 0.3) { ctx.moveTo(P0[0], P0[1]); ctx.lineTo(P1[0], P1[1]); } } }
-        ctx.stroke(); const T = V(xD, y0 - ext, zw); mot(en() ? 'tenant isolation' : 'isolation', T[0], T[1] - k * 0.06, Math.max(10, k * 0.065), 1); }
+        ctx.stroke(); const T = V(xD, y0 - ext, zw), fsI = Math.max(10, k * 0.065); ETQ.push(() => mot(en() ? 'tenant isolation' : 'isolation', T[0], Math.max(G.haut + fsI * 1.2, T[1] - k * 0.06), fsI, 1)); }
       // la requête masquée
       if (ti > 0.8 && ti < 3.1) { let z, y, rot = 0;
         if (ti < 1.6) { const e = sm((ti - 0.8) / 0.8); z = lerp(zA, zw - sg * 0.05, e); y = yS - 0.55 - Math.sin(Math.PI * e) * 0.18; }
@@ -1779,7 +1781,7 @@ S.back = (() => ({
         ctx.globalAlpha = 1; ctx.fillStyle = ENC; ctx.fillRect(-s, -s * 0.38, s * 2, s * 0.36); ctx.fillStyle = PAP; ctx.beginPath(); ctx.arc(-s * 0.4, -s * 0.2, s * 0.11, 0, TAU); ctx.arc(s * 0.4, -s * 0.2, s * 0.11, 0, TAU); ctx.fill();
         ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath(); ctx.moveTo(-s, -s * 0.7); ctx.lineTo(0, -s * 0.38); ctx.lineTo(s, -s * 0.7); ctx.stroke(); ctx.restore();
         mot(['A', 'C'][n % 2], p[0], p[1] + s * 1.35, Math.max(9, k * 0.05), 1);
-        if (ti > 1.6 && ti < 2.4) { const v = (ti - 1.6) / 0.8, W = V(xD, yS - 0.6, zw), Wl = V(xD - 0.32, yS - 0.42 - ext * 0.6, zw); eclat(W[0], W[1], k * 0.12, v, 8, n); mot(en() ? '403 · not your base' : '403 · pas ta base', Math.max(k * 0.5, Wl[0] - k * 0.32), Wl[1] - v * k * 0.08, Math.max(11, k * 0.07) * (1 + 0.3 * Math.sin(Math.min(1, v * 3) * Math.PI)), 1); }
+        if (ti > 1.6 && ti < 2.4) { const v = (ti - 1.6) / 0.8, W = V(xD, yS - 0.6, zw), Wl = V(xD - 0.32, yS - 0.42 - ext * 0.6, zw); eclat(W[0], W[1], k * 0.12, v, 8, n); const f4 = Math.max(11, k * 0.07) * (1 + 0.3 * Math.sin(Math.min(1, v * 3) * Math.PI)); ETQ.push(() => mot(en() ? '403 · not your base' : '403 · pas ta base', Math.max(k * 0.5, Wl[0] - k * 0.32), Math.max(G.haut + f4 * 1.2, Wl[1] - v * k * 0.08), f4, 1)); }
         if (ti > 1.62 && !ISOLE.vu && window.Dex && Dex.vu) { ISOLE.vu = true; Dex.vu('mur-isole'); } } }
     // le cordon de velours devant la passerelle : deux potelets, la corde qui pend ; le videur, bras croisés, qui hoche la tête
     { const p0 = V(xA - 0.32, yS, -0.5), p1 = V(xA - 0.32, yS, 0.5), h0 = k * 0.2 * p0[3], h1 = k * 0.2 * p1[3];
@@ -1792,16 +1794,16 @@ S.back = (() => ({
       // (vague 38 de l'audit : « back-end, peu original ») : le videur de la passerelle : une requête sur sept est refoulée au cordon (« 429 »),
       // renvoyée en tournoyant vers le ciel, un tampon sur le front
       const refus = bruit(q * 5.9) < 0.15;
-      if (refus && t >= 0.25) { if (t > 0.55) continue; const e = (t - 0.25) / 0.3, b = V(xA - 0.3 - e * 0.9, yS - 0.12 - Math.sin(Math.PI * Math.min(1, e * 1.4)) * 0.45 - e * 0.3, z0), sb = k * 0.045 * b[3];
+      if (refus && t >= 0.25) { if (t > 0.55) continue; const e = (t - 0.25) / 0.3, b = V(xA - 0.3 - e * 0.9, yS - 0.12 - Math.sin(Math.PI * Math.min(1, e * 1.4)) * 0.45 - e * 0.3, z0), rap = 1 - sm(c01((e - 0.65) / 0.35)), sb = k * 0.045 * b[3] * rap;   // (vague 146 : refoulée, elle rapetisse jusqu'à rien en s'envolant ; avant, elle disparaissait d'un coup)
         ctx.save(); ctx.translate(b[0], b[1]); ctx.rotate(-e * 9); cerne(() => { ctx.beginPath(); ctx.rect(-sb, -sb * 0.7, sb * 2, sb * 1.4); }, 0.6, 1); ctx.restore();
-        mot('429', b[0], b[1] - sb * 1.6, Math.max(9, k * 0.055), 1 - e); continue; }
+        if (rap > 0.05) mot('429', b[0], b[1] - sb * 1.6, Math.max(9, k * 0.055) * (0.4 + 0.6 * rap), 1); continue; }
       if (t < 0.25) { const e = sm(t / 0.25), x0 = (bruit(q * 4.7) * 2 - 1) * lx * 1.45, y0 = yS - 0.35 - bruit(q * 2.2) * 1.1; p = V(lerp(x0, xA - 0.12, e), lerp(y0, yS - 0.1, e) - Math.sin(Math.PI * e) * 0.15, lerp(z0 * 1.4, z, e)); } else if (t < 0.6) p = V(lerp(xA + 0.14, xW - 0.14, (t - 0.25) / 0.35), yS - 0.03, z); else if (t < 0.7) p = V(xW, yS - 0.1 - Math.sin((t - 0.6) / 0.1 * Math.PI) * 0.08, z); else { const u = (t - 0.7) / 0.3; p = V(lerp(xW + 0.14, xD, u), yS - 0.05 - u * 0.36 - Math.sin(Math.PI * u) * 0.25, z); }
       // (vague 8, l'audit : « des enveloppes qui flottent, grises ») : opaques ; en file vers la passerelle ; l'engrenage les ouvre : elles
       // ressortent en fiches de données (des lignes) et plongent dans leur base, qui fait « +1 »
       const s = k * 0.045 * p[3], al = Math.max(0.85, prof(p[2]));
       if (t < 0.65) { cerne(() => { ctx.beginPath(); ctx.rect(p[0] - s, p[1] - s * 0.7, s * 2, s * 1.4); }, 0.6, al); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath(); ctx.moveTo(p[0] - s, p[1] - s * 0.7); ctx.lineTo(p[0], p[1]); ctx.lineTo(p[0] + s, p[1] - s * 0.7); ctx.stroke(); }
       else { cerne(() => { ctx.beginPath(); ctx.rect(p[0] - s * 0.75, p[1] - s, s * 1.5, s * 2); }, 0.6, al); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath(); for (let j = 0; j < 3; j++) { ctx.moveTo(p[0] - s * 0.45, p[1] - s * 0.5 + j * s * 0.45); ctx.lineTo(p[0] + s * (j === 2 ? 0.1 : 0.45), p[1] - s * 0.5 + j * s * 0.45); } ctx.stroke(); }
-      if (t > 0.94) { const m = V(xD + 0.12, yS - 0.5, z); mot('+1', m[0], m[1] - (t - 0.94) * k * 1.2, Math.max(10, k * 0.07), 1 - (t - 0.94) / 0.06); } }
+      if (t > 0.94) { const m = V(xD + 0.12, yS - 0.5, z); const u1 = (t - 0.94) / 0.06; mot('+1', m[0], m[1] - (t - 0.94) * k * 1.2, Math.max(10, k * 0.07) * (1 - u1 * 0.85), 1); } }
     { const g = V(xA - 0.12, yS - 0.14, 0), m = ctx.getTransform(), dq = dpDe(ctx.canvas); REQ.t = now; REQ.gx = (m.a * g[0] + m.c * g[1] + m.e) / dq; REQ.gy = (m.b * g[0] + m.d * g[1] + m.f) / dq; }   // (vague 88 : le vrai site est client, voir requetes())
     // (vague 61 de l'audit, « back-end », immersion) : nous aussi, on est un client. La souris porte sa propre requête (une enveloppe) ;
     // présentée au videur, elle passe (« 200 OK ») si on arrive calmement, elle est refoulée (« 429 ») si on arrive en trombe
@@ -1809,6 +1811,8 @@ S.back = (() => ({
       ctx.save(); ctx.translate(ex, ey); ctx.rotate(Math.sin(now * 3) * 0.12); cerne(() => { ctx.beginPath(); ctx.rect(-s, -s * 0.7, s * 2, s * 1.4); }, 0.7, 1); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.4; ctx.beginPath(); ctx.moveTo(-s, -s * 0.7); ctx.lineTo(0, 0); ctx.lineTo(s, -s * 0.7); ctx.stroke(); ctx.restore();
       if (d < k * 0.45) { const trop = vit > 900; mot(trop ? '429' : '200 OK', P[0] - k * 0.12, Math.max(G.haut + k * 0.06, P[1] - k * 0.66), Math.max(13, k * 0.08), 1); if (!trop) coche(ex + s * 1.4, ey - s, s * 0.6, 1, 1.1); else { style(1.2, 1); ctx.beginPath(); ctx.moveTo(ex + s, ey - s * 1.6); ctx.lineTo(ex + s * 1.8, ey - s * 0.8); ctx.moveTo(ex + s * 1.8, ey - s * 1.6); ctx.lineTo(ex + s, ey - s * 0.8); ctx.stroke(); } } } }
     ctx.restore();
+    // (vague 146, finition : « isolation » et « 403 » étaient recouverts par les requêtes qui passent ; ils s'écrivent par-dessus tout, sous la barre)
+    ETQ.forEach(f => f()); ETQ.length = 0;
   }
 }))();
 
