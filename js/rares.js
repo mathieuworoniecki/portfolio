@@ -65,7 +65,9 @@ ANIMS.rouleau = (c, p, t) => {
   p[I.eyes] = 2; p[I.look] = 1; p[I.mouth] = 0; p[I.tailSide] = 2.2; p[I.tailCurl] = 1.6; p[I.tailUp] = 0; p[I.tailWave] = 0.1;
 };
 function geant(x) {
-  const dir = x == null ? (Math.random() < 0.5 ? 1 : -1) : x < Wd.W / 2 ? 1 : -1;
+  // (vague 176 de l'audit : « le chat géant ») : lancé du menu, il vient toujours de droite : par la gauche, son bras passait sur la colonne
+  // des boutons d'événements (au téléphone, il les couvrait tous)
+  const dir = x == null ? -1 : x < Wd.W / 2 ? 1 : -1;
   const c = spawn('geant', { d: 0.02, face: dir }, Math.min(Wd.H * 1.25, Wd.W * 1.3)); c.zo = 3000;
   const Rb = sc(c) * 0.36; c.x = dir > 0 ? -Rb * 2.2 : Wd.W + Rb * 2.2;
   // (vague 111) avant de rouler, il tâte : sa patte, bien trop grande pour la pièce, entre par le bord ; il attend qu'elle soit repartie
