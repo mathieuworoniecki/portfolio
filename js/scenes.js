@@ -59,10 +59,17 @@ function morphButton(el, prog, seed, clock) {
   el.style.setProperty('--m', m.toFixed(3));
   // le halo et les étoiles du mode chat : ils s'éteignent à mesure que le bouton devient sérieux
   const cx = r.left + r.width / 2, cy = r.top + r.height / 2, pulse = 0.75 + 0.25 * Math.sin(clock * 2.4), h = a * (1 - m);
-  if (h > 0.01) { ctx.save(); ctx.translate(cx, cy); ctx.scale(1, r.height / r.width * 1.6);
+  // (vague 157 de l'audit : « les chats ») : le halo reste dans le cadre du bouton ; il débordait au-dessus et délavait les pattes du chat
+  // assis dessus (la toile des titres passe au-dessus des chats)
+  if (h > 0.01) { ctx.save(); ctx.beginPath(); ctx.rect(r.left - 4, r.top - 2, r.width + 8, r.height + 4); ctx.clip(); ctx.translate(cx, cy); ctx.scale(1, r.height / r.width * 1.6);
     const R = r.width * 0.85, g = ctx.createRadialGradient(0, 0, R * 0.15, 0, 0, R);
     g.addColorStop(0, `rgba(255,255,255,${0.75 * h * pulse})`); g.addColorStop(0.45, `rgba(255,252,238,${0.35 * h * pulse})`); g.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = g; ctx.fillRect(-R, -R, R * 2, R * 2); ctx.restore(); }
+    ctx.fillStyle = g; ctx.fillRect(-R, -R, R * 2, R * 2);
+    // (le chat assis sur le bouton : le halo passe derrière lui, on l'évide à sa silhouette)
+    const Wd = window.Chats && Chats.K && Chats.K.Wd; ctx.restore();
+    if (Wd && Wd.cats) { ctx.save(); ctx.beginPath(); ctx.rect(r.left - 4, r.top - 2, r.width + 8, r.height + 4); ctx.clip(); ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = '#000';
+      Wd.cats.forEach(c => { const s = c.s * c.b.s; if (c.hidden || c.x < r.left - s || c.x > r.right + s || c.y < r.top - 4 || c.y - s > r.bottom) return; ctx.beginPath(); ctx.ellipse(c.x, c.y - s * 0.3, s * 0.42, s * 0.36, 0, 0, Math.PI * 2); ctx.fill(); });
+      ctx.restore(); } }
   // le cadre : du trait à main levée (coins ronds, bords qui ondulent) au rectangle net ; même contour, qui se redresse
   const o = 6 + m * 3, x0 = r.left - o, y0 = r.top - o * 0.7, x1 = r.right + o, y1 = r.bottom + o * 0.7, rc = 7 * (1 - m), P = [], n = 18;
   const cote = (ax, ay, bx, by, k) => { for (let i = 0; i < n; i++) { const u = i / n, w = Math.sin(u * Math.PI * 2 + k * 1.7 + seed) * 1.4 * (1 - m); P.push([ax + (bx - ax) * u + (ay === by ? 0 : w), ay + (by - ay) * u + (ay === by ? w : 0)]); } };

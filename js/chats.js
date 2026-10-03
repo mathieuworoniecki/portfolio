@@ -904,6 +904,11 @@ function drawFil(C) {
   const main = C.ctx, fc = filCv.getContext('2d'); if (!main) return;
   if (filCv.width !== main.canvas.width || filCv.height !== main.canvas.height) { filCv.width = main.canvas.width; filCv.height = main.canvas.height; }
   fc.setTransform(1, 0, 0, 1, 0, 0); fc.clearRect(0, 0, filCv.width, filCv.height); fc.setTransform(main.getTransform());
+  // (vague 157 de l'audit : « les chats », design) : chaque chat posé a son ombre, à la plume : trois traits de hachure sous ses pattes,
+  // de plus en plus courts (sous les chats et les objets, jamais par-dessus)  (pas d’ombre en plein saut)
+  const SH = Wd.cats.filter(c => !c.held && !c.fall && !c.hidden && c.a > 0.5 && Math.abs(c.vy || 0) < 40);
+  if (SH.length) { C.ctx = fc; try { SH.forEach(c => { const s = sc(c), hw = s * 0.26, y = c.y + s * 0.012;
+    for (let j = 0; j < 3; j++) { const w2 = hw * (1 - j * 0.28), x = c.x + (j - 1) * s * 0.02; if (w2 > 2) C.line(x - w2, y + j * Math.max(1.6, s * 0.016), x + w2, y + j * Math.max(1.6, s * 0.016), 1, { w: 1, a: 0.9 * c.a, seed: c.id * 3 + j, tip: false, amp: 0.25 }); } }); } finally { C.ctx = main; } }
   const L = Wd.props.filter(it => it.trail && it.trail.length >= 2 && it.a > 0.01); if (!L.length) return;
   C.ctx = fc; try { L.forEach(it => C.stroke(it.trail.concat([[it.x, it.y]]), 1, { w: 1.3, a: 0.6 * it.a, amp: 0.4, seed: 7, tip: false })); } finally { C.ctx = main; }
 }
