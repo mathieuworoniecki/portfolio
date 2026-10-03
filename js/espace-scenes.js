@@ -1686,6 +1686,7 @@ S.ia = (() => {
 // front & interfaces : une page se monte toute seule (l'en-tête glisse, les cartes se retournent) ; un clic : un cube en 3D jaillit de l'écran ;
 // puis la même page devient tablette, puis téléphone : le cadre se resserre, les cartes se réorganisent (3 colonnes, 2, 1), le menu devient burger ; et retour
 const FOCUS = { vu: false };
+const PIV = { y: 0, p: 0, t: null };
 S.front = (() => {
   const NOMS = () => en() ? ['desktop', 'tablet', 'mobile'] : ['ordinateur', 'tablette', 'mobile'];
   return {
@@ -1705,15 +1706,21 @@ S.front = (() => {
       // glissent, se cochent) ; ils passent derrière l'écran, jamais sur les sous-titres ni sur la planète des chats
       uiNuee(now, b1 ? sm(a / 1.2) : 1);
       INSP.t = now;   // (vague 85 : l'inspecteur est actif tant que cette scène se dessine)
+      // (vague 156 de l'audit : « front », immersion) : l'écran n'est plus collé au fond : il pivote doucement en 3D, il regarde la souris
+      // (il tourne vers elle, s'incline), et sans souris il se balance ; l'univers d'interface reste autour, l'écran flotte dedans
+      { const Sm = souris(), on = Sm && window.Chats.K.Wd.t - Sm.moved < 3, ty = on ? clamp((Sm.x - G.cx) / (G.sw * 0.5), -1, 1) * 0.17 : Math.sin(now * 0.35) * 0.08,
+          tp = on ? clamp((Sm.y - Yc) / G.s, -1, 1) * 0.1 : Math.sin(now * 0.27) * 0.045, dtf = Math.min(0.1, Math.max(0, now - (PIV.t ?? now))); PIV.t = now;
+        PIV.y += (ty - PIV.y) * Math.min(1, dtf * 3); PIV.p += (tp - PIV.p) * Math.min(1, dtf * 3);
+        sousLaBarre(); ctx.save(); ctx.translate(G.cx, Yc); ctx.transform(Math.cos(PIV.y), Math.sin(PIV.y) * 0.24, -Math.sin(PIV.p) * 0.2, Math.cos(PIV.p), 0, 0); ctx.translate(-G.cx, -Yc); }
       const T = Pk(-w, -h); { // (vague 8) le chat-robot assis sur l'écran : quand l'écran se resserre, le bord se dérobe sous lui ; il saute, bras en l'air, et retombe dessus
         const P = Pk(w * 0.55, -h), r = k * 0.1, sa = u > 0 && u < 1 ? Math.sin(Math.PI * u) : 0;
         chabot(P[0], P[1] - r * 0.55 - Math.abs(Math.sin(now * 2)) * r * 0.15 * (1 - sa) - sa * r * 1.6, r, { now, v: 1, lac: sa ? 0 : Math.sin(now * 0.7) * 0.6, cligne: sa > 0.3, bras: sa ? [1.5, 1.5] : [1.2 + Math.sin(now * 6) * 0.4, -0.4] });
         if (sa > 0.2) mot(A < B ? (en() ? 'whoa' : 'oh là') : 'hop', P[0] + r * 1.4, P[1] - r * 2.6 - sa * r, Math.max(11, k * 0.06), sa); }
       ecran(T[0], T[1], 2 * w * k, 2 * h * k, k * 0.1, k * lerp(0.1, 0.03, large01));
-      if (large01 < 1) { const n = Pk(0, -h + 0.05); boite(n[0] - k * 0.07, n[1] - k * 0.015, k * 0.14, k * 0.03, k * 0.015, 0.7, 1 - large01); }
+      if (large01 < 1) { const n = Pk(0, -h + 0.05), q = 1 - large01; boite(n[0] - k * 0.07 * q, n[1] - k * 0.015, k * 0.14 * q, k * 0.03, k * 0.015, 0.7, 1); }   // (vague 156 : l'encoche se rétracte, sans fondu)
       trait([Pk(-w, -h + 0.16), Pk(w, -h + 0.16)], false, 0.8, 0.9);
-      [0, 1, 2].forEach(i => { const p = Pk(-w + 0.09 + i * 0.07, -h + 0.08); rond(p[0], p[1], 2.2, 0.6, large01, true); });
-      if (large01 < 1) [0, 1, 2].forEach(i => { const p = Pk(w - 0.14, -h + 0.05 + i * 0.03); trait([[p[0], p[1]], [p[0] + k * 0.07, p[1]]], false, 0.7, 1 - large01); });
+      [0, 1, 2].forEach(i => { const p = Pk(-w + 0.09 + i * 0.07, -h + 0.08); if (large01 > 0.02) rond(p[0], p[1], 2.2 * large01, 0.6, 1, true); });
+      if (large01 < 1) [0, 1, 2].forEach(i => { const p = Pk(w - 0.14, -h + 0.05 + i * 0.03); trait([[p[0], p[1]], [p[0] + k * 0.07 * (1 - large01), p[1]]], false, 0.7, 1); });
       // l'en-tête
       const e1 = b1 ? sm((a - 0.2) / 0.5) : 1; if (e1 > 0) { const p = Pk(-w + 0.08 - (1 - e1) * 0.6, -h + 0.21); boite(p[0], p[1], (2 * w - 0.16) * k, 0.09 * k, 3, 0.8, 1); }
       // les cartes : elles se retournent (la première fois), puis suivent la mise en page
@@ -1725,13 +1732,13 @@ S.front = (() => {
         const p = Pk(x + cw / 2 - cw / 2 * fl, y); p[1] -= lift; boite(p[0], p[1], cw * fl * k, ch * k, 5, hv ? 1.3 : 0.85, 1, true);
         if (hv) { brille(p[0] + cw * k, p[1], 3, 1, true, now, 40 + i); mot(':hover', p[0] + cw * k * 0.5, p[1] - k * 0.05, Math.max(10, k * 0.05), 0.8); }
         if (fl > 0.6) { const im = Pk(x + cw / 2, y + ch * 0.38 - lift / k); rond(im[0], im[1], Math.min(cw, ch) * 0.2 * k, 0.6, 0.9); trait([Pk(x + 0.05, y + ch * 0.78), Pk(x + cw * 0.7, y + ch * 0.78)], false, 0.5, 0.8); }
-        if (c > 8.6 && c < 9.4 && i === 1) { const r = (c - 8.6) / 0.8, q = Pk(x + cw / 2, y + ch / 2); style(0.8, 1 - r); ctx.beginPath(); ctx.arc(q[0], q[1], k * 0.2 * r, 0, TAU); ctx.stroke(); rond(q[0], q[1], k * 0.035, 0.9, 1 - r); } });
+        if (c > 8.6 && c < 9.4 && i === 1) { const r = (c - 8.6) / 0.8, q = Pk(x + cw / 2, y + ch / 2); style(0.05 + 0.75 * (1 - r), 1); ctx.beginPath(); ctx.arc(q[0], q[1], k * 0.2 * r, 0, TAU); ctx.stroke(); rond(q[0], q[1], k * 0.035 * (1 - r) + 0.5, 0.9, 1); } });
       // le bouton
       const eb = b1 ? sm((a - 1.6) / 0.4) : 1, bw = Math.min(0.4, w * 1.1), bx = large01 * w * 0.5, by = h - 0.15; if (eb > 0) { const p = Pk(bx - bw / 2, by - 0.06); boite(p[0], p[1], bw * k * eb, 0.12 * k, 6, 0.95, 1, true); }
       // le curseur : il va au bouton, clique ; l'onde ; le cube jaillit
       const vc = sm((c - 1.8) / 1), cu = Pk(lerp(-0.2, bx, vc), lerp(h + 0.2, by, vc)), clic = c - 2.8;
       if (c > 1.8 && c < 4.4) cerne(() => { ctx.beginPath(); ctx.moveTo(cu[0], cu[1]); ctx.lineTo(cu[0], cu[1] + k * 0.13); ctx.lineTo(cu[0] + k * 0.035, cu[1] + k * 0.095); ctx.lineTo(cu[0] + k * 0.06, cu[1] + k * 0.14); ctx.lineTo(cu[0] + k * 0.08, cu[1] + k * 0.13); ctx.lineTo(cu[0] + k * 0.055, cu[1] + k * 0.085); ctx.lineTo(cu[0] + k * 0.095, cu[1] + k * 0.085); ctx.closePath(); }, 0.8, 1);
-      if (clic > 0 && clic < 0.6) { style(0.8, 1 - clic / 0.6); ctx.beginPath(); ctx.arc(cu[0], cu[1], k * 0.25 * clic / 0.6, 0, TAU); ctx.stroke(); }
+      if (clic > 0 && clic < 0.6) { style(0.05 + 0.85 * (1 - clic / 0.6), 1); ctx.beginPath(); ctx.arc(cu[0], cu[1], k * 0.25 * clic / 0.6, 0, TAU); ctx.stroke(); }   // (vague 156 : l'onde s'amincit au lieu de s'effacer)
       const ec = clic > 0.2 ? Math.sin(Math.PI * c01((clic - 0.2) / 3.2)) : 0;
       if (ec > 0.01) { const s = 0.1 + ec * 0.17, Cm = cam(now * 0.6, now * 0.4, k), o = Pk(0, -0.05 - ec * 0.12);
         const Vc = (u, v, d) => { const q = Cm(u * s, v * s, d * s); return [q[0] + o[0] - G.cx, q[1] + o[1] - G.cy, q[2], q[3]]; }, F = prisme(Vc, [[-1, -1], [1, -1], [1, 1], [-1, 1]], 2, 1, 1); encre('</>', F, 1, 0.3);
@@ -1752,9 +1759,10 @@ S.front = (() => {
         const L = en() ? ['heading, level 1', 'card 1 of 3', 'card 2 of 3', 'card 3 of 3', 'button, Send'] : ['titre, niveau 1', 'carte 1 sur 3', 'carte 2 sur 3', 'carte 3 sur 3', 'bouton, Envoyer'], tx = kx + kw + fs * 1.6;
         ctx.save(); ctx.globalAlpha = 1; ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 1.2; ctx.lineCap = 'round'; for (let n = 1; n <= 3; n++) { ctx.beginPath(); ctx.arc(tx - fs * 0.9, yR, fs * 0.28 * n, -0.7, 0.7); ctx.stroke(); } ctx.restore();
         const lu = L[st], nch = Math.ceil(lu.length * c01(f / 0.5)); mot('« ' + lu.slice(0, nch) + (nch < lu.length ? '' : ' »'), tx, yR, fs, 1, 'left'); ctx.restore();
-        if (st === 4 && f > 0.55 && f < 0.95) { const v = (f - 0.55) / 0.4, bq = Pk(bx, by); style(0.8, 1 - v); ctx.beginPath(); ctx.arc(bq[0], bq[1], k * 0.2 * v, 0, TAU); ctx.stroke(); mot(en() ? 'Enter ↵' : 'Entrée ↵', bq[0], bq[1] - k * 0.13 - v * k * 0.05, fs * 0.8, 1 - v * 0.5); }
+        if (st === 4 && f > 0.55 && f < 0.95) { const v = (f - 0.55) / 0.4, bq = Pk(bx, by); style(0.05 + 0.75 * (1 - v), 1); ctx.beginPath(); ctx.arc(bq[0], bq[1], k * 0.2 * v, 0, TAU); ctx.stroke(); mot(en() ? 'Enter ↵' : 'Entrée ↵', bq[0], bq[1] - k * 0.13 - v * k * 0.05, fs * 0.8 * (1 - v * 0.6), 1); }
         if (st === 4 && !FOCUS.vu && window.Dex && Dex.vu) { FOCUS.vu = true; Dex.vu('focus-clavier'); } }
-      const nom = NOMS()[u < 0.5 ? A : B], al = u > 0 ? Math.abs(u - 0.5) * 2 : 1, L = Pk(0, h + 0.12); if (c > 4 && !(c > 5.3 && c < 7.15)) mot(nom, L[0], L[1], Math.max(10, k * 0.07), al * 0.85);
+      const nom = NOMS()[u < 0.5 ? A : B], al = u > 0 ? Math.abs(u - 0.5) * 2 : 1, L = Pk(0, h + 0.12); if (c > 4 && !(c > 5.3 && c < 7.15)) { const pn = Math.max(10, k * 0.07) * al; if (pn > 1) mot(nom, L[0], L[1], pn, 0.9); }   // (vague 156 : le nom rapetisse puis regrandit pendant le changement)
+      ctx.restore(); ctx.restore();
     }
   };
 })();
