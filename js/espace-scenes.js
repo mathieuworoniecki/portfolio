@@ -1202,6 +1202,7 @@ S.bench = (() => {
 
 // une flotte d'agents sur un même produit : un chantier en 3D. L'essaim tourne autour de l'immeuble (MARKO) et l'élève étage après étage ;
 // une grue grimpe avec lui ; les fenêtres s'allument ; au dernier étage, le drapeau, et un feu d'artifice
+const PATROUILLE = { vu: false };
 S.flotte = (() => {
   const E = Array.from({ length: 30 }, (_, i) => ({ r: 0.55 + bruit(i) * 0.9, v: (0.45 + bruit(i * 3) * 0.7) * (i % 3 ? 1 : -1), ph: bruit(i * 7) * TAU, h: -0.8 + bruit(i * 5) * 1.55, i }));
   const NE = 11, EH = 0.088, B0 = 0.84, LW = 0.22;
@@ -1241,6 +1242,19 @@ S.flotte = (() => {
       // et nous font signe, puis retournent à leur orbite
       { const Sm = souris(); if (Sm && window.Chats.K.Wd.t - Sm.moved < 2.5) { const Rs = k * 0.55; Q.forEach(q => { const dx = Sm.x - q.p[0], dy = Sm.y - q.p[1], d = Math.hypot(dx, dy); if (d > Rs) return;
         const w = Math.pow(1 - d / Rs, 1.4) * 0.55; q.p = [q.p[0] + dx * w, q.p[1] + dy * w, q.p[2], q.p[3]]; q.pp = [q.pp[0] + dx * w, q.pp[1] + dy * w, q.pp[2], q.pp[3]]; q.salue = w > 0.15; }); } }
+      // (vague 123, l'audit : « la flotte ») : la tour livrée, la flotte fait sa patrouille. Les quatorze chats-robots quittent leur orbite, se mettent
+      // en file et tracent à travers tout le ciel une immense coche, leur traînée derrière eux ; puis ils sortent par le haut de l'écran et la traînée
+      // se rembobine depuis son début (jamais de fondu). Au cycle suivant, ils reviennent tourner autour du nouveau chantier
+      let traineeP = null; const uP = c - NE * 0.55, sL = (uP - 0.4) / 2.0, Wc = G.droite - G.gauche, hC = (G.caps || G.bas) - G.haut, myC = G.haut + hC * 0.5;
+      const PA = [[G.cx - Wc * 0.34, myC - hC * 0.02], [G.cx - Wc * 0.1, myC + hC * 0.26], [G.cx + Wc * 0.38, myC - hC * 0.34]];
+      const LA = Math.hypot(PA[1][0] - PA[0][0], PA[1][1] - PA[0][1]), LB = Math.hypot(PA[2][0] - PA[1][0], PA[2][1] - PA[1][1]), cut = LA / (LA + LB);
+      const chemin = s0 => { if (s0 <= cut) { const t = s0 / cut; return [lerp(PA[0][0], PA[1][0], t), lerp(PA[0][1], PA[1][1], t)]; } if (s0 <= 1) { const t = (s0 - cut) / (1 - cut); return [lerp(PA[1][0], PA[2][0], t), lerp(PA[1][1], PA[2][1], t)]; }
+        const dx = PA[2][0] - PA[1][0], dy = PA[2][1] - PA[1][1], L = Math.hypot(dx, dy), e = (s0 - 1) * (LA + LB); return [PA[2][0] + dx / L * e, PA[2][1] + dy / L * e]; };
+      if (n >= NE && tas > 0.5 && sL > -0.05 && !reduitMvt()) {
+        Q.forEach(q => { if (q.i >= 14) return; const sq = sL - q.i * 0.045; if (sq <= 0) return; const e = c01(sq / 0.08), P1 = chemin(sq), P0 = chemin(Math.max(0, sq - 0.02));
+          q.p = [lerp(q.p[0], P1[0], e), lerp(q.p[1], P1[1], e), 1, 1]; q.pp = [lerp(q.pp[0], P0[0], e), lerp(q.pp[1], P0[1], e), 1, 1]; q.porte = false; q.salue = false; });
+        const s1 = Math.min(1, sL), s0 = c01((uP - 2.9) / 0.7); if (s1 > s0) { traineeP = []; for (let j = 0; j <= 40; j++) traineeP.push(chemin(lerp(s0, s1, j / 40))); }
+        if (sL > 1 && !PATROUILLE.vu && window.Dex && Dex.vu) { PATROUILLE.vu = true; Dex.vu('patrouille'); } }
       const agent = q => { const al = prof(q.p[2]); if (q.i < 18) trait([q.pp, q.p], false, 0.5, al * 0.5);
         // (09:57, Mathieu : « pas assez élaboré ») : les autres ne sont plus des ronds à queue : de petits blocs de papier qui tournent sur eux-mêmes, en route
         if (q.i >= 18) { const s2 = k * 0.022 * q.p[3], t = now * 2 + q.i; ctx.save(); ctx.translate(q.p[0], q.p[1]); ctx.rotate(t); cerne(() => { ctx.beginPath(); ctx.rect(-s2, -s2 * 0.7, s2 * 2, s2 * 1.4); }, 0.5, al); ctx.restore(); return; }
@@ -1268,6 +1282,7 @@ S.flotte = (() => {
           const p = V(fx + ux * o * LW, (y0 + y1) / 2, fz + uz * o * LW); if (p[2] < V(0, (y0 + y1) / 2, 0)[2]) return;
           const on = bruit(j * 17 + s * 5 + w + Math.floor(now * 0.8 + j)) > 0.6, fw = Math.max(2, k * (j === 0 ? 0.05 : 0.014) * p[3]), fh = Math.max(3, (V(0, y1, 0)[1] - V(0, y0, 0)[1]) * 0.28); ctx.globalAlpha = 1; ctx.fillStyle = on ? '#ffe9a8' : ENC; ctx.fillRect(p[0] - fw / 2, p[1] - fh / 2, fw, fh); if (on) brille(p[0], p[1], 1.6, 0.6, false, now, j + w); })); }
       if (!derriere) grue();
+      if (traineeP) trait(traineeP, false, 2.4, 0.95);   // (la traînée de la patrouille, devant la tour)
       Q.filter(q => q.p[2] >= -0.2).forEach(agent);
       if (n >= NE && tas > 0.5) { const t = V(0, top, 0), m = [t[0], t[1] - k * 0.3]; trait([t, m], false, 1, 1); trait([m, [m[0] + k * 0.16, m[1] + k * (0.05 + Math.sin(now * 5) * 0.015)], [m[0], m[1] + k * 0.11]], true, 0.9, 1, true);
         mot('MARKO', t[0], t[1] - k * 0.38, Math.max(11, k * 0.08), 1);
