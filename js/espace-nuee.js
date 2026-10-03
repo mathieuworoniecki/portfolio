@@ -345,7 +345,7 @@ X.fond.push((ctx, now) => {
   const C = M.sc, D = EP.DUREE || { A: 1.7 }, tl = C ? Wd.t - C.t0 : 0, pts = C && !reduit && tl < D.A - 0.35 ? titre(C.S.t, W, H, L.barre.bas + 16, (M.bande ? M.bande.y : G.caps || G.bas) - 10) : null;
   if (C && !C.nid) C.nid = ++NID;
   const id = C ? C.nid * 2 + (pts ? 0 : 1) : 'intro';
-  if (id !== dern) { F.set(P); T0 = sauter ? -1e9 : Wd.t; sauter = false; dern = id; rot = Math.random() < 0.5 ? -1 : 1; }
+  if (id !== dern) { F.set(P); T0 = sauter ? -1e9 : Wd.t; sauter = false; dern = id; rot = Math.random() < 0.5 ? -1 : 1; if (C && !pts && T0 > 0) { VENT.t0 = T0; VENT.rot = rot; VENT.dit = 0; } }
   const a = C ? tl - D.A + 0.2 : Wd.t - M.t0, fo = (C && FORMES[C.S.d]) || FORMES.galaxie, { V, f } = pts && pts.length ? { V: null, f: ecrit(pts, tl, W, now) } : fo(reduit ? 3 : a, reduit ? 0 : now, E);
   const duree = pts ? 0.95 : 1.4, etale = pts ? 0.35 : 0.6;
   const ap = reduit ? 1 : c01((Wd.t - M.t0) / 2.5), bd = M.bande, haut = L.barre.bas + 8, br = L.L ? 1.6 : 1.3, mx = W / 2, my = G.cy, dt = Wd.t - T0;
@@ -408,6 +408,21 @@ X.fond.push((ctx, now) => {
       ctx.globalAlpha = 1; for (let i = 0; i < n; i++) { const an = i / n * TAU + j * 0.05 + Math.sin(i * 2.3) * 0.02, x = FIN.x + Math.cos(an) * R, y = FIN.y + Math.sin(an) * R * 0.92;
         if (x < -rr || x > W + rr || y < -rr || y > H + rr || bd && y > bd.y && y < bd.y + bd.h && x > bd.x && x < bd.x + bd.w) continue; ctx.drawImage(LUEUR, x - rr, y - rr, rr * 2, rr * 2); } } }
   ctx.restore(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+});
+/* (vague 119, l'audit : « la nuée ») : la nuée n'est plus un décor derrière les chats. Quand elle se rassemble en tête de chat géante,
+   les chats qui flottent se tournent vers elle (l'un d'eux lui parle) ; quand elle se disperse vers la forme suivante, son tourbillon
+   les emporte : ils partent en vrille dans le sens des étoiles, puis la dérive les reprend */
+const VENT = { t0: -9, rot: 1, dit: 0 };
+X.pas.push((dt, cats) => {
+  const e = Wd.t - VENT.t0; if (reduit || e < 0 || e > 3) return;
+  const tt = c01((e - 0.1) / 0.45) * (1 - c01((e - 1.35) / 0.6)), souffle = Math.sin(Math.PI * c01((e - 1.3) / 1.5)), L = cats.filter(c => !c.held && c.sp && c.sp.m === 'derive');
+  if (!L.length) return;
+  if (tt > 0.6 && !(VENT.dit & 1)) { VENT.dit |= 1; const c = L[Math.floor(Math.random() * L.length)], en = !/^fr/.test(document.documentElement.lang || 'fr');
+    K.say(c, en ? ['is that me?', 'hi, big one!', 'mom?'][Math.floor(Math.random() * 3)] : ['c’est moi ?', 'coucou, le géant !', 'maman ?'][Math.floor(Math.random() * 3)]); }
+  if (souffle > 0.3 && !(VENT.dit & 2)) { VENT.dit |= 2; const c = L[Math.floor(Math.random() * L.length)]; K.say(c, ['wiiii !', 'whoaaa', 'youhou !'][Math.floor(Math.random() * 3)]); if (window.Dex && Dex.vu) Dex.vu('vent-nuee'); }
+  L.forEach(c => { const dx = c.x - E.cx, dy = c.y - E.cy, d = Math.hypot(dx, dy) || 1;
+    if (tt > 0.5) c.face = dx < 0 ? 1 : -1;   // ils regardent la grosse tête
+    if (souffle > 0) { const v = souffle * Wd.s0 * 1.5 * dt; c.sp.vx += (-dy / d * VENT.rot + dx / d * 0.25) * v; c.sp.vy += (dx / d * VENT.rot + dy / d * 0.25) * v; c.sp.w = (c.sp.w || 0) + VENT.rot * souffle * dt * 3; } });
 });
 return { FORMES, E, CST, get N() { return N; }, get P() { return P; }, fige() { T0 = -1e9; sauter = true; }, vers(t) { T0 = Wd.t - t; } };
 })();
