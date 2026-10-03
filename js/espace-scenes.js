@@ -78,15 +78,22 @@ function chabot(x, y, r, o = {}) {
     cerne(() => { ctx.beginPath(); P.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); }, w * 1.6, a, null);
     ctx.globalAlpha = a; ctx.strokeStyle = ENC; ctx.lineWidth = Math.max(0.6, G.lw * w * 0.45); for (let i = 1; i < n; i++) { const [qx, qy] = P[i], [px, py] = P[i - 1], d = Math.hypot(qx - px, qy - py) || 1, nx = -(qy - py) / d, ny = (qx - px) / d, e = r * 0.1 * (1 - i / n * 0.5); ctx.beginPath(); ctx.moveTo(qx - nx * e, qy - ny * e); ctx.lineTo(qx + nx * e, qy + ny * e); ctx.stroke(); }
     cerne(() => { ctx.beginPath(); ctx.arc(P[n][0], P[n][1], r * 0.1, 0, TAU); }, w, a); }
+  // (vague 152) : deux bottes rondes de scaphandre sous la combinaison (leurs semelles), qui battent doucement en apesanteur
+  if (r >= 6 && (o.bottes ?? o.casque !== false)) [-1, 1].forEach(g => { const px = x + g * bw * 0.42 + sl * r * 0.1, py = by + bh * 0.92 + Math.sin(now * 2.4 + ph + g) * r * 0.04; cerne(() => { ctx.beginPath(); ctx.ellipse(px, py, r * 0.24, r * 0.15, g * 0.15, 0, TAU); }, w, a);
+    ctx.globalAlpha = a; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.5; ctx.beginPath(); ctx.moveTo(px - r * 0.2, py + r * 0.05); ctx.quadraticCurveTo(px, py + r * 0.12, px + r * 0.2, py + r * 0.05); ctx.stroke(); });
   cerne(() => { ctx.beginPath(); ctx.ellipse(x - sl * r * 0.9, by - bh * 0.1, r * 0.34, bh * 0.62, 0, 0, TAU); }, w, a * (Math.abs(sl) > 0.15 ? 1 : 0));
   cerne(() => { ctx.beginPath(); ctx.moveTo(x - bw, by - bh * 0.55); ctx.quadraticCurveTo(x - bw * 1.05, by + bh, x, by + bh); ctx.quadraticCurveTo(x + bw * 1.05, by + bh, x + bw, by - bh * 0.55); ctx.quadraticCurveTo(x, by - bh * 0.95, x - bw, by - bh * 0.55); ctx.closePath(); }, w, a);
   // le voyant de poitrine (il clignote quand il travaille), la ceinture
   ctx.globalAlpha = a; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.7; ctx.beginPath(); ctx.moveTo(x - bw * 0.8, by + bh * 0.35); ctx.quadraticCurveTo(x, by + bh * 0.5, x + bw * 0.8, by + bh * 0.35); ctx.stroke();
   ctx.beginPath(); ctx.arc(x + sl * bw * 0.4, by + bh * 0.02, r * 0.1, 0, TAU); ctx.fillStyle = o.travaille && Math.sin(now * 12 + ph) > 0 ? ENC : PAP; ctx.fill(); ctx.stroke();
   // (vague 23 de l'audit : « le chat-robot astronaute ») : du volume à la plume, comme la planète des chats : quelques hachures du côté de l'ombre
-  const hach = (cx, cy, rx, ry, n) => { if (r < 9) return; ctx.save(); ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, TAU); ctx.clip(); ctx.globalAlpha = a * 0.42; ctx.strokeStyle = ENC; ctx.lineWidth = Math.max(0.6, G.lw * w * 0.3); ctx.beginPath();
-    for (let i = 0; i < n; i++) { const u = cx + rx * (0.5 + i * 0.5 / n) - sl * rx * 0.3; ctx.moveTo(u, cy - ry); ctx.lineTo(u + ry * 0.5, cy + ry); } ctx.stroke(); ctx.restore(); };
+  const hach = (cx, cy, rx, ry, n) => { if (r < 9) return; ctx.save(); ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, TAU); ctx.clip(); ctx.globalAlpha = a; ctx.strokeStyle = ENC; ctx.lineWidth = Math.max(0.55, G.lw * w * 0.2); ctx.lineCap = 'round'; ctx.beginPath();
+    // (vague 152 : à l'encre pleine, fines, en traits courts qui partent du bord : plus de gris boueux)
+    for (let i = 0; i < n; i++) { const u = cx + rx * (0.55 + i * 0.45 / n) - sl * rx * 0.3; ctx.moveTo(u, cy - ry * (0.1 - i * 0.12)); ctx.lineTo(u + ry * 0.35, cy + ry); } ctx.stroke(); ctx.restore(); };
   hach(x, by + bh * 0.2, bw * 0.95, bh * 0.75, 4);
+  // (vague 152) : le col rigide du scaphandre, où se visse le casque, et ses deux rivets (sous la tête : on n'en voit que les côtés)
+  if (o.casque !== false && r >= 8) { const cy0 = by - bh * 0.7, hx0 = x + sl * r * 0.06; cerne(() => { ctx.beginPath(); ctx.ellipse(hx0, cy0, r * 0.95, r * 0.2, 0, 0, TAU); }, w * 0.8, a);
+    ctx.globalAlpha = a; ctx.fillStyle = ENC; [-1, 1].forEach(g => { ctx.beginPath(); ctx.arc(hx0 + g * r * 0.78 + sl * r * 0.1, cy0 + r * 0.03, Math.max(0.8, r * 0.05), 0, TAU); ctx.fill(); }); }
   // la tête : un rond un peu large, deux oreilles pointues (celle du fond plus petite quand il tourne)
   const hx = x + sl * r * 0.06, oe = g => { const ox = hx + (g * 0.52 + sl * 0.3) * r, k = 1 - Math.max(0, g * -sl) * 0.5; return [[ox - g * r * 0.3, y - r * 0.55], [ox + g * r * 0.05 * k, y - r * (0.62 + 0.5 * k)], [ox + g * r * 0.32, y - r * 0.38]]; };
   cerne(() => { ctx.beginPath(); const L = oe(-1), R = oe(1); ctx.moveTo(...L[0]); ctx.lineTo(...L[1]); ctx.lineTo(...L[2]); ctx.ellipse(hx, y, r * 0.95, r * 0.78, 0, -2.4, -0.74); ctx.lineTo(...R[0]); ctx.lineTo(...R[1]); ctx.lineTo(...R[2]);
@@ -118,7 +125,11 @@ function chabot(x, y, r, o = {}) {
     const sx = hx + (0.92 - sl * 0.2) * r, sy = y - r * 0.02; ctx.fillStyle = ENC; ctx.beginPath(); ctx.ellipse(sx, sy, r * 0.1, r * 0.18, 0, 0, TAU); ctx.fill();
     ctx.beginPath(); ctx.moveTo(sx, sy + r * 0.12); ctx.quadraticCurveTo(sx, y + r * 0.42, hx + (sl * 0.32 + 0.22) * r, y + r * 0.36); ctx.stroke(); ctx.beginPath(); ctx.arc(hx + (sl * 0.32 + 0.2) * r, y + r * 0.36, r * 0.05, 0, TAU); ctx.fill(); }
   // le casque de verre : un rond au trait blanc, un reflet
-  if (o.casque !== false) { style(0.55 * w, a * 0.8); ctx.beginPath(); ctx.arc(hx, y - r * 0.08, r * 1.32, 0, TAU); ctx.stroke(); style(0.9 * w, a * 0.7); ctx.beginPath(); ctx.arc(hx, y - r * 0.08, r * 1.16, -2.5, -1.9); ctx.stroke(); }
+  // (vague 152 de l'audit : « le chat-robot ») : le casque à l'encre pleine ; un reflet en deux traits (un long, un point) ; le col rigide du
+  // scaphandre, où le casque se visse (ses deux rivets) ; le reflet glisse un peu quand il tourne la tête
+  if (o.casque !== false) { style(0.55 * w, a); ctx.beginPath(); ctx.arc(hx, y - r * 0.08, r * 1.32, 0, TAU); ctx.stroke();
+    const rf = -2.35 + sl * 0.4; style(0.95 * w, a); ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(hx, y - r * 0.08, r * 1.15, rf - 0.32, rf + 0.22); ctx.stroke(); ctx.beginPath(); ctx.arc(hx, y - r * 0.08, r * 1.15, rf + 0.38, rf + 0.42); ctx.stroke();
+ }
   if (bue >= 0) { const gr = sm(c01(bue / 0.45)) * (1 - sm(c01((bue - 2.1) / 0.6))), fx = hx + gB * r * 0.78, fy = y + r * 0.5, rx = r * 0.5 * gr, ry = r * 0.36 * gr;
     if (gr > 0.02) { ctx.save(); ctx.beginPath(); ctx.arc(hx, y - r * 0.08, r * 1.3, 0, TAU); ctx.clip(); ctx.globalAlpha = a * 0.62; ctx.fillStyle = 'rgb(176,196,232)'; ctx.beginPath(); ctx.ellipse(fx, fy, rx, ry, gB * 0.3, 0, TAU); ctx.fill();
       for (let j = 0; j < 5; j++) { const t = j / 5 * TAU + ph; ctx.beginPath(); ctx.arc(fx + Math.cos(t) * rx * 0.95, fy + Math.sin(t) * ry * 0.95, r * 0.12 * gr, 0, TAU); ctx.fill(); }
