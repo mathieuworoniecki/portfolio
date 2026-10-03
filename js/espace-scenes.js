@@ -1751,6 +1751,7 @@ S.back = (() => ({
 // DevOps & cloud : la boucle sans fin, en 3D, comme un circuit vu d'en haut ; des conteneurs en font le tour et passent sous les portiques
 // (build, test, déploie, surveille), qui s'allument à leur passage ; dessous, l'écran du monitoring et son pouls
 let CHG = 0;   // (vague 64 : la charge que la souris fait peser sur DevOps, lissée)
+const ROLL = { vu: false };
 S.devops = (() => ({
   cles: () => [[-1, 0], [1, 0], [0, 0], [-0.5, -0.35]],
   dessin(a, now) {
@@ -1775,7 +1776,11 @@ S.devops = (() => ({
     // s'emballe, et le circuit se met à l'échelle (des conteneurs en renfort s'intercalent, « autoscale ») ; quand elle se calme, tout redescend
     { const Sm = souris(), v = Sm && window.Chats.K.Wd.t - Sm.moved < 0.3 ? Math.hypot(Sm.vx || 0, Sm.vy || 0) : 0; CHG += (c01(v / 1600) - CHG) * (v / 1600 > CHG ? 0.2 : 0.02); }
     DEP.t = now;   // (vague 88 : l'autoscale et le déploiement sortent sur le vrai site, voir deploieUI())
-    const nC = 12 + Math.round(CHG * 12), conts = []; for (let q = 0; q < nC; q++) conts.push((now * (0.5 + CHG * 0.4) + q / nC * TAU) % TAU);
+    // (vague 129 de l'audit : « de très bien à inoubliable ») : le retour arrière. Toutes les dix secondes, une version fautive passe : le pouls
+    // s'affole (« 500 »), tout le circuit recule d'un coup (« rollback », des flèches qui tournent à l'envers), la boîte fautive est éjectée
+    // en tournoyant hors de la boucle, puis tout repart vers l'avant, plus vite, jusqu'à rattraper son retard ; le pouls se calme, une coche
+    const tr = a % 10, alerte = tr > 4.6 && tr < 6, rb = 2.4 * sm(c01((tr - 5.2) / 1.3)) - 2.4 * sm(c01((tr - 6.6) / 3)), ejq = 2, ej = c01((tr - 5.3) / 1.6);
+    const nC = 12 + Math.round(CHG * 12), conts = []; for (let q = 0; q < nC; q++) conts.push(((now * (0.5 + CHG * 0.4) + q / nC * TAU - rb) % TAU + TAU) % TAU);
     ST.forEach((t, i) => { const p = at(t), [tx, tz] = nor(t), G3 = (u, v, d) => V(p[0] - tz * u + tx * d, p[1] + v, p[2] + tx * u + tz * d);
       const vif = conts.some(u => Math.abs(Math.atan2(Math.sin(u - t), Math.cos(u - t))) < 0.12);
       [[-0.15, -0.12], [0.12, 0.15]].forEach(([u0, u1]) => prisme(G3, [[u0, 0], [u1, 0], [u1, -0.24], [u0, -0.24]], 0.04, 1, 0.7)); prisme(G3, [[-0.16, -0.22], [0.16, -0.22], [0.16, -0.28], [-0.16, -0.28]], 0.05, 1, 0.7);
@@ -1795,6 +1800,13 @@ S.devops = (() => ({
       });
     // les conteneurs : de vraies petites boîtes, orientées dans le sens de la marche
     conts.map((t, q) => ({ t, q, p: at(t) })).sort((p, q) => p.p[2] - q.p[2]).forEach(({ t, q, p }) => { const [tx, tz] = nor(t), c = (u, w, y) => V(p[0] + tx * u - tz * w, p[1] + y, p[2] + tz * u + tx * w);
+      if (q === ejq && tr > 3.6 && tr < 9.6) { // la version fautive : noire, une croix ; éjectée pendant le retour arrière ; la version suivante, saine, reprend sa place
+        if (ej > 0 && tr < 8) { const e = ej, o = c(0, 0, 0), P = [lerp(o[0], G.gauche - k * 0.4, e * e), lerp(o[1], o[1] - k * 0.5, Math.sin(Math.PI * Math.min(1, e * 1.2)) * 0.8) + e * e * k * 0.3], sb = k * 0.07 * (1 - e * 0.3);
+          ctx.save(); ctx.translate(P[0], P[1]); ctx.rotate(-e * 12); cerne(() => { ctx.beginPath(); ctx.rect(-sb, -sb * 0.7, sb * 2, sb * 1.4); }, 0.9, 1, ENC); style(1.2, 1); ctx.strokeStyle = '#ff8a7a'; ctx.beginPath(); ctx.moveTo(-sb * 0.4, -sb * 0.4); ctx.lineTo(sb * 0.4, sb * 0.4); ctx.moveTo(sb * 0.4, -sb * 0.4); ctx.lineTo(-sb * 0.4, sb * 0.4); ctx.stroke(); ctx.restore();
+          if (e < 0.5) mot(en() ? 'bad build' : 'version fautive', P[0], P[1] - sb * 1.6, Math.max(10, k * 0.055), 1); return; }
+        if (tr < 5.3) { const h = c(0, 0, -0.05), sb = k * 0.035 * h[3]; prisme((u, v, d) => c(u, d, v), [[-0.08, 0], [0.08, 0], [0.08, -0.09], [-0.08, -0.09]], 0.1, prof(c(0, 0, 0)[2], 1), 0.6);
+          ctx.globalAlpha = 1; ctx.fillStyle = ENC; ctx.beginPath(); ctx.arc(h[0], h[1], sb * 1.3, 0, TAU); ctx.fill(); style(1, 1); ctx.strokeStyle = '#ff8a7a'; ctx.beginPath(); ctx.moveTo(h[0] - sb * 0.6, h[1] - sb * 0.6); ctx.lineTo(h[0] + sb * 0.6, h[1] + sb * 0.6); ctx.moveTo(h[0] + sb * 0.6, h[1] - sb * 0.6); ctx.lineTo(h[0] - sb * 0.6, h[1] + sb * 0.6); ctx.stroke(); return; }
+        if (tr < 8) return; }
       prisme((u, v, d) => c(u, d, v), [[-0.08, 0], [0.08, 0], [0.08, -0.09], [-0.08, -0.09]], 0.1, prof(c(0, 0, 0)[2], 1), 0.6);
       if (q === 0) { const h = c(0, 0, -0.09), r = k * 0.05 * h[3]; chabot(h[0], h[1] - r * 1.7, r, { now, v: 1, lac: 0.5, bras: [1.3, 1.3] }); } });
     // le monitoring : un écran, son pouls qui défile
@@ -1803,8 +1815,14 @@ S.devops = (() => ({
       const w2 = ctx.measureText(lab[i]).width / 2 + 4, x = Math.max(G.gauche + w2, Math.min(G.droite - w2, m[0]));
       ctx.globalAlpha = 1; ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, px * 0.32); ctx.strokeStyle = 'rgb(9,11,18)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.strokeText(lab[i], x, m[1]);
       mot(lab[i], x, m[1], px, 1); });
+    if (tr > 5.1 && tr < 6.7) { const e = Math.sin(Math.PI * c01((tr - 5.1) / 1.6)), L = 10, ofs = (tr - 5.1) * 0.9;   // les flèches du retour arrière, à rebours, tout autour de la boucle
+      for (let j = 0; j < L; j++) { const t = ((j / L) * TAU - ofs + TAU * 4) % TAU, p = at(t), [tx, tz] = nor(t), Pa = V(p[0] - tz * 0.2, p[1] - 0.02, p[2] + tx * 0.2), Pb = V(p[0] - tz * 0.2 - tx * 0.09, p[1] - 0.02, p[2] + tx * 0.2 - tz * 0.09), d = Math.atan2(Pb[1] - Pa[1], Pb[0] - Pa[0]), r = Math.max(5, k * 0.07 * Pa[3]) * e;
+        cerne(() => { ctx.beginPath(); ctx.moveTo(Pa[0] + Math.cos(d) * r, Pa[1] + Math.sin(d) * r); ctx.lineTo(Pa[0] + Math.cos(d + 2.4) * r, Pa[1] + Math.sin(d + 2.4) * r); ctx.lineTo(Pa[0] + Math.cos(d - 2.4) * r, Pa[1] + Math.sin(d - 2.4) * r); ctx.closePath(); }, 0.8, 1, '#fff4c8'); }
+      const m = V(0, -0.05, 0); mot('⟲ rollback', m[0], m[1] + k * 0.22, Math.max(16, k * 0.1) * (0.6 + 0.4 * e), 1);
+      if (!ROLL.vu && tr > 5.6 && window.Dex && Dex.vu) { ROLL.vu = true; Dex.vu('rollback'); } }
     const mw = Math.min(0.9, lx * 0.5) * k, mh = 0.2 * k, mc = [G.cx, G.cy - k * 0.72]; ecran(mc[0] - mw / 2, mc[1] - mh / 2, mw, mh, k * 0.06, 5);
-    const M = []; for (let i = 0; i <= 70; i++) { const u = i / 70, t = u * (3.5 + CHG * 4) - now * (0.8 + CHG * 1.6), f = t - Math.floor(t), b = f > 0.4 && f < 0.5 ? Math.sin((f - 0.4) / 0.1 * TAU) * (0.35 + CHG * 0.1) : 0; M.push([mc[0] - mw * 0.45 + u * mw * 0.9, mc[1] - b * mh]); } trait(M, false, 0.8, 1);
+    const M = []; for (let i = 0; i <= 70; i++) { const u = i / 70, t = u * (3.5 + CHG * 4) - now * (0.8 + CHG * 1.6), f = t - Math.floor(t), b = f > 0.4 && f < 0.5 ? Math.sin((f - 0.4) / 0.1 * TAU) * (0.35 + CHG * 0.1) * (alerte ? 2.2 : 1) : (alerte ? Math.sin(u * 60 + now * 30) * 0.12 : 0); M.push([mc[0] - mw * 0.45 + u * mw * 0.9, mc[1] - b * mh]); } trait(M, false, 0.8, 1);
+    if (alerte) mot('500 !', mc[0] + mw * 0.36, mc[1] - mh * 0.15, Math.max(12, k * 0.08) * (1 + 0.15 * Math.sin(now * 20)), 1); else if (tr > 6.6 && tr < 8) coche(mc[0] + mw * 0.38, mc[1] - mh * 0.1, mh * 0.25, (tr - 6.6) / 0.4, 1);
     if (CHG > 0.25) mot((en() ? 'autoscale ×' : 'mise à l’échelle ×') + (nC / 12).toFixed(1).replace('.0', ''), mc[0], mc[1] + mh * 0.95, G.sw < 500 ? 9 : Math.max(11, k * 0.06), c01((CHG - 0.25) / 0.2));
   }
 }))();
