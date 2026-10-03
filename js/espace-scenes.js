@@ -534,12 +534,20 @@ function tmux(o, now) {
   const OK = FR ? ['✓ module découpé, tests verts', '✓ tout passe', '✓ branche prête', '✓ 2 remarques'] : ['✓ module split, tests green', '✓ all passing', '✓ branch ready', '✓ 2 comments'];
   const Ly = window.EspacePlume && EspacePlume.M && EspacePlume.M.lay, hautUI = Ly && Ly.barre ? Ly.barre.bas + 6 : 92;   // (sous la barre des chapitres)
   o.font = '600 10px ui-monospace,Menlo,Consolas,monospace'; o.textBaseline = 'alphabetic'; o.textAlign = 'left';
-  panes.forEach((q, i) => { const d = 0.7 + i * 0.35, u = t - d; if (u < 0 || k < 0.5) return; const j = (i + Math.floor(L.cmd * 4)) % 4, c = CMD[j], x = q[0] + 12, y0 = (q[1] < 60 ? Math.max(92, hautUI) : q[1]) + 22;
-    if (y0 + 20 > q[3]) return; o.save(); o.beginPath(); o.rect(q[0] + 6, q[1], q[2] - q[0] - 12, q[3] - q[1]); o.clip(); const txt = c[0] + ' ' + c[1], n = Math.min(txt.length, Math.floor(u * 22)), vu = txt.slice(0, n), pr = `agent-${i + 1} $ `;
+  panes.forEach((q, i) => { const d = 0.7 + i * 0.35, u = t - d; if (u < 0 || k < 0.5) return; const j = (i + Math.floor(L.cmd * 4)) % 4, c = CMD[j], x = q[0] + 12;
+    let y0 = (q[1] < 60 ? Math.max(92, hautUI) : q[1]) + 22;
+    // (vague 186) au téléphone, la planète chat est dans le volet du haut à droite : l'invite descend sous elle au lieu de passer sous ses oreilles
+    if (Pc && Pc.x + Pc.r * 1.25 > q[0] && Pc.x - Pc.r * 1.25 < q[2] && Pc.y - Pc.r * 1.25 < y0 + 30 && Pc.y + Pc.r * 1.25 > q[1]) y0 = Math.max(y0, Pc.y + Pc.r * 1.25 + 14);
+    const txt = c[0] + ' ' + c[1], n = Math.min(txt.length, Math.floor(u * 22)), pr = `agent-${i + 1} $ `, mx = q[2] - q[0] - 26, wP = o.measureText(pr).width;
+    // (vague 186) un volet étroit (au téléphone) : la commande va à la ligne entre deux mots, comme dans un vrai terminal, au lieu d'être coupée au bord
+    const lig = []; { let cur = '', lim = mx - wP; txt.split(' ').forEach(m => { const e = cur ? cur + ' ' + m : m; if (cur && o.measureText(e).width > lim) { lig.push(cur + ' '); cur = m; lim = mx; } else cur = e; }); lig.push(cur); }
+    const hl = 13, yOK = y0 + (lig.length - 1) * hl + 15; if (yOK + 6 > q[3]) return;
+    o.save(); o.beginPath(); o.rect(q[0] + 6, q[1], q[2] - q[0] - 12, q[3] - q[1]); o.clip();
     const ecrit = (s, x, y, col) => { o.strokeStyle = NUIT; o.lineWidth = 3.5; o.strokeText(s, x, y); o.fillStyle = col; o.fillText(s, x, y); };
-    ecrit(pr, x, y0, '#8fe0a0'); const xp = x + o.measureText(pr).width; ecrit(vu, xp, y0, `rgb(${BL})`);
-    if (n < txt.length || Math.floor(now * 2.4) % 2) { const xc = xp + o.measureText(vu).width + 1; o.fillStyle = act === i ? '#8fe0a0' : `rgba(${BL},0.7)`; o.fillRect(xc, y0 - 9, 6, 11); }
-    if (u > txt.length / 22 + 1.2) ecrit(OK[j], x, y0 + 15, '#8fe0a0'); o.restore(); });
+    ecrit(pr, x, y0, '#8fe0a0'); let reste = n, xc = x + wP, yc = y0;
+    lig.forEach((l, li) => { if (reste <= 0 && li) return; const vu = l.slice(0, Math.max(0, reste)), xl = li ? x : x + wP, yl = y0 + li * hl; ecrit(vu, xl, yl, `rgb(${BL})`); xc = xl + o.measureText(vu).width; yc = yl; reste -= l.length; });
+    if (n < txt.length || Math.floor(now * 2.4) % 2) { o.fillStyle = act === i ? '#8fe0a0' : `rgba(${BL},0.7)`; o.fillRect(xc + 1, yc - 9, 6, 11); }
+    if (u > txt.length / 22 + 1.2) ecrit(OK[j], x, yOK, '#8fe0a0'); o.restore(); });
   // la barre d'état, en haut : la session, les fenêtres, l'étoile sur celle de la souris
   if (fV > 0.3) { const noms = FR ? ['claude', 'tests', 'relecture', 'revue'] : ['claude', 'tests', 'worktree', 'review'], s0 = '[portfolio] ', ws = noms.map((nm, i) => `${i}:${nm}${i === act ? '*' : ''}`).join('  ');
     o.font = '600 10px ui-monospace,Menlo,Consolas,monospace'; const w = o.measureText(s0 + ws).width, x = W / 2 - w / 2, y = 13; let xi = x;
