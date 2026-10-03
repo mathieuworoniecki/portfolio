@@ -2190,16 +2190,35 @@ S.pilotage = (() => {
         if (sor > 0.9 && !TRAPPE.vu && window.Dex && Dex.vu) { TRAPPE.vu = true; Dex.vu('trappe-toit'); } } }
     const B = [Q(-w, 0.12, 0), Q(w, 0.12, 0), Q(w, h, 0), Q(-w, h, 0)]; cerne(() => { ctx.beginPath(); B.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); }, 1, 1);
     const Wv = [Q(-w * 0.8, 0.5, 0), Q(w * 0.8, 0.5, 0), Q(w * 0.8, 0.86, 0), Q(-w * 0.8, 0.86, 0)]; ctx.globalAlpha = 1; ctx.fillStyle = NUIT; ctx.beginPath(); Wv.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fill(); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw; ctx.stroke();
-    // de dos, par la vitre : l'équipe (des têtes rondes, des oreilles de chat), et lui au volant, tout devant (ses épis)
-    const vw = Wv[1][0] - Wv[0][0], vy = Wv[0][1];
+    // de dos, par la vitre : l'équipe (des têtes rondes, des oreilles de chat), et lui au volant, plus loin (ses épis)
+    // (vague 150 de l'audit : « le bus ») : les têtes sortent en entier au lieu de deux oreilles au ras du cadre ; tour à tour,
+    // l'un d'eux se retourne et nous regarde (les grands yeux noirs des chats) ; un reflet barre la vitre
+    const vw = Wv[1][0] - Wv[0][0], vy = Wv[0][1], vh = vy - Wv[3][1];
     ctx.save(); ctx.beginPath(); Wv.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.clip();
-    const lui = Q(0.1, 0.62, 2.2), rl = vw * 0.06; style(0.7, 0.9); rond(lui[0], lui[1] + Math.sin(now * 3) * 1, rl, 0.7, 0.9, 'nuit'); ctx.beginPath(); [-0.6, -0.2, 0.2, 0.6].forEach(d => { const b = -Math.PI / 2 + d; ctx.moveTo(lui[0] + Math.cos(b) * rl, lui[1] + Math.sin(b) * rl); ctx.lineTo(lui[0] + Math.cos(b) * rl * 1.5, lui[1] + Math.sin(b) * rl * 1.5); }); ctx.stroke();
-    const vo = Q(0.1, 0.55, 2.3); style(0.6, 0.8); ctx.beginPath(); ctx.ellipse(vo[0], vo[1], rl * 1.6, rl * 0.5, 0, 0, TAU); ctx.stroke();
-    [-0.55, 0, 0.55].forEach((u, j) => { const x = Wv[0][0] + vw * (0.5 + u * 0.72), y = vy - vw * 0.02 + Math.abs(Math.sin(now * 3 + j * 1.7)) * 2, r = vw * 0.11;
-      ctx.globalAlpha = 1; ctx.fillStyle = PAP; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.8; ctx.beginPath(); ctx.moveTo(x - r, y + r); ctx.lineTo(x - r * 0.9, y - r * 0.9); ctx.lineTo(x - r * 0.35, y - r * 0.6); ctx.quadraticCurveTo(x, y - r * 0.75, x + r * 0.35, y - r * 0.6); ctx.lineTo(x + r * 0.9, y - r * 0.9); ctx.lineTo(x + r, y + r); ctx.closePath(); ctx.fill(); ctx.stroke(); });
+    { const xl = Wv[0][0] + vw * 0.66, yl = vy - vh * 0.5 + Math.sin(now * 3) * 1, rl = vw * 0.065;
+      cerne(() => { ctx.beginPath(); ctx.ellipse(xl, vy - vh * 0.08, rl * 2.2, rl * 0.55, 0, 0, TAU); }, 0.6, 1, null);
+      cerne(() => { ctx.beginPath(); ctx.arc(xl, yl, rl, 0, TAU); }, 0.7, 1);
+      ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.6; ctx.beginPath(); [-0.7, -0.25, 0.2, 0.65].forEach(d => { const b = -Math.PI / 2 + d; ctx.moveTo(xl + Math.cos(b) * rl * 0.9, yl + Math.sin(b) * rl * 0.9); ctx.lineTo(xl + Math.cos(b + 0.15) * rl * 1.55, yl + Math.sin(b + 0.15) * rl * 1.55); }); ctx.stroke();
+      ctx.globalAlpha = 1; ctx.strokeStyle = `rgb(${BL})`; ctx.beginPath(); [-0.7, -0.25, 0.2, 0.65].forEach(d => { const b = -Math.PI / 2 + d; ctx.moveTo(xl + Math.cos(b) * rl, yl + Math.sin(b) * rl); ctx.lineTo(xl + Math.cos(b + 0.15) * rl * 1.5, yl + Math.sin(b + 0.15) * rl * 1.5); }); ctx.stroke(); }
+    const qui = Math.floor(now / 3.2) % 3, tour = sm(c01((now % 3.2 - 0.4) / 0.25)) * (1 - sm(c01((now % 3.2 - 2.2) / 0.25)));
+    [0.15, 0.4, 0.87].forEach((fx, j) => { const r = vw * 0.125, x = Wv[0][0] + vw * fx, y = vy - r * 0.6 + Math.abs(Math.sin(now * 3 + j * 1.7)) * r * 0.12, t = j === qui ? tour : 0;
+      ctx.globalAlpha = 1; ctx.fillStyle = PAP; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.8;
+      ctx.beginPath(); ctx.moveTo(x - r * 0.95, y - r * 0.15); ctx.lineTo(x - r * 0.85, y - r * 1.15); ctx.lineTo(x - r * 0.3, y - r * 0.85); ctx.quadraticCurveTo(x, y - r * 0.95, x + r * 0.3, y - r * 0.85); ctx.lineTo(x + r * 0.85, y - r * 1.15); ctx.lineTo(x + r * 0.95, y - r * 0.15);
+      ctx.quadraticCurveTo(x + r, y + r * 0.7, x + r * 1.4, y + r * 1.6); ctx.lineTo(x - r * 1.4, y + r * 1.6); ctx.quadraticCurveTo(x - r, y + r * 0.7, x - r * 0.95, y - r * 0.15); ctx.closePath(); ctx.fill(); ctx.stroke();
+      if (t > 0.02) { ctx.fillStyle = ENC; [-1, 1].forEach(g => { const ex = x + g * r * 0.36, ey = y - r * 0.3; ctx.beginPath(); ctx.ellipse(ex, ey, r * 0.17 * t, r * 0.24, 0, 0, TAU); ctx.fill(); ctx.fillStyle = PAP; ctx.beginPath(); ctx.arc(ex - r * 0.05 * t, ey - r * 0.09, r * 0.06 * t, 0, TAU); ctx.arc(ex + r * 0.06 * t, ey + r * 0.07, r * 0.03 * t, 0, TAU); ctx.fill(); ctx.fillStyle = ENC; }); }
+ });
+    ctx.globalAlpha = 1; ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = Math.max(1, vw * 0.018); ctx.lineCap = 'round'; [[0.08, 0.3], [0.2, 0.36]].forEach(([u0, u1]) => { ctx.beginPath(); ctx.moveTo(Wv[3][0] + vw * u0, Wv[3][1] + vh * 0.12); ctx.lineTo(Wv[3][0] + vw * (u0 - 0.06), Wv[3][1] + vh * 0.45); ctx.stroke(); });
     ctx.restore();
-    // les feux (rouges : ils brillent au freinage), la plaque, le pot et ses bouffées
-    [[-w * 0.78, 0.25], [w * 0.78, 0.25]].forEach(([x, y]) => { const p = Q(x, y, 0); cerne(() => { ctx.beginPath(); ctx.arc(p[0], p[1], vw * 0.045, 0, TAU); }, 0.7, 1); brille(p[0], p[1], vw * 0.03, 0.9, Math.abs(roulis) > 0.02, now, x); });
+    // (vague 150) : le pare-chocs (une bande noire cernée, ses deux butoirs), la grille du moteur, l'échelle jusqu'au toit, les clignotants
+    { const pc = [Q(-w * 1.03, 0.1, -0.05), Q(w * 1.03, 0.1, -0.05), Q(w * 1.03, 0.19, -0.05), Q(-w * 1.03, 0.19, -0.05)];
+      cerne(() => { ctx.beginPath(); pc.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); }, 0.9, 1, NUIT);
+      [-0.72, 0.72].forEach(u => { const b0 = Q(w * u - 0.06, 0.1, -0.08), b1 = Q(w * u + 0.06, 0.19, -0.08); cerne(() => { ctx.beginPath(); ctx.rect(b0[0], b1[1], b1[0] - b0[0], b0[1] - b1[1]); }, 0.6, 1); });
+      ctx.globalAlpha = 1; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.6; for (let k = 0; k < 4; k++) { const y = 0.385 + k * 0.025, a0 = Q(-w * 0.42, y, 0), a1 = Q(w * 0.42, y, 0); ctx.beginPath(); ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a1[0], a1[1]); ctx.stroke(); }
+      const e0 = Q(w * 0.86, 0.45, 0), e1 = Q(w * 0.97, h, 0); ctx.lineWidth = G.lw * 0.7; ctx.beginPath(); ctx.moveTo(e0[0], e0[1]); ctx.lineTo(e0[0], e1[1]); ctx.moveTo(e1[0], e0[1]); ctx.lineTo(e1[0], e1[1]); for (let k = 1; k < 6; k++) { const y = lerp(e0[1], e1[1], k / 6); ctx.moveTo(e0[0], y); ctx.lineTo(e1[0], y); } ctx.stroke(); }
+    // les feux (rouges : ils brillent au freinage) ; au-dessus, le clignotant ambré du côté où il change de voie
+    const cli = Math.abs(roulis) > 0.012 && Math.sin(now * 16) > 0 ? (roulis < 0 ? 1 : -1) : 0;
+    [[-w * 0.78, 0.25, -1], [w * 0.78, 0.25, 1]].forEach(([x, y, g]) => { const p = Q(x, y, 0), rf = vw * 0.045; cerne(() => { ctx.beginPath(); ctx.arc(p[0], p[1], rf, 0, TAU); }, 0.7, 1, '#ffb3a8'); brille(p[0], p[1], vw * 0.03, 0.9, Math.abs(roulis) > 0.02, now, x);
+      const c = Q(x, y + 0.09, 0); cerne(() => { ctx.beginPath(); ctx.ellipse(c[0], c[1], rf * 0.75, rf * 0.42, 0, 0, TAU); }, 0.6, 1, cli === g ? '#ffd27a' : PAP); if (cli === g) brille(c[0], c[1], rf * 0.9, 1, true, now, g); });
     const pl = Q(0, 0.3, 0), pw = vw * 0.34, ph = vw * 0.1; boite(pl[0] - pw / 2, pl[1] - ph / 2, pw, ph, 3, 0.7, 1, true); mot('MW · 2026', pl[0], pl[1] + 1, Math.max(8, ph * 0.62), 1);
     for (let j = 0; j < 4; j++) { const u = (now * 2 + j / 4) % 1, p = Q(w * 0.6 + u * 0.1, 0.16 + u * 0.3, -u * 1.2); rond(p[0], p[1], vw * (0.03 + u * 0.07) * (1 - u * u), 0.6, 0.8); }   // (vague 149 : la bouffée se dégonfle au lieu de s'effacer)
   }
