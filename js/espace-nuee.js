@@ -19,6 +19,12 @@ const reduit = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: redu
 const LUEUR = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
   g.addColorStop(0, 'rgba(255,255,250,1)'); g.addColorStop(0.1, 'rgba(255,255,250,0.85)'); g.addColorStop(0.28, 'rgba(236,242,255,0.22)'); g.addColorStop(1, 'rgba(236,242,255,0)');
   x.fillStyle = g; x.fillRect(0, 0, 64, 64); return c; })();
+// (vague 137, l'audit : « la nuée », design) : de vraies étoiles n'ont pas toutes la même couleur : quelques-unes bleutées (chaudes, jeunes),
+// quelques-unes dorées (vieilles) ; le cœur reste blanc, seule la lueur se teinte : discret, mais le ciel prend de la profondeur
+const teinte = (r, g, b) => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), d = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  d.addColorStop(0, 'rgba(255,255,252,1)'); d.addColorStop(0.1, `rgba(${r},${g},${b},0.85)`); d.addColorStop(0.28, `rgba(${r},${g},${b},0.24)`); d.addColorStop(1, `rgba(${r},${g},${b},0)`);
+  x.fillStyle = d; x.fillRect(0, 0, 64, 64); return c; };
+const BLEUE = teinte(176, 204, 255), DOREE = teinte(255, 222, 170);
 
 /* ——— les étoiles : chacune a ses tirages (a…e : uniformes ; gx, gy, gz : gaussiens), toujours les mêmes ——— */
 let N = 0, R = [], P = null, F = null, T0 = -1e9, dern = null, rot = 1;
@@ -398,7 +404,12 @@ X.fond.push((ctx, now) => {
     if (y < haut) k *= 0.3;
     if (k > 1.6) k = 1.6;
     if (tl) { ctx.globalAlpha = Math.min(1, k * 0.55); ctx.lineWidth = Math.max(0.6, s * 0.9); ctx.beginPath(); ctx.moveTo(tl[0], tl[1]); ctx.lineTo(x, y); ctx.stroke(); }
-    const rr = s * (2.6 + 1.4 * calme) * (k > 1 ? 1 + (k - 1) * 0.8 : 1); ctx.globalAlpha = Math.min(1, k); ctx.drawImage(LUEUR, x - rr, y - rr, rr * 2, rr * 2);
+    const rr = s * (2.6 + 1.4 * calme) * (k > 1 ? 1 + (k - 1) * 0.8 : 1); ctx.globalAlpha = Math.min(1, k); ctx.drawImage(r.c < 0.2 ? BLEUE : r.c > 0.87 ? DOREE : LUEUR, x - rr, y - rr, rr * 2, rr * 2);
+    // (vague 137, finition) : les plus brillantes, une sur soixante-dix, ont leurs aigrettes de diffraction, comme sur une photo du ciel : une croix fine
+    // qui tourne très lentement et dont les branches battent un peu ; seulement une fois posées (pas en vol), et plus courtes quand la nuée se calme
+    if (r.e > 0.986 && !tl && !pts && k > 0.35 && !reduit) { const lg = rr * (1.6 + 1.2 * calme) * (0.85 + 0.15 * Math.sin(now * 2.1 + r.a * 9)), an = r.a * TAU + now * 0.05 * (r.b < 0.5 ? 1 : -1);
+      ctx.globalAlpha = Math.min(0.75, k * 0.5); ctx.lineWidth = Math.max(0.5, s * 0.35);
+      for (let q = 0; q < 2; q++) { const ca = Math.cos(an + q * Math.PI / 2) * lg, sa = Math.sin(an + q * Math.PI / 2) * lg; ctx.beginPath(); ctx.moveTo(x - ca, y - sa); ctx.lineTo(x + ca, y + sa); ctx.stroke(); } }
   }
   if (pts && pts.lg && !reduit) { plume(ctx, pts, dt, now, br); FIN = { x: pts.lg[pts.lg.length - 1].x1, y: pts.lg[pts.lg.length - 1].y, id: C.nid, t: 0 }; }
   // (vague 52 de l'audit, « les titres en étoiles », immersion) : quand le titre se défait, là où la plume s'est arrêtée part une onde de choc
