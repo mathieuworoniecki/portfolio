@@ -1800,7 +1800,16 @@ S.back = (() => ({
   cles: () => [[-0.62, -0.5], [-0.62, 0.5], [0.85, -0.45], [0.85, 0.45]],
   dessin(a, now) {
     // (vague 146, l'audit : « back-end », design : au téléphone, la scène tenait dans le bas du ciel, le haut vide ; elle remonte et grandit)
-    sousLaBarre(); const [k, lx] = large(1.5, 2.1), tel = G.sw < 500, V = cam(0.42, -0.5, k * (tel ? 1.02 : 0.92), 0, tel ? -0.42 : -0.26), xA = -lx * 0.55, xW = lx * 0.05, xD = lx * 0.68, zs = [-0.45, 0, 0.45], yS = 0.3;
+    sousLaBarre(); const [k, lx] = large(1.5, 2.1), tel = G.sw < 500; let oyB = tel ? -0.42 : -0.26, V = cam(0.42, -0.5, k * (tel ? 1.02 : 0.92), 0, oyB);
+    // (vague 166, l'audit : « back-end ») : au bureau, le pied de la passerelle API était tranché net au-dessus des sous-titres ; la scène remonte
+    // juste ce qu'il faut pour que tout son socle tienne dans le ciel
+    let kB = k * (tel ? 1.02 : 0.92);
+    for (let pas = 0; pas < 2; pas++) { const xa = -lx * 0.55, xd = lx * 0.68, bas0 = Math.max(...[[-0.16, -0.56], [0.1, -0.56], [-0.16, 0.5], [0.1, 0.5]].map(([x, z]) => V(xa + x, 0.3, z)[1])) + k * 0.03, lim = (G.caps || G.bas) - 10,
+        som = Math.min(...[-0.45, 0, 0.45].map(z => V(xd, 0.3 - 0.36 - 0.2, z)[1])), hautB = G.haut + 18;
+      if (bas0 <= lim && som >= hautB) break;
+      if (bas0 - som > lim - hautB) kB *= Math.max(0.7, (lim - hautB) / (bas0 - som)); else oyB -= (bas0 > lim ? bas0 - lim : som - hautB) / G.s;
+      V = cam(0.42, -0.5, kB, 0, oyB); }
+    const xA = -lx * 0.55, xW = lx * 0.05, xD = lx * 0.68, zs = [-0.45, 0, 0.45], yS = 0.3;
     // les murs entre les bases
     [-0.225, 0.225].forEach(z => { const Q = [V(xD - 0.32, yS, z), V(xD + 0.32, yS, z), V(xD + 0.32, yS - 0.42, z), V(xD - 0.32, yS - 0.42, z)]; trait(Q, true, 0.7, 0.6);
       for (let j = 1; j < 4; j++) trait([V(xD - 0.32, yS - j * 0.105, z), V(xD + 0.32, yS - j * 0.105, z)], false, 0.35, 0.4); });
