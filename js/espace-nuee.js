@@ -266,8 +266,12 @@ const plumeXY = (pts, u) => { const lg = pts.lg, n = lg.length, li = Math.min(n 
 const LETTRES = '"Space Grotesk","Barlow",system-ui,sans-serif';
 function titre(txt, W, H, y1, y2) {
   // (vague 6) le titre ne passe plus derrière la planète des chats : il tient entre le bord gauche et elle (sur grand écran, elle est en haut à droite)
-  const Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat, xr = Pc && Pc.x > W * 0.6 && Pc.y - Pc.r * 1.3 < y2 ? Math.round(Math.max(W * 0.6, Pc.x - Pc.r * 1.6)) : W, xl = xr < W ? W * 0.04 : 0, Wt = xr - xl;
-  const cy = (y1 + y2) / 2, cle = txt + '|' + W + 'x' + H + '|' + N + '|' + xr; if (TXT.cle === cle) return TXT.pts;
+  const Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
+  // (vague 175 de l'audit : « titres écrits en étoiles ») : au téléphone, coincé à gauche de la planète, le titre n'avait que 60 % de la largeur
+  // et restait petit ; s'il y a la place sous la planète, il s'y écrit sur toute la largeur, en grandes lettres
+  const yP = Pc ? Math.round(Pc.y + Pc.r * 1.45) : y1; if (Pc && W < 700 && Pc.x > W * 0.6 && yP > y1 && y2 - yP > (y2 - y1) * 0.5) y1 = yP;
+  const xr = Pc && Pc.x > W * 0.6 && Pc.y + Pc.r * 1.3 > y1 && Pc.y - Pc.r * 1.3 < y2 ? Math.round(Math.max(W * 0.6, Pc.x - Pc.r * 1.6)) : W, xl = xr < W ? W * 0.04 : 0, Wt = xr - xl;
+  const cy = (y1 + y2) / 2, cle = txt + '|' + W + 'x' + H + '|' + N + '|' + xr + '|' + y1; if (TXT.cle === cle) return TXT.pts;
   const k = 0.5, w = Math.round(W * k), hh = Math.round(H * k), cv = document.createElement('canvas'); cv.width = w; cv.height = hh;
   const x = cv.getContext('2d', { willReadFrequently: true }), mots = txt.split(' ');
   // (vague 96 de l'audit, finition au téléphone : le titre y était petit et flou ; il a droit à quatre lignes, donc à des lettres plus grandes)
