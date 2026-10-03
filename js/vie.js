@@ -315,7 +315,7 @@ H.draw.push(() => {
   Ls.forEach(L => { if (!L.st || L.st === 'back' || L.a < 0.5 || TL.jeu) return; const x0 = r.left + L.x0 - 3, x1 = r.left + L.x1 + 3, y0 = r.top + L.y0 - 3, y1 = r.top + L.y1 + 3, g = Math.min(1, (Wd.t - (L.out0 || Wd.t)) / 0.4);
     Chalk.stroke([[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]], g, { w: 1.5, a: 0.5 * Wd.a, seed: 70 + (L.x0 | 0) % 50, tip: false, dash: [5, 5] }); });
 });
-let CTAc = null, CTAt = -9;
+let CTAc = null, CTAt = -9, EVb = null, EVt = -9;
 function tumble(L, vx, vy, vr) { if (!L.out0) L.out0 = Wd.t; L.st = 'fall'; L.vx = vx; L.vy = vy; L.vr = vr; L.t = Wd.t; }
 H.pre.push(dt => {
   const Ls = LETTERS(); if (!Ls) return; const r = RECT(), g = K.grav() * 0.9, fl = Wd.floor - 2;
@@ -344,7 +344,10 @@ H.pre.push(dt => {
         else if (ptr.on && Wd.t - ptr.moved < 0.6 && Math.abs(ptr.x - x) < w * 0.5 + 10 && bt0 <= ptr.y + 2 && bt > ptr.y) {
           L.dy -= bt - ptr.y; L.vy = -Math.max(420, L.vy * 0.8) + Math.min(0, ptr.vy) * 0.5; L.vx = L.vx * 0.4 + ptr.vx * 0.5 + rnd(-30, 30); L.vr = rnd(-8, 8); L.jongle = (L.jongle || 0) + 1;
           word(L.jongle > 2 ? '×' + L.jongle : pick(['hop', 'pong', 'tic']), x, ptr.y - h * 0.4, 14 + Math.min(10, L.jongle * 2)); } } }
-      const x = lx(L, r); if (x < w / 2) { L.dx += w / 2 - x; L.vx = Math.abs(L.vx) * 0.5; } if (x > Wd.W - w / 2) { L.dx -= x - (Wd.W - w / 2); L.vx = -Math.abs(L.vx) * 0.5; }
+      // (vague 178 de l'audit : « la tour de cartons ») : le mur de gauche, c'est la colonne des événements : une lettre que le carton a fait sauter
+      // rebondit dessus au lieu de tomber sur ses boutons (au téléphone, elles s'y entassaient)
+      if (EVb === null || Wd.t - EVt > 0.5) { EVt = Wd.t; const e = document.querySelector('.evts-list'), b = e && e.getBoundingClientRect(); EVb = b && b.width > 0 ? b.right + 4 : 0; }
+      const gL = w / 2 + EVb, x = lx(L, r); if (x < gL) { L.dx += gL - x; L.vx = Math.abs(L.vx) * 0.5; } if (x > Wd.W - w / 2) { L.dx -= x - (Wd.W - w / 2); L.vx = -Math.abs(L.vx) * 0.5; }
       const ext = Math.abs(h / 2 * Math.cos(L.rot)) + Math.abs(w / 2 * Math.sin(L.rot)), bot = ly(L, r) + ext;
       if (bot >= fl && L.vy > 0) {
         L.dy -= bot - fl;
