@@ -345,7 +345,7 @@ html:not(.locked) #gate:not(.open){display:none}
 .dex-toast{position:fixed;left:calc(var(--b,40px) + 26px);bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:30;display:flex;align-items:baseline;gap:.5rem;max-width:min(80vw,380px);padding:.45rem .8rem;
   background:var(--bp-hi);color:rgb(var(--ink));border:2px solid rgb(var(--ink));border-radius:14px 10px 16px 12px;box-shadow:3px 3px 0 rgba(var(--ink),.18);
   font:400 1.05rem/1.2 var(--hand);opacity:0;pointer-events:none;transform:translateY(20px)}
-.dex-toast b{font-weight:700}.dex-toast i{font:500 .7rem/1 var(--mono);font-style:normal;opacity:.7;white-space:nowrap}
+.dex-toast b{font-weight:700;white-space:nowrap}.dex-toast i{font:500 .7rem/1 var(--mono);font-style:normal;opacity:.7;white-space:nowrap}
 .dex-toast.go{animation:dex-toast .45s cubic-bezier(.3,1.6,.5,1) forwards}
 @keyframes dex-toast{0%{opacity:0;transform:translateY(20px) rotate(-3deg)}40%{opacity:1}100%{opacity:1;transform:none}}
 /* (vague 10) le mot s'écrit à la main, de gauche à droite ; à la fin, la carte se plie (elle s'écrase en un point) et devient un avion de papier */
@@ -468,6 +468,8 @@ html:not(.locked) #gate:not(.open){display:none}
 @media (min-width:601px){.espace .hf-show{right:auto;left:14px;transform-origin:0 0}}
 /* (vague 115, l'audit : au téléphone, la carte « Découverte ! » et celle du haut fait tombaient l'une sur l'autre en bas de l'écran) : quand un haut fait est là, la petite carte du carnet monte d'un cran au-dessus de lui, en glissant */
 @media (max-width:600px){.dex-toast{transition:bottom .4s cubic-bezier(.3,1.5,.5,1)}body:has(.hf-show:not([hidden])) .dex-toast{bottom:calc(92px + 74px + env(safe-area-inset-bottom,0px))}}
+/* (vague 177 de l'audit : « la horde ») : au téléphone, le carton « Découverte ! » ne se pose plus sur le plancher, au milieu de la horde qu'il annonce : il monte sur le mur vide, entre les boutons et la fenêtre */
+@media (max-width:600px) and (orientation:portrait){.dex-toast,body:has(.hf-show:not([hidden])) .dex-toast{top:44dvh;bottom:auto}}
 @media (max-width:600px){.hf-show{top:auto;bottom:calc(92px + env(safe-area-inset-bottom,0px));right:10px;max-width:min(270px,calc(100vw - 80px));padding:5px 12px 5px 5px;gap:6px;transform-origin:100% 100%}.hf-show .hf-badge{width:50px;height:auto}.hf-rayons{left:30px;width:120px}.hf-show h2{font-size:1.05rem}.hf-sur{font-size:.55rem}}
 .hf-btn svg{fill:none}
 .hf-grille{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))!important}
