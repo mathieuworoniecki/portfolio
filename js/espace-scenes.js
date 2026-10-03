@@ -1273,7 +1273,10 @@ S.flotte = (() => {
   return {
     cles: () => [[-0.24, 0.86], [0.24, 0.86], [-0.24, -0.5], [0.24, -0.5]],
     dessin(a, now) {
-      const [k, lx] = large(1.3, 1.9), V = cam(0.5 + a * 0.12, -0.3, k * 0.8, 0, G.sw < 500 ? -0.55 : -0.36), Cy = NE * 0.55 + 4.5, c = a % Cy;
+      // (vague 141, l'audit : « la flotte », immersion) : la caméra est sur une grue, elle aussi : à chaque étage posé, elle monte d'un cran et
+      // regarde un peu plus d'en haut ; la tour livrée, elle plane au-dessus du toit ; au chantier suivant, elle redescend avec le tas qui s'effondre
+      const CyA = NE * 0.55 + 4.5, cA = a % CyA, tasA = 1 - sm((cA - CyA + 0.6) / 0.6), mo = sm(c01(cA / (NE * 0.55 + 0.4))) * tasA;
+      const [k, lx] = large(1.3, 1.9), V = cam(0.5 + a * 0.12, -0.3 - 0.2 * mo, k * (0.8 + 0.04 * mo), 0, (G.sw < 500 ? -0.55 : -0.36) + 0.1 * mo), Cy = CyA, c = cA;
       const tas = 1 - sm((c - Cy + 0.6) / 0.6), n = Math.min(NE, Math.floor(c / 0.55) + 1), f = c01((c % 0.55) / 0.35), top = B0 - (n - 1 + (n < NE ? f : 1)) * EH * tas;
       trait([[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, z]) => V(x * 0.62, B0, z * 0.62)), true, 0.7, 0.5);
       // (vague 29, l'audit : « la flotte ») : autour de la tour, tout un quartier se bâtit en même temps, sur toute la largeur du ciel :
