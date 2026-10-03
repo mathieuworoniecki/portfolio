@@ -1631,13 +1631,16 @@ S.ia = (() => {
   return {
     cles: () => [[-0.95, -0.3], [-0.95, 0.35], [0, 0], [0.95, 0]],
     dessin(a, now) {
-      const [k, lx] = large(1.5, 2.1), Pk = (x, y) => [G.cx + x * k, G.cy + y * k], xd = -lx * 0.8, xa = lx * 0.7, Cy = 7, c = a % Cy, R = 0.78, V = cam(now * 0.28, -0.25, k * 0.92, 0, -0.18);
+      // (vague 170) au téléphone, la scène était posée en bas du ciel, le haut vide : elle remonte
+      const [k, lx] = large(1.5, 2.1), dyT = G.droite < 600 ? -Math.min(k * 0.55, (G.cy - G.haut) * 0.4) : 0, Pk = (x, y) => [G.cx + x * k, G.cy + dyT + y * k], xd = -lx * 0.8, xa = lx * 0.7, Cy = 7, c = a % Cy, R = 0.78, V = cam(now * 0.28, -0.25, k * 0.92, 0, -0.18 + dyT / G.s);
       // (vague 16 de l'audit : « le nuage reste une boule au milieu ») : tout le ciel est l'espace des vecteurs : un grand halo de fiches tourne
       // lentement, de bord à bord, derrière les documents et l'écran ; celles du fond ne sont que des points
       sousLaBarre();
       { const hx = ((G.droite - G.gauche) / 2 * 0.95) / (k * 0.92 * 2.2), H = HALO.map(([x, y, z], i) => { const p = V(x, y * 0.55, z); p[0] = G.cx + (p[0] - G.cx) * hx; return [p, i]; }).sort((A, B) => A[0][2] - B[0][2]);
-        H.forEach(([q, i]) => { if (q[1] < G.haut || q[1] > G.caps) return; const al = prof(q[2] * 0.5, 0.9); if (q[2] < 0.2) { rond(q[0], q[1], 0.9 + q[3] * 0.8, 0.5, al, true); return; }
-          const w = k * 0.026 * q[3], h = w * 0.72; ctx.save(); ctx.translate(q[0], q[1]); ctx.rotate(bruit(i * 5.1) - 0.5); cerne(() => { ctx.beginPath(); ctx.rect(-w, -h, 2 * w, 2 * h); }, 0.4, al, null); ctx.restore(); }); }
+        // (vague 170) les fiches qui dérivent vers les bords rapetissent avant la bande où la scène s'estompe, au lieu d'y grisailler
+        const bdH = Math.min(90, (G.droite + 16) * 0.1);
+        H.forEach(([q, i]) => { if (q[1] < G.haut || q[1] > G.caps) return; const sE = c01((q[0] - bdH * 0.5) / bdH) * c01((G.droite + 16 - bdH * 0.5 - q[0]) / bdH); if (sE < 0.08) return; const al = prof(q[2] * 0.5, 0.9); if (q[2] < 0.2) { rond(q[0], q[1], (0.9 + q[3] * 0.8) * sE, 0.5, al, true); return; }
+          const w = k * 0.026 * q[3] * sE, h = w * 0.72; ctx.save(); ctx.translate(q[0], q[1]); ctx.rotate(bruit(i * 5.1) - 0.5); cerne(() => { ctx.beginPath(); ctx.rect(-w, -h, 2 * w, 2 * h); }, 0.4, al, null); ctx.restore(); }); }
       ctx.restore();
       // les documents, en éventail ; le faisceau de lecture
       [2, 1, 0].forEach(j => { const p = Pk(xd + j * 0.08, -0.05 - j * 0.04); ctx.save(); ctx.translate(p[0], p[1]); ctx.rotate(-0.09 * j); ctx.translate(j * k * 0.02, -j * k * 0.02); cerne(() => { ctx.beginPath(); ctx.moveTo(-0.2 * k, -0.34 * k); ctx.lineTo(0.1 * k, -0.34 * k); ctx.lineTo(0.2 * k, -0.24 * k); ctx.lineTo(0.2 * k, 0.34 * k); ctx.lineTo(-0.2 * k, 0.34 * k); ctx.closePath(); }, 0.9, 1);
@@ -1669,7 +1672,8 @@ S.ia = (() => {
         style(0.4, on ? 0.6 : 0.35); ctx.stroke(); if (orb[2] > -0.2 || on) chabot(px, py - r * 0.6, r, { now, ph: 14, lac: ux * 0.9, casque: true, bras: [0.9, -0.4] }); brille(hx, hy, 3, 1, true, now, 7); }
       // les morceaux qui s'envolent vers le nuage (chacun vers son point)
       for (let m = 0; m < 6; m++) { const v = (now * 0.55 + m / 6) % 1, i = Math.floor(bruit(m * 5 + Math.floor(now * 0.55 + m / 6)) * nb), B = Q[i]; brille(lerp(A1[0], B[0], sm(v)), lerp(A1[1], B[1], sm(v)) - Math.sin(Math.PI * v) * k * 0.2, 1.9, 1 - v * 0.4, false, now, m);
-        style(0.6, 1 - v); ctx.strokeRect(lerp(A1[0], B[0], sm(v)) - 4, lerp(A1[1], B[1], sm(v)) - Math.sin(Math.PI * v) * k * 0.2 - 3, 8, 6); }
+        { const sv = 1 - 0.75 * sm(v);   // (vague 170 : la fiche en vol rapetisse en arrivant, elle ne s'estompe plus)
+          style(0.6, 1); ctx.strokeRect(lerp(A1[0], B[0], sm(v)) - 4 * sv, lerp(A1[1], B[1], sm(v)) - Math.sin(Math.PI * v) * k * 0.2 - 3 * sv, 8 * sv, 6 * sv); } }
       // la question ; ses voisins s'allument et se relient
       const qA = Pk(0.15, -0.78), Qc = V(Qp[0] * R, Qp[1] * R, Qp[2] * R), qu = c01((c - 1) / 0.8), on = c > 1.8 && c < 5.2;
       if (c > 0.6 && c < 2.2) { const e = sm(c01((c - 0.6) / 0.3)) * (1 - sm(c01((c - 1.9) / 0.3))), bw = k * 0.2 * e, bh = k * 0.15 * e;
