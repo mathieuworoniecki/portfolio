@@ -1090,6 +1090,7 @@ S.skills = (() => {
 // dans l'espace, un anneau relevé en 3D ; cinq chats-robots sur des fusées de papier (chacune son harnais, son outil) ; 3, 2, 1, go ;
 // les flammes, les traînées d'étoiles ; au bout d'un tour et demi, le podium de papier : le gagnant lève les bras, il est gardé (coche) ;
 // les autres repartent au garage. Et on relance : ce n'est jamais le même qui gagne
+const PHOTO = { vu: false };
 S.bench = (() => {
   const NOMS = ['A', 'B', 'C', 'D', 'E'];
   return {
@@ -1166,6 +1167,35 @@ S.bench = (() => {
           const q = V(x, 0.12 - H, 0.25), r = k * 0.06 * q[3], i = rang[j]; chabot(q[0], q[1] - r * 1.7, r, { now, ph: i, lac: 0, bras: j === 0 ? [1.5 + Math.sin(now * 8) * 0.2, 1.5 - Math.sin(now * 8) * 0.2] : [-0.4, -0.4] });
           if (j === 0 && u >= 1) { brille(q[0], q[1] - r * 3.6, 5, 1, true, now, 1); eclat(q[0], q[1] - r * 2.4, k * 0.2, (c - 5.3) % 1, 10, now); coche(q[0] + r * 1.9, q[1] - r * 2.6, r * 0.6, (c - 5.4) / 0.3, 1.1); }
           const L = V(x, 0.12 - H, 0.25); mot(NOMS[i], L[0] + k * 0.13, L[1] - k * 0.03, Math.max(10, k * 0.06), 0.8); }); }
+      // (vague 122, l'audit : « la course ») : on ne déclare pas un gagnant à l'œil. À l'arrivée, un éclair au trait sur la ligne (la photo est prise),
+      // et la bande du photo-finish descend du haut du ciel : les cinq fusées sur une règle graduée en centièmes, chacune à son écart (« +0,12 s »),
+      // la ligne d'arrivée en pointillé ; elle reste le temps de lire, puis remonte d'où elle vient (jamais de fondu)
+      if (c > 4.45 && c < 7.3) { const ph = V(0, 0, 0), arr = piste(T0, 2), e0 = c01((c - 4.45) / 0.35), en0 = en();
+        if (e0 < 1) { style(0.8, 1); for (let j = 0; j < 10; j++) { const an = j / 10 * TAU, r0 = k * 0.05 + e0 * k * 0.18, r1 = r0 + k * 0.08 * (1 - e0); ctx.beginPath(); ctx.moveTo(arr[0] + Math.cos(an) * r0, arr[1] + Math.sin(an) * r0 * 0.7); ctx.lineTo(arr[0] + Math.cos(an) * r1, arr[1] + Math.sin(an) * r1 * 0.7); ctx.stroke(); } void ph; }
+        large0 = G.droite - G.gauche > 700, W0 = large0 ? Math.min(430, (G.droite - G.gauche) * 0.34) : Math.min((G.droite - G.gauche) * 0.8, k * 1.5, 520), H0 = Math.min(160, Math.max(128, k * 0.62)), x0 = large0 ? G.gauche + 4 : Math.max(G.gauche + 2, G.cx - W0 * 0.56),   // (au bureau : sur le côté, le podium reste visible)
+          vin = sm((c - 4.6) / 0.4), vout = sm((c - 6.8) / 0.45), y0 = G.haut + 6 - (1 - vin) * (H0 + 40) - vout * (H0 + 40);
+        if (vin > 0 && vout < 1) { const fs = Math.max(10, Math.min(15, k * 0.06)), gauche = x0 + fs * 0.8, droite = x0 + W0 - fs * 0.8, ligne = droite - fs * 1.6;
+          const ecart = NOMS.map((_, i) => (Math.max(...v) / v[i] - 1) * 3.4), emax = Math.max(0.3, ...ecart), px = (ligne - gauche - fs * 6) / emax;
+          cerne(() => { ctx.beginPath(); ctx.rect(x0, y0, W0, H0); }, 0.8, 1);
+          // les perforations du film, en haut et en bas
+          ctx.fillStyle = ENC; ctx.globalAlpha = 1; for (let xx = x0 + 8; xx < x0 + W0 - 8; xx += 12) { ctx.fillRect(xx, y0 + 3, 5, 3); ctx.fillRect(xx, y0 + H0 - 6, 5, 3); }
+          ctx.font = `700 ${fs * 0.8}px ui-monospace,Menlo,Consolas,monospace`; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+          ctx.fillText((en0 ? 'PHOTO FINISH · RUN ' : 'PHOTO-FINISH · ESSAI ') + (n + 1), gauche, y0 + fs * 1.15);
+          // la règle : un trait tous les centièmes… de dixième en dixième, l'étiquette
+          const yb = y0 + H0 - fs * 1.1; ctx.strokeStyle = ENC; ctx.lineWidth = 1;
+          for (let t = 0; t * px <= ligne - gauche + 0.5; t += 0.05) { const xx = ligne - t * px, gr = Math.abs(t * 10 - Math.round(t * 10)) < 1e-6; ctx.beginPath(); ctx.moveTo(xx, yb); ctx.lineTo(xx, yb - (gr ? fs * 0.55 : fs * 0.28)); ctx.stroke(); }
+          ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(ligne, y0 + fs * 1.9); ctx.lineTo(ligne, yb); ctx.stroke(); ctx.setLineDash([]);
+          // les fusées, l'une sous l'autre, chacune à son écart ; le gagnant sur la ligne, coché
+          const lh = (yb - y0 - fs * 2.3) / 5;
+          rang.forEach((i, j) => { const yy = y0 + fs * 2.1 + lh * (j + 0.5), xx = ligne - ecart[i] * px * c01((c - 4.75 - j * 0.12) / 0.3) - (1 - c01((c - 4.75 - j * 0.12) / 0.3)) * 0, r = Math.min(lh * 0.42, fs * 0.9);
+            ctx.save(); ctx.translate(xx - r * 0.7, yy); cerne(() => { ctx.beginPath(); ctx.moveTo(-r * 1.2, -r * 0.35); ctx.lineTo(r * 0.7, -r * 0.35); ctx.quadraticCurveTo(r * 1.4, 0, r * 0.7, r * 0.35); ctx.lineTo(-r * 1.2, r * 0.35); ctx.closePath(); }, 0.45, 1); ctx.restore();
+            ctx.fillStyle = ENC; ctx.globalAlpha = 1; ctx.font = `700 ${Math.max(7, r * 0.55)}px "Space Grotesk",sans-serif`; ctx.textAlign = 'center'; ctx.fillText(NOMS[i], xx - r * 0.95, yy + 0.5);
+            ctx.font = `600 ${fs * 0.72}px ui-monospace,Menlo,Consolas,monospace`; ctx.textAlign = 'left';
+            const lab = j === 0 ? (en0 ? 'winner' : 'gagnant') : '+' + (en0 ? ecart[i].toFixed(2) : ecart[i].toFixed(2).replace('.', ',')) + ' s';
+            ctx.textAlign = 'right'; ctx.fillText(lab, xx - r * 2.1, yy + 0.5);
+            if (j === 0) coche(ligne + fs * 0.9, yy, fs * 0.45, (c - 5.0) / 0.3, 1); });
+          ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+          if (vin >= 1 && !PHOTO.vu && window.Dex && Dex.vu) { PHOTO.vu = true; Dex.vu('photo-finish'); } } }
     }
   };
 })();
