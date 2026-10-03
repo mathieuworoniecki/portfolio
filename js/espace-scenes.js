@@ -2017,8 +2017,9 @@ S.secu = (() => ({
           caillou(bx, by, r0, u * 9, q * 7 + n, 1, true); if (u < 0.35) mot(pick2(['paf', 'bonk', 'toc'], q + n), b0[0], b0[1] - r0 * 2.2, Math.max(10, k * 0.06) * Math.max(0.05, 1 - u * 2.5), 1); }   // (vague 148 : le mot rapetisse, il ne s'estompe plus)
         // l'onde, à la surface du dôme
         const up = Math.abs(dir[1]) > 0.95 ? [1, 0, 0] : [0, 1, 0], cr = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], nz = v => { const l = Math.hypot(...v); return v.map(x => x / l); }, e1 = nz(cr(dir, up)), e2 = cr(dir, e1), rho = 0.06 + u * 0.55, L = [];
-        for (let i = 0; i <= 28; i++) { const w = i / 28 * TAU, v = dir.map((x, j) => x * Math.cos(rho) + (e1[j] * Math.cos(w) + e2[j] * Math.sin(w)) * Math.sin(rho)); if (v[1] > 0.02) { if (L.length > 1) trait(L, false, 0.9, (1 - u) * 0.9); L.length = 0; continue; } L.push(V(v[0] * R, v[1] * R, v[2] * R)); }
-        if (L.length > 1) trait(L, false, 0.9, (1 - u) * 0.9); } }
+        for (let i = 0; i <= 28; i++) { const w = i / 28 * TAU, v = dir.map((x, j) => x * Math.cos(rho) + (e1[j] * Math.cos(w) + e2[j] * Math.sin(w)) * Math.sin(rho)); if (v[1] > 0.02) { if (L.length > 1) trait(L, false, 1.3 * (1 - u) + 0.05, 0.9); L.length = 0; continue; } L.push(V(v[0] * R, v[1] * R, v[2] * R)); }
+        // (vague 168) l'onde s'amincit en s'élargissant, à pleine encre, au lieu de s'estomper
+        if (L.length > 1) trait(L, false, 1.3 * (1 - u) + 0.05, 0.9); } }
     ctx.restore();
     // le bocal : le verre (un peu bleuté), son couvercle, son étiquette ; dedans, les petits méchants capturés qui s'agitent
     { const hB = jr * 2, n = Math.min(12, bloq), br = jr * 0.26;
