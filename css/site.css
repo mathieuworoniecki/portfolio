@@ -504,6 +504,9 @@ html:not(.locked) #gate:not(.open){display:none}
 .evts-list button:focus-visible,.evts-list button:active{background:color-mix(in srgb,var(--c) 70%,transparent)}
 .dex-n{background:transparent;border-width:1.8px;text-shadow:var(--halo)}
 .tuto,.dex-toast,.hf-show{background:transparent;border-width:2.6px;box-shadow:none;text-shadow:var(--halo)}
+/* (vague 116, l'audit : pendant la horde, le nuage de poussière passait sous les cartes transparentes et mangeait leurs mots) : chaque lettre a un liseré de papier plein,
+   la carte reste transparente, la grille et la scène se voient toujours autour des mots */
+.dex-toast b,.dex-toast span,.dex-toast i,.hf-show h2,.hf-sur,.hf-rang{paint-order:stroke fill;-webkit-text-stroke:3.5px var(--bp-hi)}
 .tuto::after{background:transparent;border-right-width:2.6px;border-bottom-width:2.6px}
 .grab-hint{background:transparent;border:2px solid rgb(var(--ink));text-shadow:var(--halo)}
 .dex{background:rgba(var(--ink),.12);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
