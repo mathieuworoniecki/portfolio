@@ -1061,6 +1061,18 @@ function grele(f, tt) {
 }
 function ondeCri(f, t) {
   const D = Math.hypot(Wd.W, Wd.H) * 1.25;
+  // (vague 159, l'audit : « l'arrivée dans l'espace ») : dans l'espace, l'onde d'un haut fait n'est plus un trait de craie (sur le noir, le bronze
+  // faisait des bandes brunes, boueuses, qui barraient les chats recrachés) : c'est un anneau de poussière d'étoiles de la couleur du rang,
+  // éclaircie, qui scintille ; plus il s'éloigne, plus ses grains sont fins (il rapetisse, il ne s'efface pas)
+  if (Wd.espace && Chalk.ctx) { const x0 = Chalk.ctx; x0.save(); x0.fillStyle = clair(f.col); x0.strokeStyle = x0.fillStyle;
+    for (let i = 0; i < 3; i++) { const tt = t - f.t0 - i * 0.14, R = tt * f.v; if (tt < 0 || R > D) continue;
+      const n = Math.min(520, 24 + Math.floor(R / 4.5)), g = (1 - 0.7 * R / D) * (f.w || 1) * (2.8 - i * 0.7);
+      for (let k = 0; k < n; k++) { const a = k / n * Math.PI * 2 + i * 0.4, h = Math.sin(k * 12.9898 + i * 78.2) * 43758.5, z = h - Math.floor(h), rr = R * (1 + (z - 0.5) * 0.05);
+        const px = f.x + Math.cos(a) * rr, py = f.y + Math.sin(a) * rr * 0.9; if (px < -8 || py < -8 || px > Wd.W + 8 || py > Wd.H + 8) continue;
+        const q = g * (0.5 + z) * (0.7 + 0.3 * Math.sin(t * 9 + k)); if (q < 0.15) continue;
+        x0.globalAlpha = 0.9 * Wd.a; x0.beginPath(); x0.arc(px, py, q, 0, Math.PI * 2); x0.fill();
+        if (z > 0.9 && q > 0.8) { const L = q * 3.6; x0.lineWidth = Math.max(0.6, q * 0.4); x0.beginPath(); x0.moveTo(px - L, py); x0.lineTo(px + L, py); x0.moveTo(px, py - L); x0.lineTo(px, py + L); x0.stroke(); } } }
+    x0.restore(); return; }
   for (let i = 0; i < 5; i++) { const tt = t - f.t0 - i * 0.11, R = tt * f.v; if (tt < 0 || R > D) continue;
     // (vague 112) les grands cercles restent des cercles : l'ondulation est bornée à quelques pixels et le trait tremble peu ; avant, un cercle
     // de la taille de l'écran (le déblocage d'un haut fait, le MIAOU du géant) devenait des gribouillis orange qui barraient le titre
@@ -1077,6 +1089,9 @@ function horsTitre(f, x, w2, K) {
   for (let k = 0; k < 3; k++) { const r = R.find(r => x - w2 < r.right && x + w2 > r.left && y - h * 0.8 - 14 < r.bottom && y + h * 0.3 > r.top); if (!r) break; y = r.bottom + h * 0.85; }
   return y;
 }
+// une couleur du rang éclaircie vers le blanc (pour qu'elle brille sur le noir de l'espace)
+function clair(c) { const v = String(c || '').match(/\d+/g); if (!v || v.length < 3) return '#F4F4EE';
+  return 'rgb(' + v.slice(0, 3).map(n => Math.round(+n * 0.45 + 255 * 0.55)).join(',') + ')'; }
 function heart(x, y, r, a) {
   const P = []; for (let i = 0; i <= 24; i++) { const q = i / 24 * Math.PI * 2; P.push([x + 16 * Math.pow(Math.sin(q), 3) * r / 16, y - (13 * Math.cos(q) - 5 * Math.cos(2 * q) - 2 * Math.cos(3 * q) - Math.cos(4 * q)) * r / 16]); }
   Chalk.stroke(P, 1, { w: 1.8, a: 0.8 * a, seed: 3, tip: false });

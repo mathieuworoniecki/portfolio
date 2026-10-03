@@ -692,7 +692,15 @@ function boucleEspace(id) {
     const k = sm(u / 0.3) * (1 - sm((u - dur) / 0.8)), r = Math.min(W, H) * (0.03 + 0.03 * Math.sin(u * 6) * k) * k + 6 * (1 - sm((u - dur) / 0.8));
     ctx.save(); ctx.translate(cx, cy); ctx.strokeStyle = '#F4F4EE'; ctx.lineCap = 'round';
     for (let i = 0; i < 12; i++) { const a = i * TAU / 12 + u * 0.8, L = r * (2 + (i % 3) * 0.7); ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(Math.cos(a) * r * 1.3, Math.sin(a) * r * 1.3); ctx.lineTo(Math.cos(a) * L, Math.sin(a) * L); ctx.stroke(); }
-    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 1.2); g.addColorStop(0, 'rgba(255,255,250,1)'); g.addColorStop(0.6, 'rgba(255,255,250,0.5)'); g.addColorStop(1, 'rgba(255,255,250,0)');
+    // (vague 159, l'audit : « l'arrivée dans l'espace ») : ce n'était qu'une boule et des rayons. Le trou noir à l'envers a ses bras : quatre
+    // spirales au stylo blanc qui se déroulent vers l'extérieur en tournant à l'opposé de l'aspiration, de plus en plus fines au bout
+    // (elles s'enroulent et rentrent dans le point quand il se referme : rien ne s'efface)
+    for (let b = 0; b < 4; b++) { const a0 = b * TAU / 4 - u * 2.4, P = 26, L2 = r * 4.2 * sm(u / 0.5);
+      for (let i = 0; i < P; i++) { const e0 = i / P, e1 = (i + 1) / P, q0 = a0 + e0 * 2.6, q1 = a0 + e1 * 2.6, r0 = r * 1.2 + L2 * e0, r1 = r * 1.2 + L2 * e1;
+        ctx.lineWidth = 2.6 * (1 - e0 * 0.85); ctx.beginPath(); ctx.moveTo(Math.cos(q0) * r0, Math.sin(q0) * r0 * 0.82); ctx.lineTo(Math.cos(q1) * r1, Math.sin(q1) * r1 * 0.82); ctx.stroke(); }
+      const qe = a0 + 2.6, re = r * 1.2 + L2; if (L2 > 8) brille(ctx, Math.cos(qe) * re, Math.sin(qe) * re * 0.82, 2.2, 1, true, now, b); }
+    ctx.globalAlpha = 1;
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 1.2); g.addColorStop(0, 'rgba(255,255,250,1)'); g.addColorStop(0.45, 'rgba(255,255,250,1)'); g.addColorStop(0.62, 'rgba(255,255,250,0.35)'); g.addColorStop(1, 'rgba(255,255,250,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r * 1.2, 0, TAU); ctx.fill(); ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(0, 0, r * 1.6, 0, TAU); ctx.stroke();
     ctx.restore();
   }
