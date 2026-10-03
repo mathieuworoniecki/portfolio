@@ -98,7 +98,8 @@ STEPS.arche = (c, T, dt) => {
 };
 // la parade (le bouton arc-en-ciel) : trois (deux sur un téléphone), l'un après l'autre, à des hauteurs différentes ; la pièce tremble
 function parade() {
-  const n = Wd.mode === 'large' ? 3 : 2, dir = Math.random() < 0.5 ? 1 : -1, H0 = [0.75, 0.3, 0.55];
+  // (vague 180 de l'audit : « l'arc-en-ciel ») : au téléphone, les deux Nyan Cats volent plus bas, sous le carton « Découverte ! » posé sur le mur
+  const n = Wd.mode === 'large' ? 3 : 2, dir = Math.random() < 0.5 ? 1 : -1, H0 = n === 2 && Wd.W < 600 ? [0.42, 0.14] : [0.75, 0.3, 0.55];
   for (let i = 0; i < n; i++) later(i * 0.7, () => { vol({ dir, h: H0[i], d: [0.05, 0.3, 0.15][i], dur: 4.2, boucle: i === 1 || n === 2 && i === 0 }); Wd.shake = { t0: Wd.t, a: 3 }; });
   // le bouquet : le dernier trace une arche immense d'un bout à l'autre de la pièce ; les chats de la maison courent dessus
   later(n * 0.7 + 1.4, () => { vol({ dir, arche: true, dur: 3 });
