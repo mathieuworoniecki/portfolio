@@ -203,13 +203,15 @@ function envols(o, now) {
 const FEUX = []; let feuT = 0;
 function feuxDArtifice(now) { if (reduitMvt() || now - feuT < 0.45 || FEUX.length > 7) return; feuT = now;
   const W = window.innerWidth, H = window.innerHeight, bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
-  for (let essai = 0; essai < 8; essai++) { const x = W * (0.06 + Math.random() * 0.88), y = H * (0.12 + Math.random() * 0.4);
+  for (let essai = 0; essai < 8; essai++) { const hB = window.EspacePlume && EspacePlume.M && EspacePlume.M.lay && EspacePlume.M.lay.G ? EspacePlume.M.lay.G.haut : 0, R0 = 60 + Math.random() * 70, x = W * (0.06 + Math.random() * 0.88), y = Math.max(hB + R0 * 0.8, H * (0.12 + Math.random() * 0.4));
     if (bd && y > bd.y - 90) continue; if (Pc && Math.hypot(x - Pc.x, y - Pc.y) < Pc.r * 1.6 + 120) continue;
-    const n = 14 + Math.floor(Math.random() * 10), R = 60 + Math.random() * 70; FEUX.push({ x, y, y0: bd ? Math.min(H, bd.y) : H, t0: now, R, n, rot: Math.random() * TAU, sorte: Math.floor(Math.random() * 3) }); return; } }
+    const n = 14 + Math.floor(Math.random() * 10), R = R0; FEUX.push({ x, y, y0: bd ? Math.min(H, bd.y) : H, t0: now, R, n, rot: Math.random() * TAU, sorte: Math.floor(Math.random() * 3) }); return; } }
 function feux(o, now) {
   const cv = o.canvas, dp = dpDe(cv); o.save(); o.setTransform(dp, 0, 0, dp, 0, 0); o.lineCap = 'round';
   const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
-  o.beginPath(); o.rect(0, 0, cv.width / dp, cv.height / dp); if (bd) o.rect(bd.x - 16, bd.y - 12, bd.w + 32, bd.h + 24); if (Pc) { o.moveTo(Pc.x + Pc.r * 1.35, Pc.y); o.arc(Pc.x, Pc.y, Pc.r * 1.35, 0, TAU); } o.clip('evenodd');
+  // (vague 162) jamais sous la barre du haut : les gerbes s'arrêtent net à son bord (au téléphone, une gerbe haute la recouvrait)
+  const hB = window.EspacePlume && EspacePlume.M && EspacePlume.M.lay && EspacePlume.M.lay.G ? EspacePlume.M.lay.G.haut - 4 : 0;
+  o.beginPath(); o.rect(0, hB, cv.width / dp, cv.height / dp - hB); if (bd) o.rect(bd.x - 16, bd.y - 12, bd.w + 32, bd.h + 24); if (Pc) { o.moveTo(Pc.x + Pc.r * 1.35, Pc.y); o.arc(Pc.x, Pc.y, Pc.r * 1.35, 0, TAU); } o.clip('evenodd');
   FEUX.forEach(f => { const t = now - f.t0;
     // la fusée qui monte (un trait d'étincelles), puis la gerbe
     if (t < 0.45) { const u = t / 0.45, y = f.y0 + (f.y - f.y0) * (1 - (1 - u) * (1 - u)); o.strokeStyle = `rgb(${BL})`; o.lineWidth = 2; o.beginPath(); o.moveTo(f.x + Math.sin(t * 30) * 1.5, y); o.lineTo(f.x, y + 26); o.stroke(); return; }
@@ -1290,10 +1292,13 @@ S.flotte = (() => {
     sousLaBarre(); ctx.beginPath(); ctx.rect(-1e4, G.haut - 4, 2e4, (G.caps || G.bas) - G.haut + 4); ctx.clip();
     const tas = 1 - sm((c - Cy + 0.6) / 0.6);
     QU.map(q => ({ q, z: Vx(q.x, B0, q.z)[2] })).sort((A, B) => A.z - B.z).forEach(({ q }) => {
-      const mont = sm((c - 0.3 - bruit(q.i * 9.1) * 3) / (4 / q.v)) * tas, hh = q.h * mont; if (hh < 0.01) { const p = Vx(q.x, B0, q.z); rond(p[0], p[1], 1.2, 0.4, 0.5, true); return; }
-      const F = bloc(Vx, q.x - q.w, q.x + q.w, B0, B0 - hh, q.z - q.w, q.z + q.w, prof(Vx(q.x, B0, q.z)[2], 0.9), 0.6);
+      // (vague 162) quand la caméra fait tourner le quartier, un immeuble qui arrive au bord du ciel (sur les sous-titres, ou dans la bande où la
+      // scène s'estompe sur les côtés) rentre dans le sol en rapetissant, au lieu d'être tranché net ou de virer au gris
+      const p0 = Vx(q.x, B0, q.z), bdQ = Math.min(90, (G.droite + 16) * 0.1), sf = c01(((G.caps || G.bas) - 8 - p0[1]) / Math.max(20, k * 0.12)) * c01((p0[0] - bdQ) / 50) * c01((G.droite + 16 - bdQ - p0[0]) / 50), w = q.w * (0.3 + 0.7 * sf);
+      const mont = sm((c - 0.3 - bruit(q.i * 9.1) * 3) / (4 / q.v)) * tas, hh = q.h * mont * sf; if (hh < 0.01) { if (sf > 0.2) rond(p0[0], p0[1], 1.2, 0.4, 0.5, true); return; }
+      const F = bloc(Vx, q.x - w, q.x + w, B0, B0 - hh, q.z - w, q.z + w, prof(Vx(q.x, B0, q.z)[2], 0.9), 0.6);
       // les fenêtres, par étages
-      const et = Math.floor(hh / 0.05); for (let j = 0; j < et; j++) { const p = Vx(q.x, B0 - 0.035 - j * 0.05, q.z + q.w); if (bruit(q.i * 13 + j + Math.floor(now * 0.6 + q.i)) > 0.55) { ctx.globalAlpha = 1; ctx.fillStyle = '#ffe9a8'; ctx.fillRect(p[0] - 1.5, p[1] - 2, 3, 4); } }
+      const et = Math.floor(hh / 0.05); for (let j = 0; j < et; j++) { const p = Vx(q.x, B0 - 0.035 - j * 0.05, q.z + w); if (bruit(q.i * 13 + j + Math.floor(now * 0.6 + q.i)) > 0.55) { ctx.globalAlpha = 1; ctx.fillStyle = '#ffe9a8'; ctx.fillRect(p[0] - 1.5, p[1] - 2, 3, 4); } }
       // le chantier en cours : un chat-robot sur le toit, qui pose ; fini : une petite coche
       const T = Vx(q.x, B0 - hh, q.z); if (mont < 0.98) { const r = Math.max(4, k * 0.03 * T[3]); chabot(T[0], T[1] - r * 1.2, r, { now, ph: q.i, a: 0.9, lac: 0.4, casque: false, travaille: true }); }
       else coche(T[0], T[1] - 7, Math.max(4, k * 0.025), 1, 0.9);
@@ -1306,7 +1311,15 @@ S.flotte = (() => {
       // (vague 141, l'audit : « la flotte », immersion) : la caméra est sur une grue, elle aussi : à chaque étage posé, elle monte d'un cran et
       // regarde un peu plus d'en haut ; la tour livrée, elle plane au-dessus du toit ; au chantier suivant, elle redescend avec le tas qui s'effondre
       const CyA = NE * 0.55 + 4.5, cA = a % CyA, tasA = 1 - sm((cA - CyA + 0.6) / 0.6), mo = sm(c01(cA / (NE * 0.55 + 0.4))) * tasA;
-      const [k, lx] = large(1.3, 1.9), V = cam(0.5 + a * 0.12, -0.3 - 0.2 * mo, k * (0.8 + 0.04 * mo), 0, (G.sw < 500 ? -0.55 : -0.36) + 0.1 * mo), Cy = CyA, c = cA;
+      let [k, lx] = large(1.3, 1.9), oyF = (G.sw < 500 ? -0.55 : -0.42) + 0.06 * mo, V = cam(0.5 + a * 0.12, -0.3 - 0.2 * mo, k * (0.8 + 0.04 * mo), 0, oyF);
+      // (vague 162, l'audit : « la flotte ») : la tour entière tient entre la barre et les sous-titres (sa base était tranchée net au bureau) :
+      // si elle dépasse, la grue recule (tout rapetisse) puis se recale
+      for (let pas = 0; pas < 2; pas++) { const lim = (G.caps || G.bas) - 8, hautT = G.haut + 30, bas0 = Math.max(...[[1, 1], [1, -1], [-1, 1], [-1, -1]].map(([x, z]) => V(x * LW * 1.15, B0, z * LW * 1.15)[1])), som = V(0, B0 - NE * EH - 0.42, 0)[1];
+        if (bas0 <= lim && som >= hautT) break;
+        if (bas0 - som > lim - hautT) k *= Math.max(0.6, (lim - hautT) / (bas0 - som));
+        else oyF -= (bas0 > lim ? bas0 - lim : som - hautT) / G.s;
+        V = cam(0.5 + a * 0.12, -0.3 - 0.2 * mo, k * (0.8 + 0.04 * mo), 0, oyF); }
+      const Cy = CyA, c = cA;
       const tas = 1 - sm((c - Cy + 0.6) / 0.6), n = Math.min(NE, Math.floor(c / 0.55) + 1), f = c01((c % 0.55) / 0.35), top = B0 - (n - 1 + (n < NE ? f : 1)) * EH * tas;
       trait([[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, z]) => V(x * 0.62, B0, z * 0.62)), true, 0.7, 0.5);
       // (vague 29, l'audit : « la flotte ») : autour de la tour, tout un quartier se bâtit en même temps, sur toute la largeur du ciel :
