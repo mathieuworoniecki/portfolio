@@ -2088,13 +2088,15 @@ const TRAPPE = { vu: false };
 S.pilotage = (() => {
   const E = { t: null, bx: 0, lane: 0, obs: [], next: 0, jal: 0, bonk: -9, mots: [], roul: 0, n: 0 };
   const ptr = () => { const W = window.Chats && Chats.K && Chats.K.Wd, P = W && W.ptr; return P && P.on && W.t - P.moved < 2.5 ? P : null; };
+  const TACT = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);   // (vague 172) au doigt, la consigne parle du doigt
   const SORTES = ['bug', 'roc', 'cone', 'bug', 'horloge', 'roc', 'etoile', 'etoile'];
   return {
     cles: () => [[0, -0.55], [-1, 0.8], [1, 0.8], [0, 0.45]],
     dessin(a, now) {
       const dt = E.t == null ? 0 : Math.min(0.05, Math.max(0, now - E.t)); E.t = now; if (a < 0.1) { E.obs = []; E.jal = 0; E.n = 0; }
       // (le bus se pose juste au-dessus des sous-titres ; la caméra est un peu à gauche : on voit son flanc)
-      const hz = G.haut + (G.caps - G.haut) * 0.2, zb = 2.5, hc = 1.35, f = (G.caps - 8 - hz) * zb / hc, D = G.caps - hz, V = 9.5, tel = G.sw < 500, camX0 = G.sw < 300 ? -0.75 : -1.5, cx = G.cx + camX0 * f / zb * (tel ? 0.95 : 0.8);
+      // (vague 172 de l'audit : « le bus ») : au téléphone la caméra monte (hc) : le bus est moins haut, son chargement ne touche plus le compteur ni la barre
+      const hz = G.haut + (G.caps - G.haut) * 0.2, zb = 2.5, hc = G.sw < 500 ? 1.75 : 1.35, f = (G.caps - 8 - hz) * zb / hc, D = G.caps - hz, V = 9.5, tel = G.sw < 500, camX0 = G.sw < 300 ? -0.75 : -1.5, cx = G.cx + camX0 * f / zb * (tel ? 0.95 : 0.8);
       // (vague 149 de l'audit : « le bus ») : la caméra suit le bus d'une voie à l'autre (au téléphone surtout : il ne sort plus par le bord gauche)
       const camX = camX0 + E.bx * (tel ? 0.75 : 0.25);
       const Pp = (x, y, z) => { const zz = Math.max(0.3, z); return [cx + (x - camX) * f / zz, hz + (hc - y) * f / zz, zz]; };
@@ -2146,11 +2148,11 @@ S.pilotage = (() => {
           cerne(() => { ctx.beginPath(); ctx.moveTo(A0[0], A0[1]); ctx.lineTo(B0[0], B0[1]); ctx.lineTo(B1[0], B1[1]); ctx.lineTo(A1[0], A1[1]); ctx.closePath(); }, 1, al, '#ffe9a8');
           ctx.save(); ctx.globalAlpha = al; ctx.strokeStyle = ENC; ctx.lineWidth = Math.max(1, (A0[1] - A1[1]) * 0.12); for (let i = 0; i < 7; i++) { const x = -1.4 + i * 0.47, p = Pp(x, 0, r0), q = Pp(x + 0.25, 0.38, r1); ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); } ctx.restore(); }
         ctx.restore();
-        // le panneau, sur deux poteaux, avant le tremplin
-        const zp = zr - 3; if (zp > 1.4 && zp < 44) { const a0 = Pp(-1.9, 0, zp), a1 = Pp(-1.9, 1.7, zp), b0 = Pp(1.9, 0, zp), b1 = Pp(1.9, 1.7, zp), pa = Pp(-1.75, 2.05, zp), pb = Pp(1.75, 1.45, zp), hh = pb[1] - pa[1];
+        // le panneau, sur deux poteaux, avant le tremplin (vague 172 : jamais sous la barre ni sur la planète-chat)
+        const zp = zr - 3; if (zp > 1.4 && zp < 44) { horsPlanete(); const a0 = Pp(-1.9, 0, zp), a1 = Pp(-1.9, 1.7, zp), b0 = Pp(1.9, 0, zp), b1 = Pp(1.9, 1.7, zp), pa = Pp(-1.75, 2.05, zp), pb = Pp(1.75, 1.45, zp), hh = pb[1] - pa[1];
           cerne(() => { ctx.beginPath(); ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a1[0], a1[1]); ctx.moveTo(b0[0], b0[1]); ctx.lineTo(b1[0], b1[1]); }, Math.max(0.4, c01(8 / zp)), al, null);
           cerne(() => { ctx.beginPath(); ctx.rect(pa[0], pa[1], pb[0] - pa[0], hh); }, 0.9, al, '#ffe9a8');
-          if (hh > 6) { ctx.save(); ctx.globalAlpha = al; ctx.fillStyle = ENC; const t = en() ? '⚠ gap in the plan' : '⚠ trou dans le planning'; let fp = Math.round(hh * 0.5); ctx.font = `700 ${fp}px "Space Grotesk",system-ui,sans-serif`; const mw = (pb[0] - pa[0]) * 0.88, tw = ctx.measureText(t).width; if (tw > mw) { fp = Math.floor(fp * mw / tw); ctx.font = `700 ${fp}px "Space Grotesk",system-ui,sans-serif`; } ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, (pa[0] + pb[0]) / 2, pa[1] + hh / 2); ctx.restore(); } } }
+          if (hh > 6) { ctx.save(); ctx.globalAlpha = al; ctx.fillStyle = ENC; const t = en() ? '⚠ gap in the plan' : '⚠ trou dans le planning'; let fp = Math.round(hh * 0.5); ctx.font = `700 ${fp}px "Space Grotesk",system-ui,sans-serif`; const mw = (pb[0] - pa[0]) * 0.88, tw = ctx.measureText(t).width; if (tw > mw) { fp = Math.floor(fp * mw / tw); ctx.font = `700 ${fp}px "Space Grotesk",system-ui,sans-serif`; } ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, (pa[0] + pb[0]) / 2, pa[1] + hh / 2); ctx.restore(); } ctx.restore(); } }
       // les obstacles : ils viennent de l'horizon, sur une des trois voies (pas autour du trou)
       if (now > E.next && !(zr > 41 && zr < 50)) { E.next = now + 0.75 + bruit(E.n * 3.3) * 0.7; const sorte = SORTES[Math.floor(bruit(E.n * 7.1) * SORTES.length)], l = Math.floor(bruit(E.n * 1.9) * 3) - 1; E.obs.push({ x: l * 1.06, z: 46, sorte, ph: bruit(E.n) * TAU, n: E.n++ }); }
       E.obs.forEach(o => { o.z -= V * dt; });
@@ -2196,9 +2198,16 @@ S.pilotage = (() => {
       // (vague 169) hors de la bande estompée du bord (au bureau, le compteur y grisaillait)
       const bdJ = Math.min(90, (G.droite + 16) * 0.1) + 6, t0 = [Math.max(G.gauche + 24, bdJ), G.haut + 18], ue = now - (E.etoileT ?? -9), pop = ue < 0.6 ? Math.sin(ue / 0.6 * Math.PI) * (1 - ue / 0.6 * 0.5) : 0;
       // (vague 149 : le compteur bondit à chaque jalon, son étoile s'allume puis se rétracte)
+      // (vague 172 de l'audit : « le bus ») : compteur et consigne sur un tableau de score d'arcade, plaque noire cerclée et coins rivetés :
+      // portiques, lampadaires et panneau du saut passent derrière, la lecture ne se brouille plus
+      const csg = P ? (en() ? 'you drive' : 'c’est vous qui conduisez') : (TACT ? (en() ? 'finger: take the wheel' : 'le doigt : prenez le volant') : (en() ? 'mouse: take the wheel' : 'la souris : prenez le volant'));
+      { const p0 = Math.max(12, D * 0.055), p1 = Math.max(10, D * 0.042), dy = Math.max(16, D * 0.075); ctx.font = `600 ${p0}px "Space Grotesk",system-ui,sans-serif`; let lw = ctx.measureText((en() ? 'milestones' : 'jalons') + ' ★ 00').width; ctx.font = `600 ${p1}px "Space Grotesk",system-ui,sans-serif`; lw = Math.max(lw, ctx.measureText(csg).width);
+        const m = 8, x0 = t0[0] - m, y0 = t0[1] - p0 * 0.75, w = lw + m * 2, h = dy + p0 * 0.75 + p1 * 0.85, k = 1 + 0.06 * pop; ctx.save(); ctx.translate(x0, y0); ctx.scale(k, k); ctx.globalAlpha = 1; ctx.fillStyle = NUIT; ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 1.3;
+        ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(0, 0, w, h, 6); else ctx.rect(0, 0, w, h); ctx.fill(); ctx.stroke(); ctx.lineWidth = 0.6; ctx.setLineDash([2, 4]); ctx.beginPath(); ctx.moveTo(m * 0.6, dy * 0.5 + p0 * 0.75); ctx.lineTo(w - m * 0.6, dy * 0.5 + p0 * 0.75); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = `rgb(${BL})`; [[3.5, 3.5], [w - 3.5, 3.5], [3.5, h - 3.5], [w - 3.5, h - 3.5]].forEach(([u, v]) => { ctx.beginPath(); ctx.arc(u, v, 1.3, 0, TAU); ctx.fill(); }); ctx.restore(); }
       { const px = Math.max(12, D * 0.055) * (1 + 0.45 * pop), lb = `${en() ? 'milestones' : 'jalons'} ★ `; mot(lb, t0[0], t0[1], px, 1, 'left'); ctx.font = `600 ${px}px "Space Grotesk",system-ui,sans-serif`; const xw = t0[0] + ctx.measureText(lb).width;
         mot(String(E.jal), xw, t0[1], px, 1, 'left'); if (pop > 0.02) brille(xw - px * 0.62, t0[1], px * 0.9 * pop, 1, true, now, E.jal); }
-      mot(P ? (en() ? 'you drive' : 'c’est vous qui conduisez') : (en() ? 'mouse: take the wheel' : 'la souris : prenez le volant'), t0[0], t0[1] + Math.max(16, D * 0.075), Math.max(10, D * 0.042), 0.9, 'left');
+      mot(csg, t0[0], t0[1] + Math.max(16, D * 0.075), Math.max(10, D * 0.042), 0.9, 'left');
     }
   };
   function pick2(L, n) { return L[Math.floor(bruit(n * 5.7) * L.length)]; }
