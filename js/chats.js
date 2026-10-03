@@ -1631,7 +1631,10 @@ const clutter = () => Wd.props.filter(p => p.launched && !p.suck).length + Math.
 //  puis, remonté, il a un hoquet… et recrache tout du ciel : ça pleut dans la pièce, chaque chose retombe à peu près chez elle)
 function aspire(grand) {
   if (Wd.vac) { if (grand && !Wd.vac.grand) { Wd.vac.grand = true; Wd.vac.ventre = []; } return; } const dir = Math.random() < 0.5 ? 1 : -1;
-  Wd.vac = { t0: Wd.t, dir, x: dir > 0 ? Wd.s0 * 0.6 : Wd.W - Wd.s0 * 0.6, ph: 'descend', curious: false, grand: !!grand, ventre: [], nC: 0 };
+  // (vague 179 de l'audit : « l'aspirateur ») : le tuyau descend et balaie à droite de la colonne des événements (au téléphone, il tombait
+  // sur le logo et passait sur tous ses boutons)
+  const eL = document.querySelector('.evts-list'), eb = eL && eL.getBoundingClientRect(), gV = eb && eb.width > 0 ? eb.right + Wd.s0 * 0.35 : 0;
+  Wd.vac = { t0: Wd.t, dir, gV, x: dir > 0 ? Math.max(Wd.s0 * 0.6, gV) : Wd.W - Wd.s0 * 0.6, ph: 'descend', curious: false, grand: !!grand, ventre: [], nC: 0 };
   const c = Wd.cats.find(k => free4(k)); if (c) say(c, '?!');
 }
 // (vague 73, l'audit : « l'aspirateur ») : il aspire aussi l'interface. Tant qu'il balaie, chaque élément (logo, menu des événements, titre,
@@ -1677,7 +1680,7 @@ function vacFrame(dt) {
         later(1.6, () => { if (Wd.cats.includes(c)) say(c, pick(['pfff…', 'beurk', 'plus jamais'])); });
         return; }
       interrupt(c); say(c, pick(['!!', 'fshhh', 'mia !'])); c.q = [go(inView(c.x + V.dir * Wd.W * 0.35), { g: 'galop' }), pose('affut', rnd(1, 2), { face: -V.dir }), pose('toilette', rnd(1.5, 3))]; });
-    if (V.x < -s0 * 0.4 || V.x > Wd.W + s0 * 0.4 || Wd.t - V.tb > (V.grand ? 9 : 7)) { V.ph = 'remonte'; V.tu = Wd.t; V.x = clamp(V.x, 0, Wd.W);
+    if (V.x < (V.gV ? V.gV : -s0 * 0.4) || V.x > Wd.W + s0 * 0.4 || Wd.t - V.tb > (V.grand ? 9 : 7)) { V.ph = 'remonte'; V.tu = Wd.t; V.x = clamp(V.x, 0, Wd.W);
       if (V.grand) recrache(V);
       Wd.fx.push({ k: 'txt', text: pick(['propre !', 'voilà.', 'merci qui ?']), x: clamp(V.x, 60, Wd.W - 60), y: mouthY - s0 * 0.5, t0: Wd.t, life: 2, rot: -0.08, size: 22 }); }
   }
