@@ -180,10 +180,12 @@ function build(id) {
   // la hanche : une boule qui cache le haut de la jambe (sans trait : elle est dans le corps)
   P.hip = Obj3D.piece(key('hanche'), B => B.occ(new T.SphereGeometry(D.lr * 1.25, 12, 8)));
   // la patte : un petit pain rond, pointé vers l'avant, deux doigts dessinés
+  // (vague 174 de l'audit : « les chats ») : un seul trait de doigt de chaque côté (il y en avait deux : de face, au pied d'un chat assis, quatre pattes
+  // à quatre traits faisaient un pâté d'encre)
   const pw = D.lr * 1.08;
   P.paw = Obj3D.piece(key('patte'), B => {
     B.solid(K.tf(new T.SphereGeometry(pw, 16, 10), [pw * 0.35, -pw * 0.1, 0], 0, [1.45, 0.72, 1.05]));
-    [-1, 1].forEach(sd => [0.55, 1.05].forEach(f => { const x = pw * (0.35 + f * 0.62), z = sd * pw * 1.05 * Math.sqrt(Math.max(0, 1 - Math.pow((x - pw * 0.35) / (pw * 1.45), 2))) * 0.96; B.lines([x, -pw * 0.1 + pw * 0.2, z, x + pw * 0.04, -pw * 0.1 - pw * 0.42, z * 0.97]); }));
+    [-1, 1].forEach(sd => [1.05].forEach(f => { const x = pw * (0.35 + f * 0.62), z = sd * pw * 1.05 * Math.sqrt(Math.max(0, 1 - Math.pow((x - pw * 0.35) / (pw * 1.45), 2))) * 0.96; B.lines([x, -pw * 0.1 + pw * 0.2, z, x + pw * 0.04, -pw * 0.1 - pw * 0.42, z * 0.97]); }));
   });
   // la cuisse (assis) : un gros rond sur le côté, et la patte arrière posée devant
   const [sr, sh2] = D.seatR, sR = oval(sr, sh2, 2.1, 0.05);
