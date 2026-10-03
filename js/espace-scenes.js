@@ -1515,6 +1515,7 @@ S.puce = (() => {
 
 // IA & données : des documents sont lus (un faisceau) ; leurs morceaux s'envolent dans un grand nuage de vecteurs en 3D ; une question arrive,
 // ses voisins s'allument et se relient ; la réponse s'écrit, file vers un agent, qui agit (son engrenage tourne) et coche
+const CITE = { vu: false };
 S.ia = (() => {
   const HALO = Array.from({ length: 170 }, (_, i) => { const t = i * 2.39996, r = 1.25 + bruit(i * 2.7) * 1.0, y = (bruit(i * 8.3) - 0.5) * 1.6; return [Math.cos(t) * r, y, Math.sin(t) * r]; });
   const Nn = 130, Vs = Array.from({ length: Nn }, (_, i) => { const y = 1 - (i + 0.5) / Nn * 2, r = Math.sqrt(1 - y * y), t = i * 2.39996, j = 0.85 + 0.3 * bruit(i * 1.7); return [Math.cos(t) * r * j, y * j, Math.sin(t) * r * j]; });
@@ -1574,6 +1575,22 @@ S.ia = (() => {
       // (29/09, l'audit : « trop sage ») : chaque voisin retrouvé devient une petite fiche de papier qui file, en arc, jusqu'à l'écran de la réponse
       PR.forEach((i, j) => { const v = c01((c - 2.1 - j * 0.09) / 0.75); if (v <= 0 || v >= 1) return; const q = Q[i], e = sm(v), x = lerp(q[0], R0[0] - wr * 0.3, e), y = lerp(q[1], R0[1], e) - Math.sin(Math.PI * e) * k * 0.3, w = k * 0.07, h = k * 0.05;
         ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(v * 9 + j) * 0.4); cerne(() => { ctx.beginPath(); ctx.rect(-w / 2, -h / 2, w, h); }, 0.55, 1); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.3; ctx.beginPath(); ctx.moveTo(-w * 0.35, -h * 0.1); ctx.lineTo(w * 0.35, -h * 0.1); ctx.moveTo(-w * 0.35, h * 0.18); ctx.lineTo(w * 0.1, h * 0.18); ctx.stroke(); ctx.restore(); });
+      // (vague 126 de l'audit : « de très bien à inoubliable ») : la réponse cite ses sources. Chaque fiche qui atterrit laisse un renvoi
+      // numéroté [1]…[7] sous les lignes ; puis un fil part de chaque renvoi vers sa fiche dans le nuage, qui porte le même numéro, un à la fois
+      { const nM = PR.length, fs = Math.max(10, k * 0.05), mw0 = Math.min(wr * 0.8 / nM, fs * 1.9), y0 = R0[1] + hr * 0.33, x0 = R0[0] - mw0 * (nM - 1) / 2, act = c > 3.1 && c < 5.6 ? Math.floor((c - 3.1) * 3.2) % nM : -1;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        PR.forEach((i, j) => { const ap = c - 2.85 - j * 0.09; if (ap <= 0 || c > 6.6) return; const e = Math.min(1, ap / 0.18) * (c > 6.3 ? 1 - (c - 6.3) / 0.3 : 1), pop = 1 + Math.sin(Math.min(1, ap / 0.3) * Math.PI) * 0.45, mx = x0 + j * mw0, hi = j === act;
+          if (e <= 0) return; ctx.save(); ctx.translate(mx, y0); ctx.scale(e * pop, e * pop);
+          cerne(() => { ctx.beginPath(); ctx.rect(-mw0 * 0.42, -fs * 0.62, mw0 * 0.84, fs * 1.24); }, hi ? 0.7 : 0.45, 1, hi ? '#fff4c8' : PAP);
+          ctx.globalAlpha = 1; ctx.fillStyle = ENC; ctx.font = `700 ${fs * 0.8}px "Space Grotesk",sans-serif`; ctx.fillText(String(j + 1), 0, 1); ctx.restore();
+          if (c > 3.1 && c < 5.6) { const q = Q[i], z = Math.max(9, fs * 0.85);
+            // le numéro sur la fiche source, dans le nuage
+            ctx.save(); ctx.translate(q[0] + z * 0.7, q[1] - z * 0.7); cerne(() => { ctx.beginPath(); ctx.arc(0, 0, z * 0.62, 0, TAU); }, hi ? 0.7 : 0.4, 1, hi ? '#fff4c8' : PAP);
+            ctx.globalAlpha = 1; ctx.fillStyle = ENC; ctx.font = `700 ${z * 0.72}px "Space Grotesk",sans-serif`; ctx.fillText(String(j + 1), 0, 1); ctx.restore();
+            if (hi) { const u = c01(((c - 3.1) * 3.2 % 1) / 0.45); ctx.save(); ctx.setLineDash([5, 5]); ctx.lineDashOffset = -now * 30; trait([[mx, y0 - fs * 0.62], [lerp(mx, q[0], u), lerp(y0 - fs * 0.62, q[1], u) - Math.sin(Math.PI * u) * k * 0.12]], false, 0.6, 1); ctx.restore();
+              if (u >= 1) brille(q[0], q[1], 3, 1, true, now, 30 + j); } } });
+        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        if (c > 5.4 && !CITE.vu && window.Dex && Dex.vu) { CITE.vu = true; Dex.vu('citations'); } }
       const ag = Pk(xa, 0.16); robot(ag[0], ag[1], k * 0.17, 1, Math.sin(now * 1.5) > 0.97, { now, v: 4, lac: Math.sin(now * 0.8) * 0.5, travaille: c > 4.5 && c < 5.5 });
       if (c > 3.9 && c < 4.6) { const v = (c - 3.9) / 0.7; brille(lerp(R0[0], ag[0], v), lerp(R0[1] + hr / 2, ag[1] - k * 0.1, v), 3, 1, true, now, 4); }
       rouage(ag[0] + k * 0.22, ag[1] + k * 0.22, k * 0.06, c > 4.5 ? (c - 4.5) * 4 : 0);
