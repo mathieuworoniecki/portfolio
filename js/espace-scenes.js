@@ -1557,7 +1557,7 @@ S.puce = (() => {
       // (en escalier : chaque couche décalée en biais, pour qu'on voie l'objet posé sur chacune)
       // (vague 143, l'audit : « la puce », design) : au téléphone, la pile était posée tout en bas, le haut du ciel vide, et les étiquettes mordaient
       // sur l'escalier ; elle remonte au milieu du ciel et se décale à gauche, pour laisser aux étiquettes leur colonne
-      const tel = G.sw < 500, V0 = cam(0.35 + Math.sin(a * 0.2) * 0.25, -0.5, k * (tel ? 0.86 : 0.93), tel ? -0.3 : -0.12, tel ? -0.2 : 0.02), ec = sm(a / 1.6) * (1 - ferme * 0.92), th = 0.05, ks = 0.62;
+      const tel = G.sw < 500, V0 = cam(0.35 + Math.sin(a * 0.2) * 0.25, -0.5, k * (tel ? 0.78 : 0.93), tel ? -0.2 : -0.12, tel ? -0.2 : 0.02), ec = sm(a / 1.6) * (1 - ferme * 0.92), th = 0.05, ks = 0.62;
       // (vague 3) une couche après l'autre se soulève et s'allume, de haut en bas : on voit enfin ce que porte chacune
       const act = c > 1.9 && c < 6.1 ? Math.min(5, Math.floor((c - 1.9) / 0.7)) : -1, lev0 = lab.map((l, j) => j === act ? Math.sin(Math.PI * c01((c - 1.9 - j * 0.7) / 0.7)) : 0);
       // (vague 59 de l'audit, « la puce », immersion) : on ouvre soi-même les tiroirs. La souris sur une étiquette (ou sur le coin d'une couche)
@@ -1598,7 +1598,7 @@ S.puce = (() => {
           if (j >= 5 || u < 0.55) return P0; const sk = j + 1 === 1 ? 0.62 : 0.54, P1 = V0(dxs[j + 1] + 0.4 * sk * ks, ys[j + 1], dzs[j + 1] + 0.4 * sk * ks), e = sm((u - 0.55) / 0.45); return [lerp(P0[0], P1[0], e), lerp(P0[1], P1[1], e)]; };
         const jf = (c - 1.9) / 0.7;
         if (jf < 6) { const P = pos(jf); for (let i = 1; i <= 6; i++) { const q = pos(Math.max(0, jf - i * 0.05)); brille(q[0], q[1], 2.2 - i * 0.25, 0.9 - i * 0.12, false, now, 70 + i); }
-          brille(P[0], P[1], 5, 1, true, now, 77); const j = Math.floor(jf), u = jf - j; if (u < 0.6) mot(MOTS[j], P[0] - k * 0.05, P[1] - k * 0.13 - u * 10, Math.max(13, k * 0.075), 1 - u * 0.5, 'right'); }
+          brille(P[0], P[1], 5, 1, true, now, 77); const j = Math.floor(jf), u = jf - j; if (u < 0.6) mot(MOTS[j], P[0] - k * 0.05, P[1] - k * 0.13 - u * 10, Math.max(13, k * 0.075) * (1 - sm((u - 0.35) / 0.25) * 0.9), 1, 'right'); }
         else { const e = sm((c - 1.9 - 6 * 0.7) / 0.5), P0 = pos(5.99), P1 = [G.gauche - 20, P0[1] + k * 0.25]; const P = [lerp(P0[0], P1[0], e), lerp(P0[1], P1[1], e)]; trait([P0, P], false, 0.6, 0.8); brille(P[0], P[1], 5 * (1 - e * 0.5), 1, true, now, 77); }
         if (c > 1.9 + 6 * 0.7 && !PAQUET.vu && window.Dex && Dex.vu) { PAQUET.vu = true; Dex.vu('paquet'); } }
       // les étiquettes, rangées de haut en bas sans se chevaucher
@@ -1607,10 +1607,12 @@ S.puce = (() => {
       const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, lim = bd ? bd.y - gap * 0.6 : G.bas, dep = Math.max(0, TY[5] - lim); if (dep) TY.forEach((y, j) => { TY[j] = y - dep; });
       LB = { x: xcol, TY: TY.slice(), EQ: EQ.map(q => [q[0], q[1]]), gap };
       EQ.forEach((R, j) => { const ty = TY[j]; const tx = xcol;
-        trait([R, [tx - 16, ty], [tx - 6, ty]], false, 0.45, 0.6 * (1 - ferme)); rond(R[0], R[1], 2, 0.6, 0.8 * (1 - ferme), true);
+        // (vague 164) au « clac », les étiquettes ne s'estompent plus : leur fil se rembobine jusqu'à la couche et le nom rapetisse avec lui
+        const fo = 1 - ferme, lq = q => [lerp(R[0], q[0], fo), lerp(R[1], q[1], fo)], kf = 0.12 + 0.88 * fo, txf = lerp(R[0], tx, fo), tyf = lerp(R[1], ty, fo);
+        trait([R, lq([tx - 16, ty]), lq([tx - 6, ty])], false, 0.45, 0.6); rond(R[0], R[1], 2, 0.6, 0.8, true);
         // (vague 91, finition : au téléphone, les couches passaient sur les noms ; un liseré de nuit les détache)
-        { const px = Math.max(11, k * (j === 1 ? 0.085 : 0.065) * (1 + lev[j] * 0.3)); ctx.font = `600 ${px}px "Space Grotesk",system-ui,sans-serif`; ctx.globalAlpha = 1 - ferme; ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, px * 0.35); ctx.strokeStyle = 'rgb(9,11,18)'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.strokeText(lab[j].toUpperCase(), tx + lev[j] * 8, ty); }
-        mot(lab[j].toUpperCase(), tx + lev[j] * 8, ty, Math.max(11, k * (j === 1 ? 0.085 : 0.065) * (1 + lev[j] * 0.3)), (j === 1 || lev[j] > 0.3 ? 1 : 0.85) * (1 - ferme), 'left'); });
+        { const px = Math.max(11, k * (j === 1 ? 0.085 : 0.065) * (1 + lev[j] * 0.3)); ctx.font = `600 ${px}px "Space Grotesk",system-ui,sans-serif`; ctx.font = `600 ${px * kf}px "Space Grotesk",system-ui,sans-serif`; ctx.globalAlpha = 1; ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, px * 0.35) * kf; ctx.strokeStyle = 'rgb(9,11,18)'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.strokeText(lab[j].toUpperCase(), txf + lev[j] * 8, tyf); }
+        mot(lab[j].toUpperCase(), txf + lev[j] * 8, tyf, Math.max(11, k * (j === 1 ? 0.085 : 0.065) * (1 + lev[j] * 0.3)) * kf, j === 1 || lev[j] > 0.3 ? 1 : 0.85, 'left'); });
       if (ferme > 0.9 && now - SURGE.t0 > 2) { const C = V0(0, 0, 0), m = ctx.getTransform(), dp = dpDe(ctx.canvas); surge((m.a * C[0] + m.c * C[1] + m.e) / dp, (m.b * C[0] + m.d * C[1] + m.f) / dp, now); }
       if (ferme > 0.9) { const C = V0(0, 0, 0); eclat(C[0], C[1], k * 0.6, (ferme - 0.9) * 10, 14, 0.3); mot('clac', C[0] + k * 0.5, C[1] - k * 0.3, Math.max(14, k * 0.1), 1); }
     }
