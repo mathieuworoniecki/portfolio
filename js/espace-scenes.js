@@ -650,19 +650,28 @@ function lui(x, y, r, o = {}) {
   // le buste : des épaules rondes, le col, une petite montagne sur la poitrine
   cerne(() => { ctx.beginPath(); ctx.moveTo(x - bw, by + bh); ctx.quadraticCurveTo(x - bw * 1.08, by + r * 0.1, x - r * 0.3, by); ctx.lineTo(x + r * 0.3, by); ctx.quadraticCurveTo(x + bw * 1.08, by + r * 0.1, x + bw, by + bh); ctx.closePath(); }, w, a);
   ctx.globalAlpha = a; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.7; ctx.beginPath(); ctx.moveTo(x - r * 0.32, by + r * 0.02); ctx.quadraticCurveTo(x, by + r * 0.32, x + r * 0.32, by + r * 0.02); ctx.stroke();
-  const mx = x + r * 0.45, my = by + bh * 0.45; ctx.beginPath(); ctx.moveTo(mx - r * 0.28, my + r * 0.12); ctx.lineTo(mx - r * 0.1, my - r * 0.1); ctx.lineTo(mx, my); ctx.lineTo(mx + r * 0.08, my - r * 0.06); ctx.lineTo(mx + r * 0.26, my + r * 0.12); ctx.stroke();
+  // (vague 151 de l'audit : « toi ») : le t-shirt Patagonia : l'étiquette rectangulaire, la ligne de crêtes découpée, les bandes du ciel dessous ;
+  // le col en V arrondi, l'ourlet des manches courtes
+  { const mx = x + r * 0.45, my = by + bh * 0.42, lw2 = r * 0.27, lh = r * 0.17;
+    if (r > 10) { cerne(() => { ctx.beginPath(); ctx.rect(mx - lw2, my - lh, lw2 * 2, lh * 2); }, w * 0.6, a, null);
+      ctx.globalAlpha = a; ctx.strokeStyle = ENC; ctx.lineWidth = Math.max(0.6, G.lw * w * 0.4); ctx.lineJoin = 'round'; ctx.beginPath(); const C = [0, 0.55, 0.3, 0.75, 0.15, 0.95, 0.5, 0.65, 0.2, 0.45, 0]; C.forEach((v, i) => { const px = mx - lw2 + i / (C.length - 1) * lw2 * 2, py = my + lh * 0.25 - v * lh * 0.95; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }); ctx.stroke();
+      ctx.lineWidth = Math.max(0.5, G.lw * w * 0.25); ctx.beginPath(); [0.5, 0.75].forEach(v => { ctx.moveTo(mx - lw2 * 0.85, my + lh * v); ctx.lineTo(mx + lw2 * 0.85, my + lh * v); }); ctx.stroke(); }
+    else { ctx.beginPath(); ctx.moveTo(mx - r * 0.28, my + r * 0.12); ctx.lineTo(mx - r * 0.1, my - r * 0.1); ctx.lineTo(mx, my); ctx.lineTo(mx + r * 0.08, my - r * 0.06); ctx.lineTo(mx + r * 0.26, my + r * 0.12); ctx.stroke(); }
+    if (r > 10) { ctx.globalAlpha = a; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.55; ctx.beginPath(); [-1, 1].forEach(sd => { ctx.moveTo(x + sd * bw * 0.62, by + r * 0.12); ctx.quadraticCurveTo(x + sd * bw * 0.86, by + r * 0.48, x + sd * bw * 1.02, by + r * 0.72); }); ctx.stroke(); } }
   // (vague 25 de l'audit : « toi, dans le style des chats ») : du volume à la plume, comme les chats-robots : des hachures sur l'épaule dans l'ombre
   if (r > 12) { ctx.save(); ctx.beginPath(); ctx.moveTo(x - bw, by + bh); ctx.quadraticCurveTo(x - bw * 1.08, by + r * 0.1, x - r * 0.3, by); ctx.lineTo(x + r * 0.3, by); ctx.quadraticCurveTo(x + bw * 1.08, by + r * 0.1, x + bw, by + bh); ctx.closePath(); ctx.clip();
-    ctx.globalAlpha = a * 0.42; ctx.strokeStyle = ENC; ctx.lineWidth = Math.max(0.7, G.lw * w * 0.3); ctx.beginPath(); const sd = g > 0 ? -1 : 1;
-    for (let i = 0; i < 5; i++) { const u = x + sd * bw * (0.55 + i * 0.12); ctx.moveTo(u, by + r * 0.2); ctx.lineTo(u + sd * r * 0.25, by + bh); } ctx.stroke(); ctx.restore(); }
+    // (vague 151 : à l'encre pleine, plus fines et plus courtes : plus de gris boueux)
+    ctx.globalAlpha = a; ctx.strokeStyle = ENC; ctx.lineWidth = Math.max(0.6, G.lw * w * 0.22); ctx.lineCap = 'round'; ctx.beginPath(); const sd = g > 0 ? -1 : 1;
+    for (let i = 0; i < 4; i++) { const u = x + sd * bw * (0.62 + i * 0.12); ctx.moveTo(u, by + r * (0.45 + i * 0.08)); ctx.lineTo(u + sd * r * 0.16, by + bh * 0.92); } ctx.stroke(); ctx.restore(); }
   // le cou, la tête : un visage long ; les cheveux en épis par-dessus
   cerne(() => { ctx.beginPath(); ctx.rect(x - r * 0.22, by - r * 0.35, r * 0.44, r * 0.45); }, w * 0.8, a);
   // (vague 8, l'audit : « ton dessin dans l'espace est raide ») : comme le logo (Mathieu, 29/09 : « je fais peur ») : des oreilles,
   // des épis bien nets, des sourcils ronds, un grand sourire
-  [-1, 1].forEach(sd => cerne(() => { ctx.beginPath(); ctx.ellipse(x + sd * r * 0.68, hy + r * 0.12, r * 0.14, r * 0.2, 0, 0, TAU); }, w * 0.8, a));
-  cerne(() => { ctx.beginPath(); ctx.ellipse(x, hy, r * 0.7, r * 0.98, 0, 0, TAU); }, w, a);
-  cerne(() => { ctx.beginPath(); const n = 9; for (let i = 0; i <= n; i++) { const t = Math.PI + 0.25 + i / n * (Math.PI - 0.5), R = i % 2 ? 1.24 + 0.06 * Math.sin(i * 3.7) + 0.05 * Math.sin(nw * 2.3 + i * 1.7) : 0.96, j = i % 2 ? 0.12 * Math.sin(i * 2.1) + 0.06 * Math.sin(nw * 1.7 + i) : 0; ctx.lineTo(x + Math.cos(t + j) * r * 0.72 * R, hy - r * 0.18 + Math.sin(t + j) * r * 0.95 * R); }
-    for (let i = 8; i >= 0; i--) { const t = Math.PI + 0.25 + i / 8 * (Math.PI - 0.5); ctx.lineTo(x + Math.cos(t) * r * 0.7, hy - r * 0.05 + Math.sin(t) * r * 0.72); } ctx.closePath(); }, w, a);
+  // (vague 151 : un visage plus long et plus fin, le menton qui descend, comme son modèle)
+  [-1, 1].forEach(sd => cerne(() => { ctx.beginPath(); ctx.ellipse(x + sd * r * 0.62, hy + r * 0.1, r * 0.13, r * 0.2, 0, 0, TAU); }, w * 0.8, a));
+  cerne(() => { ctx.beginPath(); ctx.moveTo(x - r * 0.63, hy); ctx.bezierCurveTo(x - r * 0.66, hy - r * 1.32, x + r * 0.66, hy - r * 1.32, x + r * 0.63, hy); ctx.bezierCurveTo(x + r * 0.6, hy + r * 0.72, x + r * 0.3, hy + r * 1.06, x, hy + r * 1.06); ctx.bezierCurveTo(x - r * 0.3, hy + r * 1.06, x - r * 0.6, hy + r * 0.72, x - r * 0.63, hy); ctx.closePath(); }, w, a);
+  cerne(() => { ctx.beginPath(); const n = 9; for (let i = 0; i <= n; i++) { const t = Math.PI + 0.25 + i / n * (Math.PI - 0.5), R = i % 2 ? 1.24 + 0.06 * Math.sin(i * 3.7) + 0.05 * Math.sin(nw * 2.3 + i * 1.7) : 0.96, j = i % 2 ? 0.12 * Math.sin(i * 2.1) + 0.06 * Math.sin(nw * 1.7 + i) : 0; ctx.lineTo(x + Math.cos(t + j) * r * 0.66 * R, hy - r * 0.18 + Math.sin(t + j) * r * 0.95 * R); }
+    for (let i = 8; i >= 0; i--) { const t = Math.PI + 0.25 + i / 8 * (Math.PI - 0.5); ctx.lineTo(x + Math.cos(t) * r * 0.64, hy - r * 0.05 + Math.sin(t) * r * 0.72); } ctx.closePath(); }, w, a);
   // les yeux : deux grands ovales noirs, deux reflets (ils clignent) ; (vague 33) ils suivent la souris
   const tN = window.__nid ?? (nw + 3) % 15, leve = !P && (o.tp || 0) < 0.9 && tN > 0.4 && tN < 4.2;   // (le nid, plus bas : il lève les yeux vers le chat sur sa tête)
   const cl = Math.sin(nw * 1.1 + 1) > 0.985 ? 0.12 : 1, vx = r * 0.07 * (leve ? -(o.cote || -1) * 0.4 : regard[0]), vy = r * 0.05 * (leve ? -1.2 : regard[1]);
