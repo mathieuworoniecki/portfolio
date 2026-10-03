@@ -1947,6 +1947,7 @@ S.secu = (() => ({
 // le bus de l'équipe (Mathieu au volant, l'équipe aux fenêtres : des chats-robots et des collègues) change de voie pour éviter les bugs,
 // les astéroïdes, les cônes et les deadlines, et ramasse les étoiles (les jalons). La souris sur le ciel : c'est vous qui conduisez
 const SAUT = { vu: false };
+const TRAPPE = { vu: false };
 S.pilotage = (() => {
   const E = { t: null, bx: 0, lane: 0, obs: [], next: 0, jal: 0, bonk: -9, mots: [], roul: 0, n: 0 };
   const ptr = () => { const W = window.Chats && Chats.K && Chats.K.Wd, P = W && W.ptr; return P && P.on && W.t - P.moved < 2.5 ? P : null; };
@@ -2018,7 +2019,7 @@ S.pilotage = (() => {
       const vis = E.lane * 1.06, vbx = clamp(vis - E.bx, -dt * 3.2, dt * 3.2); E.bx += vbx; const roulis = -vbx / Math.max(dt, 1e-3) / 3.2 * 0.06;
       // les chocs et les jalons
       E.obs.forEach(o => { if (o.fini || o.z > zb + 2.4 || o.z < zb || saut > 0.3) return; if (Math.abs(o.x - E.bx) > 0.72) return; o.fini = now;
-        if (o.sorte === 'etoile') { E.jal++; E.mots.push({ t: '+1', x: o.x, z: zb + 1, t0: now }); gagneEtoile(Pp(o.x, 0.6, zb + 1), now); } else { E.bonk = now; E.mots.push({ t: pick2(['bonk', 'boum', 'ouille'], o.n), x: o.x, z: zb + 1, t0: now }); secoueUI(o.x - E.bx); } });
+        if (o.sorte === 'etoile') { E.jal++; E.etoileT = now; E.mots.push({ t: '+1', x: o.x, z: zb + 1, t0: now }); gagneEtoile(Pp(o.x, 0.6, zb + 1), now); } else { E.bonk = now; E.mots.push({ t: pick2(['bonk', 'boum', 'ouille'], o.n), x: o.x, z: zb + 1, t0: now }); secoueUI(o.x - E.bx); } });
       E.obs = E.obs.filter(o => o.z > 0.8 && !(o.fini && now - o.fini > 0.5));
       // dessin, du fond vers nous
       // (vague 27, l'audit : « le bus ») : des portiques d'autoroute enjambent la route, un panneau par étape de la feuille de route
@@ -2118,6 +2119,21 @@ S.pilotage = (() => {
     { const Vq = (x, y, z) => { const p = Q(x, y, z); return [p[0], p[1], -p[2]]; };
       [[-0.35, 0.05, 0.3, 0.9, 0.22], [0.08, 0.4, 0.5, 1.3, 0.3], [-0.3, 0.1, 1.5, 2.1, 0.18], [0.12, 0.42, 1.9, 2.6, 0.26]].forEach(([x0, x1, z0, z1, hh], j) => {
         const sa = j === 1 ? Math.abs(Math.sin(now * 9 + 1)) * 0.03 : 0; bloc(Vq, x0, x1, h + sa, h + hh + sa, z0, z1, 1, 0.6); }); }
+    // (vague 135 de l'audit : « le bus », de très bien à inoubliable) : la trappe du toit. Chaque jalon attrapé : la trappe à l’arrière du toit (près de nous)
+    // s'ouvre d'un coup, un chat-robot de l'équipe en jaillit, bras levés, et agite un fanion « ★ n » au vent de la route, puis redescend et referme
+    { const ut = window.__trappe ?? (now - (E.etoileT ?? -9)), z0 = 0.02, z1 = 0.27, hw = 0.24, ouv = sm(c01(ut / 0.18)) * (1 - sm(c01((ut - 1.75) / 0.25)));
+      const H4 = [Q(-hw, h, z0), Q(hw, h, z0), Q(hw, h, z1), Q(-hw, h, z1)]; ctx.globalAlpha = 1; ctx.fillStyle = ouv > 0.05 ? NUIT : PAP; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.7; ctx.beginPath(); H4.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // le couvercle, ouvert à la verticale sur sa charnière avant (derrière lui)
+      if (ouv > 0.01) { const L4 = [Q(-hw, h, z1), Q(hw, h, z1), Q(hw, h + (z1 - z0) * ouv * 1.4, z1 + 0.05 * ouv), Q(-hw, h + (z1 - z0) * ouv * 1.4, z1 + 0.05 * ouv)]; ctx.fillStyle = PAP; ctx.beginPath(); L4.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+      if (ouv > 0.01 && ut < 2) { const sor = sm(c01((ut - 0.08) / 0.3)) * (1 - sm(c01((ut - 1.5) / 0.3))), pr = Q(0, h, (z0 + z1) / 2), r0 = Math.min(Math.abs(Q(0, h + 0.2, (z0 + z1) / 2)[1] - pr[1]) * 1.1, (pr[1] - G.haut - 8) / 4.4),
+          lev = Math.min(r0 * 1.9 * sor, Math.max(0, pr[1] - r0 * 2.4 - G.haut - 6)), m = [pr[0], pr[1] - lev];   // (r0 : assez petit pour sortir en entier sous la barre du haut)
+        // il sort par la trappe : on ne voit que ce qui dépasse du toit
+        ctx.save(); ctx.beginPath(); ctx.rect(m[0] - r0 * 4, G.haut, r0 * 8, pr[1] - G.haut); ctx.clip();
+        chabot(m[0], m[1] + r0 * 0.4, r0, { now, ph: 21, lac: Math.sin(now * 4) * 0.4, casque: false, bras: [1.4 + Math.sin(now * 12) * 0.2, 0.9], cligne: false });
+        const hx = m[0] + r0 * 0.75, hy = m[1] - r0 * 0.1, ty = hy - r0 * 1.6; cerne(() => { ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx, ty); }, 0.6, 1, null);
+        const fl = Math.sin(now * 16) * r0 * 0.12; cerne(() => { ctx.beginPath(); ctx.moveTo(hx, ty); ctx.quadraticCurveTo(hx + r0 * 0.6, ty + fl, hx + r0 * 1.25, ty + r0 * 0.3 - fl); ctx.lineTo(hx, ty + r0 * 0.7); ctx.closePath(); }, 0.6, 1, '#ffe9a8');
+        ctx.restore(); mot('★ ' + Math.max(1, E.jal), hx + r0 * 0.5, ty + r0 * 0.33, Math.max(9, r0 * 0.42), 1);
+        if (sor > 0.9 && !TRAPPE.vu && window.Dex && Dex.vu) { TRAPPE.vu = true; Dex.vu('trappe-toit'); } } }
     const B = [Q(-w, 0.12, 0), Q(w, 0.12, 0), Q(w, h, 0), Q(-w, h, 0)]; cerne(() => { ctx.beginPath(); B.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); }, 1, 1);
     const Wv = [Q(-w * 0.8, 0.5, 0), Q(w * 0.8, 0.5, 0), Q(w * 0.8, 0.86, 0), Q(-w * 0.8, 0.86, 0)]; ctx.globalAlpha = 1; ctx.fillStyle = NUIT; ctx.beginPath(); Wv.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fill(); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw; ctx.stroke();
     // de dos, par la vitre : l'équipe (des têtes rondes, des oreilles de chat), et lui au volant, tout devant (ses épis)
