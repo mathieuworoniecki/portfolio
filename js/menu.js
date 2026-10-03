@@ -74,6 +74,7 @@ nav.innerHTML = `<ul class="evts-list">${EV.map(([id]) => `<li><button type="but
 document.body.appendChild(nav);
 nav.querySelectorAll('[data-ev]').forEach(b => b.addEventListener('click', e => {
   e.stopPropagation(); const ev = EV.find(v => v[0] === b.dataset.ev); if (!ev) return;
+  Wd.grandEv = Wd.t;   // (vague 117 : les indices se taisent pendant le grand événement, js/accueil.js)
   dit(ev[0]); try { ev[1](); } catch (err) { console.warn(err); }
   b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
 }));

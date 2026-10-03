@@ -158,9 +158,11 @@ let indice = null, indiceT = 0, calme = 0;
 addEventListener('pointerdown', () => { calme = Wd.t; }, true);
 function indices() {
   INDICES.forEach(I => { const o = I.obj(); if (o && I.vu(o)) utilise[I.id] = 1; });
-  if (indice && (utilise[indice.id] || Wd.t > indiceT)) { indice = null; montre(null); indiceT = Wd.t + rnd(5, 9); return; }
+  // (vague 117, l'audit : la bulle « Ouvre-moi : un jouet ! » restait posée sur le chat géant, la horde, la poussière) : pendant un grand événement, les indices se taisent
+  const grand = Wd.t - (Wd.grandEv ?? -1e9) < 16;
+  if (indice && (utilise[indice.id] || Wd.t > indiceT || grand)) { indice = null; montre(null); indiceT = Wd.t + rnd(5, 9); return; }
   if (indice) { const o = indice.obj(); if (!o) { indice = null; montre(null); return; } montre({ id: 'i-' + indice.id, txt: L_('indice.' + indice.id), at: () => indice && indice.obj() ? indice.at(indice.obj()) : null }); return; }
-  if (Wd.t < indiceT || Wd.t - calme < 3 || Wd.cats.some(c => c.held)) return;
+  if (grand || Wd.t < indiceT || Wd.t - calme < 3 || Wd.cats.some(c => c.held)) return;
   const L = INDICES.filter(I => !utilise[I.id] && I.obj()); if (!L.length) return;
   indice = pick(L); indiceT = Wd.t + 6;
 }
