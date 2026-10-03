@@ -388,7 +388,14 @@ X.fond.push((ctx, now) => {
       const gv = o.createLinearGradient(0, 0, 0, L.H), y1 = c01(G.haut * 0.75 / L.H), y2 = c01((G.bas - 30) / L.H), y3 = c01((G.bas + 4) / L.H);
       gv.addColorStop(0, 'rgba(0,0,0,0)'); gv.addColorStop(y1, '#000'); gv.addColorStop(Math.max(y1, y2), '#000'); gv.addColorStop(Math.max(y1, y3), 'rgba(0,0,0,0)'); gv.addColorStop(1, 'rgba(0,0,0,0)'); o.fillStyle = gv; o.fillRect(0, 0, L.W, L.H);
       const bh = Math.min(90, L.W * 0.1), gh = o.createLinearGradient(0, 0, L.W, 0); gh.addColorStop(0, 'rgba(0,0,0,0)'); gh.addColorStop(bh / L.W, '#000'); gh.addColorStop(1 - bh / L.W, '#000'); gh.addColorStop(1, 'rgba(0,0,0,0)'); o.fillStyle = gh; o.fillRect(0, 0, L.W, L.H);
-      o.globalCompositeOperation = 'source-over'; ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(c2, 0, 0); ctx.restore(); ctx.globalAlpha = 1; };
+      o.globalCompositeOperation = 'source-over'; ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(c2, 0, 0); ctx.restore(); ctx.globalAlpha = 1;
+      // (vague 171, l'audit : « la nuée ») : la scène qui s'ouvre n'est plus tranchée par un bord invisible : le bord du cercle est un anneau de lumière
+      // au trait blanc, semé d'étoiles, qui s'élargit avec elle et s'amincit jusqu'à un fil quand elle est toute ouverte (ou refermée)
+      if (r < 0.985 && !reduit) { const R0 = r * Math.hypot(L.W, L.H) * 0.7, ep = 1 - r; ctx.save(); ctx.beginPath(); ctx.rect(0, G.haut - 4, L.W, Math.max(0, (G.bas || L.H) - G.haut + 4)); ctx.clip();
+        ctx.strokeStyle = '#F4F4EE'; ctx.lineCap = 'round'; ctx.globalAlpha = 0.85; ctx.lineWidth = 0.6 + 2.2 * ep; ctx.beginPath(); ctx.arc(G.cx, G.cy, R0, 0, TAU); ctx.stroke();
+        ctx.lineWidth = 0.5 + 0.8 * ep; ctx.setLineDash([2, 9]); ctx.lineDashOffset = -now * 30; ctx.beginPath(); ctx.arc(G.cx, G.cy, R0 + 6 + 10 * ep, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+        const LU = window.EspaceNuee && EspaceNuee.CST && EspaceNuee.CST.lueur; if (LU) for (let i = 0; i < 10; i++) { const an = i / 10 * TAU + now * 0.6 + r * 3, rr = 3 + 5 * ep; ctx.globalAlpha = 0.9; ctx.drawImage(LU, G.cx + Math.cos(an) * R0 - rr * 3, G.cy + Math.sin(an) * R0 - rr * 3, rr * 6, rr * 6); }
+        ctx.restore(); ctx.globalAlpha = 1; } };
     const V0 = M.vieux; if (V0 && V0.sc && V0.sc.cs && Wd.t - V0.t0 < 0.6) joue(V0.sc, V0.tl - A + (Wd.t - V0.t0), 1 - sm((Wd.t - V0.t0) / 0.6));
     if (C.cs) joue(C, tl - A + 0.2, sm((tl - A + 0.25) / 0.9));
     if (C.cs && !reduit) EspaceScenes.vise(ctx, now);   // (vague 79 : le chat-robot nous analyse, par-dessus tout l'écran)
