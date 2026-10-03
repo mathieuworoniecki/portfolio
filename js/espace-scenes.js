@@ -1829,6 +1829,7 @@ S.devops = (() => ({
 
 // sécurité & qualité : un dôme en 3D (méridiens, parallèles) posé sur les données (un cadenas) ; au sol, le radar balaie ;
 // ce qui arrive du dehors frappe le dôme : une onde se propage à sa surface, la menace éclate ; le compteur des bloqués monte
+const RX = { vu: false };
 S.secu = (() => ({
   cles: () => [0, 1, 2, 3, 4, 5].map(i => [Math.cos(i / 6 * TAU) * 0.6, Math.sin(i / 6 * TAU) * 0.6]),
   dessin(a, now) {
@@ -1871,6 +1872,31 @@ S.secu = (() => ({
       const g = [J[0] + jr * 1.7, J[1]], r = jr * 0.55, sw = Math.sin(now * 2.6); chabot(g[0], g[1] - r * 1.75, r, { now, ph: 9, lac: -0.5, casque: false, bras: [0.4 + sw * 0.5, -0.2] });
       const hx = g[0] - r * 0.9, hy = g[1] - r * 2.3, fx = hx - r * 1.3 * Math.cos(sw * 0.6), fy = hy - r * 1.6 + Math.sin(sw * 0.6) * r * 0.6;
       cerne(() => { ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(fx, fy); }, 1, 1, null); cerne(() => { ctx.beginPath(); ctx.ellipse(fx, fy - r * 0.35, r * 0.42, r * 0.55, sw * 0.3, 0, TAU); }, 0.8, 1, 'rgba(255,255,255,0.35)'); }
+    // (vague 130 de l'audit : « on scanne » ne se voyait pas) : le cheval de Troie. Toutes les huit secondes, un joli paquet-cadeau flotte vers
+    // le dôme ; une bande de scanner le traverse de haut en bas et, sous elle, on voit au travers : un petit méchant caché dedans. Alarme,
+    // le paquet éclate en papiers, et le méchant file rejoindre les autres dans le bocal de quarantaine
+    { const ti = a % 8, bs = Math.max(20, k * 0.12), X1 = Math.min(G.droite - bs * 1.4, o0[0] + R * k * 1.15), Y1 = o0[1] - k * (G.cx * 2 < 700 ? 0.42 : 0.1), X0 = G.droite + bs * 2, Y0 = Y1 - k * 0.3;
+      if (ti < 3.4) { const e = sm(c01(ti / 1.6)), x = lerp(X0, X1, e), y = lerp(Y0, Y1, e) + Math.sin(now * 2.2) * bs * 0.12, tr = ti > 2.9 ? Math.sin(now * 60) * bs * 0.08 : 0, sc = c01((ti - 1.7) / 1.1);
+        ctx.save(); ctx.translate(x + tr, y); ctx.rotate(Math.sin(now * 1.3) * 0.08);
+        // le paquet : opaque, ruban et nœud ; la partie déjà scannée devient transparente et laisse voir le méchant
+        const yb = -bs + sc * bs * 2;
+        if (sc < 1) { ctx.save(); ctx.beginPath(); ctx.rect(-bs * 2, yb, bs * 4, bs * 3); ctx.clip(); cerne(() => { ctx.beginPath(); ctx.rect(-bs, -bs, 2 * bs, 2 * bs); }, 0.9, 1, '#ffe9a8');
+          ctx.globalAlpha = 1; ctx.fillStyle = '#e8735f'; ctx.fillRect(-bs * 0.16, -bs, bs * 0.32, 2 * bs); ctx.fillRect(-bs, -bs * 0.16, 2 * bs, bs * 0.32); ctx.restore(); }
+        if (sc > 0) { ctx.save(); ctx.beginPath(); ctx.rect(-bs * 2, -bs * 2, bs * 4, yb + bs * 2); ctx.clip();
+          ctx.globalAlpha = 1; ctx.fillStyle = 'rgba(150,200,255,0.18)'; ctx.fillRect(-bs, -bs, 2 * bs, 2 * bs); ctx.setLineDash([4, 3]); style(0.7, 1); ctx.strokeStyle = '#bfe3ff'; ctx.strokeRect(-bs, -bs, 2 * bs, 2 * bs); ctx.setLineDash([]);
+          caillou(0, bs * 0.15, bs * 0.55, now * 3, 77, 1, true); ctx.restore(); }
+        cerne(() => { ctx.beginPath(); ctx.ellipse(-bs * 0.3, -bs * 1.18, bs * 0.32, bs * 0.18, -0.5, 0, TAU); ctx.moveTo(bs * 0.62, -bs * 1.18); ctx.ellipse(bs * 0.3, -bs * 1.18, bs * 0.32, bs * 0.18, 0.5, 0, TAU); }, 0.7, 1, '#e8735f');
+        if (sc > 0 && sc < 1) { ctx.globalAlpha = 1; ctx.fillStyle = 'rgba(191,227,255,0.55)'; ctx.fillRect(-bs * 1.5, yb - 2, bs * 3, 4); style(1, 1); ctx.strokeStyle = '#bfe3ff'; ctx.beginPath(); ctx.moveTo(-bs * 1.5, yb); ctx.lineTo(bs * 1.5, yb); ctx.stroke(); }
+        ctx.restore();
+        // le rayon du scanner part du dôme
+        if (sc > 0 && sc < 1) { const D = [o0[0] + R * k * 0.7, o0[1] - k * 0.3]; ctx.globalAlpha = 0.16; ctx.fillStyle = '#bfe3ff'; ctx.beginPath(); ctx.moveTo(D[0], D[1]); ctx.lineTo(x - bs * 1.5, y + yb); ctx.lineTo(x + bs * 1.5, y + yb); ctx.closePath(); ctx.fill(); mot(en() ? 'scanning…' : 'scan…', x, y - bs * 1.9, Math.max(11, k * 0.06), 1); }
+        if (ti > 2.9) mot(en() ? '⚠ Trojan horse' : '⚠ cheval de Troie', Math.min(x, G.droite - k * 0.5), y - bs * 1.9, Math.max(12, k * 0.07) * (1 + 0.12 * Math.sin(now * 18)), 1); }
+      else if (ti < 4.8) { const u = (ti - 3.4) / 1.4, e = sm(u);
+        for (let f = 0; f < 6; f++) { const an = f / 6 * TAU + 0.4, d = bs * (0.6 + u * 3.2), fx = X1 + Math.cos(an) * d, fy = Y1 + Math.sin(an) * d + u * u * bs * 2.5, fr = bs * 0.45 * (1 - u * 0.7);
+          ctx.save(); ctx.translate(fx, fy); ctx.rotate(u * 7 + f); cerne(() => { ctx.beginPath(); ctx.rect(-fr, -fr * 0.7, fr * 2, fr * 1.4); }, 0.7, 1, f % 2 ? '#ffe9a8' : '#e8735f'); ctx.restore(); }
+        const mx = lerp(X1, jm[0], e), my = lerp(Y1, jm[1], e) - Math.sin(Math.PI * e) * k * 0.5; caillou(mx, my, bs * 0.55 * (1 - e * 0.45), u * 10, 77, 1, true);
+        if (u < 0.4) mot(en() ? 'crack!' : 'crac !', X1, Y1 - bs * 1.6, Math.max(12, k * 0.07), 1);
+        if (!RX.vu && window.Dex && Dex.vu) { RX.vu = true; Dex.vu('rayons-x'); } } }
     // le compteur, en haut du dôme, sur un petit écran de papier (il était caché sous les sous-titres)
     { const o = V(0, 0, 0), w = Math.max(k * 0.52, 108), h = Math.max(k * 0.14, 28), m = [Math.min(o[0] + R * k * 1.2, G.cx * 2 - w * 0.62 - 10), o[1] - R * k * (G.cx * 2 < 700 ? 1.25 : 0.8)]; ecran(m[0] - w / 2, m[1] - h / 2, w, h, k * 0.03, 3); mot(`${en() ? 'blocked' : 'bloqués'} : ${bloq}`, m[0], m[1], Math.max(12, k * 0.075), 1); }
     ctx.restore();
