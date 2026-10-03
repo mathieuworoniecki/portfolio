@@ -718,6 +718,7 @@ const S = {};
 // jusqu'au fond ; mains en l'air, une ola passe ; puis tout le monde est aspiré en tourbillon et rentre en lui : ×10 ; et ça recommence
 // (vague 14 de l'audit : « la foule reste une bande au milieu ») : les gradins font maintenant le tour de lui, en arène, sur toute la largeur
 // du ciel : quatre rangs en ellipse, les plus loin plus hauts ; l'arène tourne lentement, la ola en fait le tour ; plus d'une centaine d'agents
+const LIVRE = { vu: false };
 S.equipe = (() => {
   let F = null, cle = '';
   // les places : quatre rangs d'ellipses autour de lui (calculés à la taille de l'écran)
@@ -784,6 +785,23 @@ S.equipe = (() => {
       const dirige = c > 2.6 && c < 6.2;
       { const rr = rr0 * (1 + 0.3 * rentres / N) * (c > 7.9 ? 1 + 0.06 * Math.sin(Math.PI * c01((c - 7.9) / 0.5)) : 1);
         lui(pied[0], pt - rr * 2.4, rr, { now, hoche: dirige ? Math.sin(now * 6) : 0, tp: dirige ? 0.25 + 0.25 * Math.sin(now * 3.2) : c > 8.1 ? 0 : 0.1 }); }
+      // (vague 121, l'audit : « l'équipe ») : la foule ne fait pas qu'applaudir, elle livre. Pendant qu'il dirige, des agents lancent leur travail
+      // (une feuille de papier étiquetée : module, tests ✓, revue…) en arc par-dessus l'arène ; il les attrape et les empile sur le podium ;
+      // la pile monte, et c'est elle qui fait ×10. Au tourbillon, la pile rentre en lui avec tout le monde (elle rapetisse, jamais de fondu)
+      { const LIV = en() ? ['module', 'tests ✓', 'review', 'docs', 'API', 'deploy', 'fix', 'UI', 'migration', 'audit', 'CI ✓', 'release'] : ['module', 'tests ✓', 'revue', 'doc', 'API', 'déploiement', 'correctif', 'interface', 'migration', 'audit', 'CI ✓', 'version'];
+        const t0 = 2.7, pas = 0.28, vol = 0.62, cw = Math.max(32, rr0 * 1.5), chh = Math.max(6.5, cw * 0.22), px0 = pied[0] + pw * 1.05 + cw * 0.5, rentre = 1 - sm((c - 6.4) / 0.9);
+        const pos = f => { const th = f.th + rot; return [pied[0] + Math.cos(th) * f.rx, pied[1] + Math.sin(th) * f.ry + f.dy - P.bot * 2.6]; };
+        const feuille = (x, y, an, k, lab, al) => { ctx.save(); ctx.translate(x, y); ctx.rotate(an); ctx.scale(k, k);
+          cerne(() => { ctx.beginPath(); ctx.rect(-cw / 2, -chh / 2, cw, chh); }, 0.55, al); ctx.restore();
+          if (k > 0.6 && Math.abs(an) < 0.5) { ctx.save(); ctx.globalAlpha = al; ctx.fillStyle = ENC; ctx.font = `700 ${Math.max(7, chh * 0.78 * k)}px "Space Grotesk",system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lab, x, y + 0.5); ctx.restore(); } };
+        let n = 0;
+        for (let i = 0; i < 12; i++) { const ta = t0 + i * pas, e = (c - ta) / vol; if (e < 0) break; const f = P[(i * 37 + 11) % N], lab = LIV[i], cible = [px0 + (bruit(i * 7) - 0.5) * cw * 0.18, pt - chh * 0.5 - i * chh * 0.92];
+          if (e < 1) { const [x0, y0] = pos(f), u = sm(e), x = lerp(x0, cible[0], u), y = lerp(y0, cible[1], u) - Math.sin(Math.PI * e) * G.s * 0.55;
+            feuille(x, y, (1 - e) * (bruit(i) < 0.5 ? -1 : 1) * 5, 0.45 + 0.55 * e, lab, 1); }
+          else { n++; if (rentre <= 0) continue; const k = rentre, x = lerp(pied[0], cible[0], k), y = lerp(pt - rr0 * 1.6, cible[1], k);
+            feuille(x, y, (bruit(i * 3) - 0.5) * 0.12 + (1 - k) * 3, Math.max(0.05, k), lab, 1); } }
+        if (n && rentre > 0 && c < 6.4) mot(String(n), px0 + cw * 0.75, pt - n * chh * 0.92 - chh, Math.max(11, G.s * 0.07), 0.9);
+        if (n >= 12 && !LIVRE.vu && window.Dex && Dex.vu) { LIVRE.vu = true; Dex.vu('livrables'); } }
       devant.filter(d => d.z >= 90).forEach(d => d.f());
       if (c > 0.7 && c < 2.6) { const j = Math.floor((c - 0.7) / 0.45), u = ((c - 0.7) % 0.45) / 0.45; mot('pop !', coeur[0] + (j % 2 ? -1 : 1) * G.s * (0.4 + 0.2 * bruit(j)), coeur[1] - G.s * (0.25 + 0.2 * bruit(j * 3)) - u * 12, Math.max(13, G.s * 0.1), 1 - u); }
       if (c > 7.9) { const u = sm((c - 7.9) / 0.5); eclat(coeur[0], coeur[1], G.s * 0.35, (c - 7.9) / 0.7, 12, 0.2); mot('×10', pied[0] + G.s * 0.55, coeur[1] - G.s * 0.2, Math.max(22, G.s * 0.26) * (0.6 + 0.4 * u), u); }

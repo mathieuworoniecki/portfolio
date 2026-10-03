@@ -164,6 +164,7 @@ fam('espace', 'L’espace', 'Space', [
   ['cordon', 'Le cordon', 'The cord', 'Le trou blanc retient chaque chat au bout d’un cordon, jusqu’à ce qu’il cède.', 'The white hole holds each cat on a cord, until it snaps.'],
   ['vent-nuee', 'Le coup de vent', 'The gust', 'Quand la nuée change de forme, son tourbillon emporte les chats.', 'When the swarm changes shape, its whirl sweeps the cats away.'],
   ['souffle-titre', 'Le souffle du titre', 'The title blast', 'Quand un titre en étoiles se défait, son onde de choc souffle les chats.', 'When a star title breaks apart, its shockwave blows the cats away.'],
+  ['livrables', 'La pile de livrables', 'The stack of deliverables', 'Dans l’arène, les agents lancent leur travail ; il l’empile sur le podium.', 'In the arena, the agents toss their work; he stacks it on the podium.'],
   ['troublanc', 'Le petit trou blanc', 'The little white hole', 'Là-haut aussi, un clic dans le vide.', 'Up there too, a click on empty space.'],
   ['agrippe', 'Accroché', 'Hanging on', 'Le curseur, tout près d’un chat qui flotte.', 'The cursor, close to a floating cat.'],
   ['fronde', 'La fronde', 'The slingshot', 'Trop près d’une planète, on fait un tour… et on repart plus vite.', 'Too close to a planet, you go around… and leave faster.'],
