@@ -1391,6 +1391,7 @@ S.gardefous = (() => {
 // des chats : un écran (le front), le chat-robot au cœur (l'IA), des serveurs (le back), la boucle et un conteneur (le DevOps), un bouclier
 // (la sécurité), le bus de l'équipe en miniature (le leadership). Des données montent et descendent par les vias ; de temps en temps, tout se
 // referme d'un coup (clac) puis se rouvre
+const PAQUET = { vu: false };
 S.puce = (() => {
   const LAB = () => en() ? ['Front', 'AI', 'Back-end', 'DevOps', 'Security', 'Leadership'] : ['Front', 'IA', 'Back-end', 'DevOps', 'Sécurité', 'Leadership'];
   // une plaque épaisse : ses flancs (du fond vers nous), puis son dessus ; peinte de la nuit, au trait
@@ -1485,6 +1486,17 @@ S.puce = (() => {
         // l'étiquette : un trait jusqu'au bord, le nom en petites capitales
         EQ[j] = T.reduce((b, q) => q[0] > b[0] ? q : b, T[0]);
       }
+      // (vague 125, l'audit : « la puce ») : une requête traverse toute la pile. Pendant que les couches se soulèvent l'une après l'autre, un paquet
+      // de lumière descend de la couche du haut à celle du bas par un via, en suivant la couche allumée ; sur chacune, il fait son métier
+      // (« clic », « idée », « requête », « mise en ligne », « contrôle », « livré ») ; en bas, il file par une piste jusqu'au bord du ciel
+      if (c > 1.9 && c < 6.6 && !reduitMvt()) { const MOTS = en() ? ['click', 'idea', 'request', 'deploy', 'check', 'shipped'] : ['clic', 'idée', 'requête', 'mise en ligne', 'contrôle', 'livré'];
+        const pos = jf => { const j = Math.min(5, Math.floor(jf)), u = jf - j, sj = j === 1 ? 0.62 : 0.54, P0 = V0(dxs[j] + 0.4 * sj * ks, ys[j], dzs[j] + 0.4 * sj * ks);
+          if (j >= 5 || u < 0.55) return P0; const sk = j + 1 === 1 ? 0.62 : 0.54, P1 = V0(dxs[j + 1] + 0.4 * sk * ks, ys[j + 1], dzs[j + 1] + 0.4 * sk * ks), e = sm((u - 0.55) / 0.45); return [lerp(P0[0], P1[0], e), lerp(P0[1], P1[1], e)]; };
+        const jf = (c - 1.9) / 0.7;
+        if (jf < 6) { const P = pos(jf); for (let i = 1; i <= 6; i++) { const q = pos(Math.max(0, jf - i * 0.05)); brille(q[0], q[1], 2.2 - i * 0.25, 0.9 - i * 0.12, false, now, 70 + i); }
+          brille(P[0], P[1], 5, 1, true, now, 77); const j = Math.floor(jf), u = jf - j; if (u < 0.6) mot(MOTS[j], P[0] - k * 0.05, P[1] - k * 0.13 - u * 10, Math.max(13, k * 0.075), 1 - u * 0.5, 'right'); }
+        else { const e = sm((c - 1.9 - 6 * 0.7) / 0.5), P0 = pos(5.99), P1 = [G.gauche - 20, P0[1] + k * 0.25]; const P = [lerp(P0[0], P1[0], e), lerp(P0[1], P1[1], e)]; trait([P0, P], false, 0.6, 0.8); brille(P[0], P[1], 5 * (1 - e * 0.5), 1, true, now, 77); }
+        if (c > 1.9 + 6 * 0.7 && !PAQUET.vu && window.Dex && Dex.vu) { PAQUET.vu = true; Dex.vu('paquet'); } }
       // les étiquettes, rangées de haut en bas sans se chevaucher
       let yl = -1e9; const gap = Math.max(15, k * 0.085), TY = EQ.map(R => (yl = Math.max(R[1], yl + gap)));
       // (vague 12) la colonne ne descend jamais sous le haut des sous-titres : si elle déborde, elle remonte d'un bloc
