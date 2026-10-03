@@ -801,8 +801,10 @@ S.equipe = (() => {
       // les gradins : chaque rang, son ellipse au sol (sa moitié du fond, puis sa moitié de devant, par-dessus lui)
       const al0 = c01((c - 0.6) / 0.8);
       [0, 1, 2, 3].forEach(i => { const f = P.find(q => q.i === i); if (!f) return; const L0 = [], L1 = [];
-        for (let u = 0; u <= 64; u++) { const t = u / 64 * TAU, q = [pied[0] + Math.cos(t) * f.rx * 1.04, pied[1] + Math.sin(t) * f.ry * 1.04 + f.dy + P.bot * 0.2]; (Math.sin(t) < 0 ? L0 : L1).push(q); }
-        derriere.push({ z: -10 - i, f: () => trait(L0, false, 0.5, 0.25 * al0) }); devant.push({ z: 10 + i, f: () => trait(L1, false, 0.5, 0.3 * al0) }); });
+        // (vague 160) chaque gradin se trace au stylo depuis le devant, des deux côtés à la fois, au lieu d'apparaître en fondu
+        if (al0 <= 0) return; const dem = Math.PI / 2, ouv = Math.PI * al0;
+        for (let u = 0; u <= 64; u++) { const t = dem - ouv + u / 64 * 2 * ouv, q = [pied[0] + Math.cos(t) * f.rx * 1.04, pied[1] + Math.sin(t) * f.ry * 1.04 + f.dy + P.bot * 0.2]; (Math.sin(t) < 0 ? L0 : L1).push(q); }
+        derriere.push({ z: -10 - i, f: () => L0.length > 1 && trait(L0, false, 0.5, 0.25) }); devant.push({ z: 10 + i, f: () => trait(L1, false, 0.5, 0.3) }); });
       P.forEach(f => {
         const t1 = 0.7 + f.o * 1.9, t2 = 6.1 + (1 - f.o) * 1.5; if (c < t1) return;
         const th = f.th + rot, sn = Math.sin(th), x = pied[0] + Math.cos(th) * f.rx, y = pied[1] + sn * f.ry + f.dy, prof2 = 0.72 + 0.28 * (sn + 1) / 2 + f.i * 0.05, r = P.bot * prof2;
@@ -829,8 +831,9 @@ S.equipe = (() => {
       // lui, debout sur un petit podium de papier au milieu de l'arène (au-dessus de tous) : le projecteur (seul au début, seul à la fin) ;
       // il dirige pendant que tout le monde s'agite ; il grossit de tous ceux qui rentrent
       const spot = Math.max(1 - c01((c - 0.7) / 0.5), c01((c - 7.9) / 0.4)), pw = rr0 * 1.5, pt = pied[1] - podH;
-      if (spot > 0) { const h = [pied[0], G.haut + 4]; style(0.6, spot * 0.5); ctx.beginPath(); ctx.moveTo(h[0] - G.s * 0.04, h[1]); ctx.lineTo(pied[0] - pw * 1.6, pied[1]); ctx.moveTo(h[0] + G.s * 0.04, h[1]); ctx.lineTo(pied[0] + pw * 1.6, pied[1]); ctx.stroke();
-        ctx.beginPath(); ctx.ellipse(pied[0], pied[1], pw * 1.6, pw * 0.3, 0, 0, TAU); ctx.stroke(); }
+      // (vague 160) le projecteur s'ouvre et se referme comme un diaphragme (son faisceau s'élargit, puis se pince en un trait) : plus de fondu
+      if (spot > 0.02) { const h = [pied[0], G.haut + 4], o = sm(spot), b = pw * 1.6 * o; style(0.6, 0.5); ctx.beginPath(); ctx.moveTo(h[0] - G.s * 0.04 * o, h[1]); ctx.lineTo(pied[0] - b, pied[1]); ctx.moveTo(h[0] + G.s * 0.04 * o, h[1]); ctx.lineTo(pied[0] + b, pied[1]); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(pied[0], pied[1], Math.max(1, b), Math.max(0.5, pw * 0.3 * o), 0, 0, TAU); ctx.stroke(); }
       cerne(() => { ctx.beginPath(); ctx.moveTo(pied[0] - pw, pt); ctx.lineTo(pied[0] - pw, pied[1]); ctx.ellipse(pied[0], pied[1], pw, pw * 0.26, 0, Math.PI, 0, true); ctx.lineTo(pied[0] + pw, pt); ctx.closePath(); }, 0.9, 1);
       cerne(() => { ctx.beginPath(); ctx.ellipse(pied[0], pt, pw, pw * 0.26, 0, 0, TAU); }, 0.9, 1);
       const dirige = c > 2.6 && c < 6.2;
@@ -854,7 +857,10 @@ S.equipe = (() => {
         if (n && rentre > 0 && c < 6.4) mot(String(n), px0 + cw * 0.75, pt - n * chh * 0.92 - chh, Math.max(11, G.s * 0.07), 0.9);
         if (n >= 12 && !LIVRE.vu && window.Dex && Dex.vu) { LIVRE.vu = true; Dex.vu('livrables'); } }
       devant.filter(d => d.z >= 90).forEach(d => d.f());
-      if (c > 0.7 && c < 2.6) { const j = Math.floor((c - 0.7) / 0.45), u = ((c - 0.7) % 0.45) / 0.45; mot('pop !', coeur[0] + (j % 2 ? -1 : 1) * G.s * (0.4 + 0.2 * bruit(j)), coeur[1] - G.s * (0.25 + 0.2 * bruit(j * 3)) - u * 12, Math.max(13, G.s * 0.1), 1 - u); }
+      if (c > 0.7 && c < 2.6) { const j = Math.floor((c - 0.7) / 0.45), u = ((c - 0.7) % 0.45) / 0.45; const px = Math.max(G.gauche + 30, Math.min(G.droite - 30, coeur[0] + (j % 2 ? -1 : 1) * G.s * (0.4 + 0.2 * bruit(j)))); let py = coeur[1] - G.s * (0.25 + 0.2 * bruit(j * 3)) - u * 12;
+        // (vague 160) jamais sur la planète des chats ni sous la barre du haut : le mot descend sous elle
+        if (pc && Math.abs(px - pc.x) < pc.r * 1.6 + 30 && Math.abs(py - pc.y) < pc.r * 1.4 + 14) py = pc.y + pc.r * 1.4 + 14; py = Math.max(G.haut + 16, py);
+        mot('pop !', px, py, Math.max(13, G.s * 0.1) * (1 + 0.3 * Math.sin(Math.PI * Math.min(1, u * 3))) * (1 - sm((u - 0.6) / 0.4) * 0.95), 1); }
       // (vague 139, l'audit : « l'équipe », originalité) : « là où il fallait une équipe de dix ». Le tourbillon fini, l'équipe qu'il aurait fallu
       // apparaît autour de lui en pointillés, dix silhouettes de développeurs penchés sur leur portable, une par une, un fil pointillé jusqu'à lui ;
       // puis elles rentrent en lui l'une après l'autre (elles rapetissent en filant, jamais de fondu), et chaque entrée fait monter le « ×10 »
@@ -863,7 +869,7 @@ S.equipe = (() => {
       if (c > GH.t0) for (let i = 0; i < 10; i++) { const ta = GH.t0 + i * GH.pas, te = GH.ent + i * GH.pe, ap = c01((c - ta) / 0.25), en1 = sm(c01((c - te) / 0.35)); if (ap <= 0) break; if (en1 >= 1) { entres++; continue; }
         const an = Math.PI * (1.1 + 0.8 * i / 9), x0 = coeur[0] + Math.cos(an) * Rg, y0 = coeur[1] + Math.sin(an) * ryG, x = lerp(x0, coeur[0], en1), y = lerp(y0, coeur[1], en1) - Math.sin(Math.PI * en1) * gh * 2,
           k = (0.4 + 0.6 * sm(ap) + 0.25 * Math.sin(Math.PI * c01(ap))) * (1 - en1 * 0.85), g = gh * k, hoche = Math.sin(now * 5 + i) * 0.08;
-        ctx.save(); ctx.setLineDash([g * 0.28, g * 0.32]); style(0.55, 0.5 * ap); ctx.beginPath(); ctx.moveTo(x, y + g * 0.6); ctx.lineTo(lerp(x, coeur[0], 0.82), lerp(y + g * 0.6, coeur[1], 0.82)); ctx.stroke();
+        ctx.save(); ctx.setLineDash([g * 0.28, g * 0.32]); style(0.55, 0.5); ctx.beginPath(); ctx.moveTo(x, y + g * 0.6); ctx.lineTo(lerp(x, coeur[0], 0.82 * sm(ap)), lerp(y + g * 0.6, coeur[1], 0.82 * sm(ap))); ctx.stroke();
           style(0.8, 0.95); ctx.translate(x, y); ctx.rotate(hoche);
           ctx.beginPath(); ctx.arc(0, -g * 1.25, g * 0.55, 0, TAU); ctx.stroke();   // la tête
           ctx.beginPath(); ctx.moveTo(-g * 0.95, g * 0.9); ctx.quadraticCurveTo(-g * 0.9, -g * 0.55, 0, -g * 0.55); ctx.quadraticCurveTo(g * 0.9, -g * 0.55, g * 0.95, g * 0.9); ctx.stroke();   // les épaules
@@ -871,7 +877,7 @@ S.equipe = (() => {
           ctx.restore(); }
       if (entres && !DIX.vu && entres >= 10 && window.Dex && Dex.vu) { DIX.vu = true; Dex.vu('dix-en-un'); }
       if (c > 7.9) { const u = sm((c - 7.9) / 0.5), nx = Math.max(1, entres), pop = c > GH.ent ? 1 + 0.18 * Math.max(0, 1 - ((c - GH.ent) % GH.pe) / GH.pe) * (entres < 10 ? 1 : 0) : 1;
-        eclat(coeur[0], coeur[1], G.s * 0.35, (c - 7.9) / 0.7, 12, 0.2); if (entres) mot('×' + nx, pied[0] + G.s * 0.55, coeur[1] - G.s * 0.2, Math.max(22, G.s * 0.26) * (0.6 + 0.4 * u) * pop, u); }
+        eclat(coeur[0], coeur[1], G.s * 0.35, (c - 7.9) / 0.7, 12, 0.2); if (entres) mot('×' + nx, pied[0] + G.s * 0.55, coeur[1] - G.s * 0.2, Math.max(22, G.s * 0.26) * (0.1 + 0.9 * u + 0.15 * Math.sin(Math.PI * u)) * pop, 0.95); }
     }
   };
 })();
