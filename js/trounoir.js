@@ -85,6 +85,7 @@ function photo(cx, cy, R) {
     const s = getComputedStyle(e); x.font = `${s.fontWeight} ${s.fontSize} ${s.fontFamily}`; x.fillStyle = s.color; x.textAlign = 'center'; x.textBaseline = 'middle';
     if ('letterSpacing' in x) x.letterSpacing = s.letterSpacing;
     x.fillText(e.textContent.trim().toUpperCase(), r.left + r.width / 2, r.top + r.height / 2 + 1); });
+  c.bord = v('--bp-deep');
   return c;
 }
 
@@ -150,6 +151,9 @@ function dessineTrou(u) {
     if (gb < 0.3) continue;
     ctx.save(); ctx.translate(cx, cy);
     ctx.beginPath(); ctx.arc(0, 0, gb + 0.8, 0, TAU); if (ga > 0.8) ctx.arc(0, 0, ga - 0.8, 0, TAU, true); ctx.clip();
+    // (vague 182 de l'audit : « le trou noir ») : la photo, écrasée en hauteur (ky), ne couvrait plus le bord de son anneau : chaque anneau, tourné
+    // autrement, laissait voir le noir en dents de scie ; le papier du bord de la page remplit d'abord l'anneau
+    if (snap.bord) { ctx.fillStyle = snap.bord; ctx.fill(); }
     ctx.rotate(th); ctx.scale(f, f * ky); ctx.drawImage(snap, -R, -R, 2 * R, 2 * R); ctx.restore();
   }
   // le trou : il s'ouvre, respire, avale ; à la fin il se referme en un point
