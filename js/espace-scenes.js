@@ -1174,7 +1174,7 @@ S.bench = (() => {
       // (vague 140, l'audit : « la course », immersion) : la caméra suit la course comme une retransmission : pendant la course, elle pivote
       // pour garder la tête de course face à nous, plonge un peu plus bas sur la piste et s'approche ; à l'arrivée, elle revient sur le podium
       const cS = a % 7.5, goS = c01((cS - 1.1) / 3.4), suivi = sm(c01((cS - 0.9) / 0.6)) * (1 - sm(c01((cS - 4.6) / 0.9)));
-      let [k, lx] = large(1.5, 2.1), oyb = -0.14; k *= 1 + 0.07 * suivi; const lac0 = 0.3 + Math.sin(a * 0.15) * 0.15 + suivi * (G.s > 300 ? 0.28 : 0.42) * Math.sin(goS * Math.PI * 3), tan0 = -0.46 + 0.09 * suivi; let V = cam(lac0, tan0, k, 0, oyb);
+      let [k, lx] = large(1.5, 2.1), oyb = -0.14; k *= 1 + 0.07 * suivi; const lac0 = 0.3 + Math.sin(a * 0.15) * 0.15 + suivi * (G.s > 300 ? 0.28 : 0.42) * Math.sin(goS * Math.PI * 3), tan0 = (G.droite < 600 ? -0.78 : -0.46) + 0.09 * suivi; let V = cam(lac0, tan0, k, 0, oyb);
       for (let pas = 0; pas < 2; pas++) { const Rx0 = Math.min(1.55, lx * 0.82), bords = [0, 0.8, 1.6, 2.4].map(t => V(Math.cos(Math.PI / 2 + t * 0.5) * Rx0 * 1.2, 0, Math.sin(Math.PI / 2 + t * 0.5) * 0.62 * 1.2)[1]).concat([0, 0.8, 1.6].map(t => V(Math.cos(Math.PI / 2 - t * 0.5) * Rx0 * 1.2, 0, Math.sin(Math.PI / 2 - t * 0.5) * 0.62 * 1.2)[1])),
           f = Math.max(...bords) + k * 0.03, lim = (G.caps || G.bas) - 4, c0 = V(0, 0, 0)[1];
         if (f <= lim) break;
@@ -1203,7 +1203,7 @@ S.bench = (() => {
       if (!fin) cour.slice().sort((p, q) => p.p[2] - q.p[2]).forEach(({ i, t, d, p }) => {
         const al = 1, dir = piste(t + 0.05, i), ang = Math.atan2(dir[1] - p[1], dir[0] - p[0]), r = k * 0.125 * p[3], roule = go > 0 && d < 1; void r;
         // la traînée : des étoiles derrière la fusée
-        if (roule) for (let j = 1; j <= 7; j++) { const q = piste(t - j * 0.06, i); brille(q[0], q[1] - r * 0.4, 1.6 + (7 - j) * 0.25, al * (1 - j / 8), false, now, i * 9 + j); }
+        if (roule) for (let j = 1; j <= 7; j++) { const q = piste(t - j * 0.06, i); brille(q[0], q[1] - r * 0.4, (1.6 + (7 - j) * 0.25) * (1 - j / 9), al, false, now, i * 9 + j); }
         // la fusée de papier : un fuseau, un aileron, la flamme qui bat
         ctx.save(); ctx.translate(p[0], p[1] - r * 0.45); ctx.rotate(ang);
         if (roule) cerne(() => { ctx.beginPath(); const f = 1 + Math.sin(now * 30 + i) * 0.25; ctx.moveTo(-r * 1.2, -r * 0.22); ctx.quadraticCurveTo(-r * (1.6 + f), 0, -r * 1.2, r * 0.22); ctx.closePath(); }, 0.55, al);
@@ -1232,7 +1232,7 @@ S.bench = (() => {
         if (PARI.i >= 0 && PARI.n === n) { const ord = cour.slice().sort((p, q) => q.d - p.d || rang.indexOf(p.i) - rang.indexOf(q.i)); PARI.rg = go > 0 ? ord.findIndex(q => q.i === PARI.i) + 1 : 0;
           if (fin && PARI.res === null) { PARI.res = PARI.i === g; pariResout(now); } } }
       // 3, 2, 1, go
-      if (c < 1.35) { const w = c < 0.3 ? '3' : c < 0.6 ? '2' : c < 0.9 ? '1' : 'go !', u = c < 0.9 ? (c % 0.3) / 0.3 : (c - 0.9) / 0.45, C = V(0, -0.45, 0); mot(w, C[0], C[1], Math.max(24, k * 0.26) * (1.3 - u * 0.3), 1 - u * 0.6); }
+      if (c < 1.35) { const w = c < 0.3 ? '3' : c < 0.6 ? '2' : c < 0.9 ? '1' : 'go !', u = c < 0.9 ? (c % 0.3) / 0.3 : (c - 0.9) / 0.45, C = V(0, -0.45, 0); mot(w, C[0], C[1], Math.max(24, k * 0.26) * (1.3 - u * 0.3) * (c < 0.9 ? 1 : 1 - sm((u - 0.55) / 0.45) * 0.95), 1); }
       // le chrono de papier, au milieu de l'anneau : sa couronne, son aiguille
       { const ch = V(0, -0.2, 0), rc = k * 0.13; cerne(() => { ctx.beginPath(); ctx.arc(ch[0], ch[1], rc, 0, TAU); }, 1, 1); cerne(() => { ctx.beginPath(); ctx.rect(ch[0] - rc * 0.14, ch[1] - rc * 1.35, rc * 0.28, rc * 0.3); }, 0.8, 1);
         ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.45; for (let j = 0; j < 12; j++) { const t = j / 12 * TAU; ctx.beginPath(); ctx.moveTo(ch[0] + Math.cos(t) * rc * 0.72, ch[1] + Math.sin(t) * rc * 0.72); ctx.lineTo(ch[0] + Math.cos(t) * rc * 0.86, ch[1] + Math.sin(t) * rc * 0.86); ctx.stroke(); }
@@ -1248,9 +1248,11 @@ S.bench = (() => {
       // la ligne d'arrivée en pointillé ; elle reste le temps de lire, puis remonte d'où elle vient (jamais de fondu)
       if (c > 4.45 && c < 7.3) { const ph = V(0, 0, 0), arr = piste(T0, 2), e0 = c01((c - 4.45) / 0.35), en0 = en();
         if (e0 < 1) { style(0.8, 1); for (let j = 0; j < 10; j++) { const an = j / 10 * TAU, r0 = k * 0.05 + e0 * k * 0.18, r1 = r0 + k * 0.08 * (1 - e0); ctx.beginPath(); ctx.moveTo(arr[0] + Math.cos(an) * r0, arr[1] + Math.sin(an) * r0 * 0.7); ctx.lineTo(arr[0] + Math.cos(an) * r1, arr[1] + Math.sin(an) * r1 * 0.7); ctx.stroke(); } void ph; }
-        large0 = G.droite - G.gauche > 700, W0 = large0 ? Math.min(430, (G.droite - G.gauche) * 0.34) : Math.min((G.droite - G.gauche) * 0.8, k * 1.5, 520), H0 = Math.min(160, Math.max(128, k * 0.62)), x0 = large0 ? G.gauche + 4 : Math.max(G.gauche + 2, G.cx - W0 * 0.56),   // (au bureau : sur le côté, le podium reste visible)
+        large0 = G.droite - G.gauche > 700, W0 = large0 ? Math.min(430, (G.droite - G.gauche) * 0.34) : Math.min((G.droite - G.gauche) * 0.8, k * 1.5, 520), H0 = Math.min(160, Math.max(128, k * 0.62)), bdS = Math.min(90, (G.droite + 16) * 0.1) + 6, x0 = Math.max(bdS, large0 ? G.gauche + 4 : Math.max(G.gauche + 2, G.cx - W0 * 0.56)),   // (vague 161 : hors de la bande où la scène s'estompe sur les côtés, sinon le papier y devenait gris)
+            // (au bureau : sur le côté, le podium reste visible)
           vin = sm((c - 4.6) / 0.4), vout = sm((c - 6.8) / 0.45), y0 = G.haut + 6 - (1 - vin) * (H0 + 40) - vout * (H0 + 40);
-        if (vin > 0 && vout < 1) { const fs = Math.max(10, Math.min(15, k * 0.06)), gauche = x0 + fs * 0.8, droite = x0 + W0 - fs * 0.8, ligne = droite - fs * 1.6;
+        if (vin > 0 && vout < 1) { sousLaBarre();   // (vague 161) elle sort de sous la barre du haut et y rentre, comme d'une fente : jamais par-dessus
+          const fs = Math.max(10, Math.min(15, k * 0.06)), gauche = x0 + fs * 0.8, droite = x0 + W0 - fs * 0.8, ligne = droite - fs * 1.6;
           const ecart = NOMS.map((_, i) => (Math.max(...v) / v[i] - 1) * 3.4), emax = Math.max(0.3, ...ecart), px = (ligne - gauche - fs * 6) / emax;
           cerne(() => { ctx.beginPath(); ctx.rect(x0, y0, W0, H0); }, 0.8, 1);
           // les perforations du film, en haut et en bas
@@ -1271,7 +1273,7 @@ S.bench = (() => {
             ctx.textAlign = 'right'; ctx.fillText(lab, xx - r * 2.1, yy + 0.5);
             if (j === 0) coche(ligne + fs * 0.9, yy, fs * 0.45, (c - 5.0) / 0.3, 1); });
           ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-          if (vin >= 1 && !PHOTO.vu && window.Dex && Dex.vu) { PHOTO.vu = true; Dex.vu('photo-finish'); } } }
+          if (vin >= 1 && !PHOTO.vu && window.Dex && Dex.vu) { PHOTO.vu = true; Dex.vu('photo-finish'); } ctx.restore(); } }
     }
   };
 })();
