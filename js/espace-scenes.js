@@ -722,9 +722,11 @@ function sousLaBarre() { ctx.save(); ctx.beginPath(); ctx.rect(0, G.haut - 4, G.
 const UI = Array.from({ length: 40 }, (_, i) => ({ x: (i % 2 ? 1 : -1) * (0.5 + bruit(i * 7.3) * 0.5), y: bruit(i * 3.1) * 2 - 1, z: bruit(i * 5.7), t: i % 6, ph: bruit(i * 9.1) * TAU }));
 function uiNuee(now, e) {
   if (e <= 0) return; const HW = (G.droite - G.gauche) / 2, top = G.haut + 10, bas = G.caps, bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
-  UI.map(q => { const z = (q.z + now * 0.045) % 1, f = 0.35 + z * z * 1.6; return { q, z, f, x: G.cx + q.x * HW * (0.62 + 0.4 * z), y: (top + bas) / 2 + q.y * (bas - top) / 2 * (0.6 + 0.45 * z) }; })
+  UI.map(q => { const z = (q.z + now * 0.045) % 1, f = 0.3 + z * z * 1.05; return { q, z, f, x: G.cx + q.x * HW * (0.62 + 0.4 * z), y: (top + bas) / 2 + q.y * (bas - top) / 2 * (0.6 + 0.45 * z) }; })
     .sort((A, B) => A.z - B.z).forEach(({ q, z, f, x, y }) => {
-      const s = G.s * 0.1 * f, al = e * Math.min(1, z * 4, (1 - z) * 5); if (al <= 0.02 || y - s < top || y + s > bas) return;
+      // (vague 145, l'audit : « front », design) : ils ne s'estompent plus en gris (des fantômes boueux au bord du ciel) : ils naissent petits
+      // au fond, grossissent en venant vers nous et, au bout, rapetissent jusqu'à rien en filant vers les bords ; toujours nets, encre et papier
+      const gr = sm(Math.min(1, z * 4, (1 - z) * 5)), s = G.s * 0.1 * f * gr, al = e; if (gr <= 0.03 || al <= 0.02 || y - s < top || y + s > bas) return;
       if (bd && x + s * 2 > bd.x && x - s * 2 < bd.x + bd.w && y + s > bd.y && y - s < bd.y + bd.h) return;
       if (Pc && Math.hypot(x - Pc.x, y - Pc.y) < Pc.r * 1.3 + s * 2) return;
       const t = now * 1.1 + q.ph, on = Math.sin(t) > 0, g = sm(c01(Math.sin(t) * 3 + 0.5));
