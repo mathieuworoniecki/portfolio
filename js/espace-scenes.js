@@ -1898,11 +1898,22 @@ S.devops = (() => ({
           ctx.globalAlpha = 1; ctx.fillStyle = ENC; ctx.beginPath(); ctx.arc(h[0], h[1], sb * 1.3, 0, TAU); ctx.fill(); style(1, 1); ctx.strokeStyle = '#ff8a7a'; ctx.beginPath(); ctx.moveTo(h[0] - sb * 0.6, h[1] - sb * 0.6); ctx.lineTo(h[0] + sb * 0.6, h[1] + sb * 0.6); ctx.moveTo(h[0] + sb * 0.6, h[1] - sb * 0.6); ctx.lineTo(h[0] - sb * 0.6, h[1] + sb * 0.6); ctx.stroke(); return; }
         if (tr < 8) return; }
       prisme((u, v, d) => c(u, d, v), [[-0.08, 0], [0.08, 0], [0.08, -0.09], [-0.08, -0.09]], 0.1, prof(c(0, 0, 0)[2], 1), 0.6);
+      // (vague 154 de l'audit : « DevOps », design) : de vrais conteneurs maritimes : la tôle ondulée sur le flanc qu'on voit, les deux portes
+      // au bout qui nous fait face (leur fente, les barres de verrouillage), un liseré en haut
+      { const L = Math.hypot(c(0.08, 0, 0)[0] - c(-0.08, 0, 0)[0], c(0.08, 0, 0)[1] - c(-0.08, 0, 0)[1]);
+        if (L > 16) { const sw = c(0, 0.05, -0.045)[2] > c(0, -0.05, -0.045)[2] ? 0.05 : -0.05, su = c(0.08, 0, -0.045)[2] > c(-0.08, 0, -0.045)[2] ? 0.08 : -0.08, seg2 = (A, B) => { ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); };
+          ctx.globalAlpha = 1; ctx.strokeStyle = ENC; ctx.lineCap = 'round'; ctx.lineWidth = Math.max(0.6, G.lw * 0.3); ctx.beginPath();
+          for (let i = 1; i < 8; i++) { const u = -0.08 + i * 0.02; seg2(c(u, sw, -0.012), c(u, sw, -0.08)); }
+          seg2(c(-0.075, sw, -0.084), c(0.075, sw, -0.084));
+          seg2(c(su, 0, -0.008), c(su, 0, -0.084)); [-0.03, -0.012, 0.012, 0.03].forEach(w => seg2(c(su, w, -0.014), c(su, w, -0.08))); ctx.stroke();
+          ctx.lineWidth = Math.max(0.7, G.lw * 0.45); ctx.beginPath(); [-1, 1].forEach(g => { const h = c(su, g * 0.006, -0.045); ctx.moveTo(h[0], h[1]); ctx.arc(h[0], h[1], Math.max(0.7, L * 0.012), 0, TAU); }); ctx.stroke(); } }
       if (q === 0) { const h = c(0, 0, -0.09), r = k * 0.05 * h[3]; chabot(h[0], h[1] - r * 1.7, r, { now, v: 1, lac: 0.5, bras: [1.3, 1.3] }); } });
     // le monitoring : un écran, son pouls qui défile
     // (vague 42, l'audit : « devops », finition) : l'étiquette ne sort jamais de l'écran, et un liseré d'encre la détache des portiques
     ST.forEach((t, i) => { const p = at(t), m = V(p[0], p[1] - 0.47, p[2]), px = Math.max(11, k * 0.08); ctx.font = `600 ${px}px "Space Grotesk",system-ui,sans-serif`;
       const w2 = ctx.measureText(lab[i]).width / 2 + 4, x = Math.max(G.gauche + w2, Math.min(G.droite - w2, m[0]));
+      // (vague 154 : une étiquette ne se pose jamais sur la planète-chat : elle descend sous son anneau)
+      { const Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat; if (Pc && Math.abs(x - Pc.x) < Pc.r * 1.3 + w2 && Math.abs(m[1] - Pc.y) < Pc.r * 1.3 + px) m[1] = Pc.y + Pc.r * 1.3 + px; }
       ctx.globalAlpha = 1; ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, px * 0.32); ctx.strokeStyle = 'rgb(9,11,18)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.strokeText(lab[i], x, m[1]);
       mot(lab[i], x, m[1], px, 1); });
     if (tr > 5.1 && tr < 6.7) { const e = Math.sin(Math.PI * c01((tr - 5.1) / 1.6)), L = 10, ofs = (tr - 5.1) * 0.9;   // les flèches du retour arrière, à rebours, tout autour de la boucle
