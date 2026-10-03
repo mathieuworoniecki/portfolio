@@ -748,7 +748,8 @@ function uiNuee(now, e) {
     .sort((A, B) => A.z - B.z).forEach(({ q, z, f, x, y }) => {
       // (vague 145, l'audit : « front », design) : ils ne s'estompent plus en gris (des fantômes boueux au bord du ciel) : ils naissent petits
       // au fond, grossissent en venant vers nous et, au bout, rapetissent jusqu'à rien en filant vers les bords ; toujours nets, encre et papier
-      const gr = sm(Math.min(1, z * 4, (1 - z) * 5)), s = G.s * 0.1 * f * gr, al = e; if (gr <= 0.03 || al <= 0.02 || y - s < top || y + s > bas) return;
+      // (vague 165) ils arrivent en grandissant, à pleine encre : avant, ils entraient en fondu et passaient par le gris
+      const gr = sm(Math.min(1, z * 4, (1 - z) * 5)), s = G.s * 0.1 * f * gr * sm(e), al = 1; if (gr <= 0.03 || e <= 0.02 || y - s < top || y + s > bas) return;
       if (bd && x + s * 2 > bd.x && x - s * 2 < bd.x + bd.w && y + s > bd.y && y - s < bd.y + bd.h) return;
       if (Pc && Math.hypot(x - Pc.x, y - Pc.y) < Pc.r * 1.3 + s * 2) return;
       const t = now * 1.1 + q.ph, on = Math.sin(t) > 0, g = sm(c01(Math.sin(t) * 3 + 0.5));
