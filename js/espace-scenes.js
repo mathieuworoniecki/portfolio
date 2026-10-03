@@ -1488,15 +1488,19 @@ S.puce = (() => {
     const pousse = sm(a / 2.2) * (1 - ferme * 0.9); if (pousse < 0.01) return;
     sousLaBarre(); ctx.beginPath(); ctx.rect(-1e4, G.haut - 4, 2e4, (G.caps || G.bas) - G.haut + 4); ctx.clip();
     const au = (R, l) => { let k = 1; while (k < R.cum.length - 1 && R.cum[k] < l) k++; const q = c01((l - R.cum[k - 1]) / ((R.cum[k] - R.cum[k - 1]) || 1)); return [lerp(R.P[k - 1][0], R.P[k][0], q), lerp(R.P[k - 1][1], R.P[k][1], q)]; };
-    const ok = z => z < 1.3;
+    const ok = z => z < 1.3, limB0 = (G.caps || G.bas) - 10;
     PISTES.forEach((R, i) => {
       const lv = R.L * pousse, pts = []; for (let k = 0; k < R.P.length; k++) { if (R.cum[k] > lv) { pts.push(au(R, lv)); break; } pts.push(R.P[k]); }
-      const S = pts.filter(q => ok(q[1])).map(([x, z]) => V0(x, yP, z)); if (S.length < 2) return; const al = prof(S[S.length - 1][2], 0.95);
+      // (vague 143, finition : la carte mère s'arrêtait sur une règle, coupée net au-dessus des sous-titres ; chaque piste s'arrête maintenant
+      // d'elle-même avant la limite, sur une pastille, comme une vraie piste qui plonge dans la carte)
+      const S0 = pts.filter(q => ok(q[1])).map(([x, z]) => V0(x, yP, z)), S = [], limB = limB0 - bruit(i * 9.7) * G.s * 0.22; let coupe = false;
+      for (let q = 0; q < S0.length; q++) { const P = S0[q]; if (P[1] <= limB) { S.push(P); continue; } if (q) { const A = S0[q - 1], u = (limB - A[1]) / ((P[1] - A[1]) || 1); S.push([lerp(A[0], P[0], u), limB, P[2], P[3]]); } coupe = true; break; }
+      if (S.length < 2) return; const al = prof(S[S.length - 1][2], 0.95); if (coupe) { const E = S[S.length - 1]; rond(E[0], E[1], 1.8, 0.5, al, 'nuit'); }
       trait(S, false, 0.75, al); const b = V0(R.P[0][0], yP, R.P[0][1]); rond(b[0], b[1], 1.2, 0.4, al, true);
       // le composant au bout : une petite puce (une boîte) ou une pastille
-      if (lv >= R.L - 1e-3) { const [ex, ez] = R.P[R.P.length - 1]; if (!ok(ez)) return; if (R.comp) boite3(V0, ex - 0.09, ex + 0.09, yP, yP - 0.05, ez - 0.07, ez + 0.07, 0.6, al); else { const q = V0(ex, yP, ez); rond(q[0], q[1], 2.2 * q[3], 0.5, al, true); } }
+      if (lv >= R.L - 1e-3 && !coupe) { const [ex, ez] = R.P[R.P.length - 1]; if (!ok(ez)) return; if (R.comp) boite3(V0, ex - 0.09, ex + 0.09, yP, yP - 0.05, ez - 0.07, ez + 0.07, 0.6, al); else { const q = V0(ex, yP, ez); rond(q[0], q[1], 2.2 * q[3], 0.5, al, true); } }
       // les paquets : du bout vers la puce (les données qui arrivent), un sur deux dans l'autre sens
-      const v = fr(now * R.v / Math.max(0.6, R.L) + R.ph), l = (i % 2 ? v : 1 - v) * lv, [px, pz] = au(R, l); if (!ok(pz)) return; const q = V0(px, yP, pz); brille(q[0], q[1], 1.3 + q[3], al * 1.2, false, now, i);
+      const v = fr(now * R.v / Math.max(0.6, R.L) + R.ph), l = (i % 2 ? v : 1 - v) * lv, [px, pz] = au(R, l); if (!ok(pz)) return; const q = V0(px, yP, pz); if (q[1] > limB0) return; brille(q[0], q[1], 1.3 + q[3], al * 1.2, false, now, i);
     });
     ctx.restore();
   }
@@ -1507,7 +1511,9 @@ S.puce = (() => {
     dessin(a, now) {
       const [k] = large(2, 2.4), lab = LAB(), Cy = 8, c = a % Cy, ferme = c > 6 && c < 7 ? Math.sin(Math.PI * (c - 6)) : 0;
       // (en escalier : chaque couche décalée en biais, pour qu'on voie l'objet posé sur chacune)
-      const V0 = cam(0.35 + Math.sin(a * 0.2) * 0.25, -0.5, k * 0.93, -0.12, 0.02), ec = sm(a / 1.6) * (1 - ferme * 0.92), th = 0.05, ks = 0.62;
+      // (vague 143, l'audit : « la puce », design) : au téléphone, la pile était posée tout en bas, le haut du ciel vide, et les étiquettes mordaient
+      // sur l'escalier ; elle remonte au milieu du ciel et se décale à gauche, pour laisser aux étiquettes leur colonne
+      const tel = G.sw < 500, V0 = cam(0.35 + Math.sin(a * 0.2) * 0.25, -0.5, k * (tel ? 0.86 : 0.93), tel ? -0.3 : -0.12, tel ? -0.2 : 0.02), ec = sm(a / 1.6) * (1 - ferme * 0.92), th = 0.05, ks = 0.62;
       // (vague 3) une couche après l'autre se soulève et s'allume, de haut en bas : on voit enfin ce que porte chacune
       const act = c > 1.9 && c < 6.1 ? Math.min(5, Math.floor((c - 1.9) / 0.7)) : -1, lev0 = lab.map((l, j) => j === act ? Math.sin(Math.PI * c01((c - 1.9 - j * 0.7) / 0.7)) : 0);
       // (vague 59 de l'audit, « la puce », immersion) : on ouvre soi-même les tiroirs. La souris sur une étiquette (ou sur le coin d'une couche)
