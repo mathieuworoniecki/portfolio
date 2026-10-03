@@ -1931,6 +1931,7 @@ S.devops = (() => ({
 // sécurité & qualité : un dôme en 3D (méridiens, parallèles) posé sur les données (un cadenas) ; au sol, le radar balaie ;
 // ce qui arrive du dehors frappe le dôme : une onde se propage à sa surface, la menace éclate ; le compteur des bloqués monte
 const RX = { vu: false };
+const CAD = { t: -9 };
 S.secu = (() => ({
   cles: () => [0, 1, 2, 3, 4, 5].map(i => [Math.cos(i / 6 * TAU) * 0.6, Math.sin(i / 6 * TAU) * 0.6]),
   dessin(a, now) {
@@ -1942,8 +1943,17 @@ S.secu = (() => ({
     for (let j = 0; j < 10; j++) { const t = j / 10 * TAU, L = []; for (let i = 0; i <= 12; i++) { const f = i / 12 * Math.PI / 2; L.push(V(Math.cos(t) * R * Math.cos(f), -R * Math.sin(f), Math.sin(t) * R * Math.cos(f))); } trait3(L, 0.7, 0.9); }
     trait3(anneau(V, R, 0, 48), 1.3, 1);
     // le cadenas
-    const c0 = V(0, -0.12, 0), s = k * 0.12; cerne(() => { ctx.beginPath(); ctx.arc(c0[0], c0[1] - s * 0.1, s * 0.62, Math.PI, 0); }, 1.6, 1, null); cerne(() => { ctx.beginPath(); ctx.rect(c0[0] - s, c0[1] - s * 0.1, 2 * s, 1.5 * s); }, 1, 1);
-    ctx.fillStyle = ENC; ctx.beginPath(); ctx.arc(c0[0], c0[1] + s * 0.5, s * 0.16, 0, TAU); ctx.fill(); ctx.fillRect(c0[0] - s * 0.06, c0[1] + s * 0.5, s * 0.12, s * 0.4);
+    // (vague 155 de l'audit : « sécurité », design) : un vrai cadenas en volume, qui tourne avec la scène : le corps épais (bloc de papier),
+    // l'anse en arceau (deux traits, l'avant et l'arrière du métal), la serrure et ses quatre rivets sur la face qui nous regarde ; il tressaute
+    // un peu à chaque menace qui frappe le dôme (le claquement de l'anse)
+    { const cl = Math.max(0, 1 - (now - (CAD.t || -9)) / 0.25) * 0.012, zf = V(0, -0.11, 0.065)[2] > V(0, -0.11, -0.065)[2] ? 0.065 : -0.065;
+      const ans = dz => { const L = []; for (let i = 0; i <= 16; i++) { const t = i / 16 * Math.PI; L.push(V(Math.cos(t) * 0.095, -0.2 - cl - Math.sin(t) * 0.13, dz)); } return L; };
+      [-zf * 0.4, zf * 0.4].sort((p, q) => V(0, -0.25, p)[2] - V(0, -0.25, q)[2]).forEach(dz => { const L = ans(dz); cerne(() => { ctx.beginPath(); L.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); }, 2.4, 1, null); });
+      bloc(V, -0.145, 0.145, -0.02, -0.21, -0.065, 0.065, 1, 1);
+      const P = (x, y) => V(x, y, zf), h = P(0, -0.135), u = Math.hypot(P(0.1, -0.1)[0] - P(-0.1, -0.1)[0], P(0, -0.2)[1] - P(0, -0.1)[1]) / 0.2 * 0.012;
+      ctx.globalAlpha = 1; ctx.fillStyle = ENC; ctx.beginPath(); ctx.arc(h[0], h[1], u * 2.2, 0, TAU); ctx.fill(); const b0 = P(-0.007, -0.135), b1 = P(0.007, -0.085); ctx.beginPath(); ctx.moveTo(b0[0], b0[1]); ctx.lineTo(P(0.007, -0.135)[0], P(0.007, -0.135)[1]); ctx.lineTo(b1[0], b1[1]); ctx.lineTo(P(-0.007, -0.085)[0], P(-0.007, -0.085)[1]); ctx.closePath(); ctx.fill();
+      [[-0.12, -0.04], [0.12, -0.04], [-0.12, -0.19], [0.12, -0.19]].forEach(([x, y]) => { const q = P(x, y); ctx.beginPath(); ctx.arc(q[0], q[1], Math.max(1, u * 0.7), 0, TAU); ctx.fill(); });
+      ctx.strokeStyle = ENC; ctx.lineWidth = Math.max(0.6, G.lw * 0.35); ctx.beginPath(); const e0 = P(-0.13, -0.17), e1 = P(0.13, -0.17); ctx.moveTo(e0[0], e0[1]); ctx.lineTo(e1[0], e1[1]); ctx.stroke(); }
     { const g = V(0.4, 0, 0.25), r = k * 0.075 * g[3]; chabot(g[0], g[1] - r * 1.75, r, { now, v: 2, lac: Math.sin(now * 0.6) * 0.9, travaille: true, bras: [0.9 + Math.sin(now * 4) * 0.3, -0.3] }); }
     // les menaces (vague 15 de l'audit : « quelques cailloux près du dôme ») : une pluie qui vient de tout le ciel, de loin, par dizaines
     const T = 2.4, NQ = G.cx * 2 < 700 ? 9 : 14; let bloq = 0;
@@ -1955,7 +1965,7 @@ S.secu = (() => ({
     for (let q = 0; q < NQ; q++) { const tt = a + q * T / NQ, t = tt % T, n = Math.floor(tt / T), th = bruit(q * 7 + n * 13) * TAU, ph = 0.2 + bruit(q * 3 + n * 5) * 1.1, dir = [Math.cos(th) * Math.cos(ph), -Math.sin(ph), Math.sin(th) * Math.cos(ph)];
       bloq += n; const pt = d => V(dir[0] * d, dir[1] * d, dir[2] * d);
       if (t < 1.2) { const d = lerp(4.2, R, sm(t / 1.2) * 0.4 + t / 1.2 * 0.6), p = pt(d), p0 = pt(d + 0.3); trait([p0, p], false, 0.9, 0.9); caillou(p[0], p[1], k * 0.08 * p[3], Math.sin(now * 3 + q) * 0.3, q * 7 + n, 1, true); }
-      else if (t < 2.2) { const u = (t - 1.2) / 1, p = pt(R); eclat(p[0], p[1], 12, u, 7, th);
+      else if (t < 2.2) { const u = (t - 1.2) / 1, p = pt(R); if (u < 0.05) CAD.t = now; eclat(p[0], p[1], 12, u, 7, th);
         // (vague 7) repoussé : le petit méchant rebondit sur le dôme et repart en tournoyant, sonné
         if (u < 0.8) { const b0 = pt(R), e = sm(u / 0.8), r0 = k * 0.08 * b0[3] * (1 - e * 0.55), bx = lerp(b0[0], jm[0], e), by = lerp(b0[1], jm[1], e) - Math.sin(e * Math.PI) * k * 0.45;
           caillou(bx, by, r0, u * 9, q * 7 + n, 1, true); if (u < 0.35) mot(pick2(['paf', 'bonk', 'toc'], q + n), b0[0], b0[1] - r0 * 2.2, Math.max(10, k * 0.06) * Math.max(0.05, 1 - u * 2.5), 1); }   // (vague 148 : le mot rapetisse, il ne s'estompe plus)
