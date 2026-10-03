@@ -383,7 +383,11 @@ X.fond.push((ctx, now) => {
   const gT = C && !pts && !reduit && dt < 3 ? eio(c01((dt - 0.1) / 0.45)) * (1 - eio(c01((dt - 1.35) / 0.6))) : 0, clin = c01((dt - 0.8) / 0.12) * (1 - c01((dt - 1.12) / 0.12));
   const calme = Math.max(calme0, gT);
   // (la tête tient entre la barre des chapitres et les sous-titres : jamais sur eux)
-  const bas = (bd ? bd.y : G.caps || G.bas || H * 0.7) - 14, KT = Math.min(E.K * 0.62, W * 0.4, (bas - haut - 10) / 2.05), YT = haut + 10 + KT * 1.14;
+  const bas = (bd ? bd.y : G.caps || G.bas || H * 0.7) - 14; let KT = Math.min(E.K * 0.62, W * 0.4, (bas - haut - 10) / 2.05), YT = haut + 10 + KT * 1.14;
+  // (vague 186, finition : au téléphone, l'oreille droite de la grande tête passait sur la planète chat, deux têtes de chat l'une sur l'autre ;
+  // si la planète est dans la largeur de la tête, la tête descend sous elle, quitte à être un peu plus petite)
+  { const Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat; if (Pc && Pc.x - Pc.r * 1.2 < mx + KT * 1.1 && Pc.x + Pc.r * 1.2 > mx - KT * 1.1 && Pc.y + Pc.r * 1.2 > YT - KT * 1.2) {
+    const h0 = Math.max(haut + 10, Pc.y + Pc.r * 1.2 + 6), k2 = Math.min(KT, (bas - h0) / 2.05); if (k2 > KT * 0.6) { KT = k2; YT = h0 + KT * 1.14; } } }
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.strokeStyle = 'rgb(236,240,255)';
   for (let i = 0; i < N; i++) {
     const r = R[i], j = i * 4; o.s = 1; o.a = 1; o.t = 0; o.p2 = 0; f(r, o);
