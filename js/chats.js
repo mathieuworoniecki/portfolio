@@ -1640,9 +1640,14 @@ function vacFrame(dt) {
   Wd.props.slice().forEach(it => { if (!it.suck) return; const q = Math.min(1, (Wd.t - it.suck.t0) / 0.7), e = q * q;
     it.fx = it.suck.fx + (mx / Wd.W - it.suck.fx) * e; it.lift = it.suck.lift + (floorAt(it.d) - my - it.suck.lift) * e; it.tilt = (it.tilt || 0) + dt * 9; it.big = it.suck.big * (1 - 0.8 * e); it.fade = it.fadeT = 1;   // (il rapetisse en s'engouffrant, il ne s'efface pas)
     Wd.cats.forEach(c => { if (c.perch && c.perch.it === it) { interrupt(c); c.fall = true; c.vy = -sOf(it.d); say(c, '!!'); } });
-    if (q >= 1) { it.big = it.suck.big; it.suck = null; if (V.grand) { it.ventre = true; V.ventre.push(it); } else if (it.launched || !it.home) unprop(it); else goHome(it); } });
-  Wd.kib.forEach(k => { if (!k.suck) return; const q = Math.min(1, (Wd.t - k.suck) / 0.45); k.rest = true; k.x = k.sx + (mx - k.sx) * q * q; k.y = k.sy + (my - k.sy) * q * q; if (q >= 1) k.gone = true; });
+    if (q >= 1) { bosse(V, 1, it.kind); it.big = it.suck.big; it.suck = null; if (V.grand) { it.ventre = true; V.ventre.push(it); } else if (it.launched || !it.home) unprop(it); else goHome(it); } });
+  Wd.kib.forEach(k => { if (!k.suck) return; const q = Math.min(1, (Wd.t - k.suck) / 0.45); k.rest = true; k.x = k.sx + (mx - k.sx) * q * q; k.y = k.sy + (my - k.sy) * q * q; if (q >= 1) { k.gone = true; bosse(V, 0.35); } });
 }
+// (vague 113 de l'audit, « l'aspirateur », l'inoubliable) : ce qu'il avale se voit monter dans le tuyau. Une bosse ronde gonfle le tuyau à la bouche
+// et grimpe jusqu'en haut de l'écran (puis plus haut, hors de l'écran) ; grosse pour un objet (« gloup »), petite pour une croquette
+function bosse(V, r, kind) { const B = V.bos || (V.bos = []); if (B.length > 7) return; B.push({ t0: Wd.t, r: r * rnd(0.85, 1.15), dur: r > 0.5 ? rnd(1, 1.3) : rnd(0.6, 0.8) });
+  if (r > 0.5 && Wd.t - (V.gloupT || -9) > 0.6) { V.gloupT = Wd.t; Wd.fx.push({ k: 'txt', text: pick(['gloup', 'GLOUP', 'glouglou']), x: V.x + Wd.s0 * 0.45, y: V.y - Wd.s0 * 0.9, t0: Wd.t, life: 0.9, rot: rnd(-0.2, 0.2), size: 20 }); }
+  if (kind && window.Dex && Dex.vu) Dex.vu('bosse-tuyau'); }
 // le hoquet : tout ce qu'il a avalé retombe du ciel, à peu près chez soi, en tournant ; les chats curieux avec
 function recrache(V) {
   const L = V.ventre.slice(); V.ventre = [];
@@ -1686,6 +1691,14 @@ function drawVac(S) {
   const hose = k => { const P = []; for (let j = 0; j <= 12; j++) { const v = j / 12, yy = -10 + (y - s0 * 0.35 + 10) * v; P.push([x + k * w * 0.32 + Math.sin(v * 7 + Wd.t * 3) * s0 * 0.05 * (1 - v), yy]); } return P; };
   C.stroke(hose(-1), 1, { w: 2, a, seed: 51, tip: false , color: col(2) }); C.stroke(hose(1), 1, { w: 2, a, seed: 52, tip: false , color: col(3) });
   for (let j = 1; j < 6; j++) { const yy = (y - s0 * 0.35) * j / 6, xx = x + Math.sin(j / 6 * 7 + Wd.t * 3) * s0 * 0.05 * (1 - j / 6); C.line(xx - w * 0.32, yy, xx + w * 0.32, yy + 3, 1, { w: 1.2, a: a * 0.6, seed: 60 + j, tip: false , color: col(4) }); }
+  // les bosses qui montent dans le tuyau : le tuyau gonfle autour (un rond rempli de papier, au trait), elles accélèrent en montant
+  if (V.bos && V.bos.length) { const ctx = C.ctx, y0 = y - s0 * 0.35, pap = getComputedStyle(document.documentElement).getPropertyValue('--bp').trim() || '#DADBD8';
+    V.bos = V.bos.filter(b => Wd.t - b.t0 < b.dur); if (ctx) V.bos.forEach(b => { const u = (Wd.t - b.t0) / b.dur, e = u * u * (1.6 - 0.6 * u), yy = y0 + 10 - (y0 + 10 + w * 1.2) * e, v = Math.max(0, (yy + 10) / (y0 + 10));
+      const xx = x + Math.sin(v * 7 + Wd.t * 3) * s0 * 0.05 * (1 - v), rw = w * 0.32 * (1 + 1.7 * b.r) * Math.min(1, u / 0.12 + 0.3), rh = w * (0.32 + 0.7 * b.r);
+      ctx.save(); ctx.fillStyle = pap; ctx.globalAlpha = Wd.a; ctx.beginPath(); ctx.ellipse(xx, yy, rw, rh, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      const P = []; for (let k = 0; k <= 28; k++) { const t = k / 28 * Math.PI * 2; P.push([xx + Math.cos(t) * rw, yy + Math.sin(t) * rh]); }
+      C.stroke(P, 1, { w: 2, a, seed: 400 + Math.floor(b.t0 * 10), tip: false, color: col(8) });
+      if (b.r > 0.5) { C.line(xx - rw * 0.55, yy - rh * 0.4, xx - rw * 0.2, yy - rh * 0.75, 1, { w: 1.2, a: a * 0.6, seed: 410, tip: false }); } }); }
   // la bouche : un entonnoir large, ouvert vers le bas ; une auréole au-dessus
   C.stroke([[x - w * 0.32, y - s0 * 0.35], [x - w, y], [x + w, y], [x + w * 0.32, y - s0 * 0.35]], 1, { w: 2.4, a, seed: 70, tip: false , color: col(5) });
   C.circle(x, y - s0 * 0.5, w * 0.7, w * 0.16, 1, { w: 1.6, a: a * 0.8, seed: 71 , color: col(6) });
