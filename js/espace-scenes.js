@@ -1677,6 +1677,7 @@ S.front = (() => {
 
 // back-end & données : un plan en 3D, vu d'en haut. Les requêtes arrivent de partout ; la passerelle (API) les range dans la file de leur client ;
 // les engrenages les traitent ; chaque client a sa propre base, séparée des autres par un mur (l'isolation)
+const ISOLE = { vu: false };
 S.back = (() => ({
   cles: () => [[-0.62, -0.5], [-0.62, 0.5], [0.85, -0.45], [0.85, 0.45]],
   dessin(a, now) {
@@ -1695,6 +1696,27 @@ S.back = (() => ({
     zs.forEach((z, i) => { const r = 0.15, hh = 0.36; cylindre(V, xD, z, r, yS, yS - hh);
       const nv = Math.floor((a * 1.2 + i * 1.7) % 5); ctx.globalAlpha = 0.7; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.45; for (let j = 1; j <= 3; j++) { const C = cylindre.av || null; const L = anneau(V, r, yS - j * hh / 4, 28, xD, z), D = L.filter(p => p[2] >= V(xD, yS - j * hh / 4, z)[2] - 1e-3); if (j <= nv) { ctx.beginPath(); D.forEach((p, q) => q ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke(); } }
       const t = V(xD, yS - hh - 0.14, z); mot(['A', 'B', 'C'][i], t[0], t[1], Math.max(10, k * 0.08), 0.9); });
+    // (vague 128 de l'audit : « des bases isolées par client » ne se voyait qu'en deux traits fins) : toutes les sept secondes, une requête masquée
+    // (un bandeau de voleur) sort de la base A (ou C) et tente de se glisser chez la voisine ; le mur jaillit vers le ciel, brique par brique,
+    // elle s'y cogne (« 403 »), retombe en tournoyant dans sa propre base, et le mur redescend
+    { const n = Math.floor(a / 7), ti = a % 7, sg = n % 2 ? 1 : -1, zw = 0.225 * sg, zA = 0.45 * sg, mh = sm(c01((ti - 0.6) / 0.5)) * (1 - sm(c01((ti - 3.2) / 0.7))), Yb = V(xD, yS - 0.42, zw)[1], dY = Yb - V(xD, yS - 1.42, zw)[1], eMax = Math.max(0.3, Math.min(0.95, (Yb - G.haut - k * 0.2) / Math.max(1, dY))), ext = eMax * mh + Math.sin(c01((ti - 1.55) / 0.5) * Math.PI * 3) * 0.04 * (ti > 1.55 && ti < 2.05 ? 1 : 0);
+      if (mh > 0.01) { const y0 = yS - 0.42, nb = 9, Q = [V(xD - 0.32, y0, zw), V(xD + 0.32, y0, zw), V(xD + 0.32, y0 - ext, zw), V(xD - 0.32, y0 - ext, zw)];
+        cerne(() => { ctx.beginPath(); Q.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); }, 0.9, 1);
+        ctx.globalAlpha = 0.8; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath();
+        for (let j = 1; j * 0.105 < ext; j++) { const yy = y0 - j * 0.105, A0 = V(xD - 0.32, yy, zw), B0 = V(xD + 0.32, yy, zw); ctx.moveTo(A0[0], A0[1]); ctx.lineTo(B0[0], B0[1]);
+          for (let m = 0; m < 4; m++) { const xx = xD - 0.32 + (m + (j % 2 ? 0.5 : 0.25)) * 0.16, P0 = V(xx, yy, zw), P1 = V(xx, Math.max(yy - 0.105, y0 - ext), zw); if (xx < xD + 0.3) { ctx.moveTo(P0[0], P0[1]); ctx.lineTo(P1[0], P1[1]); } } }
+        ctx.stroke(); const T = V(xD, y0 - ext, zw); mot(en() ? 'tenant isolation' : 'isolation', T[0], T[1] - k * 0.06, Math.max(10, k * 0.065), 1); }
+      // la requête masquée
+      if (ti > 0.8 && ti < 3.1) { let z, y, rot = 0;
+        if (ti < 1.6) { const e = sm((ti - 0.8) / 0.8); z = lerp(zA, zw - sg * 0.05, e); y = yS - 0.55 - Math.sin(Math.PI * e) * 0.18; }
+        else { const e = c01((ti - 1.6) / 1.4); z = lerp(zw - sg * 0.05, zA, e); y = yS - 0.55 - Math.sin(Math.PI * Math.min(1, e * 1.3)) * 0.4 + e * e * 0.3; rot = -sg * e * 11; }
+        const p = V(xD, y, z), s = Math.max(9, k * 0.085 * p[3]);
+        ctx.save(); ctx.translate(p[0], p[1]); ctx.rotate(rot); cerne(() => { ctx.beginPath(); ctx.rect(-s, -s * 0.7, s * 2, s * 1.4); }, 0.7, 1);
+        ctx.globalAlpha = 1; ctx.fillStyle = ENC; ctx.fillRect(-s, -s * 0.38, s * 2, s * 0.36); ctx.fillStyle = PAP; ctx.beginPath(); ctx.arc(-s * 0.4, -s * 0.2, s * 0.11, 0, TAU); ctx.arc(s * 0.4, -s * 0.2, s * 0.11, 0, TAU); ctx.fill();
+        ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath(); ctx.moveTo(-s, -s * 0.7); ctx.lineTo(0, -s * 0.38); ctx.lineTo(s, -s * 0.7); ctx.stroke(); ctx.restore();
+        mot(['A', 'C'][n % 2], p[0], p[1] + s * 1.35, Math.max(9, k * 0.05), 1);
+        if (ti > 1.6 && ti < 2.4) { const v = (ti - 1.6) / 0.8, W = V(xD, yS - 0.6, zw), Wl = V(xD - 0.32, yS - 0.42 - ext * 0.6, zw); eclat(W[0], W[1], k * 0.12, v, 8, n); mot(en() ? '403 · not your base' : '403 · pas ta base', Math.max(k * 0.5, Wl[0] - k * 0.32), Wl[1] - v * k * 0.08, Math.max(11, k * 0.07) * (1 + 0.3 * Math.sin(Math.min(1, v * 3) * Math.PI)), 1); }
+        if (ti > 1.62 && !ISOLE.vu && window.Dex && Dex.vu) { ISOLE.vu = true; Dex.vu('mur-isole'); } } }
     // le cordon de velours devant la passerelle : deux potelets, la corde qui pend ; le videur, bras croisés, qui hoche la tête
     { const p0 = V(xA - 0.32, yS, -0.5), p1 = V(xA - 0.32, yS, 0.5), h0 = k * 0.2 * p0[3], h1 = k * 0.2 * p1[3];
       [[p0, h0], [p1, h1]].forEach(([p, h]) => { cerne(() => { ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(p[0], p[1] - h); }, 1.1, 1, null); cerne(() => { ctx.beginPath(); ctx.arc(p[0], p[1] - h, h * 0.12, 0, TAU); }, 0.7, 1); });
