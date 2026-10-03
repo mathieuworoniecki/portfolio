@@ -633,6 +633,7 @@ function epaule(x, y, r, now, a, regard, saut) {
     if (cl > 0.5) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex - r * 0.04, ey - r * 0.06, r * 0.045, 0, TAU); ctx.fill(); } });
   ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.6; ctx.beginPath(); ctx.moveTo(x - r * 0.08, hy + r * 0.28); ctx.quadraticCurveTo(x, hy + r * 0.36, x, hy + r * 0.28); ctx.quadraticCurveTo(x, hy + r * 0.36, x + r * 0.08, hy + r * 0.28); ctx.stroke();
 }
+const NID = { vu: false };
 function lui(x, y, r, o = {}) {
   const nw = o.now || 0, P = sourisIci(), regard = P ? (() => { const dx = P.x - x, dy = P.y - y, d = Math.hypot(dx, dy) || 1; return [dx / d, dy / d]; })() : [Math.sin(nw * 0.5) * 0.6, 0.2];
   // (vague 50, l'audit : « toi, dans le style des chats », immersion) : il nous voit arriver. La souris tout près : il hoche la tête et nous salue,
@@ -663,7 +664,8 @@ function lui(x, y, r, o = {}) {
   cerne(() => { ctx.beginPath(); const n = 9; for (let i = 0; i <= n; i++) { const t = Math.PI + 0.25 + i / n * (Math.PI - 0.5), R = i % 2 ? 1.24 + 0.06 * Math.sin(i * 3.7) + 0.05 * Math.sin(nw * 2.3 + i * 1.7) : 0.96, j = i % 2 ? 0.12 * Math.sin(i * 2.1) + 0.06 * Math.sin(nw * 1.7 + i) : 0; ctx.lineTo(x + Math.cos(t + j) * r * 0.72 * R, hy - r * 0.18 + Math.sin(t + j) * r * 0.95 * R); }
     for (let i = 8; i >= 0; i--) { const t = Math.PI + 0.25 + i / 8 * (Math.PI - 0.5); ctx.lineTo(x + Math.cos(t) * r * 0.7, hy - r * 0.05 + Math.sin(t) * r * 0.72); } ctx.closePath(); }, w, a);
   // les yeux : deux grands ovales noirs, deux reflets (ils clignent) ; (vague 33) ils suivent la souris
-  const cl = Math.sin(nw * 1.1 + 1) > 0.985 ? 0.12 : 1, vx = r * 0.07 * regard[0], vy = r * 0.05 * regard[1];
+  const tN = window.__nid ?? (nw + 3) % 15, leve = !P && (o.tp || 0) < 0.9 && tN > 0.4 && tN < 4.2;   // (le nid, plus bas : il lève les yeux vers le chat sur sa tête)
+  const cl = Math.sin(nw * 1.1 + 1) > 0.985 ? 0.12 : 1, vx = r * 0.07 * (leve ? -(o.cote || -1) * 0.4 : regard[0]), vy = r * 0.05 * (leve ? -1.2 : regard[1]);
   [-1, 1].forEach(s => { const ex = x + s * r * 0.28 + vx, ey = hy + r * 0.08 + vy; ctx.globalAlpha = a; ctx.fillStyle = ENC; ctx.beginPath(); ctx.ellipse(ex, ey, r * 0.12, r * 0.17 * cl, 0, 0, TAU); ctx.fill();
     if (cl > 0.5) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex - r * 0.04, ey - r * 0.06, r * 0.045, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(ex + r * 0.04, ey + r * 0.06, r * 0.022, 0, TAU); ctx.fill(); }
     ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.7; ctx.beginPath(); ctx.arc(ex, ey - r * 0.12, r * 0.15, Math.PI * 1.2, Math.PI * 1.8); ctx.stroke(); });
@@ -676,7 +678,19 @@ function lui(x, y, r, o = {}) {
   cerne(() => { ctx.beginPath(); ctx.moveTo(...ep); ctx.quadraticCurveTo(lerp(ep[0], main[0], 0.5) + g * r * 0.3, lerp(ep[1], main[1], 0.5) + r * 0.3, main[0], main[1]); }, w * 1.9, a, null);
   cerne(() => { ctx.beginPath(); ctx.rect(main[0] - st * 0.55, main[1] + st * 0.35, st * 1.1, st * 0.45); }, w, a); cerne(() => { ctx.beginPath(); ctx.rect(main[0] - st * 0.12, main[1] - st * 0.1, st * 0.24, st * 0.48); }, w * 0.8, a);
   cerne(() => { ctx.beginPath(); ctx.arc(main[0], main[1] - st * 0.2, st * 0.22, 0, TAU); }, w, a);
-  if (r > 8) epaule(x - g * r * 1.05, by + r * 0.08, r * 0.5, nw, a, regard, tp > 0.9 ? 0 : Math.max(0, Math.sin(Math.PI * c01((tp - 0.3) / 0.5))) * (tp > 0.3 ? 1 : 0));
+  // (vague 134 de l'audit : « toi, dans le style des chats », de très bien à inoubliable) : le nid. Toutes les quinze secondes, le petit chat de
+  // l'épaule saute sur sa tête et se love dans ses épis (sur le côté : sa queue pend à côté du visage, jamais dessus) ; lui lève les yeux vers
+  // le chat sans s'arrêter de travailler ; une petite sieste (« zz »), puis le chat redescend d'un bond sur l'épaule
+  const Sh = [x - g * r * 1.05, by + r * 0.08], tt = window.__nid ?? (nw + 3) % 15,   // (__nid : pour les captures de test)
+    nid = r > 8 && tp < 0.9 && !pres && tt < 4.4 ? tt : -1;
+  if (nid < 0) { if (r > 8) epaule(Sh[0], Sh[1], r * 0.5, nw, a, regard, tp > 0.9 ? 0 : Math.max(0, Math.sin(Math.PI * c01((tp - 0.3) / 0.5))) * (tp > 0.3 ? 1 : 0)); return; }
+  const Hd = [x - g * r * 0.32, hy - r * 1.08], up = sm(c01(nid / 0.6)), down = sm(c01((nid - 3.8) / 0.6)), e = up * (1 - down), arc = Math.sin(Math.PI * (nid < 2 ? up : down)) * r * 0.9;
+  const cx = lerp(Sh[0], Hd[0], e), cy = lerp(Sh[1], Hd[1], e) - arc, dors = nid > 1.4 && nid < 3.8;
+  ctx.save(); ctx.translate(cx, cy); if (nid > 0.6 && nid < 1.4) ctx.rotate(Math.sin((nid - 0.6) * 16) * 0.18); if (dors) ctx.scale(1.06, 0.88 + Math.sin(nw * 3) * 0.03); ctx.translate(-cx, -cy);
+  epaule(cx, cy, r * 0.5, nw, a, dors ? [0, 1] : [g * 0.6, 0.3], 0); ctx.restore();
+  if (nid > 0.55 && nid < 0.95) mot('boing', Hd[0] - g * r * 0.9, Hd[1] - r * 0.4, Math.max(10, r * 0.3), 1);
+  if (dors) { const z = (nw * 0.8) % 1; mot('z', cx + g * -r * 0.5 + z * r * 0.3, cy - r * 0.6 - z * r * 0.5, Math.max(9, r * (0.2 + z * 0.12)), 1);
+    if (!NID.vu && window.Dex && Dex.vu) { NID.vu = true; Dex.vu('nid-epis'); } }
 }
 
 // (28/09, 20:40, Mathieu : « revois toutes tes animations, c'est vraiment super basique » : tout passe en 3D, sur toute la largeur de l'écran du ciel)

@@ -177,6 +177,7 @@ fam('espace', 'L’espace', 'Space', [
   ['grand-saut', 'Le grand saut', 'The big jump', 'Sur la route du bus, un trou dans le planning : le tremplin, et toute l’équipe saute ensemble.', 'On the bus road, a gap in the plan: up the ramp, and the whole team jumps together.'],
   ['baillement', 'Le bâillement contagieux', 'The contagious yawn', 'Un chat bâille, son voisin aussi, puis le suivant… le dernier résiste, bâille plus fort que tous et s’endort.', 'One cat yawns, then its neighbour, then the next… the last one resists, yawns biggest of all and dozes off.'],
   ['buee', 'La buée', 'Fogged up', 'Un chat-robot soupire dans son casque et dessine un cœur dans la buée.', 'A cat-robot sighs into its helmet and draws a heart in the fog.'],
+  ['nid-epis', 'Le nid dans les épis', 'A nest in the spikes', 'Dans l’espace, le petit chat de l’épaule saute sur la tête de Mathieu et fait la sieste dans ses épis.', 'In space, the little shoulder cat hops onto Mathieu’s head and naps in his spiky hair.'],
   ['troublanc', 'Le petit trou blanc', 'The little white hole', 'Là-haut aussi, un clic dans le vide.', 'Up there too, a click on empty space.'],
   ['agrippe', 'Accroché', 'Hanging on', 'Le curseur, tout près d’un chat qui flotte.', 'The cursor, close to a floating cat.'],
   ['fronde', 'La fronde', 'The slingshot', 'Trop près d’une planète, on fait un tour… et on repart plus vite.', 'Too close to a planet, you go around… and leave faster.'],
