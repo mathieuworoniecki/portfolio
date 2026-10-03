@@ -98,17 +98,19 @@ X.grab.push((x, y) => { if (!C || C.porte || Math.hypot(x - C.x, y - C.y) > C.r 
 
 // le dessin : la bulle, son reflet, le col, l'antenne ; posé sur un chat, par-dessus sa tête
 function dessine(ctx, x, y, r, rot, now, porte) {
+  // (vague 191, finition : sur un grand chat, la bulle gardait des traits de 2 px, fils de fer à côté de son contour épais) : le trait suit sa taille
+  const ep = Math.max(1, r / 44);
   ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.lineCap = ctx.lineJoin = 'round'; ctx.strokeStyle = `rgb(${BL})`;
   // (vague 46, l'audit : « le casque », finition) : un vrai verre. Une teinte bleutée, plus dense sur les bords (le bombé) ; un liseré d'encre
   // sous le bord blanc qui détache la bulle de tout ce qui passe derrière ; dans le bas du verre, le reflet courbe de l'horizon de la Terre
   { const g = ctx.createRadialGradient(-r * 0.25, -r * 0.3, r * 0.1, 0, 0, r); g.addColorStop(0, 'rgba(170,210,255,0)'); g.addColorStop(0.7, 'rgba(170,210,255,0.05)'); g.addColorStop(1, 'rgba(170,210,255,0.2)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill(); }
-  ctx.strokeStyle = 'rgba(7,8,12,0.9)'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(0, 0, r + 1.5, 0, TAU); ctx.stroke(); ctx.strokeStyle = `rgb(${BL})`;
-  ctx.lineWidth = 2.4; ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke();
-  ctx.save(); ctx.rotate(-rot); ctx.strokeStyle = 'rgba(150,200,255,0.45)'; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.ellipse(0, r * 1.9, r * 1.55, r * 1.2, 0, Math.PI * 1.3, Math.PI * 1.7); ctx.stroke(); ctx.restore();
+  ctx.strokeStyle = 'rgba(7,8,12,0.9)'; ctx.lineWidth = 6 * ep; ctx.beginPath(); ctx.arc(0, 0, r + 1.5, 0, TAU); ctx.stroke(); ctx.strokeStyle = `rgb(${BL})`;
+  ctx.lineWidth = 2.4 * ep; ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke();
+  ctx.save(); ctx.rotate(-rot); ctx.strokeStyle = 'rgba(150,200,255,0.45)'; ctx.lineWidth = 1.3 * ep; ctx.beginPath(); ctx.ellipse(0, r * 1.9, r * 1.55, r * 1.2, 0, Math.PI * 1.3, Math.PI * 1.7); ctx.stroke(); ctx.restore();
   // le reflet sur le verre : deux arcs, en haut à gauche
-  ctx.lineWidth = 2; ctx.strokeStyle = `rgba(${BL},0.75)`; ctx.beginPath(); ctx.arc(0, 0, r * 0.78, Math.PI * 1.08, Math.PI * 1.38); ctx.stroke();
-  ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(0, 0, r * 0.78, Math.PI * 1.45, Math.PI * 1.52); ctx.stroke();
+  ctx.lineWidth = 2 * ep; ctx.strokeStyle = `rgba(${BL},0.75)`; ctx.beginPath(); ctx.arc(0, 0, r * 0.78, Math.PI * 1.08, Math.PI * 1.38); ctx.stroke();
+  ctx.lineWidth = 1.4 * ep; ctx.beginPath(); ctx.arc(0, 0, r * 0.78, Math.PI * 1.45, Math.PI * 1.52); ctx.stroke();
   // l'éclat qui balaie la visière toutes les quelques secondes, et deux étoiles reflétées dans le verre
   const bal = (now * 0.35) % 1; if (bal < 0.25) { const e = -1 + bal * 8; ctx.save(); ctx.beginPath(); ctx.arc(0, 0, r * 0.96, 0, TAU); ctx.clip();
     ctx.strokeStyle = `rgba(${BL},0.55)`; ctx.lineWidth = r * 0.18; ctx.beginPath(); ctx.moveTo(e * r - r * 0.4, -r); ctx.lineTo(e * r + r * 0.4, r); ctx.stroke(); ctx.restore(); }
@@ -120,7 +122,7 @@ function dessine(ctx, x, y, r, rot, now, porte) {
       for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.ellipse((i - 2) * r * 0.28, r * (0.72 - 0.25 * b) - Math.abs(i - 2) * r * 0.05, r * 0.3 * (0.6 + 0.4 * b), r * 0.22 * (0.5 + 0.5 * b), 0, 0, TAU); ctx.fill(); }
       if (Math.floor((now + (porte.id || 0) * 0.7) / 3.2) % 3 === 1 && cyc > 0.7) { const u = Math.min(1, (cyc - 0.7) / 0.9), hx = -r * 0.18, hy = r * 0.5, hs = r * 0.16, P = [];
         for (let i = 0; i <= 24 * u; i++) { const q = i / 24 * TAU; P.push([hx + 16 * Math.pow(Math.sin(q), 3) * hs / 16, hy - (13 * Math.cos(q) - 5 * Math.cos(2 * q) - 2 * Math.cos(3 * q) - Math.cos(4 * q)) * hs / 16]); }
-        ctx.strokeStyle = `rgba(7,8,12,${0.8 * b + 0.1})`; ctx.lineWidth = 1.4; ctx.beginPath(); P.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke(); }
+        ctx.strokeStyle = `rgba(7,8,12,${0.8 * b + 0.1})`; ctx.lineWidth = 1.4 * ep; ctx.beginPath(); P.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke(); }
       ctx.restore(); } }
   // (vague 80, l'audit : « le casque », il sort de l'espace) : sa visière, c'est aussi notre vitre. Elle reflète le pointeur (une petite flèche
   // courbée par le bombé, du côté où il est) ; et quand la souris passe sur le verre, elle y laisse une trace de doigt, qui tourne avec le casque
@@ -128,20 +130,20 @@ function dessine(ctx, x, y, r, rot, now, porte) {
       if (d < r * 6) { const k = r * 0.62 * d / (d + r * 0.9), px = dx / d * k, py = dy / d * k, s2 = r * 0.16 * (1 - k / r * 0.5), al = 0.55 * (1 - d / (r * 6));
         ctx.save(); ctx.beginPath(); ctx.arc(0, 0, r * 0.94, 0, TAU); ctx.clip(); ctx.translate(px, py); ctx.rotate(-rot - 0.2); ctx.scale(s2 / 10, s2 / 10 * (1 - k / r * 0.35));
         ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 15); ctx.lineTo(3.8, 11.5); ctx.lineTo(6.6, 17.5); ctx.lineTo(9, 16.4); ctx.lineTo(6.3, 10.6); ctx.lineTo(11, 10.4); ctx.closePath();
-        ctx.fillStyle = `rgba(${BL},${al.toFixed(3)})`; ctx.fill(); ctx.strokeStyle = `rgba(7,8,12,${(al * 0.8).toFixed(3)})`; ctx.lineWidth = 1.2; ctx.stroke(); ctx.restore(); }
+        ctx.fillStyle = `rgba(${BL},${al.toFixed(3)})`; ctx.fill(); ctx.strokeStyle = `rgba(7,8,12,${(al * 0.8).toFixed(3)})`; ctx.lineWidth = 1.2 * ep; ctx.stroke(); ctx.restore(); }
       const T = dessine.traces || (dessine.traces = new WeakMap()), cle = porte || C, L = T.get(cle) || []; T.set(cle, L);
       if (d < r * 0.85 && Wd.t - S.moved < 0.2 && !(L.length && Math.hypot(L[L.length - 1].x - dx, L[L.length - 1].y - dy) < r * 0.35)) { L.push({ x: dx, y: dy, t: Wd.t, a: Math.random() * TAU }); if (L.length > 5) L.shift(); }
       for (let i = L.length - 1; i >= 0; i--) if (Wd.t - L[i].t > 7) L.splice(i, 1);
-      if (L.length) { ctx.save(); ctx.beginPath(); ctx.arc(0, 0, r * 0.95, 0, TAU); ctx.clip(); ctx.strokeStyle = `rgba(${BL},0.32)`; ctx.lineWidth = 0.9;
+      if (L.length) { ctx.save(); ctx.beginPath(); ctx.arc(0, 0, r * 0.95, 0, TAU); ctx.clip(); ctx.strokeStyle = `rgba(${BL},0.32)`; ctx.lineWidth = 0.9 * ep;
         L.forEach(q => { const e = 1 - Math.max(0, (Wd.t - q.t - 5.5) / 1.5), R = r * 0.13 * e; if (R < 0.5) return;   // (elle se résorbe en rapetissant)
           for (let j = 1; j <= 4; j++) { ctx.beginPath(); ctx.ellipse(q.x, q.y, R * j / 4, R * j / 4 * 1.35, q.a, 0.3 + j * 0.5, TAU - 0.4 + j * 0.3); ctx.stroke(); } });
         ctx.restore(); } } }
   // le col : un anneau épais en bas
-  ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.ellipse(0, r * 0.9, r * 0.62, r * 0.16, 0, 0, TAU); ctx.stroke();
-  ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(0, r * 0.9, r * 0.5, r * 0.1, 0, 0, Math.PI); ctx.stroke();
+  ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 2.2 * ep; ctx.beginPath(); ctx.ellipse(0, r * 0.9, r * 0.62, r * 0.16, 0, 0, TAU); ctx.stroke();
+  ctx.lineWidth = 1.2 * ep; ctx.beginPath(); ctx.ellipse(0, r * 0.9, r * 0.5, r * 0.1, 0, 0, Math.PI); ctx.stroke();
   ctx.fillStyle = `rgb(${BL})`; for (let i = 0; i < 6; i++) { const a = Math.PI * (0.12 + i * 0.152); ctx.beginPath(); ctx.arc(Math.cos(a) * r * 0.62, r * 0.9 + Math.sin(a) * r * 0.16, Math.max(0.9, r * 0.035), 0, TAU); ctx.fill(); }   // (ses rivets)
   // l'antenne, avec sa petite boule qui clignote
-  ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(r * 0.45, -r * 0.89); ctx.lineTo(r * 0.62, -r * 1.3); ctx.stroke();
+  ctx.lineWidth = 1.6 * ep; ctx.beginPath(); ctx.moveTo(r * 0.45, -r * 0.89); ctx.lineTo(r * 0.62, -r * 1.3); ctx.stroke();
   ctx.fillStyle = `rgba(${BL},${0.5 + 0.5 * (Math.sin(now * 5) > 0 ? 1 : 0.2)})`; ctx.beginPath(); ctx.arc(r * 0.64, -r * 1.36, r * 0.07, 0, TAU); ctx.fill();
   ctx.restore();
 }
