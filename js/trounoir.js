@@ -409,6 +409,42 @@ function cordons(now) {
         for (let i = 1; i < P.length; i++) { ctx.lineWidth = Math.max(0.6, epais * P[i][2] + extra); ctx.beginPath(); ctx.moveTo(P[i - 1][0], P[i - 1][1]); ctx.lineTo(P[i][0], P[i][1]); ctx.stroke(); } } });
     ctx.restore(); });
 }
+/* (vague 136 de l'audit : « l'arrivée dans l'espace », immersion) : SPLOTCH. À l'arrivée, un des chats recrachés, encore sonné, file droit vers
+   nous : il grossit, grossit, et s'écrase contre la vitre de l'écran, les quatre pattes à plat (on voit les coussinets, la buée de son souffle) ;
+   il glisse un peu vers le bas en couinant, se décolle et repart en tournoyant dans l'espace. Ses empreintes restent sur la vitre, puis
+   rapetissent jusqu'à rien (rien ne s'efface). Une fois par voyage. */
+const VI = { c: null, t0: 0, fait: false, k: 1, x0: 0, y0: 0, prints: [], tCord: -1 };
+X.pas.push(() => {
+  if (VI.fait || reduit || !Wd.espace) return;
+  if (VI.tCord < 0) { if (Wd.cats.some(c => c.sp && c.sp.cordonFini)) VI.tCord = Wd.t; return; }
+  if (Wd.t - VI.tCord < 0.9) return;
+  const c = Wd.cats.filter(c => c.sp && c.sp.sorti && c.sp.m === 'derive' && !c.held && !c.gone && !c.rare).sort((a, b) => Math.abs(a.x - W / 2) - Math.abs(b.x - W / 2))[0]; if (!c) return;
+  VI.fait = true; VI.c = c; VI.t0 = Wd.t; VI.x0 = c.x; VI.y0 = c.y; VI.k = clamp(Math.min(W, H) * 0.3 / Math.max(8, rayon(c)), 2.2, 6); c.sp.m = 'vitre'; c.spin = 0; c.sp.vx = c.sp.vy = 0;
+});
+X.mode.vitre = (c, dt) => {
+  const S = c.sp, u = Wd.t - VI.t0, tx = W * 0.5, ty = H * 0.4, ap = sm(c01(u / 0.9)), col = u >= 0.9 && u < 2.3, dec = sm(c01((u - 2.3) / 0.9));
+  S.vitreK = 1 + (VI.k - 1) * ap * (1 - dec);
+  c.anim = col ? 'etirement' : (ANIMS.apesanteur ? 'apesanteur' : 'assis'); c.at += dt;
+  if (u < 0.9) { c.x = lerp2(VI.x0, tx, ap) + Math.sin(u * 20) * 3 * (1 - ap); c.y = lerp2(VI.y0, ty, ap); c.spin = (c.spin || 0) * 0.9; }
+  else if (col) { const g = (u - 0.9) / 1.4; c.x = tx + Math.sin(u * 30) * 1.2; c.y = ty + g * g * H * 0.05; c.spin = 0;
+    if (!S.splotch) { S.splotch = true; const r = rayon(c) * 1; VI.prints = [[-0.55, -0.25], [0.55, -0.25], [-0.32, 0.45], [0.32, 0.45]].map(([px, py], i) => ({ x: tx + px * r, y: ty + py * r - rayon(c) * 0.2, r: r * 0.16, t0: Wd.t + i * 0.04, rot: rnd(-0.3, 0.3) }));
+      Wd.fx.push({ k: 'txt', text: 'SPLOTCH', x: tx, y: ty - rayon(c) * 1.05, t0: Wd.t, life: 1.2, rot: rnd(-0.12, 0.12), size: 30 }); if (window.Dex && Dex.vu) Dex.vu('splotch');
+      apres(0.8, () => Wd.fx.push({ k: 'txt', text: pick(['iiiiik', 'couiiic', 'fiiiiii']), x: tx + rayon(c) * 0.9, y: ty + rayon(c) * 0.3, t0: Wd.t, life: 1, rot: 0.2, size: 18 })); } }
+  else { c.x = tx + (VI.x0 - tx) * dec * 0.5; c.y = ty + H * 0.05 + (H * 0.08) * dec; c.spin = 2.5 * dec;
+    if (u > 3.2) { S.vitreK = 0; S.m = 'derive'; S.vx = rnd(-30, 30); S.vy = rnd(-20, 10); S.next = Wd.t + rnd(1.5, 3); S.anim = pick(DERIVE); } }
+};
+const lerp2 = (a, b, t) => a + (b - a) * t;
+// les empreintes sur la vitre : par-dessus tout (le calque de la craie) ; elles rapetissent jusqu'à rien, plus tard
+K.H.draw.push(() => {
+  if (!VI.prints.length || !window.Chalk || !Chalk.ctx) return; const o = Chalk.ctx;
+  VI.prints = VI.prints.filter(p => Wd.t - p.t0 < 6); if (!Wd.espace) { VI.prints = []; return; }
+  VI.prints.forEach(p => { const u = Wd.t - p.t0; if (u < 0) return; const k = Math.min(1, u / 0.08) * (1 - sm(c01((u - 4) / 2))), r = p.r * k; if (r < 0.5) return;
+    o.save(); o.translate(p.x, p.y); o.rotate(p.rot); o.globalAlpha = 0.6; o.fillStyle = '#dfe6f2'; o.strokeStyle = '#F4F4EE'; o.lineWidth = 1.4;
+    // le coussin (un triangle arrondi) et les quatre doigts
+    o.beginPath(); o.ellipse(0, r * 0.55, r * 1.05, r * 0.8, 0, 0, TAU); o.fill(); o.globalAlpha = 0.9; o.stroke();
+    [[-0.95, -0.45], [-0.35, -0.95], [0.35, -0.95], [0.95, -0.45]].forEach(([dx, dy]) => { o.globalAlpha = 0.6; o.beginPath(); o.ellipse(dx * r, dy * r, r * 0.34, r * 0.42, dx * 0.3, 0, TAU); o.fill(); o.globalAlpha = 0.9; o.stroke(); });
+    o.restore(); });
+});
 // le monde de l'espace, une image (dans js/chats.js : le temps du monde)
 const HAUT = () => 64, BAS = () => Wd.floor || H - 70;
 const centreDe = c => [c.x, c.y - c.D.stand * sc(c)], rayon = c => Math.max(c.D.a, c.D.h) * sc(c) * 0.8;
@@ -450,7 +486,7 @@ function flotte(c, dt, Q, acc) {
     if (!S.sorti) { S.sorti = true; const [cx, cy] = S.o || centre(); c.x = cx; c.y = cy; E.ondes.push({ x: cx, y: cy, t0: performance.now() / 1000, r: Wd.s0 * 1.2, a: 0.7 }); if (Math.random() < 0.6) apres(0.4, () => say(c, pick(['wiii !', 'mia ?', 'ooh', 'où…', '!', 'c\'est où ?']))); }
     S.g = sm((S.t - S.dl) / 0.6); c.s = S.s * Math.max(0.02, S.g);
     if (S.g >= 1) { S.m = 'derive'; S.next = Wd.t + rnd(1.5, 4); S.anim = pick(DERIVE); }
-  } else c.s += (S.s * (X.echelle ? X.echelle(c) : 1) * (X.loin ? X.loin(c) : 1) - c.s) * Math.min(1, dt * 3);   // (X.echelle : un module qui les veut plus petits, js/espace-plume.js)
+  } else c.s += (S.s * (X.echelle ? X.echelle(c) : 1) * (X.loin ? X.loin(c) : 1) * (S.vitreK || 1) - c.s) * Math.min(1, dt * (S.vitreK ? 7 : 3));   // (S.vitreK : le chat qui vient s'écraser sur la vitre, plus bas)   // (X.echelle : un module qui les veut plus petits, js/espace-plume.js)
   if (c.held) { c.anim = 'porte'; S.m = 'tenu'; S.ancre = null; return; }
   if (X.mode[S.m]) { X.mode[S.m](c, dt); return; }
   S.ancre = null;
