@@ -1919,17 +1919,20 @@ S.secu = (() => ({
     // (vague 36 de l'audit : « sécurité, peu original ») : les menaces repoussées ne repartent plus dans le vide : elles filent dans un bocal
     // de quarantaine posé à côté du dôme, où elles s'entassent et s'agitent ; un chat-robot au filet à papillons fait le guet devant
     const o0 = V(0, 0, 0), J = [o0[0] - Math.min(k * 1.4, G.cx * 0.72), o0[1] + k * 0.02], jr = Math.max(14, k * 0.17), jm = [J[0], J[1] - jr * 2.1];
+    // (vague 148, finition : au bureau, les menaces qui arrivent de loin et celles qui rebondissent passaient sous la barre du haut)
+    sousLaBarre();
     for (let q = 0; q < NQ; q++) { const tt = a + q * T / NQ, t = tt % T, n = Math.floor(tt / T), th = bruit(q * 7 + n * 13) * TAU, ph = 0.2 + bruit(q * 3 + n * 5) * 1.1, dir = [Math.cos(th) * Math.cos(ph), -Math.sin(ph), Math.sin(th) * Math.cos(ph)];
       bloq += n; const pt = d => V(dir[0] * d, dir[1] * d, dir[2] * d);
       if (t < 1.2) { const d = lerp(4.2, R, sm(t / 1.2) * 0.4 + t / 1.2 * 0.6), p = pt(d), p0 = pt(d + 0.3); trait([p0, p], false, 0.9, 0.9); caillou(p[0], p[1], k * 0.08 * p[3], Math.sin(now * 3 + q) * 0.3, q * 7 + n, 1, true); }
       else if (t < 2.2) { const u = (t - 1.2) / 1, p = pt(R); eclat(p[0], p[1], 12, u, 7, th);
         // (vague 7) repoussé : le petit méchant rebondit sur le dôme et repart en tournoyant, sonné
         if (u < 0.8) { const b0 = pt(R), e = sm(u / 0.8), r0 = k * 0.08 * b0[3] * (1 - e * 0.55), bx = lerp(b0[0], jm[0], e), by = lerp(b0[1], jm[1], e) - Math.sin(e * Math.PI) * k * 0.45;
-          caillou(bx, by, r0, u * 9, q * 7 + n, 1, true); if (u < 0.35) mot(pick2(['paf', 'bonk', 'toc'], q + n), b0[0], b0[1] - r0 * 2.2, Math.max(10, k * 0.06), 1 - u * 2.5); }
+          caillou(bx, by, r0, u * 9, q * 7 + n, 1, true); if (u < 0.35) mot(pick2(['paf', 'bonk', 'toc'], q + n), b0[0], b0[1] - r0 * 2.2, Math.max(10, k * 0.06) * Math.max(0.05, 1 - u * 2.5), 1); }   // (vague 148 : le mot rapetisse, il ne s'estompe plus)
         // l'onde, à la surface du dôme
         const up = Math.abs(dir[1]) > 0.95 ? [1, 0, 0] : [0, 1, 0], cr = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], nz = v => { const l = Math.hypot(...v); return v.map(x => x / l); }, e1 = nz(cr(dir, up)), e2 = cr(dir, e1), rho = 0.06 + u * 0.55, L = [];
         for (let i = 0; i <= 28; i++) { const w = i / 28 * TAU, v = dir.map((x, j) => x * Math.cos(rho) + (e1[j] * Math.cos(w) + e2[j] * Math.sin(w)) * Math.sin(rho)); if (v[1] > 0.02) { if (L.length > 1) trait(L, false, 0.9, (1 - u) * 0.9); L.length = 0; continue; } L.push(V(v[0] * R, v[1] * R, v[2] * R)); }
         if (L.length > 1) trait(L, false, 0.9, (1 - u) * 0.9); } }
+    ctx.restore();
     // le bocal : le verre (un peu bleuté), son couvercle, son étiquette ; dedans, les petits méchants capturés qui s'agitent
     { const hB = jr * 2, n = Math.min(12, bloq), br = jr * 0.26;
       cerne(() => { ctx.beginPath(); ctx.moveTo(J[0] - jr * 0.7, J[1] - hB); ctx.quadraticCurveTo(J[0] - jr * 1.05, J[1] - hB * 0.85, J[0] - jr, J[1] - hB * 0.6); ctx.lineTo(J[0] - jr, J[1] - jr * 0.15);
@@ -1945,7 +1948,8 @@ S.secu = (() => ({
     // (vague 130 de l'audit : « on scanne » ne se voyait pas) : le cheval de Troie. Toutes les huit secondes, un joli paquet-cadeau flotte vers
     // le dôme ; une bande de scanner le traverse de haut en bas et, sous elle, on voit au travers : un petit méchant caché dedans. Alarme,
     // le paquet éclate en papiers, et le méchant file rejoindre les autres dans le bocal de quarantaine
-    { const ti = a % 8, bs = Math.max(20, k * 0.12), X1 = Math.min(G.droite - bs * 1.4, o0[0] + R * k * 1.15), Y1 = o0[1] - k * (G.cx * 2 < 700 ? 0.42 : 0.1), X0 = G.droite + bs * 2, Y0 = Y1 - k * 0.3;
+    // (vague 148, finition : au téléphone, le paquet et son « scan… » se posaient sous la flèche du bord droit, à moitié hors de l'écran)
+    { const ti = a % 8, bs = Math.max(20, k * 0.12), X1 = Math.min(G.droite - bs * 1.6 - 30, o0[0] + R * k * 1.15), Y1 = o0[1] - k * (G.cx * 2 < 700 ? 0.42 : 0.1), X0 = G.droite + bs * 2, Y0 = Y1 - k * 0.3;
       if (ti < 3.4) { const e = sm(c01(ti / 1.6)), x = lerp(X0, X1, e), y = lerp(Y0, Y1, e) + Math.sin(now * 2.2) * bs * 0.12, tr = ti > 2.9 ? Math.sin(now * 60) * bs * 0.08 : 0, sc = c01((ti - 1.7) / 1.1);
         ctx.save(); ctx.translate(x + tr, y); ctx.rotate(Math.sin(now * 1.3) * 0.08);
         // le paquet : opaque, ruban et nœud ; la partie déjà scannée devient transparente et laisse voir le méchant
