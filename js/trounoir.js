@@ -387,6 +387,28 @@ function crache() {
   });
   E.crache = -1;
 }
+// les cordons du trou blanc (voir boucleEspace)
+function cordons(now) {
+  Wd.cats.forEach(c => { const S = c.sp; if (!S || c.gone || !S.sorti || S.cordonFini) return; const e = (S.t - S.dl) / 1.1; if (e < 0) return;
+    if (e >= 1) { S.cordonFini = true; return; }
+    const [ox, oy] = S.o || centre(), [bx, by] = centreDe(c), dx = bx - ox, dy = by - oy, L = Math.hypot(dx, dy); if (L < 4) return;
+    const casse = 0.6, nx = -dy / L, ny = dx / L, epais = Math.max(5, Wd.s0 * 0.075) * (0.5 + 0.5 * Math.min(1, S.g * 2));
+    // avant la rupture : tout le cordon ; après : le bout côté chat se rembobine vers lui, le bout côté trou rentre dans le trou
+    const r = c01((e - casse) / (1 - casse)), rr = 1 - Math.pow(1 - r, 2.2);
+    if (e >= casse && !S.schlok) { S.schlok = true; c.spin = (c.spin || 0) + (Math.random() < 0.5 ? -1 : 1) * rnd(2.5, 4.5); S.vx += dx / L * 60; S.vy += dy / L * 60;
+      E.ondes.push({ x: ox + dx * 0.5, y: oy + dy * 0.5, t0: now, r: Wd.s0 * 0.5, a: 0.6 });
+      if (Math.random() < 0.55) Wd.fx.push({ k: 'txt', text: pick(['schlok', 'tchak', 'pling', 'shlap']), x: ox + dx * 0.5 + nx * 18, y: oy + dy * 0.5 + ny * 18, t0: Wd.t, life: 0.7, rot: rnd(-0.3, 0.3), size: 16 });
+      if (window.Dex && Dex.vu) Dex.vu('cordon'); }
+    const segs = e < casse ? [[0, 1]] : [[0, 0.5 * (1 - rr)], [0.5 + 0.5 * rr, 1]];
+    ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    segs.forEach(([a0, a1]) => { if (a1 - a0 < 0.01) return; const P = [], N = 26;
+      for (let i = 0; i <= N; i++) { const t = a0 + (a1 - a0) * i / N, ond = Math.sin(t * 9 - now * 14 + c.x * 0.01) * epais * 0.9 * Math.sin(Math.PI * t) * (e < casse ? 1 : 1.6 - r);
+        P.push([ox + dx * t + nx * ond, oy + dy * t + ny * ond, 0.45 + 0.55 * t]); }
+      // un tube : le trait blanc dehors, la nuit dedans (comme les chats) ; plus épais côté chat
+      for (const [col, extra] of [['#F4F4EE', 0], ['#05060a', -3.2]]) { ctx.strokeStyle = col;
+        for (let i = 1; i < P.length; i++) { ctx.lineWidth = Math.max(0.6, epais * P[i][2] + extra); ctx.beginPath(); ctx.moveTo(P[i - 1][0], P[i - 1][1]); ctx.lineTo(P[i][0], P[i][1]); ctx.stroke(); } } });
+    ctx.restore(); });
+}
 // le monde de l'espace, une image (dans js/chats.js : le temps du monde)
 const HAUT = () => 64, BAS = () => Wd.floor || H - 70;
 const centreDe = c => [c.x, c.y - c.D.stand * sc(c)], rayon = c => Math.max(c.D.a, c.D.h) * sc(c) * 0.8;
@@ -672,6 +694,10 @@ function boucleEspace(id) {
     const k = c01((u - 1.35) / 0.5); if (k > 0 && k < 1) { ctx.globalAlpha = 0.9; ctx.strokeStyle = '#F4F4EE'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(P.x, P.y, 26 * Math.sin(Math.PI * k), 0, TAU); ctx.stroke(); }
     ctx.restore();
   } else if (u >= 1.9) E.retourG = null;
+  // (vague 118, l'audit : « l'arrivée dans l'espace ») : le trou blanc ne les lâche pas comme ça. Chaque chat sort au bout d'un cordon d'espace-temps,
+  // un tube au trait blanc qui ondule et s'étire derrière lui ; trop tendu, il cède (« schlok ») : la moitié côté trou se rembobine dans le chat,
+  // qui en prend un petit coup et tournoie ; l'autre bout claque dans le trou. Rien ne s'efface : le tube raccourcit jusqu'à rien.
+  if (!reduit) cordons(now);
   // les petits trous blancs d'un clic : ils s'ouvrent en un point, recrachent un chat, et se referment en un point
   E.pops = E.pops.filter(o => now - o.t0 < 0.75);
   E.pops.forEach(o => { const u = (now - o.t0) / 0.75, k = Math.sin(Math.PI * Math.min(1, u)), r = Wd.s0 * 0.16 * k + 1.5;

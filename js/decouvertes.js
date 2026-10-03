@@ -161,6 +161,7 @@ fam('moments', 'Les grands moments', 'Big moments', [
 // l'espace, l'écran 2 (28/09, Mathieu : « des hauts faits sur l'espace, et des spécifiques »)
 fam('espace', 'L’espace', 'Space', [
   ['decollage', 'Le décollage', 'Lift-off', 'Entrer dans l’univers, par le trou noir.', 'Enter the universe, through the black hole.'],
+  ['cordon', 'Le cordon', 'The cord', 'Le trou blanc retient chaque chat au bout d’un cordon, jusqu’à ce qu’il cède.', 'The white hole holds each cat on a cord, until it snaps.'],
   ['troublanc', 'Le petit trou blanc', 'The little white hole', 'Là-haut aussi, un clic dans le vide.', 'Up there too, a click on empty space.'],
   ['agrippe', 'Accroché', 'Hanging on', 'Le curseur, tout près d’un chat qui flotte.', 'The cursor, close to a floating cat.'],
   ['fronde', 'La fronde', 'The slingshot', 'Trop près d’une planète, on fait un tour… et on repart plus vite.', 'Too close to a planet, you go around… and leave faster.'],
