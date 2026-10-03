@@ -773,7 +773,9 @@ function retour(force) {
   const doux = Wd.espace && !t && !force && !reduit && Wd.W;
   const o = E.sortie || null; E.sortie = null;
   Wd.espace = false; root.classList.remove('espace', 'trou');
-  if (theme0 && window.THEME) { if (doux) glisse(); THEME.set(theme0, true); } theme0 = null;
+  // (vague 183 de l'audit : « le retour par la planète chat ») : plus de glissement de couleurs d'une seconde au retour : la pièce, découverte par
+  // le disque qui s'ouvre, passait par un gris boueux mi-nuit mi-papier ; elle est tout de suite à ses couleurs, c'est le disque qui fait la transition
+  if (theme0 && window.THEME) THEME.set(theme0, true); theme0 = null;
   E.doigt = null;
   if (!doux) { X.retour.forEach(f => f()); tombe(); return; }
   // la sortie : chaque chose part du centre du passage, et se déroule jusqu'à sa place
