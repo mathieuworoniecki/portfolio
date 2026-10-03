@@ -1898,7 +1898,7 @@ S.secu = (() => ({
         if (u < 0.4) mot(en() ? 'crack!' : 'crac !', X1, Y1 - bs * 1.6, Math.max(12, k * 0.07), 1);
         if (!RX.vu && window.Dex && Dex.vu) { RX.vu = true; Dex.vu('rayons-x'); } } }
     // le compteur, en haut du dôme, sur un petit écran de papier (il était caché sous les sous-titres)
-    { const o = V(0, 0, 0), w = Math.max(k * 0.52, 108), h = Math.max(k * 0.14, 28), m = [Math.min(o[0] + R * k * 1.2, G.cx * 2 - w * 0.62 - 10), o[1] - R * k * (G.cx * 2 < 700 ? 1.25 : 0.8)]; ecran(m[0] - w / 2, m[1] - h / 2, w, h, k * 0.03, 3); mot(`${en() ? 'blocked' : 'bloqués'} : ${bloq}`, m[0], m[1], Math.max(12, k * 0.075), 1); }
+    { const o = V(0, 0, 0), w = Math.max(k * 0.52, 108), h = Math.max(k * 0.14, 28), m = [Math.min(o[0] + R * k * 1.2, G.cx * 2 - w * 0.62 - 10), o[1] - R * k * (G.cx * 2 < 700 ? 1.25 : 0.8)]; ecran(m[0] - w / 2, m[1] - h / 2, w, h, k * 0.03, 3); mot(`${en() ? 'blocked' : 'bloqués'} : ${Math.max(0, bloq)}`, m[0], m[1], Math.max(12, k * 0.075), 1); }
     ctx.restore();
     ATK.t = now;   // (vague 88 : les méchants attaquent aussi le vrai site, voir attaques())
     // (vague 62 de l'audit, « sécurité », immersion) : la souris est une intruse. En approchant du dôme, elle y allume des alvéoles hexagonales
@@ -1917,6 +1917,7 @@ S.secu = (() => ({
 // sur la route pour éviter les obstacles ») : une route de l'espace, à la manière des jeux d'arcade, vers une planète à anneaux qui se lève ;
 // le bus de l'équipe (Mathieu au volant, l'équipe aux fenêtres : des chats-robots et des collègues) change de voie pour éviter les bugs,
 // les astéroïdes, les cônes et les deadlines, et ramasse les étoiles (les jalons). La souris sur le ciel : c'est vous qui conduisez
+const SAUT = { vu: false };
 S.pilotage = (() => {
   const E = { t: null, bx: 0, lane: 0, obs: [], next: 0, jal: 0, bonk: -9, mots: [], roul: 0, n: 0 };
   const ptr = () => { const W = window.Chats && Chats.K && Chats.K.Wd, P = W && W.ptr; return P && P.on && W.t - P.moved < 2.5 ? P : null; };
@@ -1958,8 +1959,27 @@ S.pilotage = (() => {
         if (r > 3) { cerne(() => { ctx.beginPath(); ctx.arc(bras[0], bras[1] + r, r, 0, TAU); ctx.moveTo(bras[0] - r * 0.9, bras[1] + r * 0.6); ctx.lineTo(bras[0] - r * 0.7, bras[1] - r * 0.3); ctx.lineTo(bras[0] - r * 0.2, bras[1] + r * 0.1); ctx.moveTo(bras[0] + r * 0.9, bras[1] + r * 0.6); ctx.lineTo(bras[0] + r * 0.7, bras[1] - r * 0.3); ctx.lineTo(bras[0] + r * 0.2, bras[1] + r * 0.1); }, 0.7, 1);
           [-1, 1].forEach(g => { ctx.globalAlpha = 1; ctx.fillStyle = z < 12 ? '#ffe9a8' : ENC; ctx.beginPath(); ctx.ellipse(bras[0] + g * r * 0.35, bras[1] + r * 1.05, r * 0.16, r * 0.24, 0, 0, TAU); ctx.fill(); ctx.strokeStyle = ENC; ctx.lineWidth = 1; ctx.stroke(); }); }
         else rond(bras[0], bras[1], 1.5, 0.5, al, true); }
-      // les obstacles : ils viennent de l'horizon, sur une des trois voies
-      if (now > E.next) { E.next = now + 0.75 + bruit(E.n * 3.3) * 0.7; const sorte = SORTES[Math.floor(bruit(E.n * 7.1) * SORTES.length)], l = Math.floor(bruit(E.n * 1.9) * 3) - 1; E.obs.push({ x: l * 1.06, z: 46, sorte, ph: bruit(E.n) * TAU, n: E.n++ }); }
+      // (vague 131 de l'audit : « de très bien à inoubliable ») : le grand saut. Toutes les quinze secondes, la route s'ouvre sur un trou dans le
+      // planning, annoncé par un panneau ; un tremplin rayé le précède : le bus y monte, décolle avec toute l'équipe (« tous ensemble ! »),
+      // survole le vide plein d'étoiles, son ombre glisse en dessous, et retombe de l'autre côté en rebondissant
+      const perS = 15, nS = Math.floor(a / perS), zr = 46 - (a - nS * perS) * V, sS = (zb + 0.6 - zr) / (V * 0.75), hS = clamp((Pp(0, 2.2, zb)[1] - G.haut - 8) / (f / zb), 0.15, G.sw < 500 ? 0.5 : 0.6), saut = sS > 0 && sS < 1 ? 4 * hS * sS * (1 - sS) : 0, atterrit = sS >= 1 && sS < 1.35 ? Math.sin((sS - 1) / 0.35 * Math.PI) * 0.12 : 0;
+      if (zr > -3 && zr < 46) { ctx.save(); ctx.beginPath(); ctx.rect(G.gauche - 60, hz - 2, G.droite - G.gauche + 120, G.caps + 2 - hz); ctx.clip();
+        const g0 = Math.max(1.05, zr + 0.1), g1 = zr + 2.1, al = c01((46 - zr) / 5);
+        if (g1 > 1.05) { const Q = [Pp(-1.6, 0, g0), Pp(1.6, 0, g0), Pp(1.6, 0, g1), Pp(-1.6, 0, g1)];
+          cerne(() => { ctx.beginPath(); ctx.moveTo(Q[0][0], Q[0][1]); for (let i = 1; i <= 8; i++) { const p = Pp(-1.6 + i * 0.4, 0, g0 + (i % 2 ? 0.12 : 0)); ctx.lineTo(p[0], p[1]); } ctx.lineTo(Q[2][0], Q[2][1]); for (let i = 7; i >= 0; i--) { const p = Pp(-1.6 + i * 0.4, 0, g1 - (i % 2 ? 0.12 : 0)); ctx.lineTo(p[0], p[1]); } ctx.closePath(); }, 1, al, NUIT);
+          for (let j = 0; j < 10; j++) { const u = bruit(j * 3.7 + nS), v = fr2(bruit(j * 1.3) + now * 0.6), p = Pp(-1.4 + u * 2.8, -v * 0.8, lerp(g0, g1, bruit(j * 8.1))); if (p[1] < G.caps) brille(p[0], p[1], 1.6, al * (1 - v), false, now, j); } }
+        // le tremplin, rayé comme un chantier
+        const r0 = Math.max(1.05, zr - 0.9), r1 = zr; if (r1 > 1.05) { const A0 = Pp(-1.55, 0, r0), B0 = Pp(1.55, 0, r0), A1 = Pp(-1.55, 0.38, r1), B1 = Pp(1.55, 0.38, r1);
+          cerne(() => { ctx.beginPath(); ctx.moveTo(A0[0], A0[1]); ctx.lineTo(B0[0], B0[1]); ctx.lineTo(B1[0], B1[1]); ctx.lineTo(A1[0], A1[1]); ctx.closePath(); }, 1, al, '#ffe9a8');
+          ctx.save(); ctx.globalAlpha = al; ctx.strokeStyle = ENC; ctx.lineWidth = Math.max(1, (A0[1] - A1[1]) * 0.12); for (let i = 0; i < 7; i++) { const x = -1.4 + i * 0.47, p = Pp(x, 0, r0), q = Pp(x + 0.25, 0.38, r1); ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); } ctx.restore(); }
+        ctx.restore();
+        // le panneau, sur deux poteaux, avant le tremplin
+        const zp = zr - 3; if (zp > 1.4 && zp < 44) { const a0 = Pp(-1.9, 0, zp), a1 = Pp(-1.9, 1.7, zp), b0 = Pp(1.9, 0, zp), b1 = Pp(1.9, 1.7, zp), pa = Pp(-1.75, 2.05, zp), pb = Pp(1.75, 1.45, zp), hh = pb[1] - pa[1];
+          cerne(() => { ctx.beginPath(); ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a1[0], a1[1]); ctx.moveTo(b0[0], b0[1]); ctx.lineTo(b1[0], b1[1]); }, Math.max(0.4, c01(8 / zp)), al, null);
+          cerne(() => { ctx.beginPath(); ctx.rect(pa[0], pa[1], pb[0] - pa[0], hh); }, 0.9, al, '#ffe9a8');
+          if (hh > 6) { ctx.save(); ctx.globalAlpha = al; ctx.fillStyle = ENC; const t = en() ? '⚠ gap in the plan' : '⚠ trou dans le planning'; let fp = Math.round(hh * 0.5); ctx.font = `700 ${fp}px "Space Grotesk",system-ui,sans-serif`; const mw = (pb[0] - pa[0]) * 0.88, tw = ctx.measureText(t).width; if (tw > mw) { fp = Math.floor(fp * mw / tw); ctx.font = `700 ${fp}px "Space Grotesk",system-ui,sans-serif`; } ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, (pa[0] + pb[0]) / 2, pa[1] + hh / 2); ctx.restore(); } } }
+      // les obstacles : ils viennent de l'horizon, sur une des trois voies (pas autour du trou)
+      if (now > E.next && !(zr > 41 && zr < 50)) { E.next = now + 0.75 + bruit(E.n * 3.3) * 0.7; const sorte = SORTES[Math.floor(bruit(E.n * 7.1) * SORTES.length)], l = Math.floor(bruit(E.n * 1.9) * 3) - 1; E.obs.push({ x: l * 1.06, z: 46, sorte, ph: bruit(E.n) * TAU, n: E.n++ }); }
       E.obs.forEach(o => { o.z -= V * dt; });
       // la conduite : le pilote automatique regarde loin devant et prend la voie la plus libre ; la souris sur le ciel : c'est vous
       const P = ptr(), libre = l => Math.min(99, ...E.obs.filter(o => o.sorte !== 'etoile' && !o.fini && Math.abs(o.x - l * 1.06) < 0.5 && o.z > zb - 0.5).map(o => o.z - zb));
@@ -1968,7 +1988,7 @@ S.pilotage = (() => {
       else { const sc = l => Math.min(libre(l), 16) + (etoile(l) ? 3 : 0) - Math.abs(l - E.lane) * 0.6; E.lane = [-1, 0, 1].reduce((b, l) => sc(l) > sc(b) + 0.4 ? l : b, Math.round(clamp(E.lane, -1, 1))); }
       const vis = E.lane * 1.06, vbx = clamp(vis - E.bx, -dt * 3.2, dt * 3.2); E.bx += vbx; const roulis = -vbx / Math.max(dt, 1e-3) / 3.2 * 0.06;
       // les chocs et les jalons
-      E.obs.forEach(o => { if (o.fini || o.z > zb + 2.4 || o.z < zb) return; if (Math.abs(o.x - E.bx) > 0.72) return; o.fini = now;
+      E.obs.forEach(o => { if (o.fini || o.z > zb + 2.4 || o.z < zb || saut > 0.3) return; if (Math.abs(o.x - E.bx) > 0.72) return; o.fini = now;
         if (o.sorte === 'etoile') { E.jal++; E.mots.push({ t: '+1', x: o.x, z: zb + 1, t0: now }); gagneEtoile(Pp(o.x, 0.6, zb + 1), now); } else { E.bonk = now; E.mots.push({ t: pick2(['bonk', 'boum', 'ouille'], o.n), x: o.x, z: zb + 1, t0: now }); secoueUI(o.x - E.bx); } });
       E.obs = E.obs.filter(o => o.z > 0.8 && !(o.fini && now - o.fini > 0.5));
       // dessin, du fond vers nous
@@ -1985,7 +2005,11 @@ S.pilotage = (() => {
         ctx.restore(); };
       if (pq && pq.z > zb + 0.5) dessinePortique(pq);
       E.obs.filter(o => o.z > zb + 1).sort((p, q) => q.z - p.z).forEach(o => obstacle(o, Pp, now, D));
-      bus(Pp, E.bx, zb, roulis, now, E.bonk, a, camX);
+      if (saut > 0) { const o = Pp(E.bx, 0, zb + 0.4), o2 = Pp(E.bx + 0.75, 0, zb + 0.4), rw = Math.abs(o2[0] - o[0]) * (1 - saut * 0.35); ctx.globalAlpha = 0.45; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(o[0], o[1], rw, rw * 0.18, 0, 0, TAU); ctx.fill(); }
+      bus(saut || atterrit ? (x, y, z) => Pp(x, y + saut + atterrit, z) : Pp, E.bx, zb, roulis + (saut ? (0.5 - sS) * 0.25 : 0), now, E.bonk, a, camX);
+      if (saut > 0) { const p = Pp(E.bx + (E.bx > 0 ? -1.5 : 1.5), 1.1 + saut, zb + 1); mot(sS < 0.5 ? (en() ? 'all together!' : 'tous ensemble !') : (en() ? 'wheee!' : 'youhou !'), clamp(p[0], G.gauche + 70, G.droite - 70), Math.max(G.haut + 60, p[1]), Math.max(14, D * 0.075), 1);
+        if (sS > 0.4 && !SAUT.vu && window.Dex && Dex.vu) { SAUT.vu = true; Dex.vu('grand-saut'); } }
+      if (atterrit > 0.05) { const p = Pp(E.bx, 0.2, zb + 0.2); mot(en() ? 'ba-boom' : 'badaboum', p[0] + 30, p[1], Math.max(12, D * 0.06), 1); }
       // (vague 31, l'audit : « le bus ») : le pot d'échappement crache des petits nuages de papier, ronds, qui gonflent, montent et restent
       // sur la route derrière (ils défilent vers nous) ; au choc, un gros nuage noirâtre et un « pouêt »
       { const kb = G.sw < 500 ? 0.72 : 1, cote = E.bx - camX > 0 ? -1 : 1;
