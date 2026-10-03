@@ -46,6 +46,10 @@ function go0(btn) {
     L.st = 'trou'; L.vx = rnd(-30, 30); L.vy = -rnd(60, 160); L.vr = rnd(-4, 4); L.trouX = null; }));
   // les deux boutons : ils tombent aussi, chacun dans son trou
   ['stay', 'enter'].map(id => document.getElementById(id)).filter(Boolean).forEach((b, i) => later(0.2 + i * 0.12, () => { if (F === moi) tombeBouton(b); }));
+  // (vague 184 de l'audit : « le passage au mode sérieux ») : la colonne des événements aussi, bouton par bouton, du haut vers le bas (elle restait
+  // plantée au bord, et l'esquisse du plan, au téléphone, se traçait par-dessus ses boutons)
+  const EVB = () => [...document.querySelectorAll('.evts-list li > button')];
+  EVB().forEach((b, i) => later(0.25 + i * 0.05, () => { if (F === moi) tombeBouton(b); }));
   // 2 et 3 : le tracé du plan, puis les tuiles bleues ; enfin le mode sérieux, sans cercle
   etapes(o, () => { if (F !== moi || F.ouvert) return; F.ouvert = true; const p = Serieux.ouvre({ x: o.x, y: o.y, instant: true, papier: true }); if (p && p.then) p.then(() => {}, () => {}); setTimeout(range, 450); });
   return true;
@@ -327,6 +331,7 @@ function retour() {
   if (Ls) Ls.forEach((Lt, i) => { if (Lt.st !== 'avale' && Lt.st !== 'trou') return; later(0.2 + i * 0.05, () => { const x = rt.left + Lt.cx, fl = Wd.floor - 2; trou(x, fl, Wd.s0 * 0.16, 0.15, 0.6);
     Lt.a = 1; Lt.st = 'back'; Lt.t = Wd.t; Lt.from = [0, fl - (rt.top + Lt.cy), 0]; Lt.dx = 0; Lt.dy = Lt.from[1]; Lt.rot = 0; Lt.out0 = 0; }); });
   ['stay', 'enter'].map(id => document.getElementById(id)).filter(Boolean).forEach((b, i) => sortBouton(b, 350 + i * 180));
+  document.querySelectorAll('.evts-list li > button').forEach((b, i) => sortBouton(b, 500 + i * 70));
   const L = avales.slice(); avales = [];
   const ox = o ? o.x : Wd.W / 2, oy = floorAt(0.5), pos = it => { const h = it.home && !it.home.on ? it.home : it; return [h.fx * Wd.W, floorAt(h.d)]; };
   L.sort((a, b) => Math.abs(pos(a)[0] - ox) - Math.abs(pos(b)[0] - ox));
