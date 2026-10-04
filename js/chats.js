@@ -984,6 +984,8 @@ function empreinte(f, u) {
 // (vague 72, l'audit : « la tour ») : la caisse du sommet ne tombe pas dans la pièce, elle tombe vers nous. Elle grossit en tournoyant,
 // vient se plaquer contre l'écran (BONK, tout tremble, elle s'écrase un peu contre la vitre), reste collée un instant, puis glisse vers le bas
 // et sort par le bas de l'écran. Au trait, remplie de papier ; ses flèches « haut » sont à l'envers
+// (vague 218 de l'audit, design) : un dessin rempli de papier reste plein malgré le grain de la craie (js/titles.js, Titles.bouche)
+function bouche(ctx, P, col) { if (window.Titles && Titles.bouche) Titles.bouche(ctx, c => { P.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); }, col); }
 function versNous(f, tt) {
   const C = Chalk, ctx = C.ctx; if (!ctx) return; const W = Wd.W, H = Wd.H, ea = c01(tt / 0.55), e = Math.pow(ea, 2.4), Smax = Math.min(W, H) * 0.48;
   if (tt >= 0.55 && !f.hit) { f.hit = true; traceVitre(W * 0.5, H * 0.46, Smax, f.dir); Wd.shake = { t0: Wd.t, a: 12 }; Wd.fx.push({ k: 'txt', text: 'BONK', x: W * 0.5 + f.dir * Smax * 0.2, y: H * 0.2, t0: Wd.t, life: 1.3, rot: -0.1 * f.dir, size: 64 }); }
@@ -996,7 +998,7 @@ function versNous(f, tt) {
   const rot = (px, py, k, ox, oy) => { const c = Math.cos(ang), s2 = Math.sin(ang); return [cx + ox + (px * c - py * s2) * k * sx, cy + oy + (px * s2 + py * c) * k * sy]; };
   const h = S / 2, avant = [[-h, -h * 0.8], [h, -h * 0.8], [h, h * 0.8], [-h, h * 0.8]].map(p => rot(p[0], p[1], 1, 0, 0)), fond = [[-h, -h * 0.8], [h, -h * 0.8], [h, h * 0.8], [-h, h * 0.8]].map(p => rot(p[0], p[1], kb, bx, by));
   if (!f.pap) f.pap = getComputedStyle(document.documentElement).getPropertyValue('--bp-hi').trim() || '#eeeeea';
-  const poly = (P, fill) => { ctx.save(); ctx.fillStyle = f.pap; ctx.globalAlpha = Wd.a; ctx.beginPath(); P.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); if (fill) ctx.fill(); ctx.restore(); C.stroke([...P, P[0]], 1, { w: 2.6, a: 0.9 * Wd.a, seed: f.seed + P.length, tip: false }); };
+  const poly = (P, fill) => { ctx.save(); ctx.fillStyle = f.pap; ctx.globalAlpha = Wd.a; ctx.beginPath(); P.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); if (fill) { ctx.fill(); bouche(ctx, P, f.pap); } ctx.restore(); C.stroke([...P, P[0]], 1, { w: 2.6, a: 0.9 * Wd.a, seed: f.seed + P.length, tip: false }); };
   // on voit le dessus (ouvert : ses deux rabats battent) et un côté, puis la face avant
   const cote = bx > 0 ? [avant[1], avant[2], fond[2], fond[1]] : [avant[0], avant[3], fond[3], fond[0]], dessus = [avant[0], avant[1], fond[1], fond[0]];
   const bat = Math.sin(tt * 14) * 0.25 + 0.55, rabat = (a0, a1, sens) => { const vx = (a0[0] + a1[0]) / 2 - cx, vy = -S * 0.3 * bat, hx = Math.sin(ang) * S * 0.28 * sens;
@@ -1252,7 +1254,12 @@ function tower(grand) {
     if (Wd.tower !== T) return;
     const b = prop('caisse', fx + offs.slice(0, i + 1).reduce((a, o) => a + o, 0) * sOf(d) / Wd.W + rnd(-0.002, 0.002), d, { size }); b.tower = T; b.fall = true; b.lift = Wd.H + sOf(d) * 0.5; b.vy = -sOf(d) * 2; b.tilt = rnd(-0.25, 0.25); b.tiltV = -b.tilt * 1.5;
     b.target = T.boxes[T.boxes.length - 1] || null; b.zo = 100; T.boxes.push(b);
-    if (grand) later(0.55, () => { if (Wd.tower !== T) return; Wd.shake = { t0: Wd.t, a: 2 + i * 0.6 }; Wd.fx.push({ k: 'txt', text: pick(['poc', 'BOM', 'tchac', 'et une !', 'encore ?']), x: xOf(b) + rnd(-30, 30), y: b.y - sOf(d) * 0.5, t0: Wd.t, life: 0.9, rot: rnd(-0.3, 0.3), size: 18 + i * 2 }); });
+    // (vague 218 de l'audit, design) : le mot tombait 0,55 s après la caisse, quand elle traversait encore le titre : « BOM », « poc » se
+    // posaient sur les lettres et les uns sur les autres. Il attend qu'elle se pose, et s'écrit à côté de la pile, à sa hauteur, un côté puis l'autre
+    if (grand) { const pose = n => { if (Wd.tower !== T) return; if (b.fall && n < 50) { later(0.05, () => pose(n + 1)); return; }
+      const sd = i % 2 ? 1 : -1, hw = sOf(d) * (0.3 + H[size] * 0.6); Wd.shake = { t0: Wd.t, a: 2 + i * 0.6 };
+      Wd.fx.push({ k: 'txt', text: pick(['poc', 'BOM', 'tchac', 'et une !', 'encore ?']), x: xOf(b) + sd * (hw + 34), y: b.y - sOf(d) * H[size] * 0.5, t0: Wd.t, life: 0.9, rot: sd * rnd(0.05, 0.25), size: 18 + i * 2 }); };
+      later(0.3, () => pose(0)); }
     if (i === sizes.length - 1) later(1.2, () => { if (Wd.tower === T) { T.phase = 'debout'; T.t = 0; climbers(T); } });
   }));
 }
