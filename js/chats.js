@@ -1753,13 +1753,18 @@ function drawVac(S) {
   for (let i = -3; i <= 3; i++) { const sp = i * s0 * 0.16; C.line(x + sp * 0.3, 0, x + sp, y - s0 * 0.1, 1, { w: 1.1, a: 0.16 * Wd.a, amp: 0.4, seed: 40 + i, tip: false, dash: [6, 9] , color: col(1) }); }
   // le tuyau (deux traits ondulés), les annelures
   const hose = k => { const P = []; for (let j = 0; j <= 12; j++) { const v = j / 12, yy = -10 + (y - s0 * 0.35 + 10) * v; P.push([x + k * w * 0.32 + Math.sin(v * 7 + Wd.t * 3) * s0 * 0.05 * (1 - v), yy]); } return P; };
+  // (vague 219 de l'audit, design) : le tuyau et la bouche n'étaient que des contours : la pièce, les filets d'air, tout passait au travers,
+  // on ne lisait pas un objet. Ils sont remplis de papier (plein malgré le grain de la craie) : un vrai tuyau, une vraie bouche, devant la pièce
+  const papV = getComputedStyle(document.documentElement).getPropertyValue('--bp').trim() || '#DADBD8', cv = C.ctx;
+  const plein = P => { if (!cv) return; cv.save(); cv.globalAlpha = Wd.a; cv.fillStyle = papV; cv.beginPath(); P.forEach((p, i) => i ? cv.lineTo(p[0], p[1]) : cv.moveTo(p[0], p[1])); cv.closePath(); cv.fill(); cv.restore(); if (Wd.a > 0.95) bouche(cv, P, papV); };
+  plein([...hose(-1), ...hose(1).reverse()]); plein([[x - w * 0.32, y - s0 * 0.35], [x - w, y], [x + w, y], [x + w * 0.32, y - s0 * 0.35]]);
   C.stroke(hose(-1), 1, { w: 2, a, seed: 51, tip: false , color: col(2) }); C.stroke(hose(1), 1, { w: 2, a, seed: 52, tip: false , color: col(3) });
   for (let j = 1; j < 6; j++) { const yy = (y - s0 * 0.35) * j / 6, xx = x + Math.sin(j / 6 * 7 + Wd.t * 3) * s0 * 0.05 * (1 - j / 6); C.line(xx - w * 0.32, yy, xx + w * 0.32, yy + 3, 1, { w: 1.2, a: a * 0.6, seed: 60 + j, tip: false , color: col(4) }); }
   // les bosses qui montent dans le tuyau : le tuyau gonfle autour (un rond rempli de papier, au trait), elles accélèrent en montant
   if (V.bos && V.bos.length) { const ctx = C.ctx, y0 = y - s0 * 0.35, pap = getComputedStyle(document.documentElement).getPropertyValue('--bp').trim() || '#DADBD8';
     V.bos = V.bos.filter(b => Wd.t - b.t0 < b.dur); if (ctx) V.bos.forEach(b => { const u = (Wd.t - b.t0) / b.dur, e = u * u * (1.6 - 0.6 * u), yy = y0 + 10 - (y0 + 10 + w * 1.2) * e, v = Math.max(0, (yy + 10) / (y0 + 10));
       const xx = x + Math.sin(v * 7 + Wd.t * 3) * s0 * 0.05 * (1 - v), rw = w * 0.32 * (1 + 1.7 * b.r) * Math.min(1, u / 0.12 + 0.3), rh = w * (0.32 + 0.7 * b.r);
-      ctx.save(); ctx.fillStyle = pap; ctx.globalAlpha = Wd.a; ctx.beginPath(); ctx.ellipse(xx, yy, rw, rh, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.fillStyle = pap; ctx.globalAlpha = Wd.a; ctx.beginPath(); ctx.ellipse(xx, yy, rw, rh, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore(); if (window.Titles && Titles.bouche) Titles.bouche(ctx, c => c.ellipse(xx, yy, rw, rh, 0, 0, Math.PI * 2), pap);
       const P = []; for (let k = 0; k <= 28; k++) { const t = k / 28 * Math.PI * 2; P.push([xx + Math.cos(t) * rw, yy + Math.sin(t) * rh]); }
       C.stroke(P, 1, { w: 2, a, seed: 400 + Math.floor(b.t0 * 10), tip: false, color: col(8) });
       if (b.r > 0.5) { C.line(xx - rw * 0.55, yy - rh * 0.4, xx - rw * 0.2, yy - rh * 0.75, 1, { w: 1.2, a: a * 0.6, seed: 410, tip: false }); } }); }
