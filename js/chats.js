@@ -1128,6 +1128,17 @@ function fightCloud(f, u, fade, K) {
 }
 
 /* ——— les scénarios : de temps en temps ——— */
+// (vague 255 de l'audit, « la horde », immersion) : la ruée fait du vent, et le vent monte jusqu'au haut de l'écran. Pendant qu'elle passe,
+// le titre se couche dans son sens comme des herbes, rafale après rafale ; les boutons du dessous claquent comme des volets ;
+// et deux lettres sont arrachées : elles s'envolent dans le sens de la horde, et retombent sur ce qu'elles trouvent (souvent un dos de chat, en chapeau)
+function ventRue(dir) {
+  const V = window.Vie, Ls = V && V.LETTERS && V.LETTERS(), r = Ls && V.RECT(); let arr = 0;
+  [0.5, 0.85, 1.2, 1.55, 1.9, 2.25, 2.6].forEach((t, i) => later(t, () => { if (Wd.espace || Wd.trou) return; const f = 1 - Math.abs(i - 3) / 4;
+    if (Ls) Ls.forEach((L, j) => { if (L.st || L.a < 0.8) return; L.wob = Wd.t + (dir > 0 ? j : Ls.length - j) * 0.025; L.wobA = dir * (1 + f * 1.6); L.hopA = (L.y1 - L.y0) * 0.08 * f; });
+    if (i % 2 === 0) document.querySelectorAll('.ctas > *').forEach((e, j) => { if (e.animate) try { e.animate([{ transform: 'none' }, { transform: `skewX(${-dir * 7 * (0.5 + f)}deg) translateX(${dir * 5 * f}px)`, offset: 0.3 }, { transform: `skewX(${dir * 2}deg)`, offset: 0.65 }, { transform: 'none' }], { duration: 380, delay: j * 50, easing: 'ease-out', composite: 'add' }); } catch (x) {} });
+    if (i === 3 && Ls && r && !Wd.reduit) { const libres = Ls.filter(L => !L.st && L.a > 0.8 && L.x1 - L.x0 > 4); for (let k = 0; k < 2 && libres.length; k++) { const L = libres.splice(Math.floor(Math.random() * libres.length), 1)[0];
+      V.tumble(L, dir * Wd.s0 * rnd(2.4, 3.6), -Wd.s0 * rnd(1.4, 2.2), dir * rnd(6, 11)); arr++; } if (arr) Wd.fx.push({ k: 'txt', text: 'fiiiuuu', x: r.left + r.width / 2 + dir * r.width * 0.3, y: r.top - 6, t0: Wd.t, life: 1.1, rot: -0.1 * dir, size: 20 }); } }));
+}
 // (28/09, Mathieu : « pas mal d'événements cliquables ne marchent pas ou ne sont pas impressionnants ») : lancée du menu (grand),
 // c'est une ruée : deux fois plus de chats, sur toute la profondeur, plus vite, la pièce qui tremble et la poussière tout du long
 function horde(grand, dir0) {
@@ -1153,6 +1164,7 @@ function horde(grand, dir0) {
     k.q = [go(dir > 0 ? W + sc(k) * 2 + i * 10 : -sc(k) * 2 - i * 10, { g: 'galop', v: grand ? rnd(1.25, 1.6) : rnd(1, 1.15) }), fn(k => { k.gone = true; })]; k.balai = dir;   // la horde balaie le bazar au passage
     if (grand) k.rue = true;
   }
+  if (grand) ventRue(dir);
   // (vague 3 de l'audit : « la horde manque d'originalité ») : le retour de bâton. Quelques secondes après, la horde repasse… dans l'autre sens,
   // en hurlant : une souris GÉANTE la poursuit. La pièce tremble à chacun de ses pas
   const retour = (n = 0) => {
