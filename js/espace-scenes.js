@@ -1525,10 +1525,13 @@ S.flotte = (() => {
           q.p = [lerp(q.p[0], P1[0], e), lerp(q.p[1], P1[1], e), 1, 1]; q.pp = [lerp(q.pp[0], P0[0], e), lerp(q.pp[1], P0[1], e), 1, 1]; q.porte = false; q.salue = false; });
         const s1 = Math.min(1, sL), s0 = c01((uP - 2.9) / 0.7); if (s1 > s0) { traineeP = []; for (let j = 0; j <= 40; j++) traineeP.push(chemin(lerp(s0, s1, j / 40))); }
         if (sL > 1 && !PATROUILLE.vu && window.Dex && Dex.vu) { PATROUILLE.vu = true; Dex.vu('patrouille'); } }
+      // (vague 235 de l'audit, « la flotte », design : les chats-robots du haut de l'orbite étaient tranchés net par la barre des chapitres, ceux du bas
+      // par les sous-titres) : près de ces bords, un agent rapetisse jusqu'à n'être plus qu'une étincelle, il n'est jamais coupé
+      const bordA = (q, r0, ht, bs) => Math.min(c01((q.p[1] - r0 * ht - G.haut) / (r0 * 2.5)), c01(((G.caps || G.bas) - 6 - q.p[1] - r0 * bs) / (r0 * 2.5)));
       const agent = q => { const al = prof(q.p[2]); if (q.i < 18) trait([q.pp, q.p], false, 0.5, al * 0.5);
         // (09:57, Mathieu : « pas assez élaboré ») : les autres ne sont plus des ronds à queue : de petits blocs de papier qui tournent sur eux-mêmes, en route
-        if (q.i >= 18) { const s2 = k * 0.022 * q.p[3], t = now * 2 + q.i; ctx.save(); ctx.translate(q.p[0], q.p[1]); ctx.rotate(t); cerne(() => { ctx.beginPath(); ctx.rect(-s2, -s2 * 0.7, s2 * 2, s2 * 1.4); }, 0.5, al); ctx.restore(); return; }
-        const r = k * 0.055 * q.p[3], dx = q.p[0] - q.pp[0]; brille(q.p[0] - Math.sign(dx) * r * 0.9, q.p[1] + r * 1.3, 2.2, al, true, now, q.i);
+        if (q.i >= 18) { const s0 = k * 0.022 * q.p[3], sb = bordA(q, s0, 1, 1), s2 = s0 * sb, t = now * 2 + q.i; if (sb < 0.12) { brille(q.p[0], q.p[1], 1.4, al, false, now, q.i); return; } ctx.save(); ctx.translate(q.p[0], q.p[1]); ctx.rotate(t); cerne(() => { ctx.beginPath(); ctx.rect(-s2, -s2 * 0.7, s2 * 2, s2 * 1.4); }, 0.5, al); ctx.restore(); return; }
+        const r0 = k * 0.055 * q.p[3], sb = bordA(q, r0, 2.6, 1.7), dx = q.p[0] - q.pp[0]; if (sb < 0.12) { brille(q.p[0], q.p[1], 2.2, al, true, now, q.i); return; } const r = r0 * sb; brille(q.p[0] - Math.sign(dx) * r * 0.9, q.p[1] + r * 1.3, 2.2, al, true, now, q.i);
         chabot(q.p[0], q.p[1], r, { now, ph: q.i, a: Math.max(0.55, al), lac: Math.sign(dx) * 0.7, casque: false, bras: q.porte ? [1.3, 1.3] : q.salue ? [0.2, 1.3 + Math.sin(now * 12 + q.i) * 0.35] : null, travaille: q.porte });
         if (q.porte) { const s2 = r * 0.8; cerne(() => { ctx.beginPath(); ctx.rect(q.p[0] - s2, q.p[1] - r * 2.3 - s2 * 1.4, s2 * 2, s2 * 1.4); }, 0.6, Math.max(0.55, al)); } };
       Q.filter(q => q.p[2] < -0.2).forEach(agent);
