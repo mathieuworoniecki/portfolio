@@ -1239,9 +1239,20 @@ S.bench = (() => {
         ctx.globalAlpha = 1; ctx.fillStyle = (l + j) % 2 ? PAP : ENC; ctx.beginPath(); Q.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fill(); }
       // la course
       const go = c01((c - 1.1) / 3.4), T0 = Math.PI / 2, fin = c > 4.6;
-      const cour = NOMS.map((_, i) => { const d = go <= 0 ? 0 : Math.min(1, go * v[i] / Math.max(...v) * (i === g ? 1 : 0.97)), t = T0 + d * TAU * 1.5; return { i, t, d, p: piste(t, i) }; });
-      if (!fin) cour.slice().sort((p, q) => p.p[2] - q.p[2]).forEach(({ i, t, d, p }) => {
-        const al = 1, dir = piste(t + 0.05, i), ang = Math.atan2(dir[1] - p[1], dir[0] - p[0]), r = k * 0.125 * p[3], roule = go > 0 && d < 1; void r;
+      // (vague 200 de l'audit, « la course », originalité) : un pilote reste un chat. En pleine course, le quatrième s'arrête net pour faire
+      // sa toilette : sa fusée part en tête-à-queue jusqu'au milieu de la piste (« skrrr »), il se lèche la patte, face à nous (« slurp ») ;
+      // ceux qui arrivent derrière lui sautent par-dessus (« hop ») ; puis il repart, bon dernier, comme si de rien n'était
+      const D = rang[3], vD = v[D] / Math.max(...v) * 0.97, cA = 1.1 + 0.55 / vD * 3.4, PA = 1.05, uP = reduitMvt() ? -1 : c - cA, lc = D === 2 ? 3 : 2;
+      const eIn = sm(c01(uP / 0.45)), eOut = sm(c01((uP - PA) / 0.4)), lD = lerp(D, lc, eIn * (1 - eOut)), toil = uP > 0.45 && uP < PA;
+      const cour = NOMS.map((_, i) => { const gg = i === D && uP > 0 ? go - Math.min(uP, PA) / 3.4 : go, d = gg <= 0 ? 0 : Math.min(1, gg * v[i] / Math.max(...v) * (i === g ? 1 : 0.97)), t = T0 + d * TAU * 1.5; return { i, t, d, l: i === D ? lD : i, p: piste(t, i === D ? lD : i) }; });
+      const cD = cour[D];
+      cour.forEach(q => { if (q.i === D || uP <= 0 || uP > PA + 0.3) return; const dth = Math.atan2(Math.sin(q.t - cD.t), Math.cos(q.t - cD.t));   // les suivants sautent par-dessus
+        if (Math.abs(q.l - lD) < 1.2 && Math.abs(dth) < 0.24) { const b = Math.cos(dth / 0.24 * Math.PI / 2) ** 2; q.p = piste(q.t, q.l, -0.2 * b); q.saut = b; } });
+      if (!fin) cour.slice().sort((p, q) => p.p[2] - q.p[2]).forEach(({ i, t, d, p, l, saut }) => {
+        const al = 1, dir = piste(t + 0.05, l), spin = i === D && uP > 0 ? TAU * 1.25 * sm(c01(uP / 0.5)) * (1 - eOut) : 0, ang = Math.atan2(dir[1] - p[1], dir[0] - p[0]) + spin, r = k * 0.125 * p[3], roule = go > 0 && d < 1 && !(i === D && uP > 0.3 && uP < PA); void r;
+        if (i === D && uP > 0 && uP < 0.6) mot('skrrr', p[0], p[1] - r * 2.6, Math.max(11, k * 0.07), 0.9);
+        if (i === D && toil && uP < 1.2) mot('slurp', p[0] + r * 1.6, p[1] - r * 2.4, Math.max(10, k * 0.06), 0.85);
+        if (saut > 0.85) mot('hop', p[0], p[1] - r * 2.8, Math.max(10, k * 0.06), 0.85);
         // la traînée : des étoiles derrière la fusée
         if (roule) for (let j = 1; j <= 7; j++) { const q = piste(t - j * 0.06, i); brille(q[0], q[1] - r * 0.4, (1.6 + (7 - j) * 0.25) * (1 - j / 9), al, false, now, i * 9 + j); }
         // la fusée de papier : un fuseau, un aileron, la flamme qui bat
@@ -1251,7 +1262,7 @@ S.bench = (() => {
         cerne(() => { ctx.beginPath(); ctx.moveTo(-r * 1.1, -r * 0.3); ctx.lineTo(-r * 1.35, -r * 0.8); ctx.lineTo(-r * 0.75, -r * 0.3); ctx.closePath(); }, 0.6, al);
         ctx.fillStyle = ENC; ctx.globalAlpha = al; ctx.font = `700 ${Math.max(7, r * 0.5)}px "Space Grotesk",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(NOMS[i], -r * 0.25, r * 0.02); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
         ctx.restore();
-        chabot(p[0] + Math.cos(ang) * r * 0.2, p[1] - r * 1.35 + (roule ? Math.sin(now * 16 + i) * r * 0.06 : 0), r * 0.62, { now, ph: i, a: al, lac: Math.cos(ang) > 0 ? 0.6 : -0.6, casque: false, bras: roule ? [-0.3, -0.3] : [0.2, 0.2] });
+        chabot(p[0] + Math.cos(ang) * r * 0.2, p[1] - r * 1.35 + (roule ? Math.sin(now * 16 + i) * r * 0.06 : 0), r * 0.62, { now, ph: i, a: al, lac: i === D && toil ? 0.05 : Math.cos(ang) > 0 ? 0.6 : -0.6, casque: false, bras: i === D && toil ? [1.35 + 0.3 * Math.sin(now * 14), -0.2] : roule ? [-0.3, -0.3] : [0.2, 0.2], cligne: i === D && toil });
       });
       // (vague 56 de l'audit, « la course », immersion) : tout mesurer, pour de vrai : la fusée que la souris survole sort sa fiche de mesure,
       // un chrono qui tourne et une barre de progression, au bout d'un fil ; on suit la course comme au stand
