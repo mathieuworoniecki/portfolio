@@ -61,7 +61,11 @@ function text(str, x, y, prog, o) {
   { const m = ctx.getTransform(); if (!m.b && !m.c && !m.e && !m.f && m.a > 0) { const cw = ctx.canvas.width / m.a, pad = 10; if (x + x0 + tw > cw - pad) x = cw - pad - tw - x0; if (x + x0 < pad) x = pad - x0; } }
   ctx.translate(x, y); ctx.rotate(o.rot || 0); ctx.textBaseline = 'middle';
   ctx.beginPath(); ctx.rect(x0 - 4, -fs, (tw + 8) * c01(prog), fs * 2); ctx.clip();
-  const ink = o.color || INK; ctx.fillStyle = `rgba(${ink},${o.a ?? 0.9})`; ctx.fillText(str, x0, 0);
+  const ink = o.color || INK;
+  // (vague 192, finition : dans l'espace, l'encre est claire ; les petits mots des chats, « couiiic », « c'est moi », se posaient sur un chat noir
+  // ou sur la nuée et s'y perdaient en gris) : sur un fond sombre, le mot a toujours un liseré de la couleur du fond, comme les autres textes de l'espace
+  const TH = window.THEME; if (TH && TH.dark && TH.lens && !o.color) { ctx.globalAlpha = 0.9 * (o.a ?? 0.9); ctx.strokeStyle = TH.lens; ctx.lineWidth = Math.max(2.5, fs * 0.2); ctx.lineJoin = 'round'; ctx.strokeText(str, x0, 0); ctx.globalAlpha = 1; }
+  ctx.fillStyle = `rgba(${ink},${o.a ?? 0.9})`; ctx.fillText(str, x0, 0);
   if (WOB) { ctx.strokeStyle = `rgba(${ink},0.3)`; ctx.lineWidth = 0.8; ctx.strokeText(str, x0 + 0.8, 0.6); }
   ctx.restore();
   if (prog < 0.999) { const c = Math.cos(o.rot || 0), s = Math.sin(o.rot || 0), px = x0 + tw * prog; tip(x + px * c, y + px * s, 2); }
