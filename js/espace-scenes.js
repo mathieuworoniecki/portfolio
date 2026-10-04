@@ -52,6 +52,43 @@ const PAP = 'rgb(250,248,242)', ENC = 'rgb(34,36,40)';
 function cerne(path, w, a, remplir = PAP) { ctx.globalAlpha = a; ctx.lineJoin = ctx.lineCap = 'round';
   ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = G.lw * w * 2.3; path(); ctx.stroke(); if (remplir) { ctx.fillStyle = remplir; path(); ctx.fill(); } ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.95; path(); ctx.stroke(); }
 const BUEE = { vu: false };
+// la boule de câbles : son état (calculé sans hasard à partir de l'heure du chat-robot : les mêmes rebonds à chaque passage, même filmé lentement)
+function boule(o, r, x, y, sl, now, ph, occupe) {
+  if (o.casque === false || r < 14 || o.boule === false) return null;
+  const cy = 26 + bruit(ph * 1.3 + 7) * 14, t = window.__boule ?? (now + bruit(ph * 3.7 + 2) * cy) % cy;
+  if (t > 5.6 || occupe) return null;
+  const g = bruit(ph * 2.9 + 5) < 0.5 ? -1 : 1, B = { t, g, bras: -1, serre: t > 0.5 && t < 0.8, vu: false, px: 0, py: 0.38, k: 0, rot: 0, trappe: 0, mots: [] };
+  if (t < 0.7) { B.mots.push([t < 0.35 ? 'hk…' : 'hk… hk…', 0]); return B; }
+  // les rebonds dans le casque (en rayons de tête ; la vitre est à 1,32, la boule fait 0,22)
+  let px = 0, py = 0.38, vx = (bruit(ph * 6.1 + 1) - 0.5) * 1.8, vy = -2.7, tink = -9, nt = 0; const R = 0.97, tE = Math.min(t, 3.55);
+  for (let s = 0.7; s < tE; s += 1 / 60) { px += vx / 60; py += vy / 60; const d = Math.hypot(px, py);
+    if (d > R) { const nx = px / d, ny = py / d, vn = vx * nx + vy * ny; if (vn > 0) { vx = (vx - 2 * vn * nx) * 0.93; vy = (vy - 2 * vn * ny) * 0.93; tink = s; nt++; } px = nx * R; py = ny * R; } }
+  B.vu = true; B.k = 1; B.rot = t * 3.1;
+  if (t < 1.05) B.mots.push([en() ? 'HACK!' : 'HAK !', 0]);
+  if (t - tink < 0.35 && t < 3.55) B.mots.push([nt % 2 ? 'tink' : 'tonk', 1, px, py]);
+  if (t < 3.55) { B.px = px; B.py = py; return B; }
+  // la trappe s'ouvre, la boule monte vers elle, il la chasse d'un revers de patte, elle part en tournoyant au loin ; la trappe se referme
+  B.trappe = t < 4.5 ? sm(c01((t - 3.55) / 0.25)) : 1 - sm(c01((t - 4.5) / 0.3));
+  if (t < 3.9) { const u = sm(c01((t - 3.55) / 0.35)); B.px = px + (0 - px) * u; B.py = py + (-1.25 - py) * u; if (t < 3.8) B.mots.push(['pop', 2]); }
+  else { const u = t - 3.9; B.px = g * u * 2.6; B.py = -1.25 - u * 2.1 + u * u * 0.4; B.k = Math.max(0, 1 - u * 0.62); B.rot = t * 3.1 + u * 14; B.vu = u < 0.6; if (u > 0.9 && u < 1.4) B.mots.push([en() ? 'phew' : 'ouf', 3]); }
+  if (t > 3.75 && t < 4.15) B.bras = 1.6 + Math.sin((t - 3.75) / 0.4 * Math.PI) * 0.6;
+  if (t > 4.6 && t < 4.95) B.mots.push(['clic', 2]);
+  return B;
+}
+function dessineBoule(B, hx, hy, r, w, a, now) {
+  const fs = Math.max(10, r * 0.3);
+  B.mots.forEach(([m, k, mx, my]) => { if (k === 0) mot(m, hx - B.g * r * 1.6, hy - r * 1.25, fs, 1); else if (k === 1) mot(m, hx + mx * r * 1.45, hy + my * r * 1.45, fs * 0.85, 1); else if (k === 2) mot(m, hx + r * 0.9, hy - r * 1.7, fs, 1); else mot(m, hx - B.g * r * 1.5, hy - r * 0.9, fs, 1); });
+  if (!B.vu && B.k <= 0.02 || B.t < 0.7) return;
+  const bx = hx + B.px * r, by = hy + B.py * r, R = r * 0.33 * B.k; if (R < 0.8) return;
+  // une pelote de câbles : quatre boucles de travers, un bout de fil qui dépasse avec sa prise
+  ctx.save(); ctx.translate(bx, by); ctx.rotate(B.rot);
+  cerne(() => { ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); }, w * Math.max(0.5, B.k), a);
+  style(Math.max(0.6, 0.85 * w * B.k), a); ctx.lineCap = 'round';
+  for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.ellipse(0, 0, R * (1 - i * 0.12), R * (0.45 + i * 0.13), i * 0.8, 0, TAU); ctx.stroke(); }
+  ctx.beginPath(); ctx.moveTo(R * 0.8, R * 0.3); ctx.quadraticCurveTo(R * 1.5, R * 0.2 + Math.sin(now * 9) * R * 0.3, R * 1.8, R * 0.7); ctx.stroke();
+  ctx.fillStyle = ENC; ctx.fillRect(R * 1.7, R * 0.6, R * 0.35, R * 0.28);
+  ctx.restore();
+}
 function chabot(x, y, r, o = {}) {
   // (vague 173 de l'audit : « le chat-robot astronaute ») : plus jamais à demi transparent (le fond le traversait, il devenait gris boueux) :
   // au loin ou en train d'arriver, il est plus petit, toujours à l'encre pleine ; sa transparence ne sert plus que tout au début
@@ -69,9 +106,15 @@ function chabot(x, y, r, o = {}) {
   if (dS < r * 2.8) { const i = Sp.x > x ? 1 : 0; bras = bras.slice(); bras[i] = 1.25 + Math.sin(now * 14 + ph) * 0.4; }
   // (vague 133 de l'audit : « le chat-robot », de très bien à inoubliable) : la buée. De temps en temps, chacun à son heure, il soupire dans son
   // casque : une tache de buée gagne le bas de la vitre, il y dessine un cœur du bout du doigt, puis la buée se resserre et disparaît en rétrécissant
+  // (vague 211 de l'audit : « le chat-robot », originalité) : la boule de câbles. C'est un chat : de temps en temps il a un haut-le-cœur (« hk… hk… »)
+  // et crache une boule de câbles emmêlés… dans son casque fermé. En apesanteur, elle rebondit contre la vitre (« tink »), ses yeux la suivent
+  // en louchant ; il finit par ouvrir la trappe du haut du casque (« pop »), la boule sort, il la chasse d'un revers de patte et elle part en
+  // tournoyant vers le fond, de plus en plus petite ; la trappe se referme (« clic »)
+  const HB = boule(o, r, x, y, sl, now, ph, false);
   const cyB = 16 + bruit(ph * 1.7 + 3) * 10, tB = window.__bue ?? (now + bruit(ph * 2.3 + 1) * cyB) % cyB,   // (__bue : pour les captures de test)
-    bue = o.casque !== false && r >= 12 && !o.cligne && tB < 2.8 && !(dS < r * 2.8) ? tB : -1, gB = bruit(ph * 4.1) < 0.5 ? -1 : 1;
+    bue = o.casque !== false && r >= 12 && !o.cligne && !HB && tB < 2.8 && !(dS < r * 2.8) ? tB : -1, gB = bruit(ph * 4.1) < 0.5 ? -1 : 1;
   if (bue >= 0 && bue > 0.35 && bue < 2.1) { bras = bras.slice(); bras[gB < 0 ? 0 : 1] = 1.05 + Math.sin(bue * 9) * 0.18; }
+  if (HB && HB.bras >= 0) { bras = bras.slice(); bras[HB.g < 0 ? 0 : 1] = HB.bras; }
   if (Sp && r >= 8 && o.vise !== false && !INST.q && !(AGV.e > 0.3 && now - AGV.t < 0.3) && dS < r * 4.5 && (!VISE.c || dS / r < VISE.c.d)) { const m = ctx.getTransform(), q = { d: dS / r, id: ph, x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f, r: r * Math.hypot(m.a, m.b) }; if (q.x > 0 && q.y > 0 && q.x < ctx.canvas.width && q.y < ctx.canvas.height && q.r < ctx.canvas.height * 0.3) VISE.c = q; }
   [-1, 1].forEach((g, i) => { const b = bras[i], ex = x + g * bw * 0.86, ey = by - bh * 0.35, mx = ex + g * Math.cos(b) * r * 0.42, my = ey - Math.sin(b) * r * 0.42;
     cerne(() => { ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(mx, my); }, w * 1.5, a, null); cerne(() => { ctx.beginPath(); ctx.arc(mx, my, r * 0.13, 0, TAU); }, w, a); });
@@ -103,8 +146,8 @@ function chabot(x, y, r, o = {}) {
     ctx.ellipse(hx, y, r * 0.95, r * 0.78, 0, -0.35, Math.PI + 0.35); ctx.closePath(); }, w, a);
   hach(hx, y, r * 0.93, r * 0.76, 3);
   // les yeux : deux grands ovales noirs, deux reflets ; ils suivent le regard ; parfois il cligne
-  const cl = o.cligne || (now * 0.31 + bruit(ph * 5.1) * 4) % 4 < 0.1 ? 0.12 : 1;   // (il cligne tout seul, chacun à son heure)
-  [-1, 1].forEach(g => { const ex = hx + (g * 0.36 + sl * 0.3) * r + (voit ? clamp((Sp.x - x) / (r * 3), -1, 1) * r * 0.06 * voit : 0), ey = y + r * 0.02 + (voit ? clamp((Sp.y - y) / (r * 3), -1, 1) * r * 0.05 * voit : 0), sq = 1 - Math.max(0, g * -sl) * 0.35;
+  const cl = o.cligne || (now * 0.31 + bruit(ph * 5.1) * 4) % 4 < 0.1 || (HB && HB.serre) ? 0.12 : 1;   // (il cligne tout seul, chacun à son heure)
+  [-1, 1].forEach(g => { const ex = hx + (g * 0.36 + sl * 0.3) * r + (voit ? clamp((Sp.x - x) / (r * 3), -1, 1) * r * 0.06 * voit : 0) + (HB && HB.vu ? (clamp(HB.px / 1.1, -1, 1) * 0.06 - g * 0.035) * r : 0), ey = y + r * 0.02 + (voit ? clamp((Sp.y - y) / (r * 3), -1, 1) * r * 0.05 * voit : 0) + (HB && HB.vu ? clamp(HB.py / 1.1, -1, 1) * r * 0.06 : 0), sq = 1 - Math.max(0, g * -sl) * 0.35;
     ctx.globalAlpha = a; ctx.fillStyle = ENC; ctx.beginPath(); ctx.ellipse(ex, ey, r * 0.15 * sq, r * 0.21 * cl, 0, 0, TAU); ctx.fill();
     if (cl > 0.5) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex - r * 0.05, ey - r * 0.08, r * 0.055, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(ex + r * 0.05, ey + r * 0.07, r * 0.028, 0, TAU); ctx.fill(); } });
   // la bouche en « w », le nez
@@ -130,9 +173,13 @@ function chabot(x, y, r, o = {}) {
   // le casque de verre : un rond au trait blanc, un reflet
   // (vague 152 de l'audit : « le chat-robot ») : le casque à l'encre pleine ; un reflet en deux traits (un long, un point) ; le col rigide du
   // scaphandre, où le casque se visse (ses deux rivets) ; le reflet glisse un peu quand il tourne la tête
-  if (o.casque !== false) { style(0.55 * w, a); ctx.beginPath(); ctx.arc(hx, y - r * 0.08, r * 1.32, 0, TAU); ctx.stroke();
+  if (o.casque !== false) { style(0.55 * w, a); const tr = HB ? HB.trappe : 0, hy = y - r * 0.08, gp = 0.42 * Math.min(1, tr * 3);
+    ctx.beginPath(); if (gp > 0.01) ctx.arc(hx, hy, r * 1.32, -Math.PI / 2 + gp, -Math.PI / 2 - gp + TAU); else ctx.arc(hx, hy, r * 1.32, 0, TAU); ctx.stroke();
+    if (gp > 0.01) { const ax = hx + Math.cos(-Math.PI / 2 - gp) * r * 1.32, ay = hy + Math.sin(-Math.PI / 2 - gp) * r * 1.32; ctx.save(); ctx.translate(ax, ay); ctx.rotate(-1.9 * tr); ctx.translate(-ax, -ay);
+      style(0.8 * w, a); ctx.beginPath(); ctx.arc(hx, hy, r * 1.32, -Math.PI / 2 - gp, -Math.PI / 2 + gp); ctx.stroke(); ctx.restore(); }
     const rf = -2.35 + sl * 0.4; style(0.95 * w, a); ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(hx, y - r * 0.08, r * 1.15, rf - 0.32, rf + 0.22); ctx.stroke(); ctx.beginPath(); ctx.arc(hx, y - r * 0.08, r * 1.15, rf + 0.38, rf + 0.42); ctx.stroke();
  }
+  if (HB) dessineBoule(HB, hx, y - r * 0.08, r, w, a, now);
   if (bue >= 0) { const gr = sm(c01(bue / 0.45)) * (1 - sm(c01((bue - 2.1) / 0.6))), fx = hx + gB * r * 0.78, fy = y + r * 0.5, rx = r * 0.5 * gr, ry = r * 0.36 * gr;
     if (gr > 0.02) { ctx.save(); ctx.beginPath(); ctx.arc(hx, y - r * 0.08, r * 1.3, 0, TAU); ctx.clip(); ctx.globalAlpha = a * 0.62; ctx.fillStyle = 'rgb(176,196,232)'; ctx.beginPath(); ctx.ellipse(fx, fy, rx, ry, gB * 0.3, 0, TAU); ctx.fill();
       for (let j = 0; j < 5; j++) { const t = j / 5 * TAU + ph; ctx.beginPath(); ctx.arc(fx + Math.cos(t) * rx * 0.95, fy + Math.sin(t) * ry * 0.95, r * 0.12 * gr, 0, TAU); ctx.fill(); }
