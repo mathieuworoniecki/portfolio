@@ -2390,6 +2390,24 @@ S.pilotage = (() => {
       E.obs.filter(o => o.z > zb + 1).sort((p, q) => q.z - p.z).forEach(o => obstacle(o, Pp, now, D));
       if (saut > 0) { const o = Pp(E.bx, 0, zb + 0.4), o2 = Pp(E.bx + 0.75, 0, zb + 0.4), rw = Math.abs(o2[0] - o[0]) * (1 - saut * 0.35); ctx.globalAlpha = 0.45; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(o[0], o[1], rw, rw * 0.18, 0, 0, TAU); ctx.fill(); }
       bus(saut || atterrit ? (x, y, z) => Pp(x, y + saut + atterrit, z) : Pp, E.bx, zb, roulis + (saut ? (0.5 - sS) * 0.25 : 0), now, E.bonk, a, camX);
+      // (vague 209 de l'audit, « leadership », originalité) : l'auto-stoppeur. Au bord de la route, un petit chat-robot fait du stop, sa pancarte « junior ? »
+      // levée ; le bus arrive à sa hauteur, il bondit sur le toit (« bienvenue ! »), voyage là-haut, le poil au vent, accroché à la galerie ;
+      // quelques kilomètres plus loin il saute sur l'autre bas-côté, retourne sa pancarte : « senior ✓ », salue, et la route l'emporte derrière nous
+      if (!reduitMvt()) { const u = (a + 5) % 12, kb = G.sw < 500 ? 0.72 : 1, xg = -2.1, xd = 2.1, yT = 1.2 * kb + saut + atterrit, zT = zb + 0.7 * kb, roof = () => [E.bx, yT, zT];
+        let X, Y, Z, bras = [1.3, -0.3], mt = null, pan = 'junior ?', pa = 1, rot = 0;
+        if (u < 2) { X = xg; Y = 0; Z = zb + (2 - u) * V; }
+        else if (u < 2.5) { const e = sm((u - 2) / 0.5), R0 = roof(); X = lerp(xg, R0[0], e); Y = lerp(0, R0[1], e) + Math.sin(Math.PI * e) * 0.9; Z = zb; bras = [1.4, 1.4]; pa = 1 - e; }
+        else if (u < 8) { const R0 = roof(); X = R0[0]; Y = R0[1]; Z = R0[2]; bras = [1.5 + Math.sin(now * 9) * 0.2, -0.6]; pa = 0; if (u < 3.3) mt = en() ? 'welcome!' : 'bienvenue !'; else if (Math.sin(now * 1.7) > 0.8) mt = en() ? 'wheee' : 'wiii'; rot = Math.sin(now * 13) * 0.05; }
+        else if (u < 8.6) { const e = sm((u - 8) / 0.6), R0 = roof(); X = lerp(R0[0], xd, e); Y = lerp(R0[1], 0, e) + Math.sin(Math.PI * e) * 0.7; Z = lerp(R0[2], zb, e); bras = [1.4, 1.4]; pa = e; pan = 'senior ✓'; }
+        else { X = xd; Y = 0; Z = zb - (u - 8.6) * V * 0.5; pan = 'senior ✓'; bras = [1.3, 0.4 + Math.sin(now * 10) * 0.5]; if (u < 9.4) mt = en() ? 'thanks!' : 'merci !'; }
+        if (Z > 0.9) { const p = Pp(X, Y, Z), s0 = D * 1.55 / Math.max(0.6, Z) * 0.36, r = Math.max(5, s0 * 0.42);
+          if (p[1] < G.caps + r && p[1] - r * 3.6 > G.haut) { horsPlanete();
+            if (pa > 0.05) { const hx = p[0] + r * 1.1, hy = p[1] - r * 2.4, pw = r * 2.6 * pa, ph = r * 1.1 * pa; cerne(() => { ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx, hy - r * 1.4 * pa); }, 0.8, 1, null);
+              cerne(() => { ctx.beginPath(); ctx.rect(hx - pw / 2, hy - r * 1.4 * pa - ph, pw, ph); }, 0.7, 1, '#ffe9a8'); if (ph > 6) mot(pan, hx, hy - r * 1.4 * pa - ph / 2, Math.min(ph * 0.6, pw / pan.length * 1.7), 1); }
+            ctx.save(); ctx.translate(p[0], p[1]); ctx.rotate(rot); chabot(0, -r * 1.75, r, { now, ph: 71, casque: false, lac: -0.6, bras, travaille: false }); ctx.restore();
+            if (u > 2.5 && u < 8) { style(0.6, 1); for (let w = 0; w < 3; w++) { const yy = p[1] - r * (1 + w * 0.7), ph = now * 20 + w; ctx.beginPath(); ctx.moveTo(p[0] + r * 1.4, yy); ctx.quadraticCurveTo(p[0] + r * 2.2, yy + Math.sin(ph) * r * 0.3, p[0] + r * 3, yy); ctx.stroke(); } }
+            if (mt) mot(mt, p[0] - r * 2.4, Math.max(G.haut + 14, p[1] - r * 4), Math.max(11, D * 0.05), 1);
+            ctx.restore(); } } }
       if (saut > 0) { const p = Pp(E.bx + (E.bx > 0 ? -1.5 : 1.5), 1.1 + saut, zb + 1); mot(sS < 0.5 ? (en() ? 'all together!' : 'tous ensemble !') : (en() ? 'wheee!' : 'youhou !'), clamp(p[0], G.gauche + 70, G.droite - 70), Math.max(G.haut + 60, p[1]), Math.max(14, D * 0.075), 1);
         if (sS > 0.4 && !SAUT.vu && window.Dex && Dex.vu) { SAUT.vu = true; Dex.vu('grand-saut'); } }
       if (atterrit > 0.05) { const p = Pp(E.bx, 0.2, zb + 0.2); mot(en() ? 'ba-boom' : 'badaboum', p[0] + 30, p[1], Math.max(12, D * 0.06), 1); }
