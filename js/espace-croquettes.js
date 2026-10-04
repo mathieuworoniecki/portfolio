@@ -31,7 +31,9 @@ X.pas.push(dt => {
     // (vague 11) elles ne passent pas sur les sous-titres : le bandeau du texte les repousse, doucement, vers le haut ou le bas
     const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande;
     if (bd && k.x > bd.x - k.r * 2 && k.x < bd.x + bd.w + k.r * 2 && k.y > bd.y - k.r * 2 && k.y < bd.y + bd.h + k.r * 2) {
-      const haut2 = k.y < bd.y + bd.h / 2; k.vy += (haut2 ? -1 : 1) * 900 * dt; k.vy = haut2 ? Math.min(k.vy, -40) : Math.max(k.vy, 40); }
+      const haut2 = k.y < bd.y + bd.h / 2; k.vy += (haut2 ? -1 : 1) * 900 * dt; k.vy = haut2 ? Math.min(k.vy, -40) : Math.max(k.vy, 40);
+      // (vague 247, design : « doucement » ne suffisait pas, au téléphone une croquette se posait sur le titre) : le bord du bandeau est un mur
+      if (k.x > bd.x - k.r && k.x < bd.x + bd.w + k.r) k.y = haut2 ? Math.min(k.y, bd.y - k.r * 1.2) : Math.max(k.y, bd.y + bd.h + k.r * 1.2); }
     const c = Wd.cats.find(c => c.sp && !c.held && c.sp.m !== 'crache' && !c.rare && (() => { const [x, y] = centreDe(c); return Math.hypot(x - k.x, y - k.y) < rayon(c) * 0.75; })());
     if (c) { L.splice(i, 1); if (Wd.t - (c.miamT || -9) > 2) { c.miamT = Wd.t; say(c, pick(en() ? ['yum', 'crunch', 'space snack!'] : ['miam', 'crounch', 'croquette de l’espace !'])); }
       if (window.Dex && Dex.vu) Dex.vu('croquette-espace'); if (c.sp.cible && c.sp.cible.croq === k) { c.sp.m = 'derive'; c.sp.next = Wd.t + rnd(2, 4); } }

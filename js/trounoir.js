@@ -464,7 +464,9 @@ K.H.draw.push(() => {
     o.restore(); });
 });
 // le monde de l'espace, une image (dans js/chats.js : le temps du monde)
-const HAUT = () => 64, BAS = () => Wd.floor || H - 70;
+// (vague 247 de l'audit, « chats en apesanteur », design : le plafond était fixé à 64 px, au milieu de la barre des chapitres : un chat qui dérivait
+// vers le haut venait se poser sur les noms des chapitres) : le plafond, c'est le bas de la barre du haut, mesuré par les scènes
+const HAUT = () => { const G = window.EspacePlume && EspacePlume.M && EspacePlume.M.lay && EspacePlume.M.lay.G; return Math.max(64, G && G.haut ? G.haut - 2 : 0); }, BAS = () => Wd.floor || H - 70;
 const centreDe = c => [c.x, c.y - c.D.stand * sc(c)], rayon = c => Math.max(c.D.a, c.D.h) * sc(c) * 0.8;
 const DERIVE = ['apesanteur', 'apesanteur', 'dodo', 'pain', 'donut', 'etirement', 'toilette', 'chute', 'assis', 'ronron'].filter(a => ANIMS[a] || a === 'apesanteur');
 function pointeur() {
@@ -493,7 +495,13 @@ function espace(dt) {
     // (accroché, dans un abri : il reste dans l'écran, jamais sous la barre du bas ; s'il y est poussé, il lâche)
     if (!c.held && c.sp.m !== 'crache' && c.sp.m !== 'nyan') { const [bx, by] = centreDe(c), r = rayon(c) * 0.9;
       const ox = bx - r < 0 ? -(bx - r) : bx + r > W ? W - (bx + r) : 0, oy = by - r < HAUT() ? HAUT() - (by - r) : by + r > BAS() ? BAS() - (by + r) : 0;
-      if (ox || oy) { c.x += ox; c.y += oy; if (X.mode[c.sp.m] && Math.abs(ox) + Math.abs(oy) > r * 0.6) { c.sp.m = 'derive'; c.sp.ancre = null; c.sp.corps = null; c.sp.vx = ox * 3; c.sp.vy = oy * 3; } } } });
+      if (ox || oy) { c.x += ox; c.y += oy; if (X.mode[c.sp.m] && Math.abs(ox) + Math.abs(oy) > r * 0.6) { c.sp.m = 'derive'; c.sp.ancre = null; c.sp.corps = null; c.sp.vx = ox * 3; c.sp.vy = oy * 3; } }
+      // (vague 247 de l'audit, « chats en apesanteur », design : un chat mené par une scène, une liane ou la nuée traversait encore les sous-titres,
+      // seuls les chats à la dérive y rebondissaient) : la vitre des sous-titres vaut pour tous ; poussé fort contre elle, il lâche et dérive
+      const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande;
+      if (bd && !['aspire', 'planete', 'cine', 'train'].includes(c.sp.m)) { const [bx2, by2] = centreDe(c), rb = r * (c.rare === 'interminable' ? 2.6 : 1.2);
+        if (bx2 + rb > bd.x && bx2 - rb < bd.x + bd.w && by2 + rb > bd.y && by2 - rb < bd.y + bd.h) { const up = by2 + rb - bd.y, dn = bd.y + bd.h - (by2 - rb), py = up < dn ? -up : dn;
+          c.y += py; if (X.mode[c.sp.m] && Math.abs(py) > r * 0.6) { c.sp.m = 'derive'; c.sp.ancre = null; c.sp.corps = null; c.sp.vx = (c.sp.vx || 0) * 0.5; c.sp.vy = Math.sign(py) * 90 * Wd.s0 / 150; } } } } });
   // (après tout le reste : ce qui doit avoir le dernier mot sur la place d'un chat, les murs des dessins)
   X.apres.forEach(f => f(dt, cats));
 }
