@@ -1493,6 +1493,23 @@ S.gardefous = (() => {
         const xa = xS - 0.05; if (x < xa) { carte(x, yT - 0.015, 0, 1); continue; }
         const ts = (x - xa) / vit; if (ts < 0.6) { carte(xa, yT - 0.015, 0, 1); tampon = Math.max(tampon, ts < 0.25 ? sm(ts / 0.25) : 1 - sm((ts - 0.3) / 0.3)); if (ts > 0.2) { const c = V(xa, yT - 0.1, 0); coche(c[0], c[1], k * 0.05, (ts - 0.2) / 0.25, 1.1); } continue; }
         const m = sm((ts - 0.6) / 0.8); if (m >= 1) continue; carte(lerp(xa, xP, m), lerp(yT, yT - Math.min(14, pile) * 0.03, m) - Math.sin(Math.PI * m) * 0.3, lerp(0, zP, m), 1); }
+      // (vague 202 de l'audit, « la vitesse », originalité) : un passager clandestin. Un chat-robot s'est endormi sur le tapis, roulé en boule entre
+      // deux feuilles ; chaque portique le scanne (le faisceau le hérisse, il sursaute, « bzzt »), il se rendort ; l'humain le tamponne quand même ✓
+      // sur le front (« mia ? ») ; le chat bondit au bout du tapis, devant l'humain, et s'y assoit, fier, sa coche sur la tête ; puis il retourne d'un grand saut au début du tapis
+      if (!reduitMvt()) { const xa = xS - 0.05, tA = (xa - x0) / vit, TC = tA + 3.4, u = (aw + 4.3) % TC, xB = xS + 0.16, zB = 0.3, pTop = yT - 0.02;
+        let x, y, z, dort = true, saut = 0, ck = 0, lac = 0.3, bras = [-0.35, -0.35];
+        if (u < tA) { x = x0 + u * vit; y = yT - 0.02; z = 0.06; xs.forEach(g => { const d = Math.abs(x - g); if (d < 0.07) { const b = Math.cos(d / 0.07 * Math.PI / 2) ** 2; saut = Math.max(saut, b); } });
+          if (saut > 0.3) { dort = false; bras = [1.2 * saut, 1.2 * saut]; lac = 0.6; } y -= saut * 0.09; }
+        else if (u < tA + 0.7) { x = xa; y = yT - 0.03; z = 0.06; const ts = u - tA; tampon = Math.max(tampon, ts < 0.25 ? sm(ts / 0.25) : 1 - sm((ts - 0.3) / 0.3)); dort = ts < 0.25; lac = 0.7; ck = c01((ts - 0.22) / 0.25); }
+        else if (u < tA + 1.5) { const m = sm((u - tA - 0.7) / 0.8); x = lerp(xa, xB, m); z = lerp(0.06, zB, m); y = lerp(yT - 0.03, pTop, m) - Math.sin(Math.PI * m) * 0.3; dort = false; ck = 1; bras = [1.3, 1.3]; lac = 0.5; }
+        else if (u < TC - 0.8) { x = xB; y = pTop; z = zB; dort = false; ck = 1; lac = 0.75; bras = [0.2, 1.1 + 0.25 * Math.sin(now * 8)]; }
+        else { const m = sm((u - TC + 0.8) / 0.8); x = lerp(xB, x0 + 0.02, m); z = lerp(zB, 0.06, m); y = lerp(pTop, yT - 0.02, m) - Math.sin(Math.PI * m) * 0.45; dort = false; ck = 1 - m; bras = [1.3, 1.3]; }
+        const P = V(x, y, z), r = k * 0.055 * P[3];
+        chabot(P[0], P[1] - r * 1.75, r, { now, ph: 33, casque: false, lac, bras, cligne: dort, travaille: false });
+        if (saut > 0.75) mot('bzzt', P[0] + r * 1.8, P[1] - r * 3.2, Math.max(9, k * 0.05), 0.9);
+        if (dort && u < tA && saut < 0.1 && Math.sin(now * 2) > 0) mot('z', P[0] + r * 1.4 + Math.sin(now * 2) * r * 0.4, P[1] - r * 3 - Math.sin(now * 2) * r * 0.8, Math.max(8, k * 0.04), 0.7);
+        if (ck > 0) coche(P[0], P[1] - r * 3.5, r * 0.55, ck, 1.1);
+        if (u > tA + 0.3 && u < tA + 0.9) mot('mia ?', P[0] - r * 2.4, P[1] - r * 3.4, Math.max(9, k * 0.05), 0.9); }
       // (vague 41 de l'audit : « la vitesse sans perdre le contrôle, peu original ») : l'atelier de réparation, sous le tapis : un chat-robot
       // à la clé répare une feuille recalée (un pansement en croix), puis un ressort la renvoie en cloche au début du tapis : « on corrige, on repasse »
       { const B = [x0 + 0.3, yT + 0.2, 0.6], cyc = 2.6, u = now % cyc, P0 = V(B[0], B[1] - 0.08, B[2]), s0 = k * 0.05 * P0[3];
