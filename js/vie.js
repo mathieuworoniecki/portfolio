@@ -355,6 +355,19 @@ H.pre.push(dt => {
         else { L.vy = 0; L.vx *= Math.exp(-dt * 6); const q = Math.round(L.rot / (Math.PI / 2)) * Math.PI / 2; L.rot += (q - L.rot) * Math.min(1, dt * 8); L.vr = 0;
           if (Math.abs(L.vx) < 6 && Math.abs(q - L.rot) < 0.02) { L.jongle = 0; L.st = 'sol'; L.t = Wd.t; L.life = TL.jeu ? rnd(8, 12) : rnd(12, 18); } }
       }
+    } else if (L.st === 'chapeau') {
+      // le chapeau suit la tête (et tangue : un pendule que les pas du chat relancent) ; il tombe tout seul si le chat saute, est pris ou part
+      const c = L.chat, hr = c && c.hp ? c.b.head[0] * sc(c) : 0;
+      const couche = c && c.cur && (Math.abs(c.roll || 0) > 1 || Math.abs(c.cur[I.htilt]) > 0.75 || Math.abs(c.cur[I.pitch]) > 1.4); // (la tête penchée ou sur le dos : le chapeau glisse)
+      if (!c || !c.hp || c.gone || c.hidden || c.held || c.fall || couche || Wd.t - L.t > L.life) {
+        if (couche) { c.chapeau = null; const d = sgn(L.sw) || (Math.random() < 0.5 ? -1 : 1); tumble(L, d * Wd.s0 * rnd(1.6, 2.4), -Wd.s0 * rnd(0.8, 1.2), d * rnd(3, 6)); L.chat = null; L.bonkT = Wd.t; word(pick(['gliss', 'zip']), c.hp[0], c.hp[1] - hr * 1.4, 14); return; }
+        if (c) { c.chapeau = null; if (c.hp && !c.gone && !c.held && free4(c)) { interrupt(c); c.q = [pose('secoue', 0.45)]; later(0.2, () => say(c, pick(['pfff', 'zou', 'non merci', 'garde-le']))); } }
+        const d = c ? (c.face || 1) : 1; tumble(L, d * Wd.s0 * rnd(2.6, 3.8), -Wd.s0 * rnd(2.6, 3.4), d * rnd(6, 11)); L.chat = null; L.bonkT = Wd.t; return;
+      }
+      const ax = (c.hp[0] - L.hx) / Math.max(dt, 1e-3); L.hx = c.hp[0];
+      L.sv += (-L.sw * 60 - L.sv * 4 - ax * 0.004) * dt; L.sw += L.sv * dt; L.sw = clamp(L.sw, -0.6, 0.6);
+      const g0 = sm(Math.min(1, (Wd.t - L.t) / 0.18)), cy = c.hp[1] - hr * 0.7 - h * 0.42;
+      L.dx += (c.hp[0] + L.sw * h * 0.5 - lx(L, r)) * g0; L.dy += (cy - ly(L, r)) * g0; L.rot += (L.sw + Math.sin((Wd.t - L.t) * 3) * 0.05 - L.rot) * Math.min(1, dt * 14);
     } else if (L.st === 'sol') {
       // au sol : il reste un moment (les chats jouent avec), puis remonte à sa place (ou s'efface, quand on reste jouer)
       if (Wd.t - L.t > L.life || (!TL.jeu && Wd.t - (L.out0 || Wd.t) > 22)) { if (TL.jeu) L.a = Math.max(0, L.a - dt / 1.5); else { L.st = 'marche'; L.t = Wd.t; L.rot0 = L.rot % (Math.PI * 2); L.pas = rnd(0, 6); } }
@@ -597,6 +610,10 @@ H.pre.push(dt => {
     for (const c of Wd.cats) {
       if (!c.hp || c.held || c.hidden || c.fall || Wd.t < (c.bonk || 0)) continue; const hr = c.b.head[0] * sc(c);
       if (Math.abs(x - c.hp[0]) > hr + (L.x1 - L.x0) / 2 || Math.abs(y - (c.hp[1] - hr * 0.6)) > hr) continue;
+      // (vague 195 de l'audit, originalité : « le titre ») : une fois sur deux, la lettre ne rebondit pas : elle se pose sur la tête du chat,
+      // comme un chapeau trop grand. Il la porte, fier ou vexé, la fait tanguer en marchant, puis s'en débarrasse d'un coup de tête
+      if (!c.rare && !c.chapeau && L.vy < 900 && Math.random() < 0.55) { L.st = 'chapeau'; L.chat = c; c.chapeau = L; L.t = Wd.t; L.life = rnd(4, 7); L.vx = L.vy = 0; L.vr = 0; L.hx = c.hp[0]; L.sw = 0; L.sv = 0;
+        c.bonk = Wd.t + 0.5; word(pick(['ploc', 'tchac', 'pouf']), x, c.hp[1] - hr * 1.6, 16); later(0.35, () => say(c, pick(['…', 'hé ?', 'ça me va ?', 'chic']))); break; }
       L.bonkT = Wd.t; L.vy = -L.vy * 0.35; L.vx += sgn(x - c.x || 1) * 80; L.vr += rnd(-4, 4); c.bonk = Wd.t + 0.5;
       say(c, pick(['bonk !', 'aïe', 'une lettre ?!', '?!'])); if (!c.rare && free4(c)) { interrupt(c); c.q = [pose('secoue', 0.5), pose('affut', rnd(0.8, 1.4), { face: sgn(x - c.x) || c.face })]; } break;
     }
