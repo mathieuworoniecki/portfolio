@@ -2050,6 +2050,7 @@ S.back = (() => ({
 // (build, test, déploie, surveille), qui s'allument à leur passage ; dessous, l'écran du monitoring et son pouls
 let CHG = 0;   // (vague 64 : la charge que la souris fait peser sur DevOps, lissée)
 const ROLL = { vu: false };
+const SURF = { y: null, vy: 0, t: null, rot: 0 };   // (vague 207 : le chat qui surfe le pouls)
 S.devops = (() => ({
   cles: () => [[-1, 0], [1, 0], [0, 0], [-0.5, -0.35]],
   dessin(a, now) {
@@ -2137,6 +2138,20 @@ S.devops = (() => ({
       if (!ROLL.vu && tr > 5.6 && window.Dex && Dex.vu) { ROLL.vu = true; Dex.vu('rollback'); } }
     const mw = Math.min(0.9, lx * 0.5) * k, mh = 0.2 * k, mc = [G.cx, G.cy - k * 0.72]; ecran(mc[0] - mw / 2, mc[1] - mh / 2, mw, mh, k * 0.06, 5);
     const M = []; for (let i = 0; i <= 70; i++) { const u = i / 70, t = u * (3.5 + CHG * 4) - now * (0.8 + CHG * 1.6), f = t - Math.floor(t), b = f > 0.4 && f < 0.5 ? Math.sin((f - 0.4) / 0.1 * TAU) * (0.35 + CHG * 0.1) * (alerte ? 2.2 : 1) : (alerte ? Math.sin(u * 60 + now * 30) * 0.12 : 0); M.push([mc[0] - mw * 0.45 + u * mw * 0.9, mc[1] - b * mh]); } trait(M, false, 0.8, 1);
+    // (vague 207 de l'audit, « DevOps », originalité) : le chat qui surfe le pouls. Un petit chat-robot marche sur la courbe du monitoring ; chaque battement
+    // qui arrive le soulève et le lance en l'air (vraie balistique : il garde l'élan de la courbe, puis retombe dessus, « tap ») ; pendant l'alerte « 500 »,
+    // les pics deviennent énormes : il est catapulté au-dessus de l'écran en tournoyant (« waaah »), puis retombe sur ses pattes quand tout se calme
+    if (!reduitMvt()) { const ui = 0.64, iC = Math.round(ui * 70), ly = M[iC][1], dtv = Math.min(0.05, Math.max(0.001, now - (SURF.t ?? now - 0.016))); SURF.t = now;
+      if (SURF.y == null || Math.abs(SURF.k - k) > 1) { SURF.y = ly; SURF.vy = 0; SURF.k = k; SURF.ly = ly; }
+      const gv = k * 7, vl = (ly - SURF.ly) / dtv; SURF.ly = ly;
+      if (SURF.y >= ly - 0.5) { if (SURF.vy > k * 0.8) SURF.tap = now; SURF.y = ly; SURF.vy = Math.min(0, vl); if (alerte) { const kn = Math.floor((tr - 4.6) / 0.5); if (kn !== SURF.kn) { SURF.kn = kn; SURF.vy = -k * (3 + 1.2 * bruit(kn + Math.floor(a / 10) * 7)); } } SURF.rot *= 0.8; }
+      else { SURF.vy += gv * dtv; SURF.y += SURF.vy * dtv; SURF.rot = (SURF.rot || 0) + (alerte ? 9 : 0) * dtv; if (SURF.y > ly) { SURF.tap = now; SURF.y = ly; SURF.vy = 0; SURF.rot = 0; } }
+      { const plaf = G.haut + Math.max(6, mh * 0.24) * 4.2; if (SURF.y < plaf) { SURF.y = plaf; if (SURF.vy < 0) { SURF.vy = 0; SURF.bonk = now; } } }
+      const x = mc[0] - mw * 0.45 + ui * mw * 0.9 + Math.sin(now * 1.3) * mw * 0.02, r = Math.max(6, mh * 0.24), air = ly - SURF.y;
+      ctx.save(); ctx.translate(x, SURF.y); ctx.rotate(SURF.rot || 0); chabot(0, -r * 1.75, r, { now, ph: 61, casque: false, lac: air > 2 ? 0.9 : 0.3, bras: air > mh * 0.15 ? [1.4, 1.4] : [Math.sin(now * 8) * 0.5, -Math.sin(now * 8) * 0.5], travaille: false }); ctx.restore();
+      if (air > mh * 0.9) mot(alerte ? 'waaah' : (en() ? 'whee' : 'wiii'), x + r * 2.2, SURF.y - r * 2.8, Math.max(10, k * 0.05), 0.9);
+      if (now - (SURF.bonk || -9) < 0.35) mot('bonk', x + r * 2, SURF.y - r * 3.6, Math.max(10, k * 0.05), 1);
+      else if (now - (SURF.tap || -9) < 0.25) mot('tap', x - r * 2, ly - r * 0.6, Math.max(9, k * 0.045), 0.8); }
     if (alerte) mot('500 !', mc[0] + mw * 0.36, mc[1] - mh * 0.15, Math.max(12, k * 0.08) * (1 + 0.15 * Math.sin(now * 20)), 1); else if (tr > 6.6 && tr < 8) coche(mc[0] + mw * 0.38, mc[1] - mh * 0.1, mh * 0.25, (tr - 6.6) / 0.4, 1);
     if (CHG > 0.25) mot((en() ? 'autoscale ×' : 'mise à l’échelle ×') + (nC / 12).toFixed(1).replace('.0', ''), mc[0], mc[1] + mh * 0.95, G.sw < 500 ? 9 : Math.max(11, k * 0.06), c01((CHG - 0.25) / 0.2));
   }
