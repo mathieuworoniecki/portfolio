@@ -1661,7 +1661,12 @@ S.gardefous = (() => {
         else { const t = now * 1.6, m0 = V(g, yT - 0.55, 0), m1 = V(g, yT - 0.68, 0), r = k * 0.09 * tf; cerne(() => { ctx.beginPath(); ctx.moveTo(m0[0], m0[1]); ctx.lineTo(m1[0], m1[1]); }, 1.1, 1, null);
           cerne(() => { ctx.beginPath(); ctx.ellipse(m1[0], m1[1], r * Math.abs(Math.cos(t)) + 1, r, 0, 0, TAU); }, 0.8, 1); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.5; ctx.beginPath(); ctx.moveTo(m1[0], m1[1]); ctx.lineTo(m1[0] + Math.sin(t) * r * 1.4, m1[1] - r * 0.2); ctx.stroke();
           style(0.5, 0.35); ctx.beginPath(); ctx.moveTo(m1[0], m1[1]); ctx.lineTo(m1[0] + Math.sin(t) * k * 0.6, m1[1] + k * 0.25); ctx.stroke(); }
-        const L = V(g, yT - (i === 2 ? 0.84 : i === 1 ? 1.0 : 0.76), -0.34); const fl = Math.max(10, k * 0.07); mot(lab[i], L[0], Math.max(L[1], G.haut + fl * 1.1), fl, 0.9); });   // (vague 58 : jamais sur la barre des chapitres)
+        // (vague 236 de l'audit, « la vitesse », design : les noms flottaient haut dans le ciel, loin de leur portique, et se cognaient aux feuilles) :
+        // chaque nom est peint sur une plaque de papier clouée au pilier de devant, comme le panneau d'un poste de contrôle
+        { const tl = G.sw < 500, P = V(g, yT - (tl && i % 2 ? 0.17 : 0.3), -0.345), fl = tl ? Math.max(8, k * 0.045) : Math.max(10, k * 0.058), f = `600 ${fl}px "Space Grotesk",system-ui,sans-serif`; ctx.font = f; const w = ctx.measureText(lab[i]).width + fl * 1.1, h = fl * 1.7, rt = (i - 1) * 0.05;
+          ctx.save(); ctx.translate(P[0], P[1]); ctx.rotate(rt); cerne(() => { ctx.beginPath(); ctx.rect(-w / 2, -h / 2, w, h); }, 0.8, 1);
+          ctx.globalAlpha = 1; ctx.fillStyle = ENC; [-1, 1].forEach(sx => { ctx.beginPath(); ctx.arc(sx * (w / 2 - fl * 0.3), -h / 2 + fl * 0.3, Math.max(1.2, fl * 0.08), 0, TAU); ctx.fill(); });
+          ctx.font = f; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lab[i], 0, fl * 0.05); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.restore(); } });
       // le compteur (en haut à gauche du ciel) : un demi-cadran de papier, ses graduations ×1 ×2 ×3, la zone rapide hachurée, l'aiguille
       { const rg = Math.max(36, Math.min(60, k * 0.18)), gx = Math.max(G.gauche + rg * 1.25, Math.min(90, (G.droite + 16) * 0.1) + rg + 4),   // (vague 163 : hors de la bande estompée du bord, où le cadran virait au gris)
            gy = G.haut + rg * 1.35, A0 = Math.PI, A1 = TAU, an = A0 + (A1 - A0) * (vt - 1) / 2.2;
