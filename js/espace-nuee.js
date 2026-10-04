@@ -304,11 +304,16 @@ const ecrit = (pts, tl, W, now) => { const M = pts.length;
     // poussière d'étoiles qu'on remue ; la souris s'éloigne : elles retombent sur leur lettre
     if (pp && pp.on && Wd.t - pp.moved < 1.5 && !dup) { const dx = q[0] - pp.x, dy = q[1] - pp.y, d = Math.hypot(dx, dy); if (d < 110) { const w = Math.pow(1 - d / 110, 0.6) * 0.9, an = now * (2.4 + r.b * 2) + r.a * TAU, rr = 14 + r.c * 34;
       o.x = lerp(o.x, pp.x + Math.cos(an) * rr, w); o.y = lerp(o.y, pp.y + Math.sin(an) * rr * 0.8, w); o.s *= 1 + w * 0.3; } }
+    // (vague 198) le coup de patte : les étoiles que la plume posait à cet instant partent de travers (un trait raté), puis se remettent en place
+    const ec = Wd.t - PEN.coup; if (ec < 2.4 && PEN.cid === PEN.id) { const w = Math.max(0, 1 - Math.abs(q[2] - PEN.uc + 0.012) / 0.04); if (w > 0) { const px = pts.px || 40, k = w * Math.exp(-ec * 1.5) * (1 + 0.25 * Math.sin(ec * 14));
+      o.x += (r.a - 0.5) * px * 1.1 * k + PEN.dx * px * 0.35 * k; o.y += (r.b - 0.3) * px * 0.9 * k + px * 0.3 * k; } }
     const e = tl - PLUME.d - q[2] * PLUME.v, l = e > 0 ? Math.exp(-e * 5) : 0; o.s = 0.9 + l * 0.6; o.a = (dup ? 0.45 : 1.3) + l * 0.5; }; };
 // la plume-comète : une tête blanche, une queue d'étincelles qui retombent derrière elle ; elle file sur chaque ligne, saute à la suivante, puis s'éteint en fin de titre
 function plume(ctx, pts, tl, now, br) {
   const u = plumeU(tl); if (tl < PLUME.d || u >= 1 && tl > PLUME.d + PLUME.v + PARA.d) return;
-  const [x, y] = plumeXY(pts, Math.min(u, 0.999)), px = pts.px || 40, fin = u >= 1 ? 1 - 0.5 * c01((tl - PLUME.d - PLUME.v) / PARA.d) : 1, yy = y + Math.sin(now * 23) * px * 0.18;
+  const ec = Wd.t - PEN.coup, sh = PEN.cid === PEN.id && ec < 0.6 ? Math.exp(-ec * 6) : 0;   // (giflée : la plume valdingue)
+  const [x0, y] = plumeXY(pts, Math.min(u, 0.999)), px = pts.px || 40, fin = u >= 1 ? 1 - 0.5 * c01((tl - PLUME.d - PLUME.v) / PARA.d) : 1, x = x0 + PEN.dx * px * 0.8 * sh, yy = y + Math.sin(now * 23) * px * 0.18 + Math.sin(ec * 40) * px * 0.7 * sh;
+  if (u < 1) { PEN.x = x; PEN.y = yy; PEN.u = u; PEN.T = Wd.t; const [vx, vy] = plumeXY(pts, Math.min(0.999, u + 0.16)); PEN.vise.x = vx; PEN.vise.y = vy; }   // (le chat vise un peu devant : il lui tend une embuscade)
   ctx.globalAlpha = 0.5 * fin; ctx.lineWidth = 1.2;
   for (let i = 1; i <= 14; i++) { const uu = u - i * 0.012; if (uu < 0) break; const [sx, sy] = plumeXY(pts, uu), dy = i * i * 0.35 + Math.sin(i * 1.7 + now * 9) * px * 0.2, rr = br * (2.6 - i * 0.14) * 2.2;
     ctx.globalAlpha = (1 - i / 15) * 0.8 * fin; ctx.drawImage(LUEUR, sx - rr, sy + dy - rr, rr * 2, rr * 2); }
@@ -329,6 +334,7 @@ function signe(ctx, pts, tl, now, br, tFin) {
   for (let i = 0; i <= n; i++) { const s = i / n; if (s > pe) break; const [x, y] = paraphe(pts, s), ep = 0.45 + 1.1 * Math.sin(Math.PI * Math.min(1, s * 1.15)), age = (pe - s) * PARA.v,
       rr = br * 2.6 * ep * rap * (1 + 0.9 * Math.exp(-age * 9)) * (0.9 + 0.1 * Math.sin(now * 3 + i));
     ctx.globalAlpha = Math.min(1, 0.75 + Math.exp(-age * 9) * 0.5); ctx.drawImage(i % 3 ? LUEUR : (i % 2 ? BLEUE : DOREE), x - rr, y - rr, rr * 2, rr * 2); }
+  if (p < 1) { const [px0, py0] = paraphe(pts, pe); PEN.x = px0; PEN.y = py0; PEN.u = 1; PEN.T = Wd.t; }
   if (p < 1) { const [x, y] = paraphe(pts, pe), R0 = br * 10 * (0.9 + 0.1 * Math.sin(now * 31)); ctx.globalAlpha = 1; ctx.drawImage(LUEUR, x - R0, y - R0, R0 * 2, R0 * 2); }
   return paraphe(pts, pe); }
 
@@ -439,7 +445,7 @@ X.fond.push((ctx, now) => {
       ctx.globalAlpha = Math.min(0.75, k * 0.5); ctx.lineWidth = Math.max(0.5, s * 0.35);
       for (let q = 0; q < 2; q++) { const ca = Math.cos(an + q * Math.PI / 2) * lg, sa = Math.sin(an + q * Math.PI / 2) * lg; ctx.beginPath(); ctx.moveTo(x - ca, y - sa); ctx.lineTo(x + ca, y + sa); ctx.stroke(); } }
   }
-  if (pts && pts.lg && !reduit) { plume(ctx, pts, dt, now, br); const sg = signe(ctx, pts, dt, now, br, D.A - 0.35); FIN = sg ? { x: sg[0], y: sg[1], id: C.nid, t: 0 } : { x: pts.lg[pts.lg.length - 1].x1, y: pts.lg[pts.lg.length - 1].y, id: C.nid, t: 0 }; }
+  if (pts && pts.lg && !reduit) { PEN.id = C.nid; plume(ctx, pts, dt, now, br); const sg = signe(ctx, pts, dt, now, br, D.A - 0.35); FIN = sg ? { x: sg[0], y: sg[1], id: C.nid, t: 0 } : { x: pts.lg[pts.lg.length - 1].x1, y: pts.lg[pts.lg.length - 1].y, id: C.nid, t: 0 }; }
   // (vague 52 de l'audit, « les titres en étoiles », immersion) : quand le titre se défait, là où la plume s'est arrêtée part une onde de choc
   // d'étoiles, deux anneaux qui balaient tout l'écran jusqu'aux bords ; les étoiles de l'anneau rapetissent en s'éloignant (aucun fondu)
   else if (FIN && C && FIN.id === C.nid && !reduit) { if (!FIN.t) { FIN.t = Wd.t; CHOC.x = FIN.x; CHOC.y = FIN.y; CHOC.t = Wd.t; CHOC.Rm = Math.hypot(Math.max(FIN.x, W - FIN.x), Math.max(FIN.y, H - FIN.y)); CHOC.vus = new Set(); CHOC.dit = false; } const e = Wd.t - FIN.t, Rm = Math.hypot(Math.max(FIN.x, W - FIN.x), Math.max(FIN.y, H - FIN.y));
@@ -447,6 +453,27 @@ X.fond.push((ctx, now) => {
       ctx.globalAlpha = 1; for (let i = 0; i < n; i++) { const an = i / n * TAU + j * 0.05 + Math.sin(i * 2.3) * 0.02, x = FIN.x + Math.cos(an) * R, y = FIN.y + Math.sin(an) * R * 0.92;
         if (x < -rr || x > W + rr || y < -rr || y > H + rr || bd && y > bd.y && y < bd.y + bd.h && x > bd.x && x < bd.x + bd.w) continue; ctx.drawImage(LUEUR, x - rr, y - rr, rr * 2, rr * 2); } } }
   ctx.restore(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+});
+/* (vague 198 de l'audit, « titres écrits en étoiles », originalité) : la plume-comète, c'est un jouet. Pendant qu'elle écrit, le chat le plus
+   proche du titre la prend en chasse à la nage ; s'il l'attrape, PAF, un coup de patte : la plume valdingue, et les étoiles qu'elle posait
+   à cet instant partent de travers (un trait raté au milieu du titre), puis se remettent en place peu à peu ; le chat, lui, part en vrille */
+const PEN = { x: 0, y: 0, u: 0, T: -9, id: 0, chasse: 0, coup: -9, cid: -1, uc: 0, dx: 1, chat: null, vise: { x: 0, y: 0, r: 0.3 } };
+PEN.paf = c => { const S = c.sp; S.m = 'derive'; S.next = Wd.t + 2; PEN.chat = null; if (Wd.t - PEN.T > 0.1 || PEN.cid === PEN.id) return;
+  PEN.coup = Wd.t; PEN.cid = PEN.id; PEN.uc = PEN.u; PEN.dx = c.face > 0 ? 1 : -1; S.vx = -PEN.dx * Wd.s0 * 0.9; S.vy -= Wd.s0 * 0.5; S.w = (S.w || 0) + PEN.dx * 7; S.bonk = Wd.t;
+  Wd.fx.push({ k: 'txt', text: ['PAF', 'TCHAK', 'POF'][Math.floor(Math.random() * 3)], x: PEN.x, y: PEN.y - 30, t0: Wd.t, life: 0.9, rot: (Math.random() - 0.5) * 0.4, size: 24 });
+  O.apres(0.5, () => K.say(c, ['attrapée !', 'oups', 'j’ai rien fait', 'hé hé'][Math.floor(Math.random() * 4)])); };
+// (la chasse : il fonce vers où la plume va passer, à toute vitesse, freine, se remet dans l'axe ; à portée de patte : PAF)
+X.mode.chasse = (c, dt) => { const S = c.sp;
+  if (Wd.t - PEN.T > 0.1 || Wd.t > S.fin) { S.m = 'derive'; S.next = Wd.t + 2; PEN.chat = null; return; }   // (la plume a fini : il laisse tomber)
+  const [x, y] = O.centreDe(c), dx = PEN.vise.x - x, dy = PEN.vise.y - y, d = Math.hypot(dx, dy) || 1, a = 2600 * Wd.s0 / 150, vm = 900 * Wd.s0 / 150, fr = Math.exp(-dt * 2.5);
+  S.vx = (S.vx + dx / d * a * dt) * fr; S.vy = (S.vy + dy / d * a * dt) * fr; const v = Math.hypot(S.vx, S.vy); if (v > vm) { S.vx *= vm / v; S.vy *= vm / v; }
+  c.x += S.vx * dt; c.y += S.vy * dt; c.face = dx < 0 ? -1 : 1; c.anim = 'nage'; c.spin = (c.spin || 0) * Math.exp(-dt * 4);
+  if (Math.hypot(x - PEN.x, y - PEN.y) < O.rayon(c) * 3.2) PEN.paf(c); };
+X.pas.push((dt, cats) => {
+  if (reduit || Wd.t - PEN.T > 0.1 || PEN.chasse === PEN.id || !PEN.id) return; PEN.chasse = PEN.id;
+  const L = cats.filter(c => c.sp && !c.held && !c.rare && /^(derive|nage|orbite|calin)$/.test(c.sp.m)); if (!L.length) return;
+  const d = c => { const [x, y] = O.centreDe(c); return Math.hypot(x - PEN.x, (y - PEN.y) * 1.6); }, c = L.sort((a, b) => d(a) - d(b))[0];
+  c.sp.m = 'chasse'; c.sp.fin = Wd.t + 2.4; PEN.chat = c; K.say(c, ['une comète !', 'à moi !', '!!', 'je l’ai…'][Math.floor(Math.random() * 4)]);
 });
 /* (vague 197 de l'audit, « la nuée », originalité) : l'électricité statique. Un chat qui dérive à travers la nuée la ramasse : les étoiles
    qu'il frôle restent collées à son poil (une auréole qui tourne avec lui) ; trop chargé, ça le chatouille : ATCHOUM, il éternue tout,
