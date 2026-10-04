@@ -235,11 +235,13 @@ function souris(u, rh) {
   const vit = sm(u / 0.15) * (1 - sm((u - 0.88) / 0.08));
   if (P && P.on && vit > 0) {
     const dx = cx - P.x, dy = cy - P.y, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, prox = clamp(1 - d / (Math.hypot(W, H) * 0.6), 0, 1), tire = vit * (0.25 + 0.75 * prox * prox);
-    // des grains s'arrachent de la pointe
-    const n = Math.round((2 + 10 * tire) * (W < 760 ? 0.5 : 1));
-    for (let i = 0; i < n && GR.length < 420; i++) GR.push({ r: d + rnd(-4, 4), a: Math.atan2(P.y - cy, P.x - cx) + rnd(-0.03, 0.03), v: rnd(0.6, 1.4), w: rnd(0.8, 2) });
     // la flèche, étirée vers le trou : elle ne quitte pas sa place, elle s'allonge
     const L = 18 * (1 + 7 * tire), ang = Math.atan2(uy, ux);
+    // des grains s'arrachent tout le long de la flèche étirée
+    // (vague 224 de l'audit, design : ils partaient par paquets à chaque image, tous de la pointe, et s'y entassaient en hachures noires
+    // en travers de la flèche ; maintenant un débit régulier dans le temps, chaque grain se détache d'un point de la flèche)
+    T.gAcc = (T.gAcc || 0) + dt * (30 + 170 * tire) * (W < 760 ? 0.5 : 1);
+    for (; T.gAcc >= 1 && GR.length < 260; T.gAcc--) GR.push({ r: d - rnd(0.15, 1) * L * 0.9, a: Math.atan2(P.y - cy, P.x - cx) + rnd(-0.02, 0.02), v: rnd(0.6, 1.4), w: rnd(0.8, 1.8) });
     ctx.save(); ctx.translate(P.x, P.y); ctx.rotate(ang); ctx.lineJoin = ctx.lineCap = 'round';
     for (let k = 3; k >= 0; k--) { const f = 1 - k * 0.22;
       ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(L * f, -3.5 * (1 - 0.5 * tire) * f); ctx.lineTo(L * f * 0.72, 0); ctx.lineTo(L * f, 3.5 * (1 - 0.5 * tire) * f); ctx.closePath();
@@ -254,7 +256,10 @@ function souris(u, rh) {
     const om = 2.2 * Math.pow(Math.max(rh, 8) / Math.max(g.r, rh * 0.9), 1.5) * g.v * 2.4 + 0.4;
     g.r -= dt * (90 + 1400 * Math.pow(Math.max(rh, 8) / Math.max(g.r, 1), 0.8)) * g.v; g.a += dt * om;
     if (g.r < rh * 0.95 || !(rh > 0.5)) { GR.splice(i, 1); continue; }
-    const x = cx + Math.cos(g.a) * g.r, y = cy + Math.sin(g.a) * g.r * 0.82, qa = g.a - Math.min(0.5, om * 0.06), x2 = cx + Math.cos(qa) * (g.r + 3), y2 = cy + Math.sin(qa) * (g.r + 3) * 0.82;
+    // (vague 224) la traînée suit le vrai chemin du grain : droite vers le trou loin de lui, puis courbée en spirale en tombant
+    const x = cx + Math.cos(g.a) * g.r, y = cy + Math.sin(g.a) * g.r * 0.82;
+    if (dt > 0 || g.ox == null) { if (g.x != null) { g.ox = g.x; g.oy = g.y; } g.x = x; g.y = y; }
+    let x2 = g.ox ?? x + 2, y2 = g.oy ?? y, tl = Math.hypot(x2 - x, y2 - y) || 1; const tk = clamp(tl, 3, 22) / tl; x2 = x + (x2 - x) * tk; y2 = y + (y2 - y) * tk;
     ctx.globalAlpha = 0.9; ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x, y);
     ctx.strokeStyle = `rgb(${T.ink.join(',')})`; ctx.lineWidth = g.w + 1.6; ctx.stroke(); ctx.strokeStyle = '#F4F4EE'; ctx.lineWidth = g.w * 0.7; ctx.stroke(); }
   ctx.restore(); ctx.globalAlpha = 1;
