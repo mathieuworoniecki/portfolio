@@ -888,7 +888,6 @@ function drawFx(S) {
     else if (f.k === 'rouleaux') rouleaux(f, t - f.t0, fade, K);
     else if (f.k === 'vague') vaguePoussiere(f, u, K);
     else if (f.k === 'cri') ondeCri(f, t);
-    else if (f.k === 'patte') empreinte(f, u);
     else if (f.k === 'griffe') griffe(f, t - f.t0);
     else if (f.k === 'vers') versNous(f, t - f.t0);
     else if (f.k === 'grele') grele(f, t - f.t0);
@@ -975,6 +974,8 @@ function griffe(f, tt) {
     if (tr >= 1 && tt < 0.4) { const e = P[6], k = 1 - tt / 0.4; for (let j = 0; j < 3; j++) { const b = an + (j - 1) * 0.7; Chalk.line(e[0], e[1], e[0] + Math.cos(b) * f.s * 0.12 * k, e[1] + Math.sin(b) * f.s * 0.12 * k, 1, { w: 1, a: a * 0.7, seed: f.seed + 9 + j }); } }
   }
 }
+// (vague 217 de l'audit, design) : les empreintes sont au sol : dessinées avant tout le reste, le nuage de la ruée passe devant elles
+function solPattes() { const t = Wd.t; Wd.fx.forEach(f => { if (f.k === 'patte' && t - f.t0 < f.life) empreinte(f, (t - f.t0) / f.life); }); }
 function empreinte(f, u) {
   const k = u < 0.85 ? 1 : 1 - (u - 0.85) / 0.15, r = f.r * k; if (r < 0.6) return; const a = 0.55 * Wd.a;
   Chalk.circle(f.x, f.y, r, r * 0.5, 1, { w: 1.3, a, seed: f.seed });
@@ -1188,9 +1189,13 @@ function rue() {
       en.sort(() => Math.random() - 0.5).slice(0, Wd.mode === 'large' ? 2 : 1).forEach((l, i) => later(0.4 + i * 0.5, () => { if (!l.st) Vie.tumble(l, R.dir * Wd.s0 * rnd(0.5, 1.2), -Wd.s0 * rnd(0.2, 0.6), R.dir * rnd(3, 7)); })); }
     // (vague 35 de l'audit : « la horde manque d'originalité ») : elle laisse ses traces : des empreintes de coussinets au trait,
     // en rangs serrés sur tout le plancher, qui rétrécissent une à une (rien ne s'efface)
-    let nP = 0; for (const f of Wd.fx) if (f.k === 'patte') nP++;
-    L.forEach(c => { if (c.fall || nP > 220 || Wd.t < (c.pasT || 0)) return; c.pasT = Wd.t + rnd(0.14, 0.22); c.pasC = -(c.pasC || 1); nP++;
-      Wd.fx.push({ k: 'patte', x: c.x - c.face * sc(c) * rnd(0.1, 0.5), y: floorAt(c.d) + c.pasC * sc(c) * 0.05, r: sc(c) * 0.075, face: c.face, t0: Wd.t, life: rnd(8, 11), seed: Math.floor(Math.random() * 99) }); });
+    // (vague 217 de l'audit, design) : elles s'entassaient en paquets de boucles (une toutes les 0,2 s, où que soit le chat) ; maintenant
+    // une par foulée parcourue, gauche puis droite, et jamais sur une autre : on lit des pistes qui se croisent, pas un gribouillis
+    const PP = Wd.fx.filter(f => f.k === 'patte'); let nP = PP.length;
+    L.forEach(c => { const s = sc(c); if (c.fall || nP > 160) return; if (c.pasX !== undefined && Math.abs(c.x - c.pasX) < s * 0.55) return; c.pasX = c.x; c.pasC = -(c.pasC || 1);
+      const r = s * 0.07, x = c.x - c.face * s * 0.3, y = floorAt(c.d) + c.pasC * s * 0.06;
+      if (PP.some(f => Math.abs(f.x - x) < (f.r + r) * 2.6 && Math.abs(f.y - y) < (f.r + r) * 1.3)) return; nP++;
+      const f = { k: 'patte', x, y, r, face: c.face, t0: Wd.t, life: rnd(8, 11), seed: Math.floor(Math.random() * 99) }; PP.push(f); Wd.fx.push(f); });
     // (vague 71) la ruée secoue aussi l'interface : chaque élément sous lequel (ou au-dessus duquel) la horde passe saute sur place,
     // de plus en plus fort à mesure qu'ils sont nombreux à passer ; on voit l'onde de la cavalcade courir le long de la barre du bas
     if (!R.ui) R.ui = [...document.querySelectorAll('#brand, #lang-pick, #theme-pick, .film-ui .ctrl > *, #chap > *, .evts li, .ctas > *, #titles')].filter(e => e.getClientRects().length).map(e => ({ e, t: -9 }));
@@ -1214,6 +1219,7 @@ H.draw.push(() => {
     bosses.forEach(([bx, by, br]) => { ctx.beginPath(); ctx.arc(bx, by, br, 0, 6.283); ctx.stroke(); });
     ctx.fillStyle = papier; ctx.beginPath(); ctx.ellipse(x, y, R * 0.7, R * 0.55, 0, 0, 6.283); ctx.fill();
     bosses.forEach(([bx, by, br]) => { ctx.beginPath(); ctx.arc(bx, by, br, 0, 6.283); ctx.fill(); });
+    if (window.Titles && Titles.bouche) Titles.bouche(ctx, c => { c.ellipse(x, y, R * 0.7, R * 0.55, 0, 0, 6.283); bosses.forEach(([bx, by, br]) => { c.moveTo(bx + br, by); c.arc(bx, by, br, 0, 6.283); }); }, papier);
     if (b.sp && R > 10) { ctx.lineWidth = Math.max(1.4, R * 0.05); ctx.beginPath();   // une petite spirale dans certaines bouffées
       for (let j = 0; j <= 24; j++) { const a = j * 0.5 + u * 6, rr = R * 0.34 * j / 24; j ? ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.8) : ctx.moveTo(x, y); } ctx.stroke(); }
   });
@@ -1806,7 +1812,7 @@ function step(S, dt) {
   tidy();
 }
 const ail = () => Wd.ail && Wd.ail.on();
-function draw(S) { if (ail()) { Wd.ail.draw(S); drawFx(S); return; } drawWater(S); drawPattes(); drawKib(S); drawVac(S); H.draw.forEach(f => f(S)); vitesse(); drawFx(S); }
+function draw(S) { if (ail()) { Wd.ail.draw(S); drawFx(S); return; } drawWater(S); drawPattes(); solPattes(); drawKib(S); drawVac(S); H.draw.forEach(f => f(S)); vitesse(); drawFx(S); }
 // (vague 28, l'audit : « les chats 3D au trait ») : les traits de vitesse de la bande dessinée. Un chat qui galope, qu'on lance ou qui tombe
 // laisse derrière lui trois ou quatre traits de craie le long de sa course, plus longs quand il va vite ; ils tremblent un peu
 function vitesse() {
