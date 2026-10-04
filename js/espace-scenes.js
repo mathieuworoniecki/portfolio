@@ -557,7 +557,10 @@ function tmux(o, now) {
   if (!TMX.L) return;
   const cv = o.canvas, dp = dpDe(cv), bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
   o.save(); o.setTransform(dp, 0, 0, dp, 0, 0); o.lineCap = o.lineJoin = 'round';
-  o.beginPath(); o.rect(0, 0, W, H); if (bd) o.rect(bd.x - 16, bd.y - 12, bd.w + 32, bd.h + 24); if (Pc) { o.moveTo(Pc.x + Pc.r * 1.2, Pc.y); o.arc(Pc.x, Pc.y, Pc.r * 1.2, 0, TAU); } o.clip('evenodd');
+  // (vague 231 de l'audit, design : le trait vertical traversait la barre des chapitres et la barre d'état se collait tout en haut, au-dessus
+  // du logo) : les volets commencent sous la barre du haut, et la barre d'état se pose juste dessous
+  const Ly0 = window.EspacePlume && EspacePlume.M && EspacePlume.M.lay, hautB = Ly0 && Ly0.barre ? Ly0.barre.bas + 4 : 0;
+  o.beginPath(); o.rect(0, 0, W, H); if (hautB) o.rect(0, 0, W, hautB); if (bd) o.rect(bd.x - 16, bd.y - 12, bd.w + 32, bd.h + 24); if (Pc) { o.moveTo(Pc.x + Pc.r * 1.2, Pc.y); o.arc(Pc.x, Pc.y, Pc.r * 1.2, 0, TAU); } o.clip('evenodd');
   // (au redécoupage, l'ancien découpage se rétracte vers la souris pendant que le nouveau pousse : jamais d'image vide)
   const tN = now - TMX.t0, R = 0.45; if (TMX.vieux && tN < R) dessineL(TMX.vieux, 99, TMX.k * (1 - sm(tN / R)), false);
   dessineL(TMX.L, TMX.vieux ? tN - R : tN, TMX.k, true);
@@ -582,7 +585,7 @@ function tmux(o, now) {
   const Ly = window.EspacePlume && EspacePlume.M && EspacePlume.M.lay, hautUI = Ly && Ly.barre ? Ly.barre.bas + 6 : 92;   // (sous la barre des chapitres)
   o.font = '600 10px ui-monospace,Menlo,Consolas,monospace'; o.textBaseline = 'alphabetic'; o.textAlign = 'left';
   panes.forEach((q, i) => { const d = 0.7 + i * 0.35, u = t - d; if (u < 0 || k < 0.5) return; const j = (i + Math.floor(L.cmd * 4)) % 4, c = CMD[j], x = q[0] + 12;
-    let y0 = (q[1] < 60 ? Math.max(92, hautUI) : q[1]) + 22;
+    let y0 = (q[1] < 60 ? Math.max(92, hautUI) + (hautB ? 16 : 0) : q[1]) + 22;
     // (vague 186) au téléphone, la planète chat est dans le volet du haut à droite : l'invite descend sous elle au lieu de passer sous ses oreilles
     if (Pc && Pc.x + Pc.r * 1.25 > q[0] && Pc.x - Pc.r * 1.25 < q[2] && Pc.y - Pc.r * 1.25 < y0 + 30 && Pc.y + Pc.r * 1.25 > q[1]) y0 = Math.max(y0, Pc.y + Pc.r * 1.25 + 14);
     const txt = c[0] + ' ' + c[1], n = Math.min(txt.length, Math.floor(u * 22)), pr = `agent-${i + 1} $ `, mx = q[2] - q[0] - 26, wP = o.measureText(pr).width;
@@ -597,7 +600,7 @@ function tmux(o, now) {
     if (u > txt.length / 22 + 1.2) ecrit(OK[j], x, yOK, '#8fe0a0'); o.restore(); });
   // la barre d'état, en haut : la session, les fenêtres, l'étoile sur celle de la souris
   if (fV > 0.3) { const noms = FR ? ['claude', 'tests', 'relecture', 'revue'] : ['claude', 'tests', 'worktree', 'review'], s0 = '[portfolio] ', ws = noms.map((nm, i) => `${i}:${nm}${i === act ? '*' : ''}`).join('  ');
-    o.font = '600 10px ui-monospace,Menlo,Consolas,monospace'; const w = o.measureText(s0 + ws).width, x = W / 2 - w / 2, y = 13; let xi = x;
+    o.font = '600 10px ui-monospace,Menlo,Consolas,monospace'; const w = o.measureText(s0 + ws).width, x = W / 2 - w / 2, y = hautB ? hautB + 14 : 13; let xi = x;
     o.strokeStyle = NUIT; o.lineWidth = 3.5; o.strokeText(s0 + ws, x, y); o.fillStyle = '#8fe0a0'; o.fillText(s0, xi, y); xi += o.measureText(s0).width;
     noms.forEach((nm, i) => { const s = `${i}:${nm}${i === act ? '*' : ''}`; o.fillStyle = i === act ? '#8fe0a0' : `rgba(${BL},0.75)`; o.fillText(s, xi, y); xi += o.measureText(s + '  ').width; }); }
     }
