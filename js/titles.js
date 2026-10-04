@@ -410,7 +410,13 @@ function writeTrace(it, ox, oy, p) {
   if (q < 0.999) chalkTip(tip, w * 0.55, p, col);
 }
 // back : ce que les scènes dessinent derrière les titres ; front : par-dessus (même toile, même grain de craie)
+// (vague 216 de l'audit, design : « le chat géant ») : le grain troue toute la toile, même le papier d'un dessin qui doit cacher la pièce
+// (on voyait les meubles en pointillés à travers la tête du géant) ; un dessin opaque se déclare ici (sa forme, sa couleur), et on
+// rebouche son papier sous l'encre une fois le grain passé : l'encre garde son grain, le papier redevient plein
+let bouches = [];
+function bouche(c, f, col) { if (c === ctx) bouches.push({ m: c.getTransform(), f, col }); }
 function frame(back, front) {
+  bouches = [];
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalCompositeOperation = 'source-over'; ctx.clearRect(0, 0, W, H);
   const now = performance.now();
   if (back) { ctx.save(); back(ctx); ctx.restore(); ctx.globalAlpha = 1; }
@@ -425,7 +431,8 @@ function frame(back, front) {
   });
   if (front) { ctx.save(); front(ctx); ctx.restore(); ctx.globalAlpha = 1; }
   if (grain) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'destination-out'; ctx.globalAlpha = grainA; ctx.fillStyle = grain; ctx.fillRect(0, 0, cv.width, cv.height); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+  if (bouches.length) { ctx.save(); ctx.globalCompositeOperation = 'destination-over'; bouches.forEach(b => { ctx.setTransform(b.m); ctx.beginPath(); b.f(ctx); ctx.fillStyle = b.col; ctx.fill(); }); ctx.restore(); bouches = []; }
 }
 function restart() { t0 = performance.now(); }
-return { init, resize, frame, restart, progress, traceText, hand, letters, rect, freeze, get _items() { return items; } };
+return { init, resize, frame, bouche, restart, progress, traceText, hand, letters, rect, freeze, get _items() { return items; } };
 })();

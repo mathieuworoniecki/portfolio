@@ -107,13 +107,14 @@ H.draw.push(() => {
   ctx.save(); ctx.lineCap = ctx.lineJoin = 'round'; ctx.strokeStyle = `rgb(${ink})`; ctx.lineWidth = Math.max(3, Rp * 0.045);
   // le bras : il vient de dehors, du bord, en montant (on n'en voit jamais le bout)
   const ax = bord - d * Rp * 2.5, ay = fy - Rp * 3.4 - pal * Rp, bw = Rp * 1.05;
-  ctx.beginPath(); ctx.moveTo(ax, ay - bw); ctx.quadraticCurveTo(px - d * Rp * 1.1, py - Rp * 1.3, px - d * Rp * 0.2, py - Rp * 0.7);
-  ctx.lineTo(px + d * Rp * 0.6, py + Rp * 0.3); ctx.quadraticCurveTo(px - d * Rp * 0.9, py + Rp * 0.1, ax, ay + bw); ctx.closePath();
-  ctx.fillStyle = papier; ctx.fill(); ctx.stroke();
+  const bras = c => { c.moveTo(ax, ay - bw); c.quadraticCurveTo(px - d * Rp * 1.1, py - Rp * 1.3, px - d * Rp * 0.2, py - Rp * 0.7);
+    c.lineTo(px + d * Rp * 0.6, py + Rp * 0.3); c.quadraticCurveTo(px - d * Rp * 0.9, py + Rp * 0.1, ax, ay + bw); c.closePath(); };
+  ctx.beginPath(); bras(ctx); ctx.fillStyle = papier; ctx.fill(); ctx.stroke(); bouche(ctx, bras, papier);
   // la patte : un gros moufle rond, trois doigts sur le devant ; relevée, elle s'arrondit et nous montre le dessous
   ctx.translate(px, py); ctx.rotate(-d * pal * 0.35 + Math.sin(u * 14) * pal * 0.06);
   const lw = Rp * (1.05 - pal * 0.12), lh = Rp * (0.62 + pal * 0.4);
-  ctx.beginPath(); ctx.ellipse(0, 0, lw, lh, 0, 0, Math.PI * 2); ctx.fillStyle = papier; ctx.fill(); ctx.stroke();
+  const moufle = c => c.ellipse(0, 0, lw, lh, 0, 0, Math.PI * 2);
+  ctx.beginPath(); moufle(ctx); ctx.fillStyle = papier; ctx.fill(); ctx.stroke(); bouche(ctx, moufle, papier);
   if (pal < 0.5) for (let i = 1; i <= 2; i++) { const x = d * lw * (0.15 + i * 0.25); ctx.beginPath(); ctx.moveTo(x, lh * 0.95); ctx.lineTo(x - d * lw * 0.06, lh * 0.35); ctx.stroke(); }
   if (pal > 0.02) {   // les coussinets : ils grandissent quand elle se retourne (pas de fondu)
     const k = pal; ctx.fillStyle = `rgb(${ink})`;
@@ -174,6 +175,7 @@ H.draw.push(() => {
 });
 
 // la tête du géant qui entre par le bord de l'écran, du côté où il est sorti : la pièce est une maison de poupée, il regarde dedans
+const bouche = (c, f, col) => { if (window.Titles && Titles.bouche) Titles.bouche(c, f, col); };
 function tete(ctx, ink, u) {
   const d = OE.dir, W = Wd.W, Hh = Wd.H, R = Math.min(W * 0.2, Hh * 0.36), e = sm(u / 1.1) * (1 - sm((u - OE.dur + 1) / 1)), P = Wd.ptr;
   const cy = ((Wd.ceil || Hh * 0.3) + Wd.floor) / 2 + R * 0.15, cx = d > 0 ? W + R * (1.25 - e * 1.45) : -R * (1.25 - e * 1.45), pen = Math.sin(u * 0.9) * 0.05 * d;
@@ -184,10 +186,10 @@ function tete(ctx, ink, u) {
   ctx.save(); ctx.translate(cx + tr, cy); ctx.rotate(pen); ctx.lineCap = ctx.lineJoin = 'round';
   const papier = (getComputedStyle(document.documentElement).getPropertyValue('--bp').trim() || '#DADBD8');
   // la tête (le même trait que les chats : un contour, deux oreilles), remplie de papier : elle passe devant la pièce
-  ctx.beginPath(); ctx.moveTo(-R, R * 0.1); ctx.quadraticCurveTo(-R, -R * 0.75, -R * 0.72, -R * 0.86); ctx.lineTo(-R * 0.62, -R * 1.42); ctx.lineTo(-R * 0.22, -R * 0.96);
-  ctx.quadraticCurveTo(0, -R * 1.03, R * 0.22, -R * 0.96); ctx.lineTo(R * 0.62, -R * 1.42); ctx.lineTo(R * 0.72, -R * 0.86); ctx.quadraticCurveTo(R, -R * 0.75, R, R * 0.1);
-  ctx.quadraticCurveTo(R, R * 0.92, 0, R * 0.92); ctx.quadraticCurveTo(-R, R * 0.92, -R, R * 0.1); ctx.closePath();
-  ctx.fillStyle = papier; ctx.fill(); ctx.strokeStyle = `rgb(${ink})`; ctx.lineWidth = Math.max(3, R * 0.022); ctx.stroke();
+  const crane = c => { c.moveTo(-R, R * 0.1); c.quadraticCurveTo(-R, -R * 0.75, -R * 0.72, -R * 0.86); c.lineTo(-R * 0.62, -R * 1.42); c.lineTo(-R * 0.22, -R * 0.96);
+    c.quadraticCurveTo(0, -R * 1.03, R * 0.22, -R * 0.96); c.lineTo(R * 0.62, -R * 1.42); c.lineTo(R * 0.72, -R * 0.86); c.quadraticCurveTo(R, -R * 0.75, R, R * 0.1);
+    c.quadraticCurveTo(R, R * 0.92, 0, R * 0.92); c.quadraticCurveTo(-R, R * 0.92, -R, R * 0.1); c.closePath(); };
+  ctx.beginPath(); crane(ctx); ctx.fillStyle = papier; ctx.fill(); bouche(ctx, crane, papier); ctx.strokeStyle = `rgb(${ink})`; ctx.lineWidth = Math.max(3, R * 0.022); ctx.stroke();
   ctx.lineWidth = Math.max(2, R * 0.014); ctx.globalAlpha = 0.6; [-1, 1].forEach(sd => { ctx.beginPath(); ctx.moveTo(sd * R * 0.6, -R * 0.95); ctx.lineTo(sd * R * 0.58, -R * 1.25); ctx.lineTo(sd * R * 0.36, -R * 1.0); ctx.stroke(); }); ctx.globalAlpha = 1;
   // les yeux : deux grands ovales noirs, deux reflets ; ils suivent la souris ; il cligne
   ctx.fillStyle = `rgb(${ink})`; [-1, 1].forEach(sd => { const ex = sd * R * 0.4 + vx * R * 0.22, ey = -R * 0.05 + vy * R * 0.16, rx = R * 0.15, ry = R * 0.22 * (1 - bl * 0.94);
