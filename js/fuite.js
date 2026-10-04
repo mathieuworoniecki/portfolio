@@ -50,6 +50,10 @@ function go0(btn) {
   // plantée au bord, et l'esquisse du plan, au téléphone, se traçait par-dessus ses boutons)
   const EVB = () => [...document.querySelectorAll('.evts-list li > button')];
   EVB().forEach((b, i) => later(0.25 + i * 0.05, () => { if (F === moi) tombeBouton(b); }));
+  // (vague 226 de l'audit, design : le plan du mode sérieux se traçait par-dessus le sélecteur de langue et les contrôles du bas du mode chat,
+  // jusque sur la barre des chapitres) : le sélecteur tombe dans son trou, et les contrôles du bas glissent hors de l'écran, un par un
+  const lp = document.getElementById('lang-pick'); if (lp) later(0.35, () => { if (F === moi) tombeBouton(lp); });
+  BAS().forEach((b, i) => later(0.3 + i * 0.06, () => { if (F === moi) glisseBas(b); }));
   // 2 et 3 : le tracé du plan, puis les tuiles bleues ; enfin le mode sérieux, sans cercle
   etapes(o, () => { if (F !== moi || F.ouvert) return; F.ouvert = true; const p = Serieux.ouvre({ x: o.x, y: o.y, instant: true, papier: true }); if (p && p.then) p.then(() => {}, () => {}); setTimeout(range, 450); });
   return true;
@@ -62,6 +66,18 @@ function tombeBouton(b) {
   if (!b.animate || reduit) { b.style.visibility = 'hidden'; return; }
   const a = b.animate([{ transform: 'none' }, { transform: 'translateY(-14px) scale(1.05, .92)', offset: 0.22 }, { transform: `translateY(${dy}px) scale(.3)` }], { duration: 620, easing: 'cubic-bezier(.5,0,.9,.5)', fill: 'forwards' });
   a.onfinish = () => { b.style.visibility = 'hidden'; a.cancel(); word(pick(['gloup', 'plop']), x, fl - Wd.s0 * 0.2, 18); };
+}
+const BAS = () => [...document.querySelectorAll('.film-ui .ctrl > *, #chap')];
+function glisseBas(b) {
+  const r = b.getBoundingClientRect(); if (!r.width || b.style.visibility === 'hidden') return;
+  if (!b.animate || reduit) { b.style.visibility = 'hidden'; return; }
+  const dy = innerHeight - r.top + 20, a = b.animate([{ transform: 'none' }, { transform: 'translateY(-6px)', offset: 0.25 }, { transform: `translateY(${dy}px)` }], { duration: 520, easing: 'cubic-bezier(.5,0,.9,.5)', fill: 'forwards' });
+  a.onfinish = () => { b.style.visibility = 'hidden'; a.cancel(); };
+}
+function remonte(b, dl) {
+  if (b.style.visibility !== 'hidden') return; setTimeout(() => { b.style.visibility = ''; if (!b.animate || reduit) return;
+    const r = b.getBoundingClientRect(), dy = innerHeight - r.top + 20;
+    b.animate([{ transform: `translateY(${dy}px)` }, { transform: 'translateY(-6px)', offset: 0.75 }, { transform: 'none' }], { duration: 520, easing: 'cubic-bezier(.2,.6,.4,1)' }); }, dl);
 }
 // au retour, il ressort de son trou et reprend sa place d'un bond
 function sortBouton(b, dl) {
@@ -334,6 +350,8 @@ function retour() {
     Lt.a = 1; Lt.st = 'back'; Lt.t = Wd.t; Lt.from = [0, fl - (rt.top + Lt.cy), 0]; Lt.dx = 0; Lt.dy = Lt.from[1]; Lt.rot = 0; Lt.out0 = 0; }); });
   ['stay', 'enter'].map(id => document.getElementById(id)).filter(Boolean).forEach((b, i) => sortBouton(b, 350 + i * 180));
   document.querySelectorAll('.evts-list li > button').forEach((b, i) => sortBouton(b, 500 + i * 70));
+  { const lp = document.getElementById('lang-pick'); if (lp) sortBouton(lp, 420); }
+  BAS().forEach((b, i) => remonte(b, 300 + i * 80));
   const L = avales.slice(); avales = [];
   const ox = o ? o.x : Wd.W / 2, oy = floorAt(0.5), pos = it => { const h = it.home && !it.home.on ? it.home : it; return [h.fx * Wd.W, floorAt(h.d)]; };
   L.sort((a, b) => Math.abs(pos(a)[0] - ox) - Math.abs(pos(b)[0] - ox));
