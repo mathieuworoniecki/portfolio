@@ -184,6 +184,9 @@ function terre(ctx, now) {
   ctx.save(); ctx.translate(0, fr);
   // l'atmosphère (deux fins cercles), puis le sol, qui se trace depuis le milieu vers les bords
   const half = Math.asin(clamp(O.W / 2 / T.R, 0, 1)) + 0.05, a0 = -Math.PI / 2;
+  // (vague 245 de l'audit, « la Terre », design : le disque était transparent, les étoiles et la poussière de la galaxie brillaient à travers le sol,
+  // comme si la Terre n'était qu'un trait) : elle est pleine, couleur nuit ; le plein suit le trait qui se dessine depuis le milieu
+  ctx.save(); ctx.fillStyle = '#07080C'; ctx.beginPath(); ctx.arc(T.cx, T.cy, T.R, a0 - half * t, a0 + half * t); { const e1 = a0 + half * t, e0 = a0 - half * t; ctx.lineTo(T.cx + Math.cos(e1) * T.R, O.H + 40); ctx.lineTo(T.cx + Math.cos(e0) * T.R, O.H + 40); } ctx.closePath(); ctx.fill(); ctx.restore();
   ctx.strokeStyle = `rgba(${BL},0.9)`; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.arc(T.cx, T.cy, T.R, a0 - half * t, a0 + half * t); ctx.stroke();
   [[10, 0.28], [22, 0.12]].forEach(([d, al]) => { ctx.strokeStyle = `rgba(150,200,255,${al * t})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(T.cx, T.cy, T.R + d, a0 - half * t, a0 + half * t); ctx.stroke(); });
@@ -195,7 +198,13 @@ function terre(ctx, now) {
   if (tc > 0) { ctx.save(); ctx.beginPath(); ctx.arc(T.cx, T.cy, T.R - 2, 0, TAU); ctx.clip(); if (UIT.L.length) { ctx.beginPath(); ctx.rect(0, 0, O.W, O.H); UIT.L.forEach(b => ctx.roundRect ? ctx.roundRect(b.left - 8, b.top - 6, b.width + 16, b.height + 12, 8) : ctx.rect(b.left - 8, b.top - 6, b.width + 16, b.height + 12)); ctx.clip('evenodd'); } ctx.globalAlpha = tc;
     const off = (Wd.t * 12) % (O.W * 1.5);
     for (let i = 0; i < 7; i++) { const x = ((i * O.W * 0.27 + off + P.seed * 50) % (O.W * 1.5)) - O.W * 0.25, y = T.top + 18 + (i % 3) * 16 + 10, r = (22 + (i * 37 % 30)) * clamp(O.W / 1200, 0.45, 1);
-      blob(ctx, x, y + (T.cy - T.R - T.top) * 0 + Math.pow((x - T.cx) / T.R, 2) * T.R * 0.5, r, i * 1.7 + P.seed); ctx.strokeStyle = `rgba(${BL},0.75)`; ctx.lineWidth = 2; ctx.stroke(); }
+      const yc = y + Math.pow((x - T.cx) / T.R, 2) * T.R * 0.5, sd = i * 1.7 + P.seed;
+      // (vague 245, design : des continents en simple fil de fer, plats) : la côte à l'encre, un second trait de haut-fond en pointillés au large,
+      // et des hachures de plume du côté de l'ombre (en bas à droite), qui donnent du relief aux terres
+      blob(ctx, x, yc, r * 1.16, sd); ctx.strokeStyle = `rgba(${BL},0.28)`; ctx.lineWidth = 1; ctx.setLineDash([2, 5]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.save(); blob(ctx, x, yc, r, sd); ctx.clip(); ctx.strokeStyle = `rgba(${BL},0.3)`; ctx.lineWidth = 1; ctx.beginPath();
+      for (let h = -r * 0.55; h < r * 1.4; h += 5) { ctx.moveTo(x + h + r * 0.35, yc + r * 0.75); ctx.lineTo(x + h + r * 1.1, yc - r * 0.05); } ctx.stroke(); ctx.restore();
+      blob(ctx, x, yc, r, sd); ctx.strokeStyle = `rgba(${BL},0.85)`; ctx.lineWidth = 2; ctx.stroke(); }
     ctx.strokeStyle = `rgba(${BL},0.35)`; ctx.lineWidth = 1.4;
     for (let i = 0; i < 5; i++) { const x = ((i * O.W * 0.33 + off * 1.6) % (O.W * 1.5)) - O.W * 0.25, y = T.top + 8 + (i % 2) * 22 + Math.pow((x - T.cx) / T.R, 2) * T.R * 0.5;
       ctx.beginPath(); for (let k = 0; k <= 10; k++) { const px = x + k * 7, py = y + Math.sin(k * 1.2 + i) * 2.5; k ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.stroke(); }
