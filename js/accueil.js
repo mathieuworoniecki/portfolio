@@ -85,9 +85,22 @@ if (!Wd.cats.includes(k) || k.held || n > 1) return; const pose = !k.fall && k.t
       n++; K.later(0.11, () => { if (!Wd.cats.includes(k) || k.held || k.fall) return;
         // il rebondit : un bond sur place (de moins en moins haut), et il retombe sur ce qui l'a renvoyé
         k.q = [{ k: 'bond', x: k.x + rnd(-0.25, 0.25) * sc(k), y: k.y, air: true, Hx: sc(k) * (n === 1 ? (Bt ? 0.85 : 1.3) : 0.5), then: suite }]; k.task = null;
-        Wd.fx.push({ k: 'txt', text: n === 1 ? 'boïng' : 'boing', x: k.x + sc(k) * 0.6, y: k.y - sc(k) * 0.4, t0: Wd.t, life: 0.9, rot: -0.2, size: n === 1 ? 22 : 16 }); if (n === 1) K.later(0.35, () => { if (Wd.cats.includes(k)) say(k, pick(['wouh !', 'hihi', '!?'])); });
+        Wd.fx.push({ k: 'txt', text: n === 1 ? 'boïng' : 'boing', x: k.x + sc(k) * 0.6, y: k.y - sc(k) * 0.4, t0: Wd.t, life: 0.9, rot: -0.2, size: n === 1 ? 22 : 16 }); if (n === 1) { K.later(0.35, () => { if (Wd.cats.includes(k)) say(k, pick(['wouh !', 'hihi', '!?'])); }); secousse(k); }
         const att = () => { if (!Wd.cats.includes(k) || n > 1) return; if (k.task && k.task.k === 'bond') { K.later(0.04, att); return; } guet(); }; K.later(0.15, att); }); };
     K.later(0.2, guet); }
+}
+// (vague 252 de l'audit, « l'arrivée », immersion) : le « boïng » ne reste pas dans le titre. Le choc descend dans toute la pièce :
+// une vague de poussière court au ras du plancher d'un bord à l'autre de l'écran, et chaque chat, du plus proche au plus lointain, sursaute sur place
+// à son passage, se tourne vers le nouveau venu et le fixe (« ! », « qui c'est ? ») ; la pièce entière l'accueille
+function secousse(k) {
+  if (reduit) return; const L = Wd.cats.filter(c => c !== k && !c.hidden), ds = L.map(c => c.d).sort((a, b) => a - b), d = ds.length ? ds[ds.length >> 1] : 0.5;
+  Wd.fx.push({ k: 'vague', x: k.x, y: K.floorAt(d), r: sc(k) * 0.42, t0: Wd.t, life: 1.8, seed: 7 });
+  Wd.shake = { t0: Wd.t, a: 4 }; Wd.mire = { x: k.x, y: k.y - sc(k) * 0.6, fin: Wd.t + 2.4 };
+  const V = Math.max(Wd.W, 600) / 1.6; let mots = 0;
+  L.sort((a, b) => Math.abs(a.x - k.x) - Math.abs(b.x - k.x)).forEach(c => { K.later(0.08 + Math.abs(c.x - k.x) / V, () => {
+    if (!Wd.cats.includes(c) || !K.free4(c) || c.held || c.fall) return; const f = Math.sign(k.x - c.x) || 1;
+    K.interrupt(c); c.q = [K.pose('sursaut', 0.55, { face: f }), K.pose('assis', rnd(1.4, 2.2), { face: f })];
+    if (mots < 3 && Math.random() < 0.6) { mots++; K.later(0.2, () => { if (Wd.cats.includes(c)) say(c, pick(['!', '?!', 'qui c\'est ?', 'mrr ?'])); }); } }); });
 }
 // le croquis : une seule ligne continue (comme on dessine un chat sans lever la plume), puis les deux yeux
 let D = null, R = null; const ENVOL = 0.9;
