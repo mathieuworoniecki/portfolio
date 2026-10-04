@@ -441,12 +441,14 @@ html:not(.locked) #gate:not(.open){display:none}
   padding:8px 16px 8px 8px;color:rgb(var(--ink));background:var(--bp-hi);border:2.5px solid rgb(var(--ink));border-radius:18px 14px 20px 16px;
   box-shadow:4px 4px 0 rgba(var(--ink),.22);cursor:pointer;transform-origin:100% 0}
 .hf-show[hidden]{display:none}
-.hf-rayons{position:absolute;left:46px;top:50%;width:170px;aspect-ratio:1;translate:-50% -50%;border-radius:50%;pointer-events:none;z-index:-1;opacity:0;
+.hf-rayons{position:absolute;left:46px;top:50%;width:170px;aspect-ratio:1;translate:-50% -50%;border-radius:50%;pointer-events:none;z-index:-1;opacity:.8;scale:0;
   background:repeating-conic-gradient(rgba(var(--ink),.22) 0 1.5deg,transparent 1.5deg 15deg);-webkit-mask:radial-gradient(circle,#000 25%,transparent 70%);mask:radial-gradient(circle,#000 25%,transparent 70%)}
 .hf-show .hf-badge{flex:none}
 .hf-txt{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
 .hf-sur{margin:0;font:600 .62rem/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;opacity:.7}
 .hf-show h2{margin:0;font:400 1.35rem/1.05 var(--hand);text-wrap:balance}
+/* (vague 222) : la carte reste transparente, mais ses mots gardent un halo de papier : lisibles même posés sur un chat ou un meuble (au téléphone, elle est au ras du sol) */
+.hf-txt>*{text-shadow:0 0 2px var(--bp-hi),0 0 4px var(--bp-hi),0 0 8px var(--bp-hi)}
 .hf-rang{margin:0;padding:1px 8px;border-radius:8px;background:none;border:1.5px solid currentColor;color:inherit;font:600 .6rem/1.5 var(--mono);letter-spacing:.08em;text-transform:uppercase}
 .hf-show.go{animation:hf-carte .6s cubic-bezier(.2,1.5,.4,1) both}
 .hf-show.go .hf-rayons{animation:hf-rayons 5s linear forwards}
@@ -454,7 +456,8 @@ html:not(.locked) #gate:not(.open){display:none}
 .hf-show.go .hf-txt>*{animation:hf-mot .4s ease-out both}
 .hf-show.go .hf-sur{animation-delay:.25s}.hf-show.go h2{animation-delay:.4s}.hf-show.go .hf-rang{animation-delay:.55s}
 .hf-show.part{animation:hf-part .38s ease-in forwards}
-@keyframes hf-carte{0%{opacity:0;transform:translate(30px,-20px) scale(.6) rotate(6deg)}100%{opacity:1;transform:none}}
+/* (vague 222 de l'audit, design) : plus aucun fondu : la carte jaillit (de rien, en tournant), les rayons poussent puis rentrent, les mots s'écrivent de gauche à droite */
+@keyframes hf-carte{0%{transform:translate(30px,-20px) scale(0) rotate(12deg)}60%{transform:scale(1.05) rotate(-1deg)}100%{transform:none}}
 @keyframes hf-part{to{transform:translateX(calc(100% + 40px)) rotate(7deg)}}
 .hf-etin{position:fixed;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;z-index:35;pointer-events:none;border:1.6px solid rgb(var(--ink));border-radius:50%;animation:hf-etin .7s ease-out forwards}
 @keyframes hf-etin{to{transform:translateY(14px) scale(0)}}
@@ -462,9 +465,9 @@ html:not(.locked) #gate:not(.open){display:none}
 .hf-avale .dex-n{animation:hf-n .65s cubic-bezier(.2,1.8,.4,1)}
 @keyframes hf-avale{0%{scale:1}25%{scale:1.35 .8}55%{scale:.9 1.15}100%{scale:1}}
 @keyframes hf-n{0%{scale:1}35%{scale:1.7;rotate:-12deg}100%{scale:1;rotate:0deg}}
-@keyframes hf-rayons{0%{opacity:0;rotate:0deg}12%{opacity:1}75%{opacity:.8}100%{opacity:0;rotate:120deg}}
+@keyframes hf-rayons{0%{scale:0;rotate:0deg}12%{scale:1}75%{scale:1}100%{scale:0;rotate:120deg}}
 @keyframes hf-badge{0%{scale:0;rotate:-540deg}70%{scale:1.2;rotate:10deg}100%{scale:1;rotate:0deg}}
-@keyframes hf-mot{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:none}}
+@keyframes hf-mot{0%{clip-path:inset(-30% 100% -30% -4px)}100%{clip-path:inset(-30% -4px -30% -4px)}}
 /* (vague 95 de l'audit) : dans l'espace, au bureau, la planète des chats est en haut à droite : le haut fait s'annonce en haut à gauche, jamais sur elle */
 @media (min-width:601px){.espace .hf-show{right:auto;left:14px;transform-origin:0 0}}
 /* (vague 115, l'audit : au téléphone, la carte « Découverte ! » et celle du haut fait tombaient l'une sur l'autre en bas de l'écran) : quand un haut fait est là, la petite carte du carnet monte d'un cran au-dessus de lui, en glissant */
