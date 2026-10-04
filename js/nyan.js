@@ -35,6 +35,9 @@ const coupe = (P, now, vie) => { vie = vie || VIE; while (P.length && now - P[0]
 
 /* ——— dans la pièce ——— */
 const VOLS = [];   // { c, P } : les rubans (ils restent le temps de s'effacer, même le chat parti)
+// (vague 221 de l'audit, design) : au bureau, le sommet de l'arche passait sur la consigne des boutons (« clique : un chat tombe du ciel… »),
+// et « un pont !! » s'écrivait par-dessus ; l'arche reste sous la consigne, le mot s'écrit sous la voûte
+const sousBoutons = () => { const q = document.querySelector('.ctas'), b = q && q.getClientRects().length ? q.getBoundingClientRect() : null; return b && b.width ? b.bottom + 46 : 0; };
 let ARCHE = null, PAP = null;   // la grande arche (le bouquet de la parade) : { xs, xe, yb, yp, dir, bw, pret, fin }
 const archePt = (A, u) => [A.xs + (A.xe - A.xs) * u, A.yb - (A.yb - A.yp) * Math.sin(Math.PI * clamp(u, 0, 1))];
 STEPS.nyan = (c, T, dt) => {
@@ -45,7 +48,7 @@ STEPS.nyan = (c, T, dt) => {
     // l'arche : il la dessine d'un bord à l'autre de la pièce, par le plafond ; son ruban, c'est l'arche
     const A = T.arche; T.u = (T.u || 0) + dt / T.dur;
     if (T.u <= 1) { const [x, y] = archePt(A, T.u); pt = [x, y]; c.x = x; c.y = y + s * 0.42; const [x2, y2] = archePt(A, T.u + 0.01); c.spin = Math.atan2(y2 - y, (x2 - x) * T.dir) * 0.8; }
-    else { if (!A.pret) { A.pret = Wd.t; Wd.shake = { t0: Wd.t, a: 4 }; Wd.fx.push({ k: 'txt', text: 'un pont !!', x: (A.xs + A.xe) / 2, y: A.yp - 30, t0: Wd.t, life: 2, rot: -0.05, size: 30 }); }
+    else { if (!A.pret) { A.pret = Wd.t; Wd.shake = { t0: Wd.t, a: 4 }; Wd.fx.push({ k: 'txt', text: 'un pont !!', x: (A.xs + A.xe) / 2, y: A.yp + A.bw * 5 + 24, t0: Wd.t, life: 2, rot: -0.05, size: 30 }); }
       c.x += T.dir * T.v * dt; c.y = A.yb + s * 0.42; c.spin *= Math.exp(-dt * 5); }
   } else if (T.boucle != null && !T.bf && (T.dir > 0 ? c.x >= T.boucle : c.x <= T.boucle)) { T.bf = { a: 0, cx: c.x, cy: c.y }; T.R = clamp((c.y - s * 0.42 - ((Wd.ceil || Wd.H * 0.3) + s * 0.4)) / 2, s * 0.7, Math.min(T.R, Wd.H * 0.15));  /* (la boucle ne monte pas sur le titre) */ say(c, pick(['wiiii ✨', 'looping !', 'nyaaaan !'])); etoiles(c.x, c.y - s * 0.4, 12); }
   if (!T.arche) {
@@ -77,7 +80,7 @@ function vol(o) {
   c.nyan = true; c.x = dir > 0 ? -s * 1.2 : Wd.W + s * 1.2; c.y = bas + (haut - bas) * h; c.stay = 1e9;
   const T = { k: 'nyan', air: true, dir, v: Wd.W / (o.dur || rnd(4.5, 6)) };
   if (o.boucle) { T.boucle = Wd.W * (dir > 0 ? 0.42 : 0.58); T.R = clamp((bas - haut) * 0.42, s * 1.2, Wd.H * 0.2); }
-  if (o.arche) { const yb = floorAt(0.2), A = { xs: Wd.W * (dir > 0 ? 0.1 : 0.9), xe: Wd.W * (dir > 0 ? 0.9 : 0.1), yb: yb - 2, yp: Math.max((Wd.ceil || Wd.H * 0.25) + s * 0.3, yb - Wd.H * 0.55), dir, bw: Math.max(5, s * 0.075) };
+  if (o.arche) { const yb = floorAt(0.2), A = { xs: Wd.W * (dir > 0 ? 0.1 : 0.9), xe: Wd.W * (dir > 0 ? 0.9 : 0.1), yb: yb - 2, yp: Math.max((Wd.ceil || Wd.H * 0.25) + s * 0.3, yb - Wd.H * 0.55, sousBoutons() + Math.max(5, s * 0.075) * 4), dir, bw: Math.max(5, s * 0.075) };
     A.t0 = Wd.t; ARCHE = A; T.arche = A; T.dur = 2.6; T.vie = 20; T.bw = A.bw; c.d = 0.2; c.x = A.xs; c.y = A.yb + s * 0.42; }
   c.q = [T, fn(k => { k.gone = true; })];
   return c;
@@ -127,6 +130,7 @@ H.draw.push(() => {
       if (!PAP) { const c = getComputedStyle(document.body).backgroundColor; PAP = c && !/rgba\(.*,\s*0\)$|transparent/.test(c) ? c : 'rgb(237,236,231)'; }
       ctx.save(); ctx.globalAlpha = Wd.a; ctx.strokeStyle = `rgb(${(window.THEME && THEME.ink) || Chalk.INK || "40,40,48"})`; ctx.lineWidth = 4.4; B.forEach(([bx, by, br]) => { ctx.beginPath(); ctx.arc(bx, by, br, 0, TAU); ctx.stroke(); });
       ctx.fillStyle = PAP; B.forEach(([bx, by, br]) => { ctx.beginPath(); ctx.arc(bx, by, br - 0.2, 0, TAU); ctx.fill(); });
+      if (window.Titles && Titles.bouche) Titles.bouche(ctx, c => B.forEach(([bx, by, br]) => { c.moveTo(bx + br, by); c.arc(bx, by, br, 0, TAU); }), PAP);
       ctx.lineWidth = 1.2; ctx.globalAlpha = 0.5 * Wd.a; ctx.beginPath(); ctx.arc(x - r * 0.35, y - r * 0.1, r * 0.35, Math.PI * 1.1, Math.PI * 1.6); ctx.stroke(); ctx.restore(); }); }
 });
 // (vague 100 de l'audit, « l'arc-en-ciel » vers 9,9) : la parade finie, un tout petit Nyan Cat surgit au bord de la barre des chapitres,
