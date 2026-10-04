@@ -313,7 +313,12 @@ function impact(L, x, fl, w, h) {
 H.draw.push(() => {
   const Ls = LETTERS(); if (!Ls || Wd.a < 0.3) return; const r = RECT();
   Ls.forEach(L => { if (!L.st || L.st === 'back' || L.a < 0.5 || TL.jeu) return; const x0 = r.left + L.x0 - 3, x1 = r.left + L.x1 + 3, y0 = r.top + L.y0 - 3, y1 = r.top + L.y1 + 3, g = Math.min(1, (Wd.t - (L.out0 || Wd.t)) / 0.4);
-    Chalk.stroke([[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]], g, { w: 1.5, a: 0.5 * Wd.a, seed: 70 + (L.x0 | 0) % 50, tip: false, dash: [5, 5] }); });
+    // (vague 215 de l'audit, design) : plus une boîte en pointillés autour du vide, mais la lettre elle-même, repassée en pointillés,
+    // comme sur un cahier d'écriture ; le cadre ne reste que pour une lettre sans tracé connu
+    if (L.strokes && L.strokes.length) L.strokes.forEach((P, j) => { const Q = P.map(p => [r.left + p[0], r.top + p[1]]);
+      if (P.len < 6) { const [cx, cy] = Q[Q.length >> 1]; Chalk.circle(cx, cy, 2.6, 2.6, g, { w: 1.4, a: 0.55 * Wd.a, seed: 71 + j, tip: false }); return; }
+      Chalk.stroke(Q, g, { w: 1.6, a: 0.55 * Wd.a, seed: 70 + j + (L.x0 | 0) % 50, tip: false, dash: [4, 5], amp: 0.5 }); });
+    else Chalk.stroke([[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]], g, { w: 1.5, a: 0.5 * Wd.a, seed: 70 + (L.x0 | 0) % 50, tip: false, dash: [5, 5] }); });
 });
 let CTAc = null, CTAt = -9, EVb = null, EVt = -9;
 function tumble(L, vx, vy, vr) { if (!L.out0) L.out0 = Wd.t; L.st = 'fall'; L.vx = vx; L.vy = vy; L.vr = vr; L.t = Wd.t; }
