@@ -21,7 +21,8 @@ function place() {
   const ch = pl ? { x: pl[0], y: pl[1], r } : { x: large ? W * 0.9 : W * 0.8, y: large ? H * 0.2 : H * 0.22, r };
   // (vague 189, finition : au téléphone, l'anneau, l'oreille et les moustaches de droite sortaient de l'écran, coupés net au bord) : la planète
   // garde son anneau entier dans l'écran
-  if (W < 700) ch.x = Math.min(ch.x, W - r * 1.4);
+  // (vague 244 de l'audit, « planète chat », design : le bout droit de l'anneau de laine, plus large que 1,4 r, touchait encore le bord) : il garde de l'air
+  ch.x = Math.min(ch.x, W - r * 1.66 - (W < 700 ? 6 : 14));
   return { terre: { cx: W / 2, cy: bas - h + R + 18, R, top }, chat: ch };
 }
 function naissance() { if (P) return; P = Object.assign(place(), { W: O.W, H: O.H, t0: Wd.t, survol: 0, pousse: 0, aspire: null, seed: Math.random() * 99 }); }
@@ -316,8 +317,10 @@ function planete(ctx, now) {
       // (à côté d'elle, du côté de l'écran : jamais sur le menu des langues en haut)
       const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, ty = Math.max(70, y - r * 0.75); if (!(bd && ty > bd.y - 20 && ty < bd.y + bd.h + 20)) { ctx.translate(Math.max(ctx.measureText(mot).width + 8, x - r * 1.25), ty); ctx.rotate(at >= 1.3 ? -0.12 : -0.05); ctx.fillText(mot, 0, 0); } ctx.restore(); } }
   const ear = trace(1.4, 0.5) * (1 - bai * 0.45) * (1 - pre * 0.35);
-  // un halo, très léger (deux fins cercles, comme l'atmosphère de la Terre)
-  if (z === 0 && t > 0.5) [[1.12, 0.1], [1.24, 0.05]].forEach(([k, al]) => { ctx.strokeStyle = `rgba(${BL},${al * t})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r * k, 0, TAU); ctx.stroke(); });
+  // un halo, très léger (deux fins traits, comme l'atmosphère de la Terre)
+  // (vague 244, design : c'étaient deux cercles qui coupaient les oreilles, comme un calque oublié) : l'atmosphère épouse la tête, oreilles comprises,
+  // en pointillés de plus en plus espacés vers l'extérieur
+  if (z === 0 && t > 0.5) [[1.1, 0.16, [5, 6]], [1.2, 0.08, [3, 10]]].forEach(([k, al, ds]) => { ctx.strokeStyle = `rgba(${BL},${al * t})`; ctx.lineWidth = 1.4; ctx.setLineDash(ds); ctx.lineDashOffset = -now * 6 * k; tete(ctx, x, y + r * 0.02, r * k, ear); ctx.stroke(); ctx.setLineDash([]); });
   // (vague 44, l'audit : « la planète chat », immersion) : elle ronronne. Les yeux mi-clos, « rrrr », et son ronron se voit : des ondes tremblées
   // partent d'elle et traversent tout l'écran, jusqu'aux bords (jamais sur les sous-titres)
   if (Hm.k === 'ronron' && z === 0) { const u = now - Hm.t0, M = Math.hypot(O.W, O.H) * 1.1, v = M / 2.2, bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande;
