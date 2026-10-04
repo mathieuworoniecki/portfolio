@@ -1888,7 +1888,25 @@ S.front = (() => {
       // le bouton
       const eb = b1 ? sm((a - 1.6) / 0.4) : 1, bw = Math.min(0.4, w * 1.1), bx = large01 * w * 0.5, by = h - 0.15; if (eb > 0) { const p = Pk(bx - bw / 2, by - 0.06); boite(p[0], p[1], bw * k * eb, 0.12 * k, 6, 0.95, 1, true); }
       // le curseur : il va au bouton, clique ; l'onde ; le cube jaillit
-      const vc = sm((c - 1.8) / 1), cu = Pk(lerp(-0.2, bx, vc), lerp(h + 0.2, by, vc)), clic = c - 2.8;
+      // (vague 205 de l'audit, « front », originalité) : une souris, c'est une souris. Pendant que le pointeur monte vers le bouton, il se voit pousser
+      // deux oreilles rondes et une queue ; un chat-robot arrive à pas de loup, se ramasse, frétille du derrière et bondit ; le pointeur fait un écart
+      // de panique (« iiik ») et, dans sa fuite, tombe pile sur le bouton : c'est le chat qui a fait cliquer ; raté, il s'assoit, sonné, puis repart
+      const dg = c > 2.3 && c < 2.75 && !reduitMvt() ? Math.sin(Math.PI * (c - 2.3) / 0.45) : 0;
+      const vc = sm((c - 1.8) / 1), cu = Pk(lerp(-0.2, bx, vc) + dg * 0.22, lerp(h + 0.2, by, vc) - dg * 0.16), clic = c - 2.8;
+      if (!reduitMvt() && c > 0.5 && c < 4.6) { const rC = Math.max(8, k * 0.1), Cr = Pk(-0.62, h + 0.26), Pv = Pk(lerp(-0.2, bx, sm(0.55)), lerp(h + 0.2, by, sm(0.55))), Lg = [G.gauche - rC * 4, Cr[1]];
+        let X, Y, ry = 1, rot = 0, bras = [-0.3, -0.3], mt = null, sonne = false;
+        if (c < 1.5) { const e = sm((c - 0.5) / 1); X = lerp(Lg[0], Cr[0], e); Y = Cr[1] - Math.abs(Math.sin(c * 14)) * rC * 0.3 * (1 - e); }
+        else if (c < 2.25) { X = Cr[0]; Y = Cr[1]; ry = 0.72; rot = c > 1.85 ? Math.sin(now * 30) * 0.12 : 0; if (c > 1.85) mt = '…'; }
+        else if (c < 2.6) { const e = sm((c - 2.25) / 0.35); X = lerp(Cr[0], Pv[0], e); Y = lerp(Cr[1], Pv[1], e) - Math.sin(Math.PI * e) * k * 0.3; bras = [1.5, 1.5]; ry = 1.1; rot = 0.35; }
+        else if (c < 3.5) { X = Pv[0]; Y = Pv[1]; sonne = true; bras = [0.3, -0.3]; ry = 0.92 + 0.08 * Math.sin(now * 9); if (c < 3.2) mt = en() ? 'missed…' : 'raté…'; }
+        else { const e = sm((c - 3.5) / 1.1); X = lerp(Pv[0], Lg[0], e); Y = lerp(Pv[1], Cr[1], e) - Math.abs(Math.sin(e * 9)) * k * 0.08; }
+        ctx.save(); ctx.translate(X, Y); ctx.rotate(rot); ctx.scale(2 - ry, ry); chabot(0, -rC * 1.75, rC, { now, ph: 53, casque: false, lac: 0.6, bras, cligne: sonne, travaille: false }); ctx.restore();
+        if (sonne) for (let n = 0; n < 3; n++) { const an = now * 4 + n * TAU / 3; brille(X + Math.cos(an) * rC * 1.3, Y - rC * 3.3 + Math.sin(an) * rC * 0.35, 2.2, 1, false, now, 60 + n); }
+        if (mt) mot(mt, X - rC * 1.6, Y - rC * 3.6, Math.max(10, k * 0.05), 0.9);
+        if (c > 1.5 && c < 3.4) { const g = c01((c - 1.5) / 0.3) * c01((3.4 - c) / 0.2), rr = k * 0.03 * g;
+          if (c > 1.8 && rr > 0.3) { rond(cu[0] - k * 0.012, cu[1] + k * 0.005, rr, 0.6, 1, true); rond(cu[0] + k * 0.035, cu[1] + k * 0.03, rr, 0.6, 1, true);
+            style(0.6, 1); ctx.beginPath(); for (let i = 0; i <= 10; i++) { const q = i / 10; ctx.lineTo(cu[0] + k * (0.07 + q * 0.12 * g), cu[1] + k * (0.14 + q * 0.05) + Math.sin(now * 12 - q * 6) * k * 0.02 * q); } ctx.stroke(); } }
+        if (dg > 0.3) mot('iiik', cu[0] + k * 0.16, cu[1] - k * 0.05, Math.max(10, k * 0.05), 0.9); }
       if (c > 1.8 && c < 4.4) cerne(() => { ctx.beginPath(); ctx.moveTo(cu[0], cu[1]); ctx.lineTo(cu[0], cu[1] + k * 0.13); ctx.lineTo(cu[0] + k * 0.035, cu[1] + k * 0.095); ctx.lineTo(cu[0] + k * 0.06, cu[1] + k * 0.14); ctx.lineTo(cu[0] + k * 0.08, cu[1] + k * 0.13); ctx.lineTo(cu[0] + k * 0.055, cu[1] + k * 0.085); ctx.lineTo(cu[0] + k * 0.095, cu[1] + k * 0.085); ctx.closePath(); }, 0.8, 1);
       if (clic > 0 && clic < 0.6) { style(0.05 + 0.85 * (1 - clic / 0.6), 1); ctx.beginPath(); ctx.arc(cu[0], cu[1], k * 0.25 * clic / 0.6, 0, TAU); ctx.stroke(); }   // (vague 156 : l'onde s'amincit au lieu de s'effacer)
       const ec = clic > 0.2 ? Math.sin(Math.PI * c01((clic - 0.2) / 3.2)) : 0;
