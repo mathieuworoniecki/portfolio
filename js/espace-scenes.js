@@ -2216,6 +2216,35 @@ S.secu = (() => ({
       const g = [J[0] + jr * 1.7, J[1]], r = jr * 0.55, sw = Math.sin(now * 2.6); chabot(g[0], g[1] - r * 1.75, r, { now, ph: 9, lac: -0.5, casque: false, bras: [0.4 + sw * 0.5, -0.2] });
       const hx = g[0] - r * 0.9, hy = g[1] - r * 2.3, fx = hx - r * 1.3 * Math.cos(sw * 0.6), fy = hy - r * 1.6 + Math.sin(sw * 0.6) * r * 0.6;
       cerne(() => { ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(fx, fy); }, 1, 1, null); cerne(() => { ctx.beginPath(); ctx.ellipse(fx, fy - r * 0.35, r * 0.42, r * 0.55, sw * 0.3, 0, TAU); }, 0.8, 1, 'rgba(255,255,255,0.35)'); }
+    // (vague 208 de l'audit, « sécurité », originalité) : le meilleur générateur de mots de passe, c'est un chat sur un clavier. Un chat-robot traverse
+    // un grand clavier de papier posé à côté du dôme : chaque patte enfonce une touche, le champ se remplit (« k7;Q!p… »), la jauge monte (faible, moyen, fort) ;
+    // puis il se couche dessus : « zzzzzzzz », la jauge crève le plafond (« incassable ») ; il se relève et repart, et le champ s'efface à rebours
+    if (!reduitMvt()) { const u = (a + 2) % 9, tel = G.cx * 2 < 700, kw = Math.min(tel ? (G.droite - G.gauche) * 0.5 : k * 0.72, 300), kq = kw / 10, kh = kq * 0.82,
+        KX = tel ? G.gauche + kw * 0.5 + 18 : G.droite - kw * 0.5 - Math.max(40, k * 0.12), KY = tel ? G.haut + kh * 3.9 + 26 : Math.min(o0[1] + k * 0.12, (G.caps || G.bas) - kh * 2.6), sk = kq * 0.35, x0 = KX - kw / 2,
+        cle = (ri, ci) => [x0 + ci * kq + ri * sk * 0.5, KY + (ri - 1) * kh], CH = 'k7;Q!pz%2Lw#';
+      const rC = Math.max(7, kq * 0.75); let cx, cy, ry = 1, dort = false, bras = [Math.sin(now * 10) * 0.6, -Math.sin(now * 10) * 0.6], pres = [], mt = null, nT = 0;
+      const xR = x0 + kw + kq * 1.5, xL = x0 - kq * 1.5;
+      if (u < 0.8) { cx = lerp(xR + kq * 3, xR, sm(u / 0.8)); cy = KY - kh * 0.4; }
+      else if (u < 4.2) { const f = (u - 0.8) / 3.4, st = Math.floor((u - 0.8) / 0.28); cx = lerp(xR, x0 + kw * 0.5, f); cy = KY - kh * 0.4 - Math.abs(Math.sin((u - 0.8) / 0.28 * Math.PI)) * kh * 0.25; nT = Math.min(12, st + 1);
+        const ci = clamp(Math.round((cx - x0) / kq - 0.5), 0, 9), ri = st % 3; pres.push([ri, ci]); if (st % 4 === 1) mt = 'tap'; }
+      else if (u < 6.2) { cx = x0 + kw * 0.5; cy = KY - kh * 0.2; ry = 0.68; dort = u > 4.6; bras = [-0.6, -0.6]; nT = 12 + Math.floor((u - 4.2) * 9); const ci = Math.round((cx - x0) / kq - 0.5);
+        for (let ri = 0; ri < 3; ri++) for (let d = -1; d <= 1; d++) pres.push([ri, ci + d]); if (u > 4.8) mt = 'prrr'; }
+      else if (u < 6.8) { cx = x0 + kw * 0.5; cy = KY - kh * 0.4 - Math.sin(Math.PI * (u - 6.2) / 0.6) * kh * 0.8; bras = [1.3, 1.3]; nT = 30; }
+      else { const e = sm((u - 6.8) / 2.2); cx = lerp(x0 + kw * 0.5, xL - kq * 3, e); cy = KY - kh * 0.4 - Math.abs(Math.sin(e * 14)) * kh * 0.2; nT = Math.max(0, Math.round(30 * (1 - c01((u - 6.8) / 1.4)))); }
+      // le clavier : trois rangées de touches en papier, la touche enfoncée descend
+      for (let ri = 0; ri < 3; ri++) for (let ci = 0; ci < 10; ci++) { const [px, py] = cle(ri, ci), dn = pres.some(([r2, c2]) => r2 === ri && c2 === ci) ? kh * 0.12 : 0;
+        ctx.globalAlpha = 1; ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fillRect(px + 2, py + 3, kq * 0.88, kh * 0.84);
+        cerne(() => { ctx.beginPath(); ctx.rect(px, py + dn, kq * 0.88, kh * 0.84); }, 0.55, 1, dn ? '#e9e4d6' : PAP); }
+      // le champ du mot de passe et sa jauge
+      const txt = (CH + 'z'.repeat(40)).slice(0, nT), vis = txt.length > 13 ? '…' + txt.slice(-12) : txt, fh = Math.max(14, kh * 0.95), fy = KY - kh * 2.6 - fh, fs = Math.max(10, fh * 0.6);
+      cerne(() => { ctx.beginPath(); ctx.rect(x0, fy, kw, fh); }, 0.7, 1, PAP); ctx.globalAlpha = 1; ctx.fillStyle = ENC; ctx.font = `600 ${fs}px "Space Mono",ui-monospace,monospace`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(vis + (Math.sin(now * 8) > 0 ? '|' : ''), x0 + fs * 0.5, fy + fh / 2 + 1);
+      const lv = nT < 4 ? 0 : nT < 8 ? 1 : nT < 13 ? 2 : 3, Lb = en() ? ['weak', 'fair', 'strong', 'unbreakable'] : ['faible', 'moyen', 'fort', 'incassable'], jf = c01(nT / 14);
+      cerne(() => { ctx.beginPath(); ctx.rect(x0, fy + fh + 4, kw, 6); }, 0.5, 1, null); ctx.globalAlpha = 1; ctx.fillStyle = ['#e8735f', '#ffd34d', '#bfe3a0', '#9fe0ff'][lv]; ctx.fillRect(x0 + 1, fy + fh + 5, (kw - 2) * jf, 4);
+      if (nT > 0) mot(Lb[lv], x0 + kw, fy + fh + 18, Math.max(9, fs * 0.85) * (lv === 3 ? 1 + 0.12 * Math.sin(now * 14) : 1), 1, 'right');
+      ctx.textBaseline = 'alphabetic';
+      ctx.save(); ctx.translate(cx, cy); ctx.scale(2 - ry, ry); chabot(0, -rC * 1.75, rC, { now, ph: 66, casque: false, lac: 0.6, bras, cligne: dort, travaille: false }); ctx.restore();
+      if (mt) mot(mt, cx - rC * 2, cy - rC * 3.4 * ry, Math.max(9, fs * 0.8), 0.9);
+      if (u > 6.2 && u < 7.2) mot(en() ? '✓ password set' : '✓ mot de passe choisi', x0 + kw / 2, fy - fs * 1.1, Math.max(10, fs * 0.9), 1); }
     // (vague 130 de l'audit : « on scanne » ne se voyait pas) : le cheval de Troie. Toutes les huit secondes, un joli paquet-cadeau flotte vers
     // le dôme ; une bande de scanner le traverse de haut en bas et, sous elle, on voit au travers : un petit méchant caché dedans. Alarme,
     // le paquet éclate en papiers, et le méchant file rejoindre les autres dans le bocal de quarantaine
