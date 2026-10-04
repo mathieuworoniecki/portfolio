@@ -436,9 +436,12 @@ X.fond.push((ctx, now) => {
     if (bd && x > bd.x - 20 && x < bd.x + bd.w + 20 && y > bd.y - 20 && y < bd.y + bd.h + 20) k *= 0.06;
     k *= calme; if (calme < 0.9) tl = null;
     if (y < haut) k *= 0.3;
+    if (pts && pts.length) k *= 1.5;
     if (k > 1.6) k = 1.6;
     if (tl) { ctx.globalAlpha = Math.min(1, k * 0.55); ctx.lineWidth = Math.max(0.6, s * 0.9); ctx.beginPath(); ctx.moveTo(tl[0], tl[1]); ctx.lineTo(x, y); ctx.stroke(); }
-    const rr = s * (2.6 + 1.4 * calme) * (k > 1 ? 1 + (k - 1) * 0.8 : 1); ctx.globalAlpha = Math.min(1, k); ctx.drawImage(r.c < 0.2 ? BLEUE : r.c > 0.87 ? DOREE : LUEUR, x - rr, y - rr, rr * 2, rr * 2);
+    // (vague 228 de l'audit, design : posées sur le titre, les lueurs se chevauchaient en une brume grise et les lettres paraissaient floues) :
+    // sur un titre, chaque étoile garde une lueur serrée, la lettre se lit comme une constellation nette
+    const rr = pts && pts.length ? s * 2.5 * (k > 1 ? 1 + (k - 1) * 0.3 : 1) : s * (2.6 + 1.4 * calme) * (k > 1 ? 1 + (k - 1) * 0.8 : 1); ctx.globalAlpha = Math.min(1, k); ctx.drawImage(r.c < 0.2 ? BLEUE : r.c > 0.87 ? DOREE : LUEUR, x - rr, y - rr, rr * 2, rr * 2);
     // (vague 137, finition) : les plus brillantes, une sur soixante-dix, ont leurs aigrettes de diffraction, comme sur une photo du ciel : une croix fine
     // qui tourne très lentement et dont les branches battent un peu ; seulement une fois posées (pas en vol), et plus courtes quand la nuée se calme
     if (r.e > 0.986 && !tl && !pts && k > 0.35 && !reduit) { const lg = rr * (1.6 + 1.2 * calme) * (0.85 + 0.15 * Math.sin(now * 2.1 + r.a * 9)), an = r.a * TAU + now * 0.05 * (r.b < 0.5 ? 1 : -1);
