@@ -76,6 +76,22 @@ function geant(x) {
   later(0.75, () => panique(dir > 0 ? 0 : Wd.W));
   return c;
 }
+function poids(c, T) {
+  const x = c.x, fy = floorAt(c.d), R = T.Rb * 3; Wd.shake = { t0: Wd.t, a: 4 }; T.poum = Wd.t; T.poumX = x;
+  if ((T.mots = (T.mots || 0) + 1) % 2) word(pick(['poum', 'POUM', 'boum']), x + T.dir * T.Rb * 1.4, fy - T.Rb * 2.2, 24);
+  Wd.props.forEach(it => { if (it.mur || it.held || it.fall || LOURD[it.kind] || it.kind === 'distrib' || Math.abs(it.x - x) > R) return; const s = sOf(it.d); it.on = null; it.fall = true; it.vx = (sgn(it.x - x) || 1) * s * rnd(0.2, 0.6); it.vy = s * rnd(0.5, 0.9); it.tiltV = rnd(-2, 2); });
+  Wd.kib.forEach(k => { if (k.rest && !k.who && Math.abs(k.x - x) < R * 1.4) { k.rest = false; k.vy = -rnd(60, 150); k.vx = rnd(-30, 30); } });
+  const Ls = window.Vie && Vie.LETTERS && Vie.LETTERS(); if (Ls) Ls.forEach(L => { if (L.st || L.a < 0.8 || L.wob > Wd.t - 0.3) return; L.wob = Wd.t + Math.random() * 0.06; L.wobA = 0.5; L.hopA = 3; });
+}
+// la cuvette sous lui (elle le suit) et les fêlures de chaque « poum », qui rapetissent jusqu'à rien
+H.draw.push(() => {
+  if (Wd.a < 0.5 || Wd.espace || !window.Chalk) return; const c = Wd.cats.find(o => o.rare === 'geant' && !o.gone && o.task && o.task.k === 'rouleau'); if (!c) return;
+  const T = c.task, Rb = T.Rb, fy = floorAt(c.d) + 1, P = [], dp = Rb * 0.09;
+  for (let i = -16; i <= 16; i++) { const u = i / 16, x = c.x + u * Rb * 3.2; P.push([x, fy + dp * Math.exp(-u * u * 5)]); }
+  Chalk.stroke(P, 1, { w: 2.2, a: 0.75 * Wd.a, seed: 41, tip: false });
+  const v = T.poum != null ? 1 - (Wd.t - T.poum) / 0.5 : 0; if (v > 0) [-1, 1].forEach(sd => [0.25, -0.15].forEach((b, j) => {
+    const x0 = T.poumX + sd * Rb * 0.7, L = Rb * (0.9 - j * 0.3) * v; Chalk.stroke([[x0, fy + dp * 0.5], [x0 + sd * L * 0.5, fy + dp * 0.5 + L * (b + 0.1)], [x0 + sd * L, fy + dp * 0.5 + L * b * 1.6]], 1, { w: 1.6, a: 0.7 * Wd.a, seed: 43 + j + sd, tip: false }); }));
+});
 /* (vague 111 de l'audit, « le chat géant », l'échelle) : avant le géant, sa patte. Elle entre par le bord de l'écran, un bras qui vient de
    dehors et une patte ronde plus haute que les meubles ; elle tâte le sol deux fois (POUF, tout saute, les chats détalent), puis se relève
    et se retourne vers nous : ses coussinets, quatre petits et un gros, et un petit signe « coucou » ; elle repart par où elle est venue.
@@ -230,6 +246,10 @@ STEPS.rouleau = (c, T, dt) => {
     const Ls = window.Vie && Vie.LETTERS && Vie.LETTERS(), r = Ls && Vie.RECT();
     if (Ls && r) Ls.forEach(L => { if (L.st || L.a < 0.8 || O.vus.has(L) || !loin(Vie.lx(L, r), Vie.ly(L, r))) return; O.vus.add(L);
       if ((O.lettres || 0) < 3 && Math.random() < 0.18) { O.lettres = (O.lettres || 0) + 1; const sd = sgn(Vie.lx(L, r) - O.x) || 1; Vie.tumble(L, sd * Wd.s0 * rnd(0.6, 1.4), -Wd.s0 * rnd(0.4, 0.9), sd * rnd(4, 9)); } else { L.wob = Wd.t; L.wobA = 2.5; L.hopA = 12; } }); }
+  // (vague 254 de l'audit, « le chat géant », immersion) : on sent son poids à chaque tour. À chaque demi-tour, il retombe sur le plancher
+  // (« poum ») : l'écran cogne, les objets légers autour de lui décollent, les croquettes sautent, les lettres du titre tressautent ;
+  // et le plancher s'enfonce sous lui (une cuvette au trait qui le suit, des fêlures qui partent de ses appuis)
+  if (!stop) { const n = Math.floor(Math.abs(roll) / Math.PI); if (T.pas == null) T.pas = n; if (n !== T.pas) { T.pas = n; poids(c, T); } }
   // posé sur son point le plus bas (le corps rond, ou la tête quand elle passe dessous) : mesuré sur l'image d'avant
   if (c.hp) { const b = Chat.where(c, c.body), low = Math.max(b[1] + c.b.body[1] * sc(c) * 1.05, c.hp[1] + c.b.head[0] * sc(c) * 1.1);
     T.off = (T.off || 0) - (low - floorAt(c.d)) * 0.8; }
