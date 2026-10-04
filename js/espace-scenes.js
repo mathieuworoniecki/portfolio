@@ -1656,6 +1656,27 @@ S.puce = (() => {
       // les vias : quatre colonnes qui traversent toutes les couches ; les données y courent
       const VIA = [[-0.4, -0.4], [0.4, -0.4], [0.4, 0.4], [-0.4, 0.4]], EQ = [];
       // une colonne commune pour les étiquettes, à droite de toutes les couches
+      // (vague 203 de l'audit, « la puce », originalité) : le chat-bouillotte. Un chat-robot sans casque cherche le chaud, comme sur un ordinateur portable :
+      // la couche qui s'allume chauffe (des ondes montent), il saute dessus, s'y étale, ronronne « rrr » ; la suivante s'allume, il redescend d'un bond.
+      // Au « clac », la pile se referme sur lui : il est écrasé, éjecté (« pfui ! »), atterrit sur la carte mère, s'ébroue, puis remonte d'un grand saut en haut
+      let CB = null;
+      if (!reduitMvt()) { const lp = j => V0(dxs[j] - 0.3 * ks, ys[j], dzs[j] + 0.32 * ks), MB = V0(dxs[5] - 0.15 * ks, yb + 0.12, dzs[5] + 1.05 * ks), arc = (A, B, m, h) => [lerp(A[0], B[0], m), lerp(A[1], B[1], m) - Math.sin(Math.PI * m) * h, lerp(A[3], B[3], m)];
+        let P, jd = 0, dort = false, bras = [-0.35, -0.35], ec2 = 1, rot = 0, mt = null, chaud = -1, lac = 0.4;
+        if (c < 1.9) { P = lp(0); dort = true; jd = 0; }
+        else if (c < 6.1) { const f = (c - 1.9) / 0.7, jj = Math.min(5, Math.floor(f)), u = f - jj;
+          if (jj > 0 && u < 0.3) { const m = sm(u / 0.3); P = arc(lp(jj - 1), lp(jj), m, k * 0.14); jd = jj - 1; bras = [1.3, 1.3]; lac = 0.8; if (u < 0.12) mt = 'hop'; }
+          else { P = lp(jj); jd = jj; chaud = jj; dort = u > 0.5; const e = jj === 0 ? c01((c - 1.9) / 0.3) : 0; bras = e > 0 && e < 1 ? [1.4, 1.4] : [-0.5, -0.5]; ec2 = u < 0.4 ? 0.82 + 0.18 * sm(c01((u - 0.3) / 0.1)) : 1 - 0.15 * sm(c01((u - 0.5) / 0.2)); if (u > 0.45 && u < 0.95) mt = 'rrr'; } }
+        else if (c < 6.5) { P = lp(5); jd = 5; ec2 = 1 - 0.45 * sm(c01((c - 6.1) / 0.35)); bras = [1.1, 1.1]; if (c > 6.25) mt = '!!'; }
+        else if (c < 7.1) { const m = c01((c - 6.5) / 0.6); P = arc(lp(5), MB, m, k * 0.35); jd = -1; rot = m * 7; bras = [1.4, 1.4]; ec2 = 0.55 + 0.45 * sm(m * 3); if (m < 0.45) mt = en() ? 'pfft!' : 'pfui !'; else if (m > 0.92) mt = 'pof'; }
+        else if (c < 7.5) { P = MB.slice(); P[0] += Math.sin(now * 40) * k * 0.012 * (1 - c01((c - 7.1) / 0.4)); jd = -1; bras = [0.6, -0.6]; }
+        else { const m = sm((c - 7.5) / 0.5); P = arc(MB, lp(0), m, k * 0.5); jd = -1; bras = [1.3, 1.3]; lac = 0.9; rot = -m * TAU; }
+        CB = { P, jd, dort, bras, ec2, rot, mt, chaud, lac }; }
+      const chatBouillotte = () => { const { P, dort, bras, ec2, rot, mt, chaud, lac } = CB, r = Math.max(7, k * 0.062 * (P[3] || 1));
+        if (chaud >= 0 && lev[chaud] > 0.2) { style(0.6, lev[chaud]); for (let w = -1; w <= 1; w++) { ctx.beginPath(); for (let i = 0; i <= 10; i++) { const q = i / 10, yy = P[1] - r * (0.4 + q * 3.2), ph = now * 6 - q * 7 + w * 2; ctx.lineTo(P[0] + w * r * 1.3 + Math.sin(ph) * r * 0.25, yy); } ctx.stroke(); } }
+        ctx.save(); ctx.translate(P[0], P[1]); ctx.rotate(rot); ctx.scale(2 - ec2, ec2);
+        chabot(0, -r * 1.75, r, { now, ph: 41, casque: false, lac, bras, cligne: dort, travaille: false }); ctx.restore();
+        if (dort && chaud < 0 && Math.sin(now * 2) > 0) mot('z', P[0] + r * 1.4, P[1] - r * 3 - Math.sin(now * 2) * r * 0.8, Math.max(8, k * 0.04), 0.7);
+        if (mt) mot(mt, P[0] - r * 2.2, P[1] - r * 3.6, Math.max(10, k * 0.05), 0.9); };
       const xcol = Math.min(G.droite - 130, Math.max(...lab.flatMap((l, j) => [[1, 1], [1, -1], [-1, 1]].map(([u, v]) => V0(dxs[j] + u * 0.62 * ks, ys[j], dzs[j] + v * 0.62 * ks)[0]))) + k * 0.12);
       for (let j = 5; j >= 0; j--) {
         const V = (x, y, z) => V0(dxs[j] + x * ks, y, dzs[j] + z * ks), s = j === 1 ? 0.62 : 0.54, y = ys[j], al = j === 1 ? 1 : 0.9, T = plaque(V, y, s, th, j === 1 || lev[j] > 0.3 ? 1.35 : 1, al);
@@ -1670,6 +1691,7 @@ S.puce = (() => {
         const e = sm(c01((a - 1.2 - (5 - j) * 0.25) / 0.6)) * (1 - ferme); if (e > 0.02) OBJ[j](V, y, s, now, e * (1 + lev[j] * 0.25), al);
         // l'étiquette : un trait jusqu'au bord, le nom en petites capitales
         EQ[j] = T.reduce((b, q) => q[0] > b[0] ? q : b, T[0]);
+        if (CB && CB.jd === j) chatBouillotte();
       }
       // (vague 125, l'audit : « la puce ») : une requête traverse toute la pile. Pendant que les couches se soulèvent l'une après l'autre, un paquet
       // de lumière descend de la couche du haut à celle du bas par un via, en suivant la couche allumée ; sur chacune, il fait son métier
@@ -1682,6 +1704,7 @@ S.puce = (() => {
           brille(P[0], P[1], 5, 1, true, now, 77); const j = Math.floor(jf), u = jf - j; if (u < 0.6) mot(MOTS[j], P[0] - k * 0.05, P[1] - k * 0.13 - u * 10, Math.max(13, k * 0.075) * (1 - sm((u - 0.35) / 0.25) * 0.9), 1, 'right'); }
         else { const e = sm((c - 1.9 - 6 * 0.7) / 0.5), P0 = pos(5.99), P1 = [G.gauche - 20, P0[1] + k * 0.25]; const P = [lerp(P0[0], P1[0], e), lerp(P0[1], P1[1], e)]; trait([P0, P], false, 0.6, 0.8); brille(P[0], P[1], 5 * (1 - e * 0.5), 1, true, now, 77); }
         if (c > 1.9 + 6 * 0.7 && !PAQUET.vu && window.Dex && Dex.vu) { PAQUET.vu = true; Dex.vu('paquet'); } }
+      if (CB && CB.jd === -1) chatBouillotte();
       // les étiquettes, rangées de haut en bas sans se chevaucher
       let yl = -1e9; const gap = Math.max(15, k * 0.085), TY = EQ.map(R => (yl = Math.max(R[1], yl + gap)));
       // (vague 12) la colonne ne descend jamais sous le haut des sous-titres : si elle déborde, elle remonte d'un bloc
