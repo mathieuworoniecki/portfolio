@@ -2294,12 +2294,16 @@ S.devops = (() => ({
       if (q === 0) { const h = c(0, 0, -0.09), r = k * 0.05 * h[3]; chabot(h[0], h[1] - r * 1.7, r, { now, v: 1, lac: 0.5, bras: [1.3, 1.3] }); } });
     // le monitoring : un écran, son pouls qui défile
     // (vague 42, l'audit : « devops », finition) : l'étiquette ne sort jamais de l'écran, et un liseré d'encre la détache des portiques
-    ST.forEach((t, i) => { const p = at(t), m = V(p[0], p[1] - 0.47, p[2]), px = Math.max(11, k * 0.08); ctx.font = `600 ${px}px "Space Grotesk",system-ui,sans-serif`;
-      const w2 = ctx.measureText(lab[i]).width / 2 + 4, x = Math.max(G.gauche + w2, Math.min(G.droite - w2, m[0]));
+    // (vague 241 de l'audit, « DevOps », design : les noms flottaient haut au-dessus des portiques, et les conteneurs ou le chat passaient dessus) :
+    // chaque nom est une enseigne de papier posée sur le linteau de son portique, sur deux petits montants, comme un panneau de gare
+    ST.forEach((t, i) => { const p = at(t), [tx0, tz0] = nor(t), top = V(p[0], p[1] - 0.28, p[2]), px = Math.max(10, k * 0.062), hS = px * 1.6, post = px * 0.55 + k * 0.12, m = [top[0], top[1] - post - hS / 2]; ctx.font = `600 ${px}px "Space Grotesk",system-ui,sans-serif`;
+      const w2 = ctx.measureText(lab[i]).width / 2 + px * 0.55, x = Math.max(G.gauche + w2, Math.min(G.droite - w2, m[0]));
       // (vague 154 : une étiquette ne se pose jamais sur la planète-chat : elle descend sous son anneau)
       { const Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat; if (Pc && Math.abs(x - Pc.x) < Pc.r * 1.3 + w2 && Math.abs(m[1] - Pc.y) < Pc.r * 1.3 + px) m[1] = Pc.y + Pc.r * 1.3 + px; }
-      ctx.globalAlpha = 1; ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, px * 0.32); ctx.strokeStyle = 'rgb(9,11,18)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.strokeText(lab[i], x, m[1]);
-      mot(lab[i], x, m[1], px, 1); });
+      [-0.6, 0.6].forEach(f => cerne(() => { ctx.beginPath(); ctx.moveTo(x + f * w2, m[1] + hS / 2); ctx.lineTo(top[0] + f * w2 * 0.8, top[1]); }, 0.8, 1, null));
+      cerne(() => { ctx.beginPath(); ctx.rect(x - w2, m[1] - hS / 2, w2 * 2, hS); }, 0.8, 1);
+      ctx.globalAlpha = 1; ctx.fillStyle = ENC; [-1, 1].forEach(sx => { ctx.beginPath(); ctx.arc(x + sx * (w2 - px * 0.28), m[1] - hS / 2 + px * 0.28, Math.max(1.2, px * 0.08), 0, TAU); ctx.fill(); });
+      ctx.font = `600 ${px}px "Space Grotesk",system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lab[i], x, m[1] + px * 0.05); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; });
     if (tr > 5.1 && tr < 6.7) { const e = Math.sin(Math.PI * c01((tr - 5.1) / 1.6)), L = 10, ofs = (tr - 5.1) * 0.9;   // les flèches du retour arrière, à rebours, tout autour de la boucle
       for (let j = 0; j < L; j++) { const t = ((j / L) * TAU - ofs + TAU * 4) % TAU, p = at(t), [tx, tz] = nor(t), Pa = V(p[0] - tz * 0.2, p[1] - 0.02, p[2] + tx * 0.2), Pb = V(p[0] - tz * 0.2 - tx * 0.09, p[1] - 0.02, p[2] + tx * 0.2 - tz * 0.09), d = Math.atan2(Pb[1] - Pa[1], Pb[0] - Pa[0]), r = Math.max(5, k * 0.07 * Pa[3]) * e;
         cerne(() => { ctx.beginPath(); ctx.moveTo(Pa[0] + Math.cos(d) * r, Pa[1] + Math.sin(d) * r); ctx.lineTo(Pa[0] + Math.cos(d + 2.4) * r, Pa[1] + Math.sin(d + 2.4) * r); ctx.lineTo(Pa[0] + Math.cos(d - 2.4) * r, Pa[1] + Math.sin(d - 2.4) * r); ctx.closePath(); }, 0.8, 1, '#fff4c8'); }
