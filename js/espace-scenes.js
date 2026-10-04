@@ -2338,7 +2338,12 @@ S.secu = (() => ({
   cles: () => [0, 1, 2, 3, 4, 5].map(i => [Math.cos(i / 6 * TAU) * 0.6, Math.sin(i / 6 * TAU) * 0.6]),
   dessin(a, now) {
     sousLaBarre(); const [k, lx] = large(1.2, 2), V = cam(now * 0.2, -0.42, k, 0, 0.14), R = 0.82, sw = now * 1.3;
-    trait3(anneau(V, Math.min(1.8, lx * 0.9), 0, 64), 0.5, 0.35); trait3(anneau(V, R * 1.3, 0, 64), 0.5, 0.5);
+    // (vague 242 de l'audit, « sécurité », design : la grande orbite passait sous les sous-titres et la barre du bas) : elle s'interrompt au bord
+    // de la bande des sous-titres, ses deux bouts finissent par un petit point, comme un trait de plume qu'on lève
+    { const yC = (G.caps || G.bas) - 6, P = anneau(V, Math.min(1.8, lx * 0.9), 0, 96); let L = [];
+      const fin = () => { if (L.length > 1) { trait3(L, 0.5, 0.35); [L[0], L[L.length - 1]].forEach(q => rond(q[0], q[1], 1.6, 0.6, 0.6, true)); } L = []; };
+      P.pop(); const i0 = P.reduce((m, q, i) => q[1] > P[m][1] ? i : m, 0); for (let i = 0; i <= P.length; i++) { const q = P[(i + i0) % P.length]; if (q[1] < yC) L.push(q); else fin(); } fin(); }
+    trait3(anneau(V, R * 1.3, 0, 64), 0.5, 0.5);
     for (let j = 0; j < 9; j++) { const t = sw - j * 0.05; trait([V(0, 0, 0), V(Math.cos(t) * R * 1.3, 0, Math.sin(t) * R * 1.3)], false, 0.9 - j * 0.07, 0.9 - j * 0.1); }
     // le dôme
     [15, 35, 55, 75].forEach(d => { const f = d * Math.PI / 180; trait3(anneau(V, R * Math.cos(f), -R * Math.sin(f), 40), 0.7, 0.9); });
@@ -2364,13 +2369,17 @@ S.secu = (() => ({
     const o0 = V(0, 0, 0), J = [o0[0] - Math.min(k * 1.4, G.cx * 0.72), o0[1] + k * 0.02], jr = Math.max(14, k * 0.17), jm = [J[0], J[1] - jr * 2.1];
     // (vague 148, finition : au bureau, les menaces qui arrivent de loin et celles qui rebondissent passaient sous la barre du haut)
     sousLaBarre();
+    // (vague 242, design : une menace qui arrivait du haut était tranchée net par le bord de la barre) : près de la barre du haut et des sous-titres,
+    // le petit méchant rapetisse jusqu'à n'être qu'une étincelle, comme les agents de la flotte
+    const bordM = p => c01((p[1] - G.haut) / (k * 0.16)) * c01(((G.caps || G.bas) - p[1]) / (k * 0.1));
     for (let q = 0; q < NQ; q++) { const tt = a + q * T / NQ, t = tt % T, n = Math.floor(tt / T), th = bruit(q * 7 + n * 13) * TAU, ph = 0.2 + bruit(q * 3 + n * 5) * 1.1, dir = [Math.cos(th) * Math.cos(ph), -Math.sin(ph), Math.sin(th) * Math.cos(ph)];
       bloq += n; const pt = d => V(dir[0] * d, dir[1] * d, dir[2] * d);
-      if (t < 1.2) { const d = lerp(4.2, R, sm(t / 1.2) * 0.4 + t / 1.2 * 0.6), p = pt(d), p0 = pt(d + 0.3); trait([p0, p], false, 0.9, 0.9); caillou(p[0], p[1], k * 0.08 * p[3], Math.sin(now * 3 + q) * 0.3, q * 7 + n, 1, true); }
+      if (t < 1.2) { const d = lerp(4.2, R, sm(t / 1.2) * 0.4 + t / 1.2 * 0.6), p = pt(d), p0 = pt(d + 0.3); const bm = bordM(p); if (bm < 0.15) { if (p[1] > G.haut) brille(p[0], p[1], 2, 0.8, true, now, q); continue; }
+        trait([p0, p], false, 0.9, 0.9); caillou(p[0], p[1], k * 0.08 * p[3] * (0.3 + 0.7 * bm), Math.sin(now * 3 + q) * 0.3, q * 7 + n, 1, true); }
       else if (t < 2.2) { const u = (t - 1.2) / 1, p = pt(R); if (u < 0.05) CAD.t = now; eclat(p[0], p[1], 12, u, 7, th);
         // (vague 7) repoussé : le petit méchant rebondit sur le dôme et repart en tournoyant, sonné
         if (u < 0.8) { const b0 = pt(R), e = sm(u / 0.8), r0 = k * 0.08 * b0[3] * (1 - e * 0.55), bx = lerp(b0[0], jm[0], e), by = lerp(b0[1], jm[1], e) - Math.sin(e * Math.PI) * k * 0.45;
-          caillou(bx, by, r0, u * 9, q * 7 + n, 1, true); if (u < 0.35) mot(pick2(['paf', 'bonk', 'toc'], q + n), b0[0], b0[1] - r0 * 2.2, Math.max(10, k * 0.06) * Math.max(0.05, 1 - u * 2.5), 1); }   // (vague 148 : le mot rapetisse, il ne s'estompe plus)
+          { const bm = bordM([bx, by]); if (bm < 0.15) brille(bx, by, 2, 0.8, true, now, q); else caillou(bx, by, r0 * (0.3 + 0.7 * bm), u * 9, q * 7 + n, 1, true); } if (u < 0.35) mot(pick2(['paf', 'bonk', 'toc'], q + n), b0[0], b0[1] - r0 * 2.2, Math.max(10, k * 0.06) * Math.max(0.05, 1 - u * 2.5), 1); }   // (vague 148 : le mot rapetisse, il ne s'estompe plus)
         // l'onde, à la surface du dôme
         const up = Math.abs(dir[1]) > 0.95 ? [1, 0, 0] : [0, 1, 0], cr = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], nz = v => { const l = Math.hypot(...v); return v.map(x => x / l); }, e1 = nz(cr(dir, up)), e2 = cr(dir, e1), rho = 0.06 + u * 0.55, L = [];
         for (let i = 0; i <= 28; i++) { const w = i / 28 * TAU, v = dir.map((x, j) => x * Math.cos(rho) + (e1[j] * Math.cos(w) + e2[j] * Math.sin(w)) * Math.sin(rho)); if (v[1] > 0.02) { if (L.length > 1) trait(L, false, 1.3 * (1 - u) + 0.05, 0.9); L.length = 0; continue; } L.push(V(v[0] * R, v[1] * R, v[2] * R)); }
@@ -2393,7 +2402,7 @@ S.secu = (() => ({
     // un grand clavier de papier posé à côté du dôme : chaque patte enfonce une touche, le champ se remplit (« k7;Q!p… »), la jauge monte (faible, moyen, fort) ;
     // puis il se couche dessus : « zzzzzzzz », la jauge crève le plafond (« incassable ») ; il se relève et repart, et le champ s'efface à rebours
     if (!reduitMvt()) { const u = (a + 2) % 9, tel = G.cx * 2 < 700, kw = Math.min(tel ? (G.droite - G.gauche) * 0.5 : k * 0.72, 300), kq = kw / 10, kh = kq * 0.82,
-        KX = tel ? G.gauche + kw * 0.5 + 18 : G.droite - kw * 0.5 - Math.max(40, k * 0.12), KY = tel ? G.haut + kh * 3.9 + 26 : Math.min(o0[1] + k * 0.12, (G.caps || G.bas) - kh * 2.6), sk = kq * 0.35, x0 = KX - kw / 2,
+        KX = tel ? G.gauche + kw * 0.5 + 18 : G.droite - kw * 0.5 - Math.max(72, k * 0.16), KY = tel ? G.haut + kh * 4.9 + 26 : Math.min(o0[1] + k * 0.12, (G.caps || G.bas) - kh * 2.6), sk = kq * 0.35, x0 = KX - kw / 2,
         cle = (ri, ci) => [x0 + ci * kq + ri * sk * 0.5, KY + (ri - 1) * kh], CH = 'k7;Q!pz%2Lw#';
       const rC = Math.max(7, kq * 0.75); let cx, cy, ry = 1, dort = false, bras = [Math.sin(now * 10) * 0.6, -Math.sin(now * 10) * 0.6], pres = [], mt = null, nT = 0;
       const xR = x0 + kw + kq * 1.5, xL = x0 - kq * 1.5;
@@ -2408,8 +2417,9 @@ S.secu = (() => ({
       for (let ri = 0; ri < 3; ri++) for (let ci = 0; ci < 10; ci++) { const [px, py] = cle(ri, ci), dn = pres.some(([r2, c2]) => r2 === ri && c2 === ci) ? kh * 0.12 : 0;
         ctx.globalAlpha = 1; ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fillRect(px + 2, py + 3, kq * 0.88, kh * 0.84);
         cerne(() => { ctx.beginPath(); ctx.rect(px, py + dn, kq * 0.88, kh * 0.84); }, 0.55, 1, dn ? '#e9e4d6' : PAP); }
-      // le champ du mot de passe et sa jauge
-      const txt = (CH + 'z'.repeat(40)).slice(0, nT), vis = txt.length > 13 ? '…' + txt.slice(-12) : txt, fh = Math.max(14, kh * 0.95), fy = KY - kh * 2.6 - fh, fs = Math.max(10, fh * 0.6);
+      // le champ du mot de passe et sa jauge (vague 242, design : au téléphone, la tête du chat-robot qui marche sur le clavier cachait le mot de passe ;
+      // le champ monte d'une rangée)
+      const txt = (CH + 'z'.repeat(40)).slice(0, nT), vis = txt.length > 13 ? '…' + txt.slice(-12) : txt, fh = Math.max(14, kh * 0.95), fy = KY - kh * (tel ? 3.6 : 2.6) - fh, fs = Math.max(10, fh * 0.6);
       cerne(() => { ctx.beginPath(); ctx.rect(x0, fy, kw, fh); }, 0.7, 1, PAP); ctx.globalAlpha = 1; ctx.fillStyle = ENC; ctx.font = `600 ${fs}px "Space Mono",ui-monospace,monospace`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(vis + (Math.sin(now * 8) > 0 ? '|' : ''), x0 + fs * 0.5, fy + fh / 2 + 1);
       const lv = nT < 4 ? 0 : nT < 8 ? 1 : nT < 13 ? 2 : 3, Lb = en() ? ['weak', 'fair', 'strong', 'unbreakable'] : ['faible', 'moyen', 'fort', 'incassable'], jf = c01(nT / 14);
       cerne(() => { ctx.beginPath(); ctx.rect(x0, fy + fh + 4, kw, 6); }, 0.5, 1, null); ctx.globalAlpha = 1; ctx.fillStyle = ['#e8735f', '#ffd34d', '#bfe3a0', '#9fe0ff'][lv]; ctx.fillRect(x0 + 1, fy + fh + 5, (kw - 2) * jf, 4);
