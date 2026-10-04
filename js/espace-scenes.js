@@ -776,7 +776,10 @@ function lui(x, y, r, o = {}) {
   // (vague 151 : un visage plus long et plus fin, le menton qui descend, comme son modèle)
   [-1, 1].forEach(sd => cerne(() => { ctx.beginPath(); ctx.ellipse(x + sd * r * 0.62, hy + r * 0.1, r * 0.13, r * 0.2, 0, 0, TAU); }, w * 0.8, a));
   cerne(() => { ctx.beginPath(); ctx.moveTo(x - r * 0.63, hy); ctx.bezierCurveTo(x - r * 0.66, hy - r * 1.32, x + r * 0.66, hy - r * 1.32, x + r * 0.63, hy); ctx.bezierCurveTo(x + r * 0.6, hy + r * 0.72, x + r * 0.3, hy + r * 1.06, x, hy + r * 1.06); ctx.bezierCurveTo(x - r * 0.3, hy + r * 1.06, x - r * 0.6, hy + r * 0.72, x - r * 0.63, hy); ctx.closePath(); }, w, a);
-  cerne(() => { ctx.beginPath(); const n = 9; for (let i = 0; i <= n; i++) { const t = Math.PI + 0.25 + i / n * (Math.PI - 0.5), R = i % 2 ? 1.24 + 0.06 * Math.sin(i * 3.7) + 0.05 * Math.sin(nw * 2.3 + i * 1.7) : 0.96, j = i % 2 ? 0.12 * Math.sin(i * 2.1) + 0.06 * Math.sin(nw * 1.7 + i) : 0; ctx.lineTo(x + Math.cos(t + j) * r * 0.66 * R, hy - r * 0.18 + Math.sin(t + j) * r * 0.95 * R); }
+  // (vague 250 de l'audit, « toi », design : les épis étaient des dents égales, droites, en ligne brisée : une couronne de roi plus que des cheveux) :
+  // des mèches de longueurs inégales, courbées et couchées dans le même sens, comme des épis coiffés au gel ; la pointe frémit
+  cerne(() => { ctx.beginPath(); const n = 9, Q = []; for (let i = 0; i <= n; i++) { const t = Math.PI + 0.25 + i / n * (Math.PI - 0.5), R = i % 2 ? 1.2 + 0.11 * Math.sin(i * 3.7 + 1) + 0.04 * Math.sin(nw * 2.3 + i * 1.7) : 0.97, j = i % 2 ? 0.16 + 0.07 * Math.sin(i * 2.1) + 0.04 * Math.sin(nw * 1.7 + i) : 0; Q.push([x + Math.cos(t + j) * r * 0.66 * R, hy - r * 0.18 + Math.sin(t + j) * r * 0.95 * R]); }
+    Q.forEach((q, i) => { if (!i) { ctx.moveTo(q[0], q[1]); return; } const p0 = Q[i - 1], mx = (p0[0] + q[0]) / 2, my = (p0[1] + q[1]) / 2, dx = q[0] - p0[0], dy = q[1] - p0[1], L = Math.hypot(dx, dy) || 1, b = (i % 2 ? 0.22 : -0.12) * L; ctx.quadraticCurveTo(mx - dy / L * b, my + dx / L * b, q[0], q[1]); });
     for (let i = 8; i >= 0; i--) { const t = Math.PI + 0.25 + i / 8 * (Math.PI - 0.5); ctx.lineTo(x + Math.cos(t) * r * 0.64, hy - r * 0.05 + Math.sin(t) * r * 0.72); } ctx.closePath(); }, w, a);
   // les yeux : deux grands ovales noirs, deux reflets (ils clignent) ; (vague 33) ils suivent la souris
   const tN = window.__nid ?? (nw + 3) % 15, leve = !P && (o.tp || 0) < 0.9 && tN > 0.4 && tN < 4.2;   // (le nid, plus bas : il lève les yeux vers le chat sur sa tête)
@@ -965,7 +968,8 @@ S.equipe = (() => {
         const pos = f => { const th = f.th + rot; return [pied[0] + Math.cos(th) * f.rx, pied[1] + Math.sin(th) * f.ry + f.dy - P.bot * 2.6]; };
         const feuille = (x, y, an, k, lab, al) => { ctx.save(); ctx.translate(x, y); ctx.rotate(an); ctx.scale(k, k);
           cerne(() => { ctx.beginPath(); ctx.rect(-cw / 2, -chh / 2, cw, chh); }, 0.55, al); ctx.restore();
-          if (k > 0.6 && Math.abs(an) < 0.5) { ctx.save(); ctx.globalAlpha = al; ctx.fillStyle = ENC; ctx.font = `700 ${Math.max(7, chh * 0.78 * k)}px "Space Grotesk",system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lab, x, y + 0.5); ctx.restore(); } };
+          // (vague 250, design : « déploiement » débordait de sa feuille) : le mot se resserre pour tenir dedans
+          if (k > 0.6 && Math.abs(an) < 0.5) { ctx.save(); ctx.globalAlpha = al; ctx.fillStyle = ENC; let fz = Math.max(7, chh * 0.78 * k); ctx.font = `700 ${fz}px "Space Grotesk",system-ui,sans-serif`; const tw = ctx.measureText(lab).width; if (tw > cw * k * 0.9) fz *= cw * k * 0.9 / tw; ctx.font = `700 ${fz}px "Space Grotesk",system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lab, x, y + 0.5); ctx.restore(); } };
         let n = 0;
         // (vague 199 de l'audit, « un développeur… », originalité) : un agent est resté chat. Il quitte les gradins, s'assoit à côté de la pile,
         // nous regarde, tapote la feuille du haut, tapote encore… et la pousse dans le vide. Elle tombe en tournoyant, rebondit au pied du podium ;
