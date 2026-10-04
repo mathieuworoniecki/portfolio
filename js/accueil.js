@@ -27,10 +27,18 @@ function place() {
   // pendant le trou noir et la sortie, elle attend ; et elle ne monte jamais plus haut que le bas du logo
   if (!courant) return; const p = courant.at(); if (!p || Wd.a < 0.6 || (window.TrouNoir && (TrouNoir.actif || TrouNoir.depuis < 2.5))) { bulle.style.opacity = 0; return; } bulle.style.opacity = '';
   // (la taille de la bulle, mesurée une fois par texte : la relire à chaque image forçait le navigateur à tout recalculer)
-  if (!taille || !taille[0]) taille = [bulle.offsetWidth, bulle.offsetHeight]; const [w, h] = taille, x = Math.max(12, Math.min(Wd.W - w - 12, p[0] - w / 2)); if (haut == null) { const r = document.getElementById('brand'); haut = r ? r.getBoundingClientRect().bottom + 10 : 12; } let y = Math.max(haut, p[1] - h - 18);
+  if (!taille || !taille[0]) taille = [bulle.offsetWidth, bulle.offsetHeight]; const [w, h] = taille; let x = Math.max(12, Math.min(Wd.W - w - 12, p[0] - w / 2)); if (haut == null) { const r = document.getElementById('brand'); haut = r ? r.getBoundingClientRect().bottom + 10 : 12; } let y = Math.max(haut, p[1] - h - 18);
   // (vague 93 de l'audit, la finition au téléphone : le chat de l'arrivée est posé sur le titre, et la bulle cachait « Salut, moi c'est Mathieu ») :
   // si elle chevauche le titre, elle passe au-dessus de lui ; faute de place, juste en dessous
   { const r = window.Vie && Vie.RECT && Vie.RECT(); if (r && r.width && x < r.right && x + w > r.left && y < r.bottom && y + h > r.top) y = r.top - h - 10 >= haut ? r.top - h - 10 : r.bottom + 10; }
+  // (vague 248 de l'audit, « les chats », design : le chat de l'arrivée posé en haut, sans place au-dessus de lui, la bulle se posait en travers
+  // de sa tête et ses mots couraient sur ses yeux) : faute de place au-dessus, elle se met à côté de sa tête, sans queue
+  // (jamais sur le titre : au téléphone, la place manque de chaque côté, la bulle garde alors sa place d'avant)
+  let cote = false; const hr = Wd.s0 * 0.42;
+  if (p[1] - h - 18 < haut || (x < p[0] + hr && x + w > p[0] - hr && y < p[1] + hr && y + h > p[1] - hr)) {
+    const dx = Math.max(34, Wd.s0 * 0.62), rd = Wd.W - 12 - (p[0] + dx), rg = p[0] - dx - 12, xs = rd >= w ? p[0] + dx : p[0] - dx - w, ys = Math.max(haut, p[1] - h / 2), r = window.Vie && Vie.RECT && Vie.RECT();
+    if (Math.max(rd, rg) >= w && !(r && r.width && xs < r.right && xs + w > r.left && ys < r.bottom && ys + h > r.top)) { cote = true; x = xs; y = ys; } }
+  bulle.classList.toggle('cote', cote);
   bulle.style.transform = `translate(${x | 0}px, ${y | 0}px)`; bulle.style.setProperty('--queue', `${Math.max(14, Math.min(w - 14, p[0] - x)) | 0}px`);
 }
 
