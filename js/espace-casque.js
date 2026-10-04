@@ -79,6 +79,11 @@ X.pas.push(dt => {
   C.x += C.vx * dt; C.y += C.vy * dt; C.rot += C.w * dt; C.w *= Math.exp(-dt * 0.3);
   if (!C.tenu) { if (C.y - C.r < O.HAUT() && C.vy < 0) C.vy = -C.vy * 0.8; if (C.y + C.r > O.BAS() && C.vy > 0) C.vy = -C.vy * 0.8;
     const T = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.terre; if (T) { const dx = C.x - T.cx, dy = C.y - T.cy, d = Math.hypot(dx, dy); if (d < T.R + C.r) { const nx = dx / d, ny = dy / d, vn = C.vx * nx + C.vy * ny; C.x += nx * (T.R + C.r - d); C.y += ny * (T.R + C.r - d); if (vn < 0) { C.vx -= 1.8 * vn * nx; C.vy -= 1.8 * vn * ny; C.w += rnd(-2, 2); } } }
+    // (vague 246 de l'audit, « le casque », design : au téléphone, la bulle à la dérive passait sur les sous-titres) : elle rebondit sur leur bande
+    // comme sur un bord, avec un petit « tonk »
+    { const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande; if (bd) { const x0 = bd.x - 12, x1 = bd.x + bd.w + 12, y0 = bd.y - 12, y1 = bd.y + bd.h + 12, qx = clamp(C.x, x0, x1), qy = clamp(C.y, y0, y1), dx = C.x - qx, dy = C.y - qy, d = Math.hypot(dx, dy);
+      if (d < C.r) { const nx = d ? dx / d : 0, ny = d ? dy / d : (C.y < (y0 + y1) / 2 ? -1 : 1), vn = C.vx * nx + C.vy * ny; C.x = qx + nx * C.r; C.y = qy + ny * C.r; if (!d) C.y = ny < 0 ? y0 - C.r : y1 + C.r;
+        if (vn < 0) { C.vx -= 1.8 * vn * nx; C.vy -= 1.8 * vn * ny; C.w += rnd(-1, 1); if (Wd.t - (C.tonk || 0) > 1.5) { C.tonk = Wd.t; Wd.fx.push({ k: 'txt', text: 'tonk', x: C.x, y: C.y - C.r * 1.3, t0: Wd.t, life: 0.6, rot: rnd(-0.2, 0.2), size: 13 }); } } } } }
     if (Wd.t - C.t0 > 6 && ((C.x < C.r && C.vx < 0) || (C.x > O.W - C.r && C.vx > 0))) C.vx = -C.vx * 0.8; }
   // tout le monde l'a ignoré longtemps : il repart par où il veut, un autre viendra plus tard
   if (Wd.t - C.t0 > 70 && (C.x < -C.r * 2 || C.x > O.W + C.r * 2)) { C = null; prochain = Wd.t + rnd(20, 40); return; }
@@ -118,11 +123,12 @@ function dessine(ctx, x, y, r, rot, now, porte) {
   // (vague 30, l'audit : « le casque ») : porté, il s'embue : à chaque souffle du chat, un nuage de buée monte du bas de la visière puis s'évapore ;
   // de temps en temps, il y dessine un cœur du bout de la patte, qui s'efface avec la buée
   if (porte) { const cyc = (now + (porte.id || 0) * 0.7) % 3.2, b = cyc < 0.5 ? cyc / 0.5 : Math.max(0, 1 - (cyc - 0.5) / 2.2);
-    if (b > 0.01) { ctx.save(); ctx.beginPath(); ctx.arc(0, 0, r * 0.95, 0, TAU); ctx.clip(); ctx.fillStyle = `rgba(${BL},${0.3 * b})`;
+    if (b > 0.01) { ctx.save(); ctx.beginPath(); ctx.arc(0, 0, r * 0.95, 0, TAU); ctx.clip(); ctx.fillStyle = `rgba(${BL},0.3)`;   // (vague 246 : la buée se résorbe en rapetissant, sans s'estomper)
+
       for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.ellipse((i - 2) * r * 0.28, r * (0.72 - 0.25 * b) - Math.abs(i - 2) * r * 0.05, r * 0.3 * (0.6 + 0.4 * b), r * 0.22 * (0.5 + 0.5 * b), 0, 0, TAU); ctx.fill(); }
-      if (Math.floor((now + (porte.id || 0) * 0.7) / 3.2) % 3 === 1 && cyc > 0.7) { const u = Math.min(1, (cyc - 0.7) / 0.9), hx = -r * 0.18, hy = r * 0.5, hs = r * 0.16, P = [];
+      if (Math.floor((now + (porte.id || 0) * 0.7) / 3.2) % 3 === 1 && cyc > 0.7) { const u = Math.min(1, (cyc - 0.7) / 0.9), hx = -r * 0.18, hy = r * 0.5, hs = r * 0.16 * (0.3 + 0.7 * b), P = [];
         for (let i = 0; i <= 24 * u; i++) { const q = i / 24 * TAU; P.push([hx + 16 * Math.pow(Math.sin(q), 3) * hs / 16, hy - (13 * Math.cos(q) - 5 * Math.cos(2 * q) - 2 * Math.cos(3 * q) - Math.cos(4 * q)) * hs / 16]); }
-        ctx.strokeStyle = `rgba(7,8,12,${0.8 * b + 0.1})`; ctx.lineWidth = 1.4 * ep; ctx.beginPath(); P.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke(); }
+        ctx.strokeStyle = 'rgba(7,8,12,0.85)'; ctx.lineWidth = 1.4 * ep; ctx.beginPath(); P.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke(); }
       ctx.restore(); } }
   // (vague 80, l'audit : « le casque », il sort de l'espace) : sa visière, c'est aussi notre vitre. Elle reflète le pointeur (une petite flèche
   // courbée par le bombé, du côté où il est) ; et quand la souris passe sur le verre, elle y laisse une trace de doigt, qui tourne avec le casque
@@ -153,8 +159,9 @@ X.devant.push((ctx, now) => {
   // la traînée du décollage : une flamme de papier (deux traits qui s'effilent) derrière le chat
   if (C.trace && C.trace.length > 2) { ctx.save(); ctx.lineCap = 'round';
     for (let i = 1; i < C.trace.length; i++) { const p = C.trace[i], q = C.trace[i - 1], k = 1 - (Wd.t - p.t) / 1.4;
-      ctx.strokeStyle = `rgba(255,${190 + 50 * k | 0},90,${0.8 * k})`; ctx.lineWidth = 2 + 12 * k * k; ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(p.x, p.y); ctx.stroke();
-      ctx.strokeStyle = `rgba(${BL},${0.9 * k})`; ctx.lineWidth = 1 + 4 * k * k; ctx.stroke(); }
+      // (vague 246, design : la traînée s'estompait) : elle s'effile, à pleine couleur, jusqu'à n'être plus rien
+      if (k < 0.04) continue; ctx.strokeStyle = `rgba(255,${190 + 50 * k | 0},90,0.85)`; ctx.lineWidth = 14 * k * k; ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+      ctx.strokeStyle = `rgba(${BL},0.95)`; ctx.lineWidth = 5 * k * k; ctx.stroke(); }
     ctx.restore(); }
   // (vague 19 de l'audit : « le casque ») : pendant le décollage, un réacteur dorsal de papier (deux tuyères, ses rivets) pousse le chat ;
   // il se déplie au « 1 », crache sa flamme, puis se replie
