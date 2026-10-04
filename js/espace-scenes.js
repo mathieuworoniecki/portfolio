@@ -2373,6 +2373,53 @@ S.secu = (() => ({
 // sur la route pour éviter les obstacles ») : une route de l'espace, à la manière des jeux d'arcade, vers une planète à anneaux qui se lève ;
 // le bus de l'équipe (Mathieu au volant, l'équipe aux fenêtres : des chats-robots et des collègues) change de voie pour éviter les bugs,
 // les astéroïdes, les cônes et les deadlines, et ramasse les étoiles (les jalons). La souris sur le ciel : c'est vous qui conduisez
+// pattes de velours : la vitesse de la route (1 : normale), la hauteur du bus sur ses pattes, la place du dormeur sur la route (z), ses mots
+function velours(T, zb, V) {
+  if (T < 8 || T > 13.4) return null;
+  const v1 = 0.09, Lf = zb + 4.6;
+  let z, vit;
+  if (T < 9.4) { z = Lf + V * (9.4 - T); vit = 1; }
+  else if (T < 9.8) { const u = T - 9.4; z = Lf - (V * u - (V - V * v1) * u * u / 0.8); vit = 1 - (1 - v1) * u / 0.4; }
+  else if (T < 12.4) { z = Lf - 2.08 - V * v1 * (T - 9.8); vit = v1; }
+  else { const u = T - 12.4; z = Lf - 2.08 - V * v1 * 2.6 - (V * v1 * u + (V - V * v1) * u * u / 0.8); vit = v1 + (1 - v1) * Math.min(1, u / 0.4); }
+  const lift = sm(c01((T - 9.1) / 0.45)) * (1 - sm(c01((T - 12.3) / 0.45))) * 0.95;
+  const M = { vit, lift, z, T, mots: [] };
+  if (T > 9.3 && T < 10.6) M.mots.push([en() ? 'shhh…' : 'chuuut…', 'bus']);
+  if (T > 10.8 && T < 11.9) M.mots.push([en() ? 'tiptoe… tiptoe…' : 'pas de velours…', 'bus']);
+  if (T > 12.5 && T < 13.2) M.mots.push([en() ? 'phew' : 'pfiou', 'bus']);
+  if (T > 12.75) M.mots.push(['mrr… ?', 'chat']);
+  return M;
+}
+// les quatre pattes de chat qui sortent des roues : la cuisse, le genou plié, la patte fine, le coussinet ; elles marchent tour à tour
+function pattes(VL, Pp, bx, zb, lv, now) {
+  const kb = G.sw < 500 ? 0.72 : 1, w = 0.56 * kb, pas = VL.T > 9.7 && VL.T < 12.3;
+  [[0.45, -1], [3.4 - 1.05, -1], [0.45, 1], [3.4 - 1.05, 1]].forEach(([zr, sd], i) => {
+    const z = zb + zr * kb, x = bx + sd * w, ph = (VL.T * 2.2 + (i % 2) * 0.5 + (i > 1 ? 0.25 : 0)) % 1, leve = pas && ph < 0.4 ? Math.sin(ph / 0.4 * Math.PI) : 0;
+    const top = Pp(x, 0.12 * kb + lv, z), bas = Pp(x + sd * 0.08, leve * 0.18, z + leve * 0.25), gen = Pp(x + sd * 0.22, (0.12 * kb + lv) * 0.55 + leve * 0.1, z - 0.15);
+    const ep = Math.max(0.6, Math.min(1.6, Math.abs(top[1] - bas[1]) / 40));
+    cerne(() => { ctx.beginPath(); ctx.moveTo(top[0], top[1]); ctx.quadraticCurveTo(gen[0], gen[1], bas[0], bas[1]); }, ep * 1.6, 1, null);
+    const rp = Math.max(2, Math.abs(top[1] - bas[1]) * 0.09);
+    cerne(() => { ctx.beginPath(); ctx.ellipse(bas[0], bas[1] - rp * 0.4, rp * 1.3, rp * 0.75, 0, 0, TAU); }, ep, 1);
+    ctx.globalAlpha = 1; ctx.strokeStyle = ENC; ctx.lineWidth = Math.max(0.5, G.lw * 0.4); ctx.beginPath(); [-0.45, 0, 0.45].forEach(q => { ctx.moveTo(bas[0] + q * rp, bas[1] - rp * 0.9); ctx.lineTo(bas[0] + q * rp * 1.1, bas[1] - rp * 0.3); }); ctx.stroke(); });
+}
+// le dormeur : roulé en boule en travers de la voie du bus, des z qui montent ; il passe sous le bus ; derrière, il ouvre un œil
+function dormeur(VL, Pp, E, zb, D, now, horsPlanete, temps) {
+  const kb = G.sw < 500 ? 0.72 : 1, sous = VL.z < zb + 3.4 * kb && VL.z > zb - 0.2;
+  if (temps === 'avant' ? VL.z < zb - 0.2 : !(VL.z < zb - 0.2)) { if (temps === 'apres') motsVelours(VL, Pp, E, zb, D); return; }
+  if (VL.z < 0.9) { motsVelours(VL, Pp, E, zb, D); return; }
+  const x = E.lvX ?? (E.lvX = E.bx); if (VL.T < 8.1) E.lvX = E.bx;
+  const p = Pp(x, 0, VL.z), r = Math.max(4, D * 1.55 / Math.max(0.6, VL.z) * 0.36 * 0.62);
+  if (p[1] - r * 3 < G.haut || p[1] > G.caps + r) return; horsPlanete();
+  const eveil = VL.T > 12.75;
+  ctx.save(); ctx.translate(p[0], p[1]); ctx.scale(1.25, 0.75); chabot(0, -r * 1.5, r, { now, ph: 88, casque: false, lac: 0.9, bras: [-1.3, -1.3], cligne: !eveil, travaille: false, bottes: false }); ctx.restore();
+  if (!eveil && !sous) { const zq = (now * 0.7) % 1; mot('z', p[0] + r * (0.8 + zq * 0.6), p[1] - r * (2 + zq * 1.4), Math.max(9, r * (0.5 + zq * 0.3)), 1); }
+  ctx.restore();
+  if (temps === 'apres') motsVelours(VL, Pp, E, zb, D);
+}
+function motsVelours(VL, Pp, E, zb, D) {
+  VL.mots.forEach(([m, qui]) => { if (qui === 'bus') { const p = Pp(E.bx + 0.75, 0.75 + (VL.lv || 0), zb); mot(m, Math.min(G.droite - D * 0.25, p[0] + D * 0.22), p[1], Math.max(12, D * 0.055), 1); }
+    else { const p = Pp(E.lvX ?? E.bx, 0, Math.max(0.95, VL.z)); mot(m, p[0] + D * 0.08, Math.max(G.haut + 16, p[1] - D * 0.12), Math.max(11, D * 0.045), 1); } });
+}
 const SAUT = { vu: false };
 const TRAPPE = { vu: false };
 S.pilotage = (() => {
@@ -2400,7 +2447,12 @@ S.pilotage = (() => {
       ctx.restore();
       // le sol : des lignes de grille qui défilent (l'arcade), les bords de la route, ses pointillés (rien sous les sous-titres)
       ctx.save(); ctx.beginPath(); ctx.rect(G.gauche - 60, hz - 2, G.droite - G.gauche + 120, G.caps + 6 - hz); ctx.clip();
-      E.roul = (E.roul + dt * V) % 2;
+      // (vague 213 de l'audit : « le bus », originalité) : pattes de velours. Un chat-robot dort en travers de la route ; le bus ne klaxonne pas :
+      // il ralentit, se hisse sur quatre longues pattes de chat qui sortent de ses roues et l'enjambe sur la pointe des coussinets (« chuuut… »),
+      // un pas après l'autre ; puis il se repose en douceur (« pfiou ») et le dormeur, derrière, ouvre un œil
+      const VL = reduitMvt() ? null : velours(a % 15, zb, V);
+      const Vv = VL ? V * VL.vit : V;
+      E.roul = (E.roul + dt * Vv) % 2;
       for (let j = 0; j < 22; j++) { const z = zb * 0.8 + j * 2 - E.roul; if (z < 1) continue; const L = Pp(-9, 0, z), Rr = Pp(9, 0, z); trait([L, Rr], false, 0.45, 0.12 + 0.35 * c01(4 / z)); }
       for (let x = -8; x <= 8; x += 1.6) trait([Pp(x, 0, 1.6), Pp(x, 0, 60)], false, 0.4, 0.14);
       [-1.6, 1.6].forEach(x => trait([Pp(x, 0, 1.4), Pp(x, 0, 60)], false, 1.2, 1));
@@ -2444,8 +2496,8 @@ S.pilotage = (() => {
           cerne(() => { ctx.beginPath(); ctx.rect(pa[0], pa[1], pb[0] - pa[0], hh); }, 0.9, al, '#ffe9a8');
           if (hh > 6) { ctx.save(); ctx.globalAlpha = al; ctx.fillStyle = ENC; const t = en() ? '⚠ gap in the plan' : '⚠ trou dans le planning'; let fp = Math.round(hh * 0.5); ctx.font = `700 ${fp}px "Space Grotesk",system-ui,sans-serif`; const mw = (pb[0] - pa[0]) * 0.88, tw = ctx.measureText(t).width; if (tw > mw) { fp = Math.floor(fp * mw / tw); ctx.font = `700 ${fp}px "Space Grotesk",system-ui,sans-serif`; } ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, (pa[0] + pb[0]) / 2, pa[1] + hh / 2); ctx.restore(); } ctx.restore(); } }
       // les obstacles : ils viennent de l'horizon, sur une des trois voies (pas autour du trou)
-      if (now > E.next && !(zr > 41 && zr < 50)) { E.next = now + 0.75 + bruit(E.n * 3.3) * 0.7; const sorte = SORTES[Math.floor(bruit(E.n * 7.1) * SORTES.length)], l = Math.floor(bruit(E.n * 1.9) * 3) - 1; E.obs.push({ x: l * 1.06, z: 46, sorte, ph: bruit(E.n) * TAU, n: E.n++ }); }
-      E.obs.forEach(o => { o.z -= V * dt; });
+      if (now > E.next && !(zr > 41 && zr < 50) && !VL) { E.next = now + 0.75 + bruit(E.n * 3.3) * 0.7; const sorte = SORTES[Math.floor(bruit(E.n * 7.1) * SORTES.length)], l = Math.floor(bruit(E.n * 1.9) * 3) - 1; E.obs.push({ x: l * 1.06, z: 46, sorte, ph: bruit(E.n) * TAU, n: E.n++ }); }
+      E.obs.forEach(o => { o.z -= Vv * dt; });
       // la conduite : le pilote automatique regarde loin devant et prend la voie la plus libre ; la souris sur le ciel : c'est vous
       const P = ptr(), libre = l => Math.min(99, ...E.obs.filter(o => o.sorte !== 'etoile' && !o.fini && Math.abs(o.x - l * 1.06) < 0.5 && o.z > zb - 0.5).map(o => o.z - zb));
       const etoile = l => E.obs.some(o => o.sorte === 'etoile' && !o.fini && Math.abs(o.x - l * 1.06) < 0.5 && o.z > zb && o.z < zb + 9);
@@ -2471,11 +2523,18 @@ S.pilotage = (() => {
       if (pq && pq.z > zb + 0.5) dessinePortique(pq);
       E.obs.filter(o => o.z > zb + 1).sort((p, q) => q.z - p.z).forEach(o => obstacle(o, Pp, now, D));
       if (saut > 0) { const o = Pp(E.bx, 0, zb + 0.4), o2 = Pp(E.bx + 0.75, 0, zb + 0.4), rw = Math.abs(o2[0] - o[0]) * (1 - saut * 0.35); ctx.globalAlpha = 0.45; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(o[0], o[1], rw, rw * 0.18, 0, 0, TAU); ctx.fill(); }
-      bus(saut || atterrit ? (x, y, z) => Pp(x, y + saut + atterrit, z) : Pp, E.bx, zb, roulis + (saut ? (0.5 - sS) * 0.25 : 0), now, E.bonk, a, camX);
+      // (le toit et ses bagages passent sous la barre du haut quand il se hisse : coupés net par la barre, comme sortis du cadre)
+      const lv = VL ? VL.lift * (tel ? 0.42 : 0.75) : 0; if (VL) VL.lv = lv;
+      if (VL) dormeur(VL, Pp, E, zb, D, now, horsPlanete, 'avant');
+      if (lv > 0.01) pattes(VL, Pp, E.bx, zb, lv, now);
+      if (lv > 0.01) sousLaBarre();
+      bus(saut || atterrit || lv ? (x, y, z) => Pp(x, y + saut + atterrit + lv, z) : Pp, E.bx, zb, roulis + (saut ? (0.5 - sS) * 0.25 : 0), now, E.bonk, a, camX);
+      if (lv > 0.01) ctx.restore();
+      if (VL) dormeur(VL, Pp, E, zb, D, now, horsPlanete, 'apres');
       // (vague 209 de l'audit, « leadership », originalité) : l'auto-stoppeur. Au bord de la route, un petit chat-robot fait du stop, sa pancarte « junior ? »
       // levée ; le bus arrive à sa hauteur, il bondit sur le toit (« bienvenue ! »), voyage là-haut, le poil au vent, accroché à la galerie ;
       // quelques kilomètres plus loin il saute sur l'autre bas-côté, retourne sa pancarte : « senior ✓ », salue, et la route l'emporte derrière nous
-      if (!reduitMvt()) { const u = (a + 5) % 12, kb = G.sw < 500 ? 0.72 : 1, xg = -2.1, xd = 2.1, yT = 1.2 * kb + saut + atterrit, zT = zb + 0.7 * kb, roof = () => [E.bx, yT, zT];
+      if (!reduitMvt()) { const u = (a + 5) % 12, kb = G.sw < 500 ? 0.72 : 1, xg = -2.1, xd = 2.1, yT = 1.2 * kb + saut + atterrit + lv, zT = zb + 0.7 * kb, roof = () => [E.bx, yT, zT];
         let X, Y, Z, bras = [1.3, -0.3], mt = null, pan = 'junior ?', pa = 1, rot = 0;
         if (u < 2) { X = xg; Y = 0; Z = zb + (2 - u) * V; }
         else if (u < 2.5) { const e = sm((u - 2) / 0.5), R0 = roof(); X = lerp(xg, R0[0], e); Y = lerp(0, R0[1], e) + Math.sin(Math.PI * e) * 0.9; Z = zb; bras = [1.4, 1.4]; pa = 1 - e; }
