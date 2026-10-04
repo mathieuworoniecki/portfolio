@@ -491,6 +491,8 @@ html:not(.locked) #gate:not(.open){display:none}
 .glisse,.glisse *{transition:color 1s,background-color 1s,border-color 1s,fill 1s,stroke 1s,box-shadow 1s!important}
 #trou{position:fixed;inset:0;z-index:1;width:100%;height:100%;pointer-events:none;display:none}
 .trou #trou,.espace #trou,.sortie #trou{display:block}
+/* (vague 225 de l'audit, design : la bulle du tuto restait figée à l'écran pendant le trou noir, l'espace et la sortie, au téléphone) */
+.trou .tuto,.espace .tuto,.sortie .tuto{visibility:hidden}
 .sortie .evts,.sortie .sheet{pointer-events:none!important}
 /* pendant l'aspiration, la page est une photo découpée en anneaux (sur #trou) : les vrais calques se cachent */
 .trou #stage,.trou #fil,.trou #titles,.trou .scenes,.trou .tuto,.trou #caps{opacity:0!important}

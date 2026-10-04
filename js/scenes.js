@@ -92,7 +92,7 @@ if (stayBtn) stayBtn.addEventListener('click', () => { if (window.Fuite) Fuite.g
 const vu = S => TN ? Math.min(S.since, TN.depuis) : S.since;
 const salut = Object.assign({
   id: 'salut', t0: 0, t1: 1, hold: true, fade: 0.2,
-  enter() { if (enterBtn) enterBtn.classList.remove('drawn'); if (TN) TN.retour(); },
+  enter() { if (enterBtn) enterBtn.classList.remove('drawn'); if (stayBtn) stayBtn.classList.remove('drawn'); if (TN) TN.retour(); },
   frame(S) {
     // aspiré par le trou noir (ou déjà dans l'espace) : plus de titre ni de boutons ; les chats continuent (js/trounoir.js)
     if (TN && TN.actif) { this.titles.forEach(el => Titles.progress(el, 0)); if (CH) CH.frame(S); return; }

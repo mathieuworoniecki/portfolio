@@ -363,7 +363,7 @@ function planete(ctx, now) {
     [-1, 1].forEach(s => { const ex = x + s * r * 0.33 + lx * r * 0.05, ey = y + r * 0.02 + ly * r * 0.05;
       if (bai > 0.35) { ctx.lineWidth = 2.6; ctx.beginPath(); ctx.moveTo(ex - s * r * 0.09, ey - r * 0.06); ctx.lineTo(ex + s * r * 0.05, ey); ctx.lineTo(ex - s * r * 0.09, ey + r * 0.05); ctx.stroke(); }   // plissés, > <
       else if (cl || (cli && s > 0)) { ctx.lineWidth = 2.6; ctx.beginPath(); ctx.arc(ex, ey - r * 0.02, r * 0.1, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke(); }
-      else { ctx.fillStyle = ink; ctx.beginPath(); ctx.ellipse(ex, ey, r * 0.115, r * 0.155, 0, 0, TAU); ctx.fill(); ctx.fillStyle = '#07080C';
+      else { ctx.fillStyle = ink; ctx.beginPath(); ctx.ellipse(ex, ey, r * 0.115, r * 0.155, 0, 0, TAU); ctx.fill(); ctx.fillStyle = z > 0 ? reflet(z) : '#07080C';
         ctx.beginPath(); ctx.arc(ex - r * 0.035 + lx * r * 0.02, ey - r * 0.055, r * 0.042, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(ex + r * 0.04, ey + r * 0.06, r * 0.02, 0, TAU); ctx.fill(); } });
     // les joues : trois petits traits (la plume ne rougit pas)
     ctx.lineWidth = 1.3; [-1, 1].forEach(s => [0, 1, 2].forEach(i => { const bx = x + s * r * (0.5 + i * 0.06), by = y + r * 0.26; ctx.beginPath(); ctx.moveTo(bx - r * 0.025, by + r * 0.03); ctx.lineTo(bx + r * 0.02, by - r * 0.03); ctx.stroke(); }));
@@ -433,6 +433,10 @@ function constructions(ctx, x, y, r, now) {
     ctx.stroke(); ctx.restore();
   });
 }
+// (vague 225 de l'audit, design : au retour, la planète grossit et passe à l'encre ; ses reflets d'yeux restaient noirs dans un œil gris foncé,
+// deux trous sombres, l'inverse des yeux des chats) : les reflets passent au papier en même temps que l'œil passe à l'encre
+let PAP = null;
+function reflet(z) { if (!PAP) { const h = getComputedStyle(document.documentElement).getPropertyValue('--bp-hi').trim(), m = /^#([0-9a-f]{6})$/i.exec(h); PAP = m ? [0, 2, 4].map(i => parseInt(m[1].slice(i, i + 2), 16)) : [244, 244, 238]; } return `rgb(${lerpC([7, 8, 12], PAP, sm(z / 0.45))})`; }
 X.fond.unshift((ctx, now) => { if (!P) return; terre(ctx, now); if (trace(0.8, 0.1) > 0 && !(P.aspire && P.aspire.zoom > 0)) planete(ctx, now); if (GERBE.length) { ctx.save(); gerbe(ctx, now); ctx.restore(); } });
 // (le zoom final passe devant tout : la planète grossit jusqu'à remplir l'écran)
 X.devant.push((ctx, now) => { if (P && P.aspire && P.aspire.zoom > 0) planete(ctx, now); });
