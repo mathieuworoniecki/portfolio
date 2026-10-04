@@ -934,7 +934,19 @@ function rayons(f, u, t) {
 // les rouleaux : trois cases au-dessus du distributeur ; les symboles défilent, chaque rouleau freine et se pose, le dernier sur le 7
 function rouleaux(f, d, fade, K) {
   const g = f.g; if (!g || !Wd.props.includes(g)) { f.life = 0; return; }
-  const m = Univers.at(g, [0, 1.02, 0]), w = Math.max(32, g.s * 0.26) * K, h = w * 1.25, S = ['★', '♥', '7', '$', '♣'];
+  const m = Univers.at(g, [0, 1.02, 0]).slice(), S = ['★', '♥', '7', '$', '♣']; let w = Math.max(32, g.s * 0.26) * K, h = w * 1.25;
+  // (vague 220 de l'audit, design) : au bureau, la machine montait sur « Entrer dans mon univers » (le bouton passait au travers de ses rouleaux) ;
+  // elle tient maintenant entre les boutons (et leur consigne) et le distributeur : plus petite s'il le faut, remontée seulement si elle devient minuscule
+  if (f.cb === undefined) { const q = document.querySelector('.ctas'), b = q && q.getClientRects().length ? q.getBoundingClientRect() : null; f.cb = b && b.width ? b.bottom + 46 : -1; }
+  if (f.cb > 0 && m[1] - h * 1.32 < f.cb) { const hh = (m[1] - f.cb) / 1.32; if (hh * 0.8 >= 22) { h = hh; w = h * 0.8; }
+    else {   // pas la place au-dessus : elle se pose à côté du distributeur, à sa hauteur (du côté le plus dégagé), le haut sous la consigne
+      if (f.sd === undefined) f.sd = m[0] < Wd.W / 2 ? 1 : -1; m[0] += f.sd * (w * 1.925 + w * 0.6 + g.s * 0.3); m[1] = f.cb + h * 1.32; } }
+  f.Y0 = m[1] - h * 1.32; f.Y1 = m[1] + h * 0.12; f.X1 = m[0] + (f.sd || 1) * (w * 1.925 + w * 0.6);
+  // la fin : elle ne pâlit plus, elle rapetisse vers ses rouleaux jusqu'à rien
+  { const kk = fade / Math.max(0.01, Wd.a); if (kk < 0.03) return; if (kk < 0.999) { const cy = m[1] - h * 0.6; w *= kk; h *= kk; m[1] = cy + h * 0.6; } fade = Wd.a; }
+  // la façade est pleine : du papier derrière le cadre, les rayons et le titre ne la traversent plus
+  { const ctx = Chalk.ctx, X0 = m[0] - w * 1.925, X1 = m[0] + w * 1.925, Y0 = m[1] - h * 1.32, Y1 = m[1] + h * 0.12; if (ctx) { if (!f.pap) f.pap = getComputedStyle(document.documentElement).getPropertyValue('--bp').trim() || '#DADBD8';
+    const P = [[X0, Y0], [X1, Y0], [X1, Y1], [X0, Y1]]; ctx.save(); ctx.fillStyle = f.pap; ctx.beginPath(); P.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fill(); ctx.restore(); bouche(ctx, P, f.pap); } }
   // (vague 43, l'audit : « le distributeur fou », finition) : une vraie façade de machine à sous : un cadre, ses ampoules qui courent (toutes
   // allumées, en rafale, quand le dernier 7 tombe), la ligne de paiement, et le levier qu'une patte invisible tire au départ
   { const X0 = m[0] - w * 1.15 * 1.5 - w * 0.2, X1 = m[0] + w * 1.15 * 1.5 + w * 0.2, Y0 = m[1] - h * 0.6 - h * 0.72, Y1 = m[1] - h * 0.6 + h * 0.72, fin = d > 1.8, nb = 22, per = 2 * (X1 - X0 + Y1 - Y0);
@@ -1429,7 +1441,8 @@ function machines(dt) {
       // (29/09, l'audit : il manquait un vrai moment) : le bouquet final. Il se tasse, tremble plus fort… et JACKPOT : un geyser de croquettes
       // qui monte jusqu'au plafond et retombe en pluie sur toute la pièce, la pièce tremble
       if (!F.boum && Wd.t > F.end - 1.6) { F.boum = true; g.wob = Wd.t; g.wobA = 2.2; const m = Univers.at(g, g.bec), k = Wd.s0 / 160; Wd.shake = { t0: Wd.t, a: 7 };
-        Wd.fx.push({ k: 'txt', text: 'JACKPOT !!!', x: m[0], y: m[1] - g.s * 1.1, t0: Wd.t, life: 2, rot: -0.08, size: 44 }); dust(m[0], m[1], g.s * 0.6, 1);
+        const RL = Wd.fx.find(q => q.k === 'rouleaux' && q.g === g);
+        Wd.fx.push({ k: 'txt', text: 'JACKPOT !!!', x: RL && RL.X1 ? RL.X1 + (RL.sd || 1) * 140 : m[0], y: RL && RL.Y0 ? (RL.Y0 + RL.Y1) / 2 : m[1] - g.s * 1.1, t0: Wd.t, life: 2, rot: -0.08, size: 44 }); dust(m[0], m[1], g.s * 0.6, 1);
         // (vague 29, l'audit : « le distributeur fou ») : une machine à sous. Juste avant, trois rouleaux à la craie tournent au-dessus de lui
         // et s'arrêtent un à un sur 7 7 7 ; au jackpot, des rayons de lumière partent de lui et balaient toute la pièce
         Wd.fx.push({ k: 'jackpot', x: m[0], y: m[1] - g.s * 0.2, t0: Wd.t, life: 2.4, seed: 5 });
