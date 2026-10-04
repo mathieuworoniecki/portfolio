@@ -53,6 +53,7 @@ function circle(cx, cy, rx, ry, prog, o) {
   return stroke(P, prog, o);
 }
 // de l'écriture à la main, qui se découvre de gauche à droite
+let PAPIER = null; addEventListener("themechange", () => { PAPIER = null; });
 function text(str, x, y, prog, o) {
   o = o || {}; if (!ctx || prog <= 0.001) return;
   const fs = (o.size || 26) * K * HS;
@@ -65,6 +66,9 @@ function text(str, x, y, prog, o) {
   // (vague 192, finition : dans l'espace, l'encre est claire ; les petits mots des chats, « couiiic », « c'est moi », se posaient sur un chat noir
   // ou sur la nuée et s'y perdaient en gris) : sur un fond sombre, le mot a toujours un liseré de la couleur du fond, comme les autres textes de l'espace
   const TH = window.THEME; if (TH && TH.dark && TH.lens && !o.color) { ctx.globalAlpha = 0.9 * (o.a ?? 0.9); ctx.strokeStyle = TH.lens; ctx.lineWidth = Math.max(2.5, fs * 0.2); ctx.lineJoin = 'round'; ctx.strokeText(str, x0, 0); ctx.globalAlpha = 1; }
+  // (vague 214 de l'audit, design : la consigne sous les boutons se perdait sur le distributeur et l'étagère) : o.halo, un liseré couleur papier
+  // sous les lettres, pour qu'un texte posé sur un meuble reste net
+  if (o.halo && !(TH && TH.dark)) { if (!PAPIER) PAPIER = getComputedStyle(document.documentElement).getPropertyValue('--bp-hi').trim() || '#eeeeea'; ctx.globalAlpha = 0.92; ctx.strokeStyle = PAPIER; ctx.lineWidth = Math.max(3, fs * 0.32); ctx.lineJoin = 'round'; ctx.strokeText(str, x0, 0); ctx.globalAlpha = 1; }
   ctx.fillStyle = `rgba(${ink},${o.a ?? 0.9})`; ctx.fillText(str, x0, 0);
   if (WOB) { ctx.strokeStyle = `rgba(${ink},0.3)`; ctx.lineWidth = 0.8; ctx.strokeText(str, x0 + 0.8, 0.6); }
   ctx.restore();

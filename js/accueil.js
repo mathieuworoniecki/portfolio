@@ -211,7 +211,9 @@ function main(x, y, a, appuie) {   // le curseur : une flèche au trait ; appuy�
 H.draw.push(() => {
   if (!etape || !courant || courant.id !== etape.id || Wd.a < 0.6 || !window.Chalk) return; const p = etape.at(); if (!p) return;
   const t = (Wd.t * 0.55) % 1, a = 0.75 * Wd.a * Math.min(1, t * 8, (1 - t) * 8), s0 = Wd.s0 / 150, x = p[0] + 26 * s0, y = p[1] + 34 * s0;
-  if (etape.id === 'attrape') { const u = Math.max(0, (t - 0.3) / 0.6), dy = -Math.sin(Math.min(1, u) * Math.PI / 2) * 70 * s0; if (u > 0) Chalk.stroke([[x, y], [x + 4 * s0, y + dy * 0.5], [x, y + dy]], 1, { w: 1.2, a: a * 0.5, seed: 73, dash: [4, 6] }); main(x, y + dy, a, t > 0.25); }
+  // (vague 214 de l'audit, design : le geste montait tout droit et la flèche venait se poser sur les mots de la bulle) : il tire en biais, vers le côté
+  if (etape.id === 'attrape') { const u = Math.max(0, (t - 0.3) / 0.6), e = Math.sin(Math.min(1, u) * Math.PI / 2), sd = p[0] < Wd.W * 0.75 ? 1 : -1, dx = sd * e * 62 * s0, dy = -e * 34 * s0;
+    if (u > 0) Chalk.stroke([[x, y], [x + dx * 0.5, y + dy * 0.62], [x + dx, y + dy]], 1, { w: 1.2, a: a * 0.5, seed: 73, dash: [4, 6] }); main(x + dx, y + dy, a, t > 0.25); }
   else if (etape.id === 'caresse') { const dx = Math.sin(t * Math.PI * 6) * 40 * s0; main(x - 20 * s0 + dx, y + 8 * s0, a, false); if (Math.sin(t * Math.PI * 6) > 0.9) Chalk.text('♥', p[0] + dx * 0.5, p[1] - 10 * s0 - t * 20, 1, { size: 16, align: 'center', a }); }
   else if (etape.id === 'clic') { main(p[0], p[1], a, t > 0.3 && t < 0.45); if (t > 0.35) { const r = (t - 0.35) / 0.65; Chalk.circle(p[0], p[1], 50 * r * s0, 30 * r * s0, 1, { w: 1.4, a: a * (1 - r), seed: 74 }); } }
   else if (etape.id === 'lance') { const u = Math.max(0, (t - 0.25) / 0.5), P = []; for (let i = 0; i <= 10; i++) { const v = i / 10; P.push([p[0] + v * 160 * s0, p[1] - Math.sin(v * Math.PI) * 90 * s0 + v * 30 * s0]); }
