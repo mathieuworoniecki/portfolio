@@ -116,8 +116,18 @@ function chabot(x, y, r, o = {}) {
   if (bue >= 0 && bue > 0.35 && bue < 2.1) { bras = bras.slice(); bras[gB < 0 ? 0 : 1] = 1.05 + Math.sin(bue * 9) * 0.18; }
   if (HB && HB.bras >= 0) { bras = bras.slice(); bras[HB.g < 0 ? 0 : 1] = HB.bras; }
   if (Sp && r >= 8 && o.vise !== false && !INST.q && !(AGV.e > 0.3 && now - AGV.t < 0.3) && dS < r * 4.5 && (!VISE.c || dS / r < VISE.c.d)) { const m = ctx.getTransform(), q = { d: dS / r, id: ph, x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f, r: r * Math.hypot(m.a, m.b) }; if (q.x > 0 && q.y > 0 && q.x < ctx.canvas.width && q.y < ctx.canvas.height && q.r < ctx.canvas.height * 0.3) VISE.c = q; }
-  [-1, 1].forEach((g, i) => { const b = bras[i], ex = x + g * bw * 0.86, ey = by - bh * 0.35, mx = ex + g * Math.cos(b) * r * 0.42, my = ey - Math.sin(b) * r * 0.42;
-    cerne(() => { ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(mx, my); }, w * 1.5, a, null); cerne(() => { ctx.beginPath(); ctx.arc(mx, my, r * 0.13, 0, TAU); }, w, a); });
+  // (vague 249 de l'audit, « le chat-robot », design : le bras était un trait fin caché par le corps, il ne restait qu'un rond à côté de lui,
+  // comme une bouée détachée) : une vraie manche de scaphandre, un boudin de papier qui part de l'épaule, deux plis, le bracelet, et un gant
+  // rond avec son pouce
+  [-1, 1].forEach((g, i) => { const b = bras[i], ex = x + g * bw * 0.8, ey = by - bh * 0.42, L = r * 0.56, mx = ex + g * Math.cos(b) * L, my = ey - Math.sin(b) * L, ux = (mx - ex) / L, uy = (my - ey) / L, nx = -uy, ny = ux, e0 = r * 0.17, e1 = r * 0.12;
+    if (r < 8) { cerne(() => { ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(mx, my); }, w * 1.5, a, null); cerne(() => { ctx.beginPath(); ctx.arc(mx, my, r * 0.13, 0, TAU); }, w, a); return; }
+    cerne(() => { ctx.beginPath(); ctx.moveTo(ex + nx * e0, ey + ny * e0); ctx.lineTo(mx + nx * e1, my + ny * e1); ctx.arc(mx, my, e1, Math.atan2(ny, nx), Math.atan2(-ny, -nx), true); ctx.lineTo(ex - nx * e0, ey - ny * e0); ctx.arc(ex, ey, e0, Math.atan2(-ny, -nx), Math.atan2(ny, nx), true); ctx.closePath(); }, w, a);
+    ctx.globalAlpha = a; ctx.strokeStyle = ENC; ctx.lineWidth = Math.max(0.6, G.lw * w * 0.45); ctx.beginPath();
+    [0.42, 0.62].forEach(f => { const px = ex + (mx - ex) * f, py = ey + (my - ey) * f, ee = e0 + (e1 - e0) * f; ctx.moveTo(px + nx * ee * 0.9, py + ny * ee * 0.9); ctx.quadraticCurveTo(px + ux * ee * 0.35, py + uy * ee * 0.35, px - nx * ee * 0.9, py - ny * ee * 0.9); }); ctx.stroke();
+    const hx2 = mx + ux * r * 0.1, hy2 = my + uy * r * 0.1, rh = r * 0.15;
+    cerne(() => { ctx.beginPath(); ctx.ellipse(mx, my, e1 * 1.15, e1 * 0.55, Math.atan2(ny, nx), 0, TAU); }, w * 0.8, a);
+    { const tx = hx2 + nx * g * rh * 0.75 + ux * rh * 0.15, ty = hy2 + ny * g * rh * 0.75 + uy * rh * 0.15; cerne(() => { ctx.beginPath(); ctx.arc(tx, ty, rh * 0.42, 0, TAU); }, w * 0.8, a); }
+    cerne(() => { ctx.beginPath(); ctx.arc(hx2, hy2, rh, 0, TAU); }, w, a); });
   // (vague 32, l'audit : « le chat-robot ») : une queue de chat mécanique, en anneaux qui rapetissent, qui ondule derrière lui ; le bout, une petite boule
   if (r >= 6) { const cq = sl > 0.05 ? -1 : sl < -0.05 ? 1 : (bruit(ph * 3.3) < 0.5 ? -1 : 1), n = 6, P = [];
     for (let i = 0; i <= n; i++) { const u = i / n, on = Math.sin(now * 3.2 + ph * 2 - u * 2.6) * 0.5 * u; P.push([x + cq * (bw * 0.7 + Math.sin(u * 1.9 + on) * r * 0.95), by + bh * 0.55 - Math.sin(u * 2.4) * r * 0.9 * (1 - on * 0.3) - u * r * 0.2]); }
