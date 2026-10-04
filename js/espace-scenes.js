@@ -830,7 +830,9 @@ S.equipe = (() => {
             if (e > 0.8) eclat(q[0], q[1] - r * 1.5, r * 0.7, (e - 0.8) / 0.2, 6, f.id); } });
           return; }
         if (c >= t2) { const e = sm((c - t2) / 0.7); if (e >= 1) { rentres++; return; }
-          const sg = Math.cos(th) < 0 ? 1 : -1, dx = x - coeur[0], dy = y - coeur[1], at = u => { const an = u * 4.4 * sg, rr = 1 - u; return [coeur[0] + (dx * Math.cos(an) - dy * Math.sin(an)) * rr, coeur[1] + (dx * Math.sin(an) + dy * Math.cos(an)) * rr]; };
+          // (vague 193 : la spirale ne monte jamais sur la barre des chapitres ; vers le haut, elle s'aplatit en douceur au lieu de buter)
+          const lim = Math.max(r * 2, coeur[1] - G.haut - r * 2.6), molle = v => v >= 0 ? v : -lim * Math.tanh(-v / lim);
+          const sg = Math.cos(th) < 0 ? 1 : -1, dx = x - coeur[0], dy = y - coeur[1], at = u => { const an = u * 4.4 * sg, rr = 1 - u; return [coeur[0] + (dx * Math.cos(an) - dy * Math.sin(an)) * rr, coeur[1] + molle((dx * Math.sin(an) + dy * Math.cos(an)) * rr)]; };
           devant.push({ z: 98, f: () => { const Lq = [0.18, 0.12, 0.06, 0].map(d => at(Math.max(0, e - d))); trait(Lq, false, 0.6, 0.5); chabot(Lq[3][0], Lq[3][1] - r * 1.75, r * (1 - e * 0.7), { now, ph: f.id, bras: [1.5, 1.5], casque: r > 9 }); } });
           return; }
         // à sa place : les mains s'agitent ; la ola fait le tour de l'arène, deux fois (tous les rangs ensemble)
@@ -852,6 +854,9 @@ S.equipe = (() => {
       cerne(() => { ctx.beginPath(); ctx.ellipse(pied[0], pt, pw, pw * 0.26, 0, 0, TAU); }, 0.9, 1);
       const dirige = c > 2.6 && c < 6.2;
       { const rr = rr0 * (1 + 0.3 * rentres / N) * (c > 7.9 ? 1 + 0.06 * Math.sin(Math.PI * c01((c - 7.9) / 0.5)) : 1);
+        // (vague 193, finition : au tourbillon du retour, les agents passaient en spirale par-dessus son visage et le brouillaient) : ils rentrent
+        // en lui par derrière ; on voit leur traînée s'enrouler autour de lui, son visage reste net
+        devant.filter(d => d.z === 98).forEach(d => d.f());
         lui(pied[0], pt - rr * 2.4, rr, { now, hoche: dirige ? Math.sin(now * 6) : 0, tp: dirige ? 0.25 + 0.25 * Math.sin(now * 3.2) : c > 8.1 ? 0 : 0.1 }); }
       // (vague 121, l'audit : « l'équipe ») : la foule ne fait pas qu'applaudir, elle livre. Pendant qu'il dirige, des agents lancent leur travail
       // (une feuille de papier étiquetée : module, tests ✓, revue…) en arc par-dessus l'arène ; il les attrape et les empile sur le podium ;
@@ -870,7 +875,7 @@ S.equipe = (() => {
             feuille(x, y, (bruit(i * 3) - 0.5) * 0.12 + (1 - k) * 3, Math.max(0.05, k), lab, 1); } }
         if (n && rentre > 0 && c < 6.4) mot(String(n), px0 + cw * 0.75, pt - n * chh * 0.92 - chh, Math.max(11, G.s * 0.07), 0.9);
         if (n >= 12 && !LIVRE.vu && window.Dex && Dex.vu) { LIVRE.vu = true; Dex.vu('livrables'); } }
-      devant.filter(d => d.z >= 90).forEach(d => d.f());
+      devant.filter(d => d.z >= 90 && d.z !== 98).forEach(d => d.f());
       if (c > 0.7 && c < 2.6) { const j = Math.floor((c - 0.7) / 0.45), u = ((c - 0.7) % 0.45) / 0.45; const px = Math.max(G.gauche + 30, Math.min(G.droite - 30, coeur[0] + (j % 2 ? -1 : 1) * G.s * (0.4 + 0.2 * bruit(j)))); let py = coeur[1] - G.s * (0.25 + 0.2 * bruit(j * 3)) - u * 12;
         // (vague 160) jamais sur la planète des chats ni sous la barre du haut : le mot descend sous elle
         if (pc && Math.abs(px - pc.x) < pc.r * 1.6 + 30 && Math.abs(py - pc.y) < pc.r * 1.4 + 14) py = pc.y + pc.r * 1.4 + 14; py = Math.max(G.haut + 16, py);
