@@ -388,6 +388,7 @@ X.fond.push((ctx, now) => {
   // si la planète est dans la largeur de la tête, la tête descend sous elle, quitte à être un peu plus petite)
   { const Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat; if (Pc && Pc.x - Pc.r * 1.2 < mx + KT * 1.1 && Pc.x + Pc.r * 1.2 > mx - KT * 1.1 && Pc.y + Pc.r * 1.2 > YT - KT * 1.2) {
     const h0 = Math.max(haut + 10, Pc.y + Pc.r * 1.2 + 6), k2 = Math.min(KT, (bas - h0) / 2.05); if (k2 > KT * 0.6) { KT = k2; YT = h0 + KT * 1.14; } } }
+  aimPrepare(!reduit && C && !pts && gT < 0.01 && dt > 2.2, !!pts || gT > 0.01);
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.strokeStyle = 'rgb(236,240,255)';
   for (let i = 0; i < N; i++) {
     const r = R[i], j = i * 4; o.s = 1; o.a = 1; o.t = 0; o.p2 = 0; f(r, o);
@@ -418,6 +419,7 @@ X.fond.push((ctx, now) => {
     // (la constellation : une étoile sur quatorze quitte sa forme pour le bord de l'élément approché, et y file)
     if (cg > 0 && i % 14 === 0) { const w = sm(c01(cg * 1.6 - r.c * 0.6)), [bx, by] = surBord(CST.b, r.e + Wd.t * (0.04 + r.a * 0.03)); x = lerp(x, bx + Math.sin(now * 4 + r.a * 9) * 1.5, w); y = lerp(y, by + Math.cos(now * 3.3 + r.b * 9) * 1.5, w); s = lerp(s, br * 1.25, w); al = lerp(al, 1.1, w); tl = null; P[j] = x; P[j + 1] = y; P[j + 2] = s; P[j + 3] = al;
       CST.pts.push(x, y, s * 3.4, Math.min(1, al * ap)); continue; }   // (dessinées par-dessus tout, sur la toile du haut de js/espace-scenes.js : sinon la Terre les cache)
+    if (i % 4 === 0 && (AIM.on || AC[i] || AR[i])) { const q = aimant(i, j, x, y); if (q) { x = q[0]; y = q[1]; s = Math.max(s, br * q[2]); al = Math.max(al, q[3]); tl = null; if (calme < 1) al /= Math.max(0.3, calme); } }
     // (le doigt ou la souris : les étoiles s'écartent sur son passage, et tout le ciel penche un peu vers lui, les proches plus que les lointaines)
     if (pt) { const dx = x - pt.x, dy = y - pt.y, d2 = dx * dx + dy * dy; if (d2 < RP * RP) { const dd = Math.sqrt(d2) || 1, q = 1 - dd / RP; x += dx / dd * q * q * RP * 0.5; y += dy / dd * q * q * RP * 0.5; al *= 1 + q * 0.8; }
       x -= pax * Math.min(2, fz) * 18; y -= pay * Math.min(2, fz) * 12; }
@@ -445,6 +447,41 @@ X.fond.push((ctx, now) => {
       ctx.globalAlpha = 1; for (let i = 0; i < n; i++) { const an = i / n * TAU + j * 0.05 + Math.sin(i * 2.3) * 0.02, x = FIN.x + Math.cos(an) * R, y = FIN.y + Math.sin(an) * R * 0.92;
         if (x < -rr || x > W + rr || y < -rr || y > H + rr || bd && y > bd.y && y < bd.y + bd.h && x > bd.x && x < bd.x + bd.w) continue; ctx.drawImage(LUEUR, x - rr, y - rr, rr * 2, rr * 2); } } }
   ctx.restore(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+});
+/* (vague 197 de l'audit, « la nuée », originalité) : l'électricité statique. Un chat qui dérive à travers la nuée la ramasse : les étoiles
+   qu'il frôle restent collées à son poil (une auréole qui tourne avec lui) ; trop chargé, ça le chatouille : ATCHOUM, il éternue tout,
+   un jet d'étoiles devant son nez, et le recul l'envoie à reculons en vrille ; les étoiles éternuées freinent puis regagnent leur forme */
+const AIM = { on: false, L: [] }, AC = [], AX = [], AY = [], AS = [], AR = [];
+function aimPrepare(on, lache) {
+  AIM.on = on; AIM.lache = lache; AIM.L = on ? Wd.cats.filter(c => c.sp && (c.sp.m === 'derive' || c.sp.m === 'nage') && !c.held && !c.gone && c.s > 0.01 && Wd.t > (c.atchoumT || 0) + 6).map(c => { const [x, y] = O.centreDe(c); return { c, x, y, r: O.rayon(c) }; }) : [];
+}
+function aimant(i, j, x, y) {
+  const r = AR[i];
+  if (r) { const u = Wd.t - r.t, e = c01(u / 1.6); if (e >= 1) { AR[i] = null; return null; }
+    const k = 2.6, f = (1 - Math.exp(-k * u)) / k, fx = r.x + r.vx * f, fy = r.y + r.vy * f, w = eio(c01((u - 0.35) / 1.25));
+    return [lerp(fx, x, w), lerp(fy, y, w), 1.5 * (1 - w) + 1, 1]; }
+  const c = AC[i];
+  if (c) { if (c.gone || c.held || !c.sp || (c.sp.m !== 'derive' && c.sp.m !== 'nage' && c.sp.m !== 'tenu') || AIM.lache || c.atchoumT > AS[i].t) {   // éternué (ou attrapé, aspiré) : il part
+      const pr = [P[j], P[j + 1]], ex = c.atchoumT > AS[i].t, sp = ex ? Wd.s0 * (4 + 5 * Math.random()) : Wd.s0 * 0.8, an = ex ? (c.face > 0 ? 0 : Math.PI) + (Math.random() - 0.5) * 1.1 : Math.atan2(pr[1] - c.y, pr[0] - c.x);
+      AR[i] = { t: Wd.t, x: pr[0], y: pr[1], vx: Math.cos(an) * sp, vy: Math.sin(an) * sp }; AC[i] = null; c.aimN = Math.max(0, (c.aimN || 1) - 1); return [pr[0], pr[1], 2, 1]; }
+    const [cx, cy] = O.centreDe(c), a = (c.spin || 0) - AS[i].sp, R = O.rayon(c) * AS[i].k,   // (O.rayon : le corps seul ; le poil va plus loin)
+      ca = Math.cos(a), sa = Math.sin(a), wob = 1 + 0.04 * Math.sin(Wd.t * 9 + i);
+    return [cx + (AX[i] * ca - AY[i] * sa) * R * wob, cy + (AX[i] * sa + AY[i] * ca) * R * wob, 1.7, 1.3]; }
+  if (!AIM.on) return null;
+  for (const q of AIM.L) { const dx = x - q.x, dy = y - q.y, d = Math.hypot(dx, dy); if (d > q.r * 2.6 || (q.c.aimN || 0) >= 24 || Wd.t < (q.c.aimNext || 0)) continue; q.c.aimNext = Wd.t + 0.22;   // (une à la fois : il se charge peu à peu)
+    const dd = d || 1; AC[i] = q.c; AX[i] = dx / dd; AY[i] = dy / dd; AS[i] = { t: Wd.t, sp: q.c.spin || 0, k: 1.9 + Math.random() * 0.5 }; q.c.aimN = (q.c.aimN || 0) + 1; if (!q.c.aimT0) q.c.aimT0 = Wd.t;
+    return [q.x + AX[i] * q.r * 2, q.y + AY[i] * q.r * 2, 1.7, 1.3]; }
+  return null;
+}
+X.pas.push((dt, cats) => {
+  if (reduit) return;
+  cats.forEach(c => { const n = c.aimN || 0; if (!n) { c.aimT0 = 0; return; } if (!c.sp || (c.sp.m !== 'derive' && c.sp.m !== 'nage') || c.held) return;
+    if (n === 6 && !c.aimDit) { c.aimDit = true; K.say(c, ['ça gratte', 'ça pique…', 'hiii', 'ah… ah…'][Math.floor(Math.random() * 4)]); }
+    if (n >= 16 || (n >= 4 && Wd.t - c.aimT0 > 6)) {   // ATCHOUM : le jet part devant le nez, le chat recule en vrille
+      c.atchoumT = Wd.t; c.aimN = 0; c.aimT0 = 0; c.aimDit = false; const S = c.sp, f = c.face > 0 ? 1 : -1;
+      S.vx -= f * Wd.s0 * 1.8; S.vy += (Math.random() - 0.5) * Wd.s0 * 0.6; S.w = (S.w || 0) - f * 6; S.bonk = Wd.t;
+      const [x, y] = O.centreDe(c); Wd.fx.push({ k: 'txt', text: ['ATCHOUM', 'ATCHA', 'TCHOUM'][Math.floor(Math.random() * 3)], x: x + f * O.rayon(c) * 1.6, y: y - O.rayon(c) * 0.8, t0: Wd.t, life: 1, rot: f * 0.15, size: 26 });
+      O.apres(0.7, () => K.say(c, ['pardon', 'mieux', 'snif', 'à vos souhaits ?'][Math.floor(Math.random() * 4)])); } });
 });
 /* (vague 120, l'audit : « les titres en étoiles ») : l'onde de choc du titre qui se défait n'est plus une image : elle souffle.
    Chaque chat qu'elle rattrape est projeté vers l'extérieur, en vrille, sonné ; les plus proches de la fin du titre volent le plus loin */
