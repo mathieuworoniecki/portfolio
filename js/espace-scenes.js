@@ -705,6 +705,18 @@ function epaule(x, y, r, now, a, regard, saut) {
   ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.6; ctx.beginPath(); ctx.moveTo(x - r * 0.08, hy + r * 0.28); ctx.quadraticCurveTo(x, hy + r * 0.36, x, hy + r * 0.28); ctx.quadraticCurveTo(x, hy + r * 0.36, x + r * 0.08, hy + r * 0.28); ctx.stroke();
 }
 const NID = { vu: false };
+// la moustache-jouet : l'angle de la pointe (positif : tordue vers le bas), la patte du chat (0 → 1 : tendue), la main (0 → 1 : levée)
+function moustache(t, nw) {
+  const M = { ang: 0, patte: 0, main: 0, roule: false, mot: null };
+  if (t < 0.6) { M.ang = Math.sin(nw * 30) * 0.06; return M; }
+  if (t < 1.9) { const u = t - 0.6, k = Math.floor(u / 0.43), v = (u % 0.43) / 0.43; M.patte = Math.sin(Math.PI * Math.min(1, v * 1.6));
+    const coup = Math.max(0, v - 0.3) * 1.43, base = k * 0.22; M.ang = base + Math.exp(-coup * 5) * Math.sin(coup * 24) * 0.5 * (v > 0.3 ? 1 : 0) + (v > 0.3 ? 0.18 : 0);
+    if (v > 0.3 && v < 0.75) M.mot = ['pat', 'p']; return M; }
+  if (t < 2.2) { M.ang = 0.85; return M; }
+  if (t < 3.3) { M.main = sm(c01((t - 2.2) / 0.4)); M.ang = 0.85; M.roule = t > 2.6; if (t > 2.65 && t < 3.15) M.mot = ['hop', 'p']; return M; }
+  const u = t - 3.3; M.main = 1 - sm(c01((u - 0.2) / 0.4)); M.ang = 0.85 * Math.exp(-u * 4) * Math.cos(u * 30) - 0.12 * Math.exp(-u * 2) * Math.sin(u * 30);
+  if (u < 0.5) M.mot = [en() ? 'boing' : 'boïng', 'p']; else if (u > 0.55) M.mot = ['mrr ?', 'c']; return M;
+}
 function lui(x, y, r, o = {}) {
   const nw = o.now || 0, P = sourisIci(), regard = P ? (() => { const dx = P.x - x, dy = P.y - y, d = Math.hypot(dx, dy) || 1; return [dx / d, dy / d]; })() : [Math.sin(nw * 0.5) * 0.6, 0.2];
   // (vague 50, l'audit : « toi, dans le style des chats », immersion) : il nous voit arriver. La souris tout près : il hoche la tête et nous salue,
@@ -716,8 +728,14 @@ function lui(x, y, r, o = {}) {
     if (LUI.h > 1.3 && nw - LUI.t0 > 7) { LUI.t0 = nw; LUI.h = 0; const S = souris(), cv = ctx.canvas, dp = dpDe(cv); if (S) TAMPON.push({ x: S.x * dp, y: S.y * dp, t0: nw, rot: (Math.random() - 0.5) * 0.5, dp }); }
     const ft = nw - LUI.t0; if (ft < 0.9) o = Object.assign({}, o, { tp: ft < 0.25 ? 1 - ft / 0.25 * 0.2 : Math.max(o.tp || 0, 1 - (ft - 0.25) / 0.65) }); } if (pres) { o = Object.assign({}, o, { hoche: Math.sin(nw * 7) * 0.8 }); if (r > 8) mot(en() ? 'hi!' : 'salut !', x + r * 0.2, y - r * 2.1 + Math.sin(nw * 5) * r * 0.05, Math.max(11, r * 0.42), o.a ?? 1); }
   const a = o.a ?? 1, w = clamp01(r / 30) * 0.7 + 0.45, hy = y + (o.hoche || 0) * r * 0.1, by = y + r * 0.95, bw = r * 1.2, bh = r * 1.45, g = o.cote || -1, tp = o.tp || 0;
-  // le bras qui ne tamponne pas, derrière le corps
-  cerne(() => { ctx.beginPath(); ctx.moveTo(x - g * bw * 0.8, by + r * 0.35); ctx.quadraticCurveTo(x - g * bw * 1.25, by + bh * 0.55, x - g * bw * 0.7, by + bh * 0.85); }, w * 1.9, a, null);
+  // (vague 212 de l'audit : « toi, dans le style des chats », originalité) : la moustache-jouet. Le petit chat de l'épaule fixe la pointe de
+  // sa moustache en guidon qui frémit, puis la tape (« pat », « pat ») : elle rebondit comme un ressort, et au dernier coup elle reste
+  // tordue vers le bas. Lui lève la main libre, la roule entre deux doigts (« hop ») : elle se redresse d'un coup et vibre (« boïng ») ;
+  // le chat, vexé que son jouet soit remonté, fait « mrr ? »
+  const tM = window.__moust ?? (nw + 11) % 19, tNi = window.__nid ?? (nw + 3) % 15,
+    MO = r > 10 && !pres && tp < 0.9 && tNi >= 4.4 && tM < 4.4 ? moustache(tM, nw) : null;
+  // le bras qui ne tamponne pas, derrière le corps (ou levé vers la moustache : dessiné plus loin, devant)
+  if (!(MO && MO.main > 0.3)) cerne(() => { ctx.beginPath(); ctx.moveTo(x - g * bw * 0.8, by + r * 0.35); ctx.quadraticCurveTo(x - g * bw * 1.25, by + bh * 0.55, x - g * bw * 0.7, by + bh * 0.85); }, w * 1.9, a, null);
   // le buste : des épaules rondes, le col, une petite montagne sur la poitrine
   cerne(() => { ctx.beginPath(); ctx.moveTo(x - bw, by + bh); ctx.quadraticCurveTo(x - bw * 1.08, by + r * 0.1, x - r * 0.3, by); ctx.lineTo(x + r * 0.3, by); ctx.quadraticCurveTo(x + bw * 1.08, by + r * 0.1, x + bw, by + bh); ctx.closePath(); }, w, a);
   ctx.globalAlpha = a; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.7; ctx.beginPath(); ctx.moveTo(x - r * 0.32, by + r * 0.02); ctx.quadraticCurveTo(x, by + r * 0.32, x + r * 0.32, by + r * 0.02); ctx.stroke();
@@ -750,9 +768,21 @@ function lui(x, y, r, o = {}) {
     if (cl > 0.5) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex - r * 0.04, ey - r * 0.06, r * 0.045, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(ex + r * 0.04, ey + r * 0.06, r * 0.022, 0, TAU); ctx.fill(); }
     ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.7; ctx.beginPath(); ctx.arc(ex, ey - r * 0.12, r * 0.15, Math.PI * 1.2, Math.PI * 1.8); ctx.stroke(); });
   // la moustache en guidon (les pointes relevées), le sourire dessous
-  ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.95; ctx.beginPath(); [-1, 1].forEach(s => { ctx.moveTo(x, hy + r * 0.42); ctx.quadraticCurveTo(x + s * r * 0.2, hy + r * 0.56, x + s * r * 0.38, hy + r * 0.42); ctx.quadraticCurveTo(x + s * r * 0.46, hy + r * 0.34, x + s * r * 0.4, hy + r * 0.28); }); ctx.stroke();
+  const sM = -(o.cote || -1), rotM = (px, py, sd) => { const an = MO && sd === sM ? sd * MO.ang : 0; if (!an) return [px, py]; const ox = x + sd * r * 0.1, oy = hy + r * 0.47, c = Math.cos(an), sn = Math.sin(an); return [ox + (px - ox) * c - (py - oy) * sn, oy + (px - ox) * sn + (py - oy) * c]; };
+  ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.95; ctx.beginPath(); [-1, 1].forEach(s => { const A = rotM(x + s * r * 0.2, hy + r * 0.56, s), B = rotM(x + s * r * 0.38, hy + r * 0.42, s), C = rotM(x + s * r * 0.46, hy + r * 0.34, s), D = rotM(x + s * r * 0.4, hy + r * 0.28, s);
+    ctx.moveTo(x, hy + r * 0.42); ctx.quadraticCurveTo(A[0], A[1], B[0], B[1]); ctx.quadraticCurveTo(C[0], C[1], D[0], D[1]); }); ctx.stroke();
+  const pointe = rotM(x + sM * r * 0.43, hy + r * 0.3, sM);
   ctx.lineWidth = G.lw * w * 0.6; ctx.fillStyle = ENC; ctx.beginPath(); ctx.moveTo(x - r * 0.24, hy + r * 0.6); ctx.quadraticCurveTo(x, hy + r * 0.66, x + r * 0.24, hy + r * 0.6); ctx.quadraticCurveTo(x + r * 0.16, hy + r * 0.86, x, hy + r * 0.86); ctx.quadraticCurveTo(x - r * 0.16, hy + r * 0.86, x - r * 0.24, hy + r * 0.6); ctx.fill();
   ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(x, hy + r * 0.66, r * 0.14, r * 0.035, 0, 0, TAU); ctx.fill();
+  if (MO) {
+    // la main libre monte de l'épaule jusqu'à la pointe, et la roule entre deux doigts (un petit rond qui tourne)
+    if (MO.main > 0.3) { const ep2 = [x - g * bw * 0.8, by + r * 0.35], rest = [x - g * bw * 0.7, by + bh * 0.85], hm = [lerp(rest[0], pointe[0] + sM * r * 0.12, MO.main), lerp(rest[1], pointe[1] + r * 0.08, MO.main)];
+      const ro = MO.roule ? nw * 22 : 0; if (MO.roule) { hm[0] += Math.cos(ro) * r * 0.04; hm[1] += Math.sin(ro) * r * 0.03; }
+      cerne(() => { ctx.beginPath(); ctx.moveTo(...ep2); ctx.quadraticCurveTo(ep2[0] + sM * r * 0.55, Math.min(ep2[1], hm[1]) + r * 0.15, hm[0], hm[1]); }, w * 1.9, a, null);
+      cerne(() => { ctx.beginPath(); ctx.ellipse(hm[0], hm[1], r * 0.16, r * 0.13, 0, 0, TAU); }, w, a);
+      ctx.globalAlpha = a; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * w * 0.6; ctx.beginPath(); ctx.moveTo(hm[0] - g * r * 0.05, hm[1] - r * 0.1); ctx.lineTo(pointe[0], pointe[1]); ctx.stroke(); }
+    if (MO.mot) mot(MO.mot[0], MO.mot[1] === 'c' ? x + sM * r * 1.7 : x + sM * r * 1.15, MO.mot[1] === 'c' ? by - r * 0.3 : hy - r * 0.95, Math.max(10, r * 0.3), 1);
+  }
   // le bras qui tamponne : de l'épaule à la main, le tampon (sa poignée ronde, son bloc) ; au repos, levé ; abattu : sur la cible
   const ep = [x + g * bw * 0.8, by + r * 0.35], repos = [x + g * bw * 1.35, by - r * 0.7], ci = o.cible || repos, st = r * 0.55, main = [lerp(repos[0], ci[0], tp), lerp(repos[1], ci[1] - st * 1.1, tp)];
   cerne(() => { ctx.beginPath(); ctx.moveTo(...ep); ctx.quadraticCurveTo(lerp(ep[0], main[0], 0.5) + g * r * 0.3, lerp(ep[1], main[1], 0.5) + r * 0.3, main[0], main[1]); }, w * 1.9, a, null);
@@ -763,7 +793,12 @@ function lui(x, y, r, o = {}) {
   // le chat sans s'arrêter de travailler ; une petite sieste (« zz »), puis le chat redescend d'un bond sur l'épaule
   const Sh = [x - g * r * 1.05, by + r * 0.08], tt = window.__nid ?? (nw + 3) % 15,   // (__nid : pour les captures de test)
     nid = r > 8 && tp < 0.9 && !pres && tt < 4.4 ? tt : -1;
-  if (nid < 0) { if (r > 8) epaule(Sh[0], Sh[1], r * 0.5, nw, a, regard, tp > 0.9 ? 0 : Math.max(0, Math.sin(Math.PI * c01((tp - 0.3) / 0.5))) * (tp > 0.3 ? 1 : 0)); return; }
+  if (nid < 0) { if (r > 8) { const vise = MO ? (() => { const dx = pointe[0] - Sh[0], dy = pointe[1] - (Sh[1] - r * 0.6), d = Math.hypot(dx, dy) || 1; return [dx / d, dy / d]; })() : regard;
+      epaule(Sh[0], Sh[1], r * 0.5, nw, a, vise, tp > 0.9 ? 0 : Math.max(0, Math.sin(Math.PI * c01((tp - 0.3) / 0.5))) * (tp > 0.3 ? 1 : 0));
+      // sa patte qui part en avant et tape la pointe de la moustache
+      if (MO && MO.patte > 0.02) { const p0 = [Sh[0] + sM * r * 0.12, Sh[1] - r * 0.3], pt = [lerp(p0[0], pointe[0], MO.patte), lerp(p0[1], pointe[1], MO.patte)];
+        cerne(() => { ctx.beginPath(); ctx.moveTo(...p0); ctx.lineTo(...pt); }, w * 1.3, a, null); cerne(() => { ctx.beginPath(); ctx.ellipse(pt[0], pt[1], r * 0.1, r * 0.08, 0, 0, TAU); }, w * 0.8, a); } }
+    return; }
   const Hd = [x - g * r * 0.32, hy - r * 1.08], up = sm(c01(nid / 0.6)), down = sm(c01((nid - 3.8) / 0.6)), e = up * (1 - down), arc = Math.sin(Math.PI * (nid < 2 ? up : down)) * r * 0.9;
   const cx = lerp(Sh[0], Hd[0], e), cy = lerp(Sh[1], Hd[1], e) - arc, dors = nid > 1.4 && nid < 3.8;
   ctx.save(); ctx.translate(cx, cy); if (nid > 0.6 && nid < 1.4) ctx.rotate(Math.sin((nid - 0.6) * 16) * 0.18); if (dors) ctx.scale(1.06, 0.88 + Math.sin(nw * 3) * 0.03); ctx.translate(-cx, -cy);
