@@ -435,10 +435,12 @@ X.pas.push(() => {
   if (VI.tCord < 0) { if (Wd.cats.some(c => c.sp && c.sp.cordonFini)) VI.tCord = Wd.t; return; }
   if (Wd.t - VI.tCord < 0.9) return;
   const c = Wd.cats.filter(c => c.sp && c.sp.sorti && c.sp.m === 'derive' && !c.held && !c.gone && !c.rare).sort((a, b) => Math.abs(a.x - W / 2) - Math.abs(b.x - W / 2))[0]; if (!c) return;
-  VI.fait = true; VI.c = c; VI.t0 = Wd.t; VI.x0 = c.x; VI.y0 = c.y; VI.k = clamp(Math.min(W, H) * 0.3 / Math.max(8, rayon(c)), 2.2, 6); c.sp.m = 'vitre'; c.spin = 0; c.sp.vx = c.sp.vy = 0;
+  VI.fait = true; VI.c = c; VI.t0 = Wd.t; VI.x0 = c.x; VI.y0 = c.y; VI.k = clamp(Math.min(W, H) * (W >= 760 ? 0.3 : 0.2) / Math.max(8, rayon(c)), 2.2, 6); c.sp.m = 'vitre'; c.spin = 0; c.sp.vx = c.sp.vy = 0;
 });
 X.mode.vitre = (c, dt) => {
-  const S = c.sp, u = Wd.t - VI.t0, tx = W * 0.5, ty = H * 0.4, ap = sm(c01(u / 0.9)), col = u >= 0.9 && u < 2.3, dec = sm(c01((u - 2.3) / 0.9));
+  // (vague 230 de l'audit, design : écrasé au milieu de l'écran, le chat de la vitre cachait le titre en étoiles puis le dessin de la première scène) :
+  // sur grand écran, il s'écrase sur le côté gauche de la vitre, à côté de la scène ; au téléphone, plus petit, en haut à gauche
+  const S = c.sp, u = Wd.t - VI.t0, tx = W >= 760 ? W * 0.17 : W * 0.3, ty = H * (W >= 760 ? 0.46 : 0.24), ap = sm(c01(u / 0.9)), col = u >= 0.9 && u < 2.3, dec = sm(c01((u - 2.3) / 0.9));
   S.vitreK = 1 + (VI.k - 1) * ap * (1 - dec);
   c.anim = col ? 'etirement' : (ANIMS.apesanteur ? 'apesanteur' : 'assis'); c.at += dt;
   if (u < 0.9) { c.x = lerp2(VI.x0, tx, ap) + Math.sin(u * 20) * 3 * (1 - ap); c.y = lerp2(VI.y0, ty, ap); c.spin = (c.spin || 0) * 0.9; }
