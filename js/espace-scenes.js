@@ -1995,6 +1995,29 @@ S.back = (() => ({
       [[p0, h0], [p1, h1]].forEach(([p, h]) => { cerne(() => { ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(p[0], p[1] - h); }, 1.1, 1, null); cerne(() => { ctx.beginPath(); ctx.arc(p[0], p[1] - h, h * 0.12, 0, TAU); }, 0.7, 1); });
       cerne(() => { ctx.beginPath(); ctx.moveTo(p0[0], p0[1] - h0 * 0.9); ctx.quadraticCurveTo((p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2 - (h0 + h1) * 0.2, p1[0], p1[1] - h1 * 0.9); }, 1.3, 1, null);
       const v = V(xA - 0.34, yS, -0.05), r = k * 0.07 * v[3]; chabot(v[0], v[1] - r * 1.75, r, { now, ph: 12, lac: 0.7 + Math.sin(now * 0.8) * 0.2, casque: false, bras: [-0.9, -0.9] }); }
+    // (vague 206 de l'audit, « back-end », originalité) : le cache, c'est un chat qui planque. Un chat-robot assis devant les bases chipe au vol une fiche
+    // sur six (« à moi »), en fait une pile sous sa patte ; une requête arrive : il lui tend la fiche du dessus, servie tout de suite (« cache HIT ») ;
+    // la pile trop haute vacille, il éjecte d'un coup de patte la plus vieille, celle du bas (« LRU ») ; puis le délai expire (« TTL ») et il range le reste dans la base B
+    if (!reduitMvt()) { const u = (a + 1.5) % 6, xc = lerp(xW, xD, 0.42), zc = 0.66, C = V(xc, yS, zc), r = k * 0.065 * C[3], Pb = V(xc + 0.32, yS, zc + 0.04), Src = V(lerp(xW, xD, 0.5), yS - 0.22, 0), Bb = V(xD, yS - 0.38, 0), fs = Math.max(10, k * 0.05);
+      const TS = [0.3, 0.9, 1.5, 2.1, 2.7, 3.3], hf = k * 0.026 * C[3], sF = k * 0.042 * C[3], fiche = (x, y, rt) => { ctx.save(); ctx.translate(x, y); ctx.rotate(rt); cerne(() => { ctx.beginPath(); ctx.rect(-sF, -sF * 0.32, sF * 2, sF * 0.64); }, 0.55, 1); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.3; ctx.beginPath(); ctx.moveTo(-sF * 0.6, 0); ctx.lineTo(sF * 0.5, 0); ctx.stroke(); ctx.restore(); };
+      const kick = sm(c01((u - 4.6) / 0.3)), nb = TS.filter(t => u > t + 0.4).length, plein = nb >= 6 && u < 4.6, slot = j => { const lv = j - kick; return [Pb[0] + Math.sin(now * 9 + j) * (plein ? lv * k * 0.004 : 0), Pb[1] - hf * (lv + 0.5)]; };
+      let bras = [-0.4, -0.4], mt = null;
+      TS.forEach((t0, i) => { let x, y, rt = (bruit(i * 4.1) - 0.5) * 0.3;
+        if (u < t0) return;
+        if (u < t0 + 0.4) { const e = sm((u - t0) / 0.4), S2 = slot(i); x = lerp(Src[0], S2[0], e); y = lerp(Src[1], S2[1], e) - Math.sin(Math.PI * e) * k * 0.12; rt = e * TAU; if (u < t0 + 0.2) { bras = [1.4, -0.2]; mt = en() ? 'mine' : 'à moi'; } }
+        else if (i === 5 && u > 3.8) { if (u > 4.3) return; const e = sm((u - 3.8) / 0.5), S2 = slot(5), A2 = V(xA + 0.14, yS - 0.12, zc); x = lerp(S2[0], A2[0], e); y = lerp(S2[1], A2[1], e) - Math.sin(Math.PI * e) * k * 0.1; }
+        else if (i === 0 && u > 4.6) { if (u > 5.4) return; const e = (u - 4.6) / 0.8; x = Pb[0] + e * k * 0.9; y = Pb[1] - hf * 0.5 - Math.sin(Math.PI * Math.min(1, e * 1.2)) * k * 0.35 + e * e * k * 0.25; rt = e * 14; }
+        else if (u > 5.2 + (i - 1) * 0.15) { const e = sm(c01((u - 5.2 - (i - 1) * 0.15) / 0.4)); if (e >= 1) return; const S2 = slot(i); x = lerp(S2[0], Bb[0], e); y = lerp(S2[1], Bb[1], e) - Math.sin(Math.PI * e) * k * 0.15; rt = e * 5; }
+        else { [x, y] = slot(i); }
+        fiche(x, y, rt); });
+      if (u > 3.4 && u < 4.3) { const A2 = V(xA + 0.14, yS - 0.12, zc), e = u < 3.8 ? sm((u - 3.4) / 0.4) : 1 - sm((u - 3.8) / 0.5), X = lerp(A2[0], C[0] - r * 1.4, e), Y = lerp(A2[1], C[1] - r * 1.6, e), se = sF * 0.9;
+        cerne(() => { ctx.beginPath(); ctx.rect(X - se, Y - se * 0.7, se * 2, se * 1.4); }, 0.6, 1); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath(); ctx.moveTo(X - se, Y - se * 0.7); ctx.lineTo(X, Y); ctx.lineTo(X + se, Y - se * 0.7); ctx.stroke();
+        if (u > 3.75 && u < 3.95) bras = [-0.2, 1.4]; if (u > 3.8) ETQ.push(() => mot('cache HIT', X, Y - se * 2, fs * (1 + 0.25 * Math.sin(Math.min(1, (u - 3.8) * 6) * Math.PI)), 1)); }
+      if (u > 4.4 && u < 4.75) { bras = [0.9, 1.3]; if (u > 4.55) ETQ.push(() => mot('LRU', Pb[0] + k * 0.12, Pb[1] - hf * 6, fs, 1)); }
+      if (plein && u > 4.0) mt = en() ? 'wobble…' : 'ça penche…';
+      if (u > 5.1 && u < 5.8) { mt = 'TTL'; bras = [1.2, 1.2]; }
+      chabot(C[0], C[1] - r * 1.75, r, { now, ph: 58, casque: false, lac: 0.5, bras, travaille: false });
+      if (mt) ETQ.push(() => mot(mt, C[0] - r * 1.8, C[1] - r * 3.6, fs, 0.9)); }
     // les requêtes : elles arrivent, sont triées, traitées, rangées
     // (vague 15 de l'audit : « la file reste une ligne à gauche ») : les requêtes arrivent de tout le ciel, par dizaines, et convergent en essaim vers la passerelle
     for (let q = 0; q < 42; q++) { const t = (now * 0.3 + q / 42) % 1, cl = Math.floor(bruit(q * 3.3) * 3), z = zs[cl], z0 = (bruit(q * 9.1) - 0.5) * 1.6; let p;
