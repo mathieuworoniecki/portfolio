@@ -868,12 +868,30 @@ S.equipe = (() => {
           cerne(() => { ctx.beginPath(); ctx.rect(-cw / 2, -chh / 2, cw, chh); }, 0.55, al); ctx.restore();
           if (k > 0.6 && Math.abs(an) < 0.5) { ctx.save(); ctx.globalAlpha = al; ctx.fillStyle = ENC; ctx.font = `700 ${Math.max(7, chh * 0.78 * k)}px "Space Grotesk",system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lab, x, y + 0.5); ctx.restore(); } };
         let n = 0;
-        for (let i = 0; i < 12; i++) { const ta = t0 + i * pas, e = (c - ta) / vol; if (e < 0) break; const f = P[(i * 37 + 11) % N], lab = LIV[i], cible = [px0 + (bruit(i * 7) - 0.5) * cw * 0.18, pt - chh * 0.5 - i * chh * 0.92];
+        // (vague 199 de l'audit, « un développeur… », originalité) : un agent est resté chat. Il quitte les gradins, s'assoit à côté de la pile,
+        // nous regarde, tapote la feuille du haut, tapote encore… et la pousse dans le vide. Elle tombe en tournoyant, rebondit au pied du podium ;
+        // la suivante prend sa place. (Au tourbillon, elle rentre en lui avec les autres, de là où elle est tombée)
+        const KP = 8, TP = 5.62, ip = i => i > KP && !reduitMvt() ? i - 1 : i, ciblePile = i => [px0 + (bruit(i * 7) - 0.5) * cw * 0.18, pt - chh * 0.5 - ip(i) * chh * 0.92];
+        const coquin = !reduitMvt() && c > 4.95, rk = P.bot * 1.7, cK = ciblePile(KP), lv = Math.max(0, Math.min(KP, Math.floor((c - t0 - vol) / pas))), siege = [cK[0] + cw * 0.5 + rk * 0.8, pt - chh * 0.5 - lv * chh * 0.92 - chh * 0.3];   // (assis à hauteur du haut de la pile, qui monte)
+        for (let i = 0; i < 12; i++) { const ta = t0 + i * pas, e = (c - ta) / vol; if (e < 0) break; const f = P[(i * 37 + 11) % N], lab = LIV[i], cible = ciblePile(i);
+          if (i === KP && coquin && c > TP) {   // poussée : elle glisse du bord, vole en tournoyant… et atterrit sur sa tête, de travers, comme un chapeau
+            const u = c01((c - TP) / 0.5), hx = pied[0] + rr0 * 0.15, hy = pt - rr0 * 2.4 - rr0 * 1.45, x = lerp(cible[0], hx, u), y = lerp(cible[1], hy, u) - Math.sin(Math.PI * u) * G.s * 0.28;
+            const v = c - TP - 0.5, an = u < 1 ? -u * TAU * 1.12 : -0.22 + Math.sin(v * 9) * 0.18 * Math.exp(-v * 3);
+            if (u >= 1 && v < 0.45) mot('pof !', hx - cw * 0.9, hy - chh, Math.max(11, G.s * 0.075) * (1 + 0.2 * Math.sin(v * 20)), 0.9);
+            const k = rentre; if (k <= 0) continue; feuille(lerp(pied[0], x, k), lerp(pt - rr0 * 1.6, y, k), an * k, Math.max(0.05, k), lab, 1); continue; }
           if (e < 1) { const [x0, y0] = pos(f), u = sm(e), x = lerp(x0, cible[0], u), y = lerp(y0, cible[1], u) - Math.sin(Math.PI * e) * G.s * 0.55;
             feuille(x, y, (1 - e) * (bruit(i) < 0.5 ? -1 : 1) * 5, 0.45 + 0.55 * e, lab, 1); }
           else { n++; if (rentre <= 0) continue; const k = rentre, x = lerp(pied[0], cible[0], k), y = lerp(pt - rr0 * 1.6, cible[1], k);
             feuille(x, y, (bruit(i * 3) - 0.5) * 0.12 + (1 - k) * 3, Math.max(0.05, k), lab, 1); } }
-        if (n && rentre > 0 && c < 6.4) mot(String(n), px0 + cw * 0.75, pt - n * chh * 0.92 - chh, Math.max(11, G.s * 0.07), 0.9);
+        if (coquin && rentre > 0) {   // le coquin : il arrive des gradins en sautant, s'assoit au bord, tapote deux fois en nous regardant, pousse
+          const f = P[(KP * 53 + 5) % N], th = f.th + rot, x0 = pied[0] + Math.cos(th) * f.rx, y0 = pied[1] + Math.sin(th) * f.ry + f.dy - rk * 1.75, e = sm((c - 4.95) / 0.4), k = rentre;
+          let x = lerp(x0, siege[0], e), y = lerp(y0, siege[1] - rk * 1.75, e) - Math.sin(Math.PI * e) * G.s * 0.4, bras = [0.4, 0.4], lac = -0.6;
+          if (c > 5.35 && c < TP + 0.15) { const tp = (c - 5.35) / 0.135, q = Math.floor(tp); bras = [0.4, q % 2 ? 0.25 : 0.9 + 0.3 * Math.sin(tp * Math.PI)]; lac = q < 1 ? 0.7 : -0.8;   // il nous regarde, puis la feuille
+            if (q < 2 && c < TP) mot('tap', x - rk * 1.6, y - rk * 1.4, Math.max(9, G.s * 0.055), 0.8); }
+          if (c >= TP && c < TP + 0.3) { bras = [0.4, 1.5]; lac = -0.8; }
+          if (c > TP + 0.4) { lac = 0.6 + 0.2 * Math.sin(now * 2); if (c < TP + 1.1) mot('…', x + rk * 1.4, y - rk * 1.6, Math.max(11, G.s * 0.07), 0.9); }   // « … » : il nous regarde, l'air de rien
+          x = lerp(pied[0], x, k); y = lerp(pt - rr0 * 1.6, y, k); chabot(x, y, rk * Math.max(0.1, k), { now, ph: 777, bras, lac, casque: false }); }   // (sans casque, plus grand que la foule : on le voit, lui)
+        if (n && rentre > 0 && c < 6.4) mot(String(n), px0 + cw * 0.75 + (coquin ? rk * 2.4 : 0), pt - n * chh * 0.92 - chh, Math.max(11, G.s * 0.07), 0.9);
         if (n >= 12 && !LIVRE.vu && window.Dex && Dex.vu) { LIVRE.vu = true; Dex.vu('livrables'); } }
       devant.filter(d => d.z >= 90 && d.z !== 98).forEach(d => d.f());
       if (c > 0.7 && c < 2.6) { const j = Math.floor((c - 0.7) / 0.45), u = ((c - 0.7) % 0.45) / 0.45; const px = Math.max(G.gauche + 30, Math.min(G.droite - 30, coeur[0] + (j % 2 ? -1 : 1) * G.s * (0.4 + 0.2 * bruit(j)))); let py = coeur[1] - G.s * (0.25 + 0.2 * bruit(j * 3)) - u * 12;
