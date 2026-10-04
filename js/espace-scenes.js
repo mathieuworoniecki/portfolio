@@ -2652,12 +2652,20 @@ S.pilotage = (() => {
             ctx.restore(); } } }
       if (saut > 0) { const p = Pp(E.bx + (E.bx > 0 ? -1.5 : 1.5), 1.1 + saut, zb + 1); mot(sS < 0.5 ? (en() ? 'all together!' : 'tous ensemble !') : (en() ? 'wheee!' : 'youhou !'), clamp(p[0], G.gauche + 70, G.droite - 70), Math.max(G.haut + 60, p[1]), Math.max(14, D * 0.075), 1);
         if (sS > 0.4 && !SAUT.vu && window.Dex && Dex.vu) { SAUT.vu = true; Dex.vu('grand-saut'); } }
-      if (atterrit > 0.05) { const p = Pp(E.bx, 0.2, zb + 0.2); mot(en() ? 'ba-boom' : 'badaboum', p[0] + 30, p[1], Math.max(12, D * 0.06), 1); }
+      // (vague 243, design : au téléphone, « badaboum » se posait sur la plaque du bus) : le mot sort du flanc droit, à côté de la roue
+      if (atterrit > 0.05) { const p = Pp(E.bx + 0.95, 0.3, zb + 0.2); mot(en() ? 'ba-boom' : 'badaboum', Math.min(G.droite - D * 0.22, p[0] + D * 0.15), p[1], Math.max(12, D * 0.06), 1); }
       // (vague 31, l'audit : « le bus ») : le pot d'échappement crache des petits nuages de papier, ronds, qui gonflent, montent et restent
       // sur la route derrière (ils défilent vers nous) ; au choc, un gros nuage noirâtre et un « pouêt »
       { const kb = G.sw < 500 ? 0.72 : 1, cote = E.bx - camX > 0 ? -1 : 1;
-        for (let j = 0; j < 7; j++) { const t = fr2(now * 1.6 + j / 7), x = E.bx + (-cote * 0.3 + (bruit(j * 3.1 + Math.floor(now * 1.6 + j / 7)) - 0.5) * 0.3) * kb, y = (0.12 + t * 0.9) * kb, z = zb - 0.1 - t * 1.6, p = Pp(x, y, z), r = (4 + t * 16) * p[2] ** -0.4 * (G.sw < 500 ? 0.7 : 1) * (now - E.bonk < 0.8 ? 1.8 : 1);
-          if (z < 0.4 || p[1] > G.caps) continue; cerne(() => { ctx.beginPath(); for (let q = 0; q < 4; q++) { const aq = q / 4 * TAU + j; ctx.moveTo(p[0] + Math.cos(aq) * r * 0.55 + r * 0.45, p[1] + Math.sin(aq) * r * 0.4); ctx.arc(p[0] + Math.cos(aq) * r * 0.55, p[1] + Math.sin(aq) * r * 0.4, r * 0.45, 0, TAU); } }, 0.6, 1 - t * 0.6); }
+        for (let j = 0; j < 7; j++) { const t = fr2(now * 1.6 + j / 7), x = E.bx + (-cote * 0.3 + (bruit(j * 3.1 + Math.floor(now * 1.6 + j / 7)) - 0.5) * 0.3) * kb, y = (0.12 + t * 0.9) * kb, z = zb - 0.1 - t * 1.6, p = Pp(x, y, z), r = (4 + t * 16) * (t > 0.8 ? 1 - sm((t - 0.8) / 0.2) : 1) * p[2] ** -0.4 * (G.sw < 500 ? 0.7 : 1) * (now - E.bonk < 0.8 ? 1.8 : 1);
+          // (vague 243 de l'audit, « leadership », design : les petits nuages étaient quatre ronds gris translucides dont on voyait tous les traits intérieurs,
+          // comme des trèfles) : un vrai nuage de papier, d'un seul contour (le trait d'encre passe sous le papier, seul son bord dépasse), une boucle
+          // d'ombre dedans ; il gonfle en montant puis se dégonfle au lieu de s'estomper
+          if (z < 0.4 || p[1] > G.caps || r < 0.6) continue;
+          const nu = () => { ctx.beginPath(); [[-0.5, 0.12, 0.42], [0, -0.1, 0.55], [0.48, 0.1, 0.44], [0.05, 0.3, 0.4]].forEach(([u, v, rr], q) => { const cx2 = p[0] + u * r * 1.1, cy2 = p[1] + v * r * 0.8, ra = r * rr * (1 + 0.06 * Math.sin(now * 5 + q + j)); ctx.moveTo(cx2 + ra, cy2); ctx.arc(cx2, cy2, ra, 0, TAU); }); };
+          ctx.globalAlpha = 1; ctx.lineJoin = ctx.lineCap = 'round'; ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = G.lw * 0.6 * 2.3 + G.lw * 0.9; nu(); ctx.stroke();
+          ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.6 * 1.9; nu(); ctx.stroke(); ctx.fillStyle = PAP; nu(); ctx.fill();
+          if (r > 5) { ctx.strokeStyle = ENC; ctx.lineWidth = Math.max(0.6, G.lw * 0.4); ctx.beginPath(); ctx.arc(p[0] + r * 0.12, p[1] - r * 0.02, r * 0.3, 0.3, 1.9); ctx.stroke(); } }
         if (now - E.bonk < 0.6) { const p = Pp(E.bx, 1.5 * kb, zb + 1.2); const kp = (now - E.bonk) / 0.6; mot(en() ? 'honk!' : 'pouêt !', p[0], p[1] - 10, Math.max(13, D * 0.06) * (1 + 0.3 * Math.sin(Math.min(1, kp * 4) * Math.PI)) * Math.max(0.05, 1 - kp * kp), 1); } }
       if (pq && pq.z <= zb + 0.5) dessinePortique(pq);
       E.obs.filter(o => o.z <= zb + 1).sort((p, q) => q.z - p.z).forEach(o => obstacle(o, Pp, now, D));
