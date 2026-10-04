@@ -1812,7 +1812,13 @@ S.puce = (() => {
         chabot(0, -r * 1.75, r, { now, ph: 41, casque: false, lac, bras, cligne: dort, travaille: false }); ctx.restore();
         if (dort && chaud < 0 && Math.sin(now * 2) > 0) mot('z', P[0] + r * 1.4, P[1] - r * 3 - Math.sin(now * 2) * r * 0.8, Math.max(8, k * 0.04), 0.7);
         if (mt) mot(mt, P[0] - r * 2.2, P[1] - r * 3.6, Math.max(10, k * 0.05), 0.9); };
-      const xcol = Math.min(G.droite - 130, Math.max(...lab.flatMap((l, j) => [[1, 1], [1, -1], [-1, 1]].map(([u, v]) => V0(dxs[j] + u * 0.62 * ks, ys[j], dzs[j] + v * 0.62 * ks)[0]))) + k * 0.12);
+      // (vague 237, téléphone : la colonne était bloquée à 130 px du bord, les noms mordaient sur la pile) : elle garde juste la place du plus long nom
+      const wNom = Math.max(...lab.map((l, j) => { ctx.font = `600 ${Math.max(11, k * (j === 1 ? 0.085 : 0.065))}px "Space Grotesk",system-ui,sans-serif`; return ctx.measureText(l.toUpperCase()).width; })) + 14;
+      const xcol = Math.min(G.droite - Math.min(130, wNom), Math.max(...lab.flatMap((l, j) => [[1, 1], [1, -1], [-1, 1]].map(([u, v]) => V0(dxs[j] + u * 0.62 * ks, ys[j], dzs[j] + v * 0.62 * ks)[0]))) + k * 0.12);
+      // (vague 237 de l'audit, « la puce », design : les fils des étiquettes passaient par-dessus tout, à travers le chat de la couche IA et les couches
+      // ouvertes) : comme sur une vraie vue éclatée, ils courent derrière la pile (dessinés avant les couches, d'après leur place de l'image d'avant) ;
+      // seuls le point d'accroche, au coin de sa couche, et le nom restent devant
+      if (LB) { const fo = 1 - ferme; LB.EQ.forEach((R, j) => { const ty = LB.TY[j], tx = LB.x, lq = q => [lerp(R[0], q[0], fo), lerp(R[1], q[1], fo)]; trait([R, lq([tx - 16, ty]), lq([tx - 6, ty])], false, 0.45, 0.6); }); }
       for (let j = 5; j >= 0; j--) {
         const V = (x, y, z) => V0(dxs[j] + x * ks, y, dzs[j] + z * ks), s = j === 1 ? 0.62 : 0.54, y = ys[j], al = j === 1 ? 1 : 0.9, T = plaque(V, y, s, th, j === 1 || lev[j] > 0.3 ? 1.35 : 1, al);
         // la couche soulevée : son contour s'illumine, un balayage de lumière traverse son dessus
@@ -1848,7 +1854,7 @@ S.puce = (() => {
       EQ.forEach((R, j) => { const ty = TY[j]; const tx = xcol;
         // (vague 164) au « clac », les étiquettes ne s'estompent plus : leur fil se rembobine jusqu'à la couche et le nom rapetisse avec lui
         const fo = 1 - ferme, lq = q => [lerp(R[0], q[0], fo), lerp(R[1], q[1], fo)], kf = 0.12 + 0.88 * fo, txf = lerp(R[0], tx, fo), tyf = lerp(R[1], ty, fo);
-        trait([R, lq([tx - 16, ty]), lq([tx - 6, ty])], false, 0.45, 0.6); rond(R[0], R[1], 2, 0.6, 0.8, true);
+        rond(R[0], R[1], 2.4, 0.6, 0.9, true); if (fo > 0.5) { const q = lq([tx - 6, ty]); trait([[q[0] - 10, q[1]], q], false, 0.45, 0.6); }
         // (vague 91, finition : au téléphone, les couches passaient sur les noms ; un liseré de nuit les détache)
         { const px = Math.max(11, k * (j === 1 ? 0.085 : 0.065) * (1 + lev[j] * 0.3)); ctx.font = `600 ${px}px "Space Grotesk",system-ui,sans-serif`; ctx.font = `600 ${px * kf}px "Space Grotesk",system-ui,sans-serif`; ctx.globalAlpha = 1; ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, px * 0.35) * kf; ctx.strokeStyle = 'rgb(9,11,18)'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.strokeText(lab[j].toUpperCase(), txf + lev[j] * 8, tyf); }
         mot(lab[j].toUpperCase(), txf + lev[j] * 8, tyf, Math.max(11, k * (j === 1 ? 0.085 : 0.065) * (1 + lev[j] * 0.3)) * kf, j === 1 || lev[j] > 0.3 ? 1 : 0.85, 'left'); });
