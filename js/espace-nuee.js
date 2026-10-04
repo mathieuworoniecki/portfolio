@@ -270,7 +270,11 @@ function titre(txt, W, H, y1, y2) {
   // (vague 175 de l'audit : « titres écrits en étoiles ») : au téléphone, coincé à gauche de la planète, le titre n'avait que 60 % de la largeur
   // et restait petit ; s'il y a la place sous la planète, il s'y écrit sur toute la largeur, en grandes lettres
   const yP = Pc ? Math.round(Pc.y + Pc.r * 1.45) : y1; if (Pc && W < 700 && Pc.x > W * 0.6 && yP > y1 && y2 - yP > (y2 - y1) * 0.5) y1 = yP;
-  const xr = Pc && Pc.x > W * 0.6 && Pc.y + Pc.r * 1.3 > y1 && Pc.y - Pc.r * 1.3 < y2 ? Math.round(Math.max(W * 0.6, Pc.x - Pc.r * 1.6)) : W, xl = xr < W ? W * 0.04 : 0, Wt = xr - xl;
+  const xr = Pc && Pc.x > W * 0.6 && Pc.y + Pc.r * 1.3 > y1 && Pc.y - Pc.r * 1.3 < y2 ? Math.round(Math.max(W * 0.6, Pc.x - Pc.r * 1.6)) : W;
+  // (vague 229 de l'audit, design : calé entre le bord gauche et la planète, le titre était centré vers 0,43 de la largeur, à côté du sous-titre
+  // et du chapitre, eux centrés : deux axes) : si la planète laisse au moins les trois quarts de la largeur, le titre garde des marges égales
+  // et partage l'axe du sous-titre
+  const xl = xr >= W ? 0 : xr >= W * 0.75 ? W - xr : W * 0.04, Wt = xr - xl;
   const cy = (y1 + y2) / 2, cle = txt + '|' + W + 'x' + H + '|' + N + '|' + xr + '|' + y1; if (TXT.cle === cle) return TXT.pts;
   const k = 0.5, w = Math.round(W * k), hh = Math.round(H * k), cv = document.createElement('canvas'); cv.width = w; cv.height = hh;
   const x = cv.getContext('2d', { willReadFrequently: true }), mots = txt.split(' ');
