@@ -65,14 +65,16 @@ function tombeBouton(b) {
   trou(x, fl, Math.max(Wd.s0 * 0.3, r.width * 0.42), 0.15, 0.9);
   if (!b.animate || reduit) { b.style.visibility = 'hidden'; return; }
   const a = b.animate([{ transform: 'none' }, { transform: 'translateY(-14px) scale(1.05, .92)', offset: 0.22 }, { transform: `translateY(${dy}px) scale(.3)` }], { duration: 620, easing: 'cubic-bezier(.5,0,.9,.5)', fill: 'forwards' });
-  a.onfinish = () => { b.style.visibility = 'hidden'; a.cancel(); word(pick(['gloup', 'plop']), x, fl - Wd.s0 * 0.2, 18); };
+  // (vague 227 de l'audit : refermé tôt, le mode sérieux laissait des boutons cachés pour de bon : « Entrer dans mon univers », lecture, rejouer…
+  // leur chute finissait après le retour) : une chute qui finit après le retour ne cache plus rien, le bouton reste à sa place
+  const moi = F; a.onfinish = () => { a.cancel(); if (!F || F !== moi) return; b.style.visibility = 'hidden'; word(pick(['gloup', 'plop']), x, fl - Wd.s0 * 0.2, 18); };
 }
 const BAS = () => [...document.querySelectorAll('.film-ui .ctrl > *, #chap')];
 function glisseBas(b) {
   const r = b.getBoundingClientRect(); if (!r.width || b.style.visibility === 'hidden') return;
   if (!b.animate || reduit) { b.style.visibility = 'hidden'; return; }
   const dy = innerHeight - r.top + 20, a = b.animate([{ transform: 'none' }, { transform: 'translateY(-6px)', offset: 0.25 }, { transform: `translateY(${dy}px)` }], { duration: 520, easing: 'cubic-bezier(.5,0,.9,.5)', fill: 'forwards' });
-  a.onfinish = () => { b.style.visibility = 'hidden'; a.cancel(); };
+  const moi = F; a.onfinish = () => { a.cancel(); if (!F || F !== moi) return; b.style.visibility = 'hidden'; };
 }
 function remonte(b, dl) {
   if (b.style.visibility !== 'hidden') return; setTimeout(() => { b.style.visibility = ''; if (!b.animate || reduit) return;
