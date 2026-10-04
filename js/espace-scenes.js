@@ -2024,7 +2024,10 @@ S.front = (() => {
       [0, 1, 2].forEach(i => { const p = Pk(-w + 0.09 + i * 0.07, -h + 0.08); if (large01 > 0.02) rond(p[0], p[1], 2.2 * large01, 0.6, 1, true); });
       if (large01 < 1) [0, 1, 2].forEach(i => { const p = Pk(w - 0.14, -h + 0.05 + i * 0.03); trait([[p[0], p[1]], [p[0] + k * 0.07 * (1 - large01), p[1]]], false, 0.7, 1); });
       // l'en-tête
-      const e1 = b1 ? sm((a - 0.2) / 0.5) : 1; if (e1 > 0) { const p = Pk(-w + 0.08 - (1 - e1) * 0.6, -h + 0.21); boite(p[0], p[1], (2 * w - 0.16) * k, 0.09 * k, 3, 0.8, 1); }
+      const e1 = b1 ? sm((a - 0.2) / 0.5) : 1; if (e1 > 0) { const p = Pk(-w + 0.08 - (1 - e1) * 0.6, -h + 0.21), hw = (2 * w - 0.16) * k, hh = 0.09 * k; boite(p[0], p[1], hw, hh, 3, 0.8, 1);
+        // (vague 239) l'en-tête a son logo et ses liens de navigation, au lieu d'une barre vide
+        if (e1 > 0.9) { rond(p[0] + hh * 0.6, p[1] + hh / 2, hh * 0.24, 0.5, 0.9, true); const nL = hw > k * 0.9 ? 4 : hw > k * 0.5 ? 3 : 0; for (let j = 0; j < nL; j++) { const xr = p[0] + hw - hh * 0.5 - j * hh * 1.35; trait([[xr - hh * 0.95, p[1] + hh / 2], [xr, p[1] + hh / 2]], false, 0.45, 0.75); }
+          trait([[p[0] + hh * 1.1, p[1] + hh / 2], [p[0] + hh * 1.1 + Math.min(hw * 0.18, k * 0.22), p[1] + hh / 2]], false, 0.7, 0.85); } }
       // les cartes : elles se retournent (la première fois), puis suivent la mise en page
       CC.forEach(([x, y, cw, ch], i) => { const e = b1 ? sm((a - 0.6 - i * 0.3) / 0.5) : 1, fl = Math.cos((1 - e) * Math.PI / 2); if (e <= 0) return;
         // (vague 63 de l'audit, « front », immersion) : l'interface répond vraiment à la souris : la carte survolée se soulève (état :hover),
@@ -2033,10 +2036,22 @@ S.front = (() => {
         if (hv) { ctx.globalAlpha = 0.35; ctx.fillStyle = '#000'; ctx.fillRect(q0[0] + k * 0.02, q0[1] + k * 0.03, cw * k, ch * k); }
         const p = Pk(x + cw / 2 - cw / 2 * fl, y); p[1] -= lift; boite(p[0], p[1], cw * fl * k, ch * k, 5, hv ? 1.3 : 0.85, 1, true);
         if (hv) { brille(p[0] + cw * k, p[1], 3, 1, true, now, 40 + i); mot(':hover', p[0] + cw * k * 0.5, p[1] - k * 0.05, Math.max(10, k * 0.05), 0.8); }
-        if (fl > 0.6) { const im = Pk(x + cw / 2, y + ch * 0.38 - lift / k); rond(im[0], im[1], Math.min(cw, ch) * 0.2 * k, 0.6, 0.9); trait([Pk(x + 0.05, y + ch * 0.78), Pk(x + cw * 0.7, y + ch * 0.78)], false, 0.5, 0.8); }
+        // (vague 239 de l'audit, « front », design : trois cartes identiques, un rond et un trait, une maquette de fil de fer) : chaque carte a son
+        // vrai contenu : une image (montagnes et soleil), un graphique dont les barres respirent, un profil avec son interrupteur
+        if (fl > 0.6) { const L = lift / k, P = (u, v) => Pk(x + cw * u, y + ch * v - L);
+          if (i === 0) { trait([P(0.07, 0.08), P(0.93, 0.08), P(0.93, 0.6), P(0.07, 0.6)], true, 0.5, 0.85); trait([P(0.07, 0.6), P(0.32, 0.3), P(0.5, 0.48), P(0.66, 0.24), P(0.93, 0.6)], false, 0.5, 0.85); const so = P(0.8, 0.2); rond(so[0], so[1], Math.min(cw, ch) * k * 0.06, 0.5, 0.85); }
+          else if (i === 1) { [0.5, 0.78, 0.36, 0.92].forEach((hb, j) => { const hh = hb * (0.85 + 0.15 * Math.sin(now * 1.6 + j * 1.3)), x0 = 0.12 + j * 0.2; trait([P(x0, 0.62), P(x0, 0.62 - hh * 0.5), P(x0 + 0.12, 0.62 - hh * 0.5), P(x0 + 0.12, 0.62)], false, 0.5, 0.85); }); trait([P(0.07, 0.62), P(0.93, 0.62)], false, 0.4, 0.6); }
+          else { const av = P(0.2, 0.3); rond(av[0], av[1], Math.min(cw, ch) * k * 0.13, 0.5, 0.85); trait([P(0.4, 0.24), P(0.85, 0.24)], false, 0.7, 0.85); trait([P(0.4, 0.36), P(0.7, 0.36)], false, 0.4, 0.7);
+            const on = Math.sin(now * 0.9 + 1) > 0, t0 = P(0.07, 0.56), t1 = P(0.3, 0.68), th = t1[1] - t0[1]; boite(t0[0], t0[1], t1[0] - t0[0], th, th / 2, 0.5, 0.85); rond(on ? t1[0] - th / 2 : t0[0] + th / 2, t0[1] + th / 2, th * 0.36, 0.5, 0.9, on); }
+          trait([P(0.07, 0.75), P(0.86, 0.75)], false, 0.6, 0.85); trait([P(0.07, 0.87), P(0.6, 0.87)], false, 0.4, 0.65); }
         if (c > 8.6 && c < 9.4 && i === 1) { const r = (c - 8.6) / 0.8, q = Pk(x + cw / 2, y + ch / 2); style(0.05 + 0.75 * (1 - r), 1); ctx.beginPath(); ctx.arc(q[0], q[1], k * 0.2 * r, 0, TAU); ctx.stroke(); rond(q[0], q[1], k * 0.035 * (1 - r) + 0.5, 0.9, 1); } });
       // le bouton
-      const eb = b1 ? sm((a - 1.6) / 0.4) : 1, bw = Math.min(0.4, w * 1.1), bx = large01 * w * 0.5, by = h - 0.15; if (eb > 0) { const p = Pk(bx - bw / 2, by - 0.06); boite(p[0], p[1], bw * k * eb, 0.12 * k, 6, 0.95, 1, true); }
+      const eb = b1 ? sm((a - 1.6) / 0.4) : 1, bw = Math.min(0.4, w * 1.1), bx = large01 * w * 0.5, by = h - 0.15; if (eb > 0) { const p = Pk(bx - bw / 2, by - 0.06); boite(p[0], p[1], bw * k * eb, 0.12 * k, 6, 0.95, 1, true);
+        // (vague 239) le bouton porte son mot ; à gauche, sur l'écran large, le titre de la page et son paragraphe remplissent le vide sous les cartes
+        if (eb > 0.95) { const fs = Math.max(9, k * 0.055); ctx.globalAlpha = 1; ctx.fillStyle = `rgb(${BL})`; ctx.font = `600 ${fs}px "Space Grotesk",system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(en() ? 'Send' : 'Envoyer', p[0] + bw * k / 2, p[1] + 0.06 * k + 1); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; }
+        const cb = Math.max(...CC.map(q => q[1] + q[3])); if (large01 > 0.8 && h - 0.1 - cb > 0.16) { const xl = -w + 0.1, xr = Math.min(bx - bw / 2 - 0.12, -w + 0.1 + w * 1.1);
+          trait([Pk(xl, cb + 0.09), Pk(xl + (xr - xl) * 0.85, cb + 0.09)], false, 1.6, 0.9); trait([Pk(xl, cb + 0.16), Pk(xl + (xr - xl) * 0.55, cb + 0.16)], false, 1.6, 0.9);
+          [0.23, 0.28].forEach((yy, j) => { if (cb + yy < h - 0.08) trait([Pk(xl, cb + yy), Pk(xl + (xr - xl) * (j ? 0.6 : 0.95), cb + yy)], false, 0.4, 0.65); }); } }
       // le curseur : il va au bouton, clique ; l'onde ; le cube jaillit
       // (vague 205 de l'audit, « front », originalité) : une souris, c'est une souris. Pendant que le pointeur monte vers le bouton, il se voit pousser
       // deux oreilles rondes et une queue ; un chat-robot arrive à pas de loup, se ramasse, frétille du derrière et bondit ; le pointeur fait un écart
