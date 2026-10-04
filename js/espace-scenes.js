@@ -1347,7 +1347,7 @@ S.bench = (() => {
       { const go0 = c01((c - 1.1) / 3.4), tete = T0b(go0), R = [];
         for (let j = 0; j <= 40; j++) { const t = Math.PI + j / 40 * Math.PI; R.push(piste(t, 5.4, -0.06)); } trait(R, false, 0.8, 0.8);
         for (let j = 0; j < 34; j++) { const t = Math.PI + (j + 0.5) / 34 * Math.PI, p = piste(t, 6.1 + (j % 2) * 0.9, -0.05 - (j % 2) * 0.05), r = k * 0.045 * p[3] * (j % 2 ? 1.05 : 1);
-          if (p[1] - r * 3 < G.haut) continue; { const pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat; if (pc && Math.hypot(p[0] - pc.x, p[1] - r * 1.75 - pc.y) < pc.r * 1.25 + r) continue; } const d = Math.abs(Math.atan2(Math.sin(t - tete), Math.cos(t - tete))), ola = go0 > 0 && go0 < 1 ? Math.exp(-((d * 2.2) ** 2)) : c > 4.6 ? 0.5 + 0.5 * Math.sin(now * 6 + j) : 0;
+          if (p[1] - r * 3 < G.haut || p[0] - r * 1.3 < G.gauche || p[0] + r * 1.3 > G.droite) continue; { const pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat; if (pc && Math.hypot(p[0] - pc.x, p[1] - r * 1.75 - pc.y) < pc.r * 1.25 + r) continue; } const d = Math.abs(Math.atan2(Math.sin(t - tete), Math.cos(t - tete))), ola = go0 > 0 && go0 < 1 ? Math.exp(-((d * 2.2) ** 2)) : c > 4.6 ? 0.5 + 0.5 * Math.sin(now * 6 + j) : 0;
           chabot(p[0], p[1] - r * 1.75 - ola * r * 0.8, r, { now, ph: j + 50, casque: false, lac: Math.cos(t) * 0.6, bras: [0.3 + ola * 1.2 + Math.sin(now * 7 + j) * 0.2 * ola, 0.3 + ola * 1.2] }); } }
       // la ligne d'arrivée (un damier de papier sur la largeur de la piste)
       for (let l = 0; l < 5; l++) for (let j = 0; j < 2; j++) { const t0 = Math.PI / 2 - 0.02 + j * 0.04, Q = [piste(t0, l - 0.5), piste(t0 + 0.04, l - 0.5), piste(t0 + 0.04, l + 0.5), piste(t0, l + 0.5)];
@@ -1400,9 +1400,21 @@ S.bench = (() => {
       // 3, 2, 1, go
       if (c < 1.35) { const w = c < 0.3 ? '3' : c < 0.6 ? '2' : c < 0.9 ? '1' : 'go !', u = c < 0.9 ? (c % 0.3) / 0.3 : (c - 0.9) / 0.45, C = V(0, -0.45, 0); mot(w, C[0], C[1], Math.max(24, k * 0.26) * (1.3 - u * 0.3) * (c < 0.9 ? 1 : 1 - sm((u - 0.55) / 0.45) * 0.95), 1); }
       // le chrono de papier, au milieu de l'anneau : sa couronne, son aiguille
-      { const ch = V(0, -0.2, 0), rc = k * 0.13; cerne(() => { ctx.beginPath(); ctx.arc(ch[0], ch[1], rc, 0, TAU); }, 1, 1); cerne(() => { ctx.beginPath(); ctx.rect(ch[0] - rc * 0.14, ch[1] - rc * 1.35, rc * 0.28, rc * 0.3); }, 0.8, 1);
-        ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.45; for (let j = 0; j < 12; j++) { const t = j / 12 * TAU; ctx.beginPath(); ctx.moveTo(ch[0] + Math.cos(t) * rc * 0.72, ch[1] + Math.sin(t) * rc * 0.72); ctx.lineTo(ch[0] + Math.cos(t) * rc * 0.86, ch[1] + Math.sin(t) * rc * 0.86); ctx.stroke(); }
-        const an = c > 1.1 ? Math.min(c, 4.6) * 2.6 : 0; ctx.lineWidth = G.lw * 0.8; ctx.beginPath(); ctx.moveTo(ch[0], ch[1]); ctx.lineTo(ch[0] + Math.sin(an) * rc * 0.7, ch[1] - Math.cos(an) * rc * 0.7); ctx.stroke(); }
+      // (vague 234 de l'audit, « la course », design : le chrono flottait en l'air, un disque plat sur le passage des fusées du fond) : il est posé
+      // au centre de la piste sur son socle, un vrai boîtier épais avec ses deux poussoirs ; le temps écoulé se remplit en quartier sur le cadran
+      { const B1 = V(0, -0.05, 0), rc = k * 0.13, ch = [B1[0], B1[1] - rc * 1.25], ep = rc * 0.14;
+        cylindre(V, 0, 0, 0.12, 0, -0.05, 1, 0.8);
+        cerne(() => { ctx.beginPath(); ctx.moveTo(B1[0], B1[1]); ctx.lineTo(ch[0], ch[1] + rc * 0.9); }, 1.2, 1, null);
+        [-0.7, 0.7].forEach(t => { ctx.save(); ctx.translate(ch[0] + Math.sin(t) * rc * 1.05, ch[1] - Math.cos(t) * rc * 1.05); ctx.rotate(t); cerne(() => { ctx.beginPath(); ctx.rect(-rc * 0.1, -rc * 0.2, rc * 0.2, rc * 0.24); }, 0.7, 1); ctx.restore(); });
+        cerne(() => { ctx.beginPath(); ctx.rect(ch[0] - rc * 0.14, ch[1] - rc * 1.35, rc * 0.28, rc * 0.3); }, 0.8, 1);
+        cerne(() => { ctx.beginPath(); ctx.arc(ch[0] + ep, ch[1] + ep * 0.5, rc, 0, TAU); }, 1, 1);
+        ctx.globalAlpha = 1; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath(); for (let j = 0; j < 9; j++) { const t = -0.2 + j / 8 * 1.8; ctx.moveTo(ch[0] + Math.cos(t) * rc, ch[1] + Math.sin(t) * rc); ctx.lineTo(ch[0] + ep + Math.cos(t) * rc, ch[1] + ep * 0.5 + Math.sin(t) * rc); } ctx.stroke();
+        cerne(() => { ctx.beginPath(); ctx.arc(ch[0], ch[1], rc, 0, TAU); }, 1, 1);
+        const an = c > 1.1 ? Math.min(c, 4.6) * 2.6 : 0;
+        if (an > 0.05) { ctx.globalAlpha = 1; ctx.fillStyle = 'rgba(160,210,255,0.38)'; ctx.beginPath(); ctx.moveTo(ch[0], ch[1]); ctx.arc(ch[0], ch[1], rc * 0.7, -Math.PI / 2, -Math.PI / 2 + Math.min(an, TAU * 0.999)); ctx.closePath(); ctx.fill(); }
+        ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.45; ctx.globalAlpha = 1; for (let j = 0; j < 12; j++) { const t = j / 12 * TAU; ctx.beginPath(); ctx.moveTo(ch[0] + Math.cos(t) * rc * 0.72, ch[1] + Math.sin(t) * rc * 0.72); ctx.lineTo(ch[0] + Math.cos(t) * rc * (j % 3 ? 0.84 : 0.9), ch[1] + Math.sin(t) * rc * (j % 3 ? 0.84 : 0.9)); ctx.stroke(); }
+        ctx.lineWidth = G.lw * 0.8; ctx.beginPath(); ctx.moveTo(ch[0], ch[1]); ctx.lineTo(ch[0] + Math.sin(an) * rc * 0.7, ch[1] - Math.cos(an) * rc * 0.7); ctx.stroke();
+        ctx.fillStyle = ENC; ctx.beginPath(); ctx.arc(ch[0], ch[1], rc * 0.06, 0, TAU); ctx.fill(); }
       // le podium de papier : trois blocs ; les trois premiers y montent ; le gagnant lève les bras, une gerbe, la coche
       if (fin) { const u = sm((c - 4.6) / 0.7), P = [[0, 0.34], [-0.36, 0.22], [0.36, 0.14]];
         P.map(([x, h], j) => ({ x, h, j, z: 0.25 })).forEach(({ x, h, j }) => { const H = h * u; bloc(V, x - 0.16, x + 0.16, 0.12, 0.12 - H, 0.1, 0.4, 1, 0.9); const F = V(x, 0.12 - H * 0.5, 0.4); mot(String(j + 1), F[0], F[1], Math.max(12, k * 0.09), 0.9);
