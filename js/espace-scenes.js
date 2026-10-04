@@ -1214,7 +1214,7 @@ S.skills = (() => {
     if (q.kind === 'cmd') { const zF = F[0][2] > R(0, 0, 0)[2] ? 0.35 : -0.35, I = [[-0.6, -0.6], [0.6, -0.6], [0.6, 0.6], [-0.6, 0.6]].map(([u, v]) => R(u, v, zF)); ctx.beginPath(); I.forEach((p, j) => j ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.stroke(); }
     // (13 h 27, Mathieu : « revois l'apparence ») : le mot est posé au centre de la face (pas sur les tenons du puzzle), et seulement quand
     // la face nous regarde assez ; de profil, pas de lettres écrasées ni coupées
-    { const ep = q.kind === 'cmd' ? 0.7 : 0.36, zF = F[0][2] > R(0, 0, 0)[2] ? ep / 2 : -ep / 2, Q = [[-0.62, -0.62], [0.62, -0.62], [0.62, 0.62], [-0.62, 0.62]].map(([u, v]) => R(u, v, zF)),
+    { const ep = q.kind === 'cmd' ? 0.7 : 0.36, zF = F[0][2] > R(0, 0, 0)[2] ? ep / 2 : -ep / 2, lu = q.kind === 'cmd' ? 0.5 : 0.62, Q = [[-lu, -0.62], [lu, -0.62], [lu, 0.62], [-lu, 0.62]].map(([u, v]) => R(u, v, zF)),
         w = Math.hypot(Q[1][0] - Q[0][0], Q[1][1] - Q[0][1]), h = Math.hypot(Q[3][0] - Q[0][0], Q[3][1] - Q[0][1]);
       if (w > h * 0.55) encre(q.l, Q, al * c01((w / h - 0.55) / 0.3), q.kind === 'cmd' ? 0.36 : 0.32); }
   }
@@ -1227,7 +1227,8 @@ S.skills = (() => {
         V0 = cam(0, tel ? -0.5 : -0.3, k * 0.88, 0, tel ? -0.4 : -0.34), Vs = (x, y, z) => V0(x, y, z * (tel ? 0.95 : 0.5)), Rr = Math.min(1.5, lx * 0.8), rot = now * 0.25;
       // (vague 14 de l'audit : « l'orbite reste petite au milieu ») : l'orbite s'étire sur toute la largeur du ciel (les modules gardent leur forme :
       // seul leur centre est écarté)
-      const hx = Math.max(1, ((G.droite - G.gauche) / 2 * 0.8) / (Rr * k * 0.88 * 1.05)), V = (x, y, z) => { const p = Vs(x, y, z); p[0] = G.cx + (p[0] - G.cx) * hx; return p; };
+      // (vague 233 de l'audit, « skills », design : l'orbite venait buter dans la forge, à gauche) : sur un écran large, elle lui laisse sa place
+      const hx = Math.max(1, ((G.droite - G.gauche) / 2 * (tel ? 0.8 : 0.72)) / (Rr * k * 0.88 * 1.05)), V = (x, y, z) => { const p = Vs(x, y, z); p[0] = G.cx + (p[0] - G.cx) * hx; return p; };
       let flash = 0, nb = 0; sousLaBarre();
       const it = lab.map((l, i) => { const e0 = sm((a - 0.2 - i * 0.35) / 0.8), u = a > 2.6 ? (a - 2.6 - i * 1.25) % 7.5 : -1, e = u > 0 && u < 1.3 ? Math.sin(Math.PI * u / 1.3) : 0;
         if (u > 0.55 && u < 1.1) flash = Math.max(flash, 1 - (u - 0.55) / 0.55); if (e0 >= 1) nb++;
@@ -1272,15 +1273,39 @@ S.skills = (() => {
         }
       // (vague 40 de l'audit : « skills, peu original ») : la forge, sur le côté : la même tâche revient, trois fois (trois feuilles identiques
       // tombent sur la pile : ×1, ×2, ×3) ; la presse s'abat, « CLAC », et il en sort une cartouche neuve qui file rejoindre l'orbite
-      { const cy = 5, u = now % cy, s = Math.max(10, k * 0.07), fx = Math.max(G.gauche + (G.droite - G.gauche) * 0.1, tel ? s * 1.9 + 40 : 0), fy = C[1] + k * (tel ? 0.62 : 0.42), n = Math.min(3, Math.floor(u / 0.8));
-        cerne(() => { ctx.beginPath(); ctx.rect(fx - s * 1.6, fy, s * 3.2, s * 0.35); }, 0.8, 1);
+      // (vague 233 de l'audit, « skills », design : la forge n'était qu'un cadre de trois traits, un rectangle pour la presse, et l'orbite la traversait) :
+      // une vraie presse d'atelier, en papier et en relief : l'enclume, deux colonnes, la traverse et son compteur, le volant qui tourne quand
+      // la presse descend, le coulisseau qui vient vraiment écraser la pile ; elle se tient à l'écart de l'orbite
+      { const cy = 5, u = now % cy, s = Math.max(10, k * 0.07), xo = C[0] - Rr * k * 0.88 * hx * 1.1,
+          fx = tel ? Math.max(G.gauche + (G.droite - G.gauche) * 0.1, s * 1.9 + 40) : Math.max(G.gauche + s * 3, Math.min((G.gauche + xo) / 2, xo - s * 2.6)), fy = C[1] + k * (tel ? 0.74 : 0.42), n = Math.min(3, Math.floor(u / 0.8));
+        const dz = s * 0.7, ox = dz * 0.55, oy = -dz * 0.4, LW = G.lw * 0.8 * 0.95;
+        // une boîte de papier vue de trois quarts : (x, y) le coin avant bas gauche, w × h de face, d de profondeur ; les arêtes intérieures à l'encre,
+        // le flanc hachuré
+        const boite = (x, y, w, h, d) => { const px = d * 0.55, py = -d * 0.4;
+          cerne(() => { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w + px, y + py); ctx.lineTo(x + w + px, y - h + py); ctx.lineTo(x + px, y - h + py); ctx.lineTo(x, y - h); ctx.closePath(); }, 0.8, 1);
+          ctx.globalAlpha = 1; ctx.strokeStyle = ENC; ctx.lineWidth = LW; ctx.beginPath(); ctx.moveTo(x, y - h); ctx.lineTo(x + w, y - h); ctx.lineTo(x + w, y); ctx.moveTo(x + w, y - h); ctx.lineTo(x + w + px, y - h + py); ctx.stroke();
+          ctx.lineWidth = LW * 0.45; ctx.beginPath(); for (let f = 0.25; f < 1; f += 0.25) { ctx.moveTo(x + w + px * f, y + py * f - 1); ctx.lineTo(x + w + px * f, y - h + py * f + 1); } ctx.stroke(); };
+        const course = k * 0.25, haut = fy - s * 1.6 - course - s * 0.3, pr = u < 2.6 ? 0 : u < 3.0 ? sm((u - 2.6) / 0.4) : u < 3.3 ? 1 : 1 - sm((u - 3.3) / 0.5), ph = fy - s * 1.6 - course * (1 - pr);
+        // l'enclume, sur ses deux pieds
+        boite(fx - s * 1.9, fy + s * 0.75, s * 0.5, s * 0.4, dz); boite(fx + s * 1.4, fy + s * 0.75, s * 0.5, s * 0.4, dz); boite(fx - s * 2.1, fy + s * 0.4, s * 4.2, s * 0.4, dz);
+        // les colonnes
+        [-1.75, 1.35].forEach(c => boite(fx + s * c, fy, s * 0.4, fy - haut, dz * 0.6));
         for (let j = 0; j < 3; j++) { const t0 = j * 0.8, v = c01((u - t0) / 0.45); if (u >= 3.2 || v <= 0) continue; const y = lerp(fy - k * 0.9, fy - s * 0.25 * (j + 1), sm(v));
           ctx.save(); ctx.translate(fx + Math.sin(v * 6 + j) * s * 0.3 * (1 - v), y); ctx.rotate((1 - v) * 0.6 * (j % 2 ? 1 : -1)); cerne(() => { ctx.beginPath(); ctx.rect(-s, -s * 0.12, s * 2, s * 0.24); }, 0.6, 1);
-          ctx.restore(); if (v >= 1 && u < 3.2) mot('×' + (j + 1), fx + s * 1.9, fy - s * 0.25 * (j + 1), Math.max(10, s * 0.6), j + 1 === n ? 1 : 0.4, 'left'); }
-        const pr = u < 2.6 ? 0 : u < 3.0 ? sm((u - 2.6) / 0.4) : u < 3.3 ? 1 : 1 - sm((u - 3.3) / 0.5), ph = fy - s * 2.4 - k * 0.3 * (1 - pr);
-        cerne(() => { ctx.beginPath(); ctx.moveTo(fx - s * 1.9, fy); ctx.lineTo(fx - s * 1.9, fy - s * 2.6 - k * 0.35); ctx.lineTo(fx + s * 1.9, fy - s * 2.6 - k * 0.35); ctx.lineTo(fx + s * 1.9, fy); }, 0.9, 1, null);
-        cerne(() => { ctx.beginPath(); ctx.moveTo(fx, fy - s * 2.6 - k * 0.35); ctx.lineTo(fx, ph); }, 1.1, 1, null); cerne(() => { ctx.beginPath(); ctx.rect(fx - s * 1.4, ph, s * 2.8, s * 0.8); }, 0.9, 1);
-        if (u > 3.0 && u < 3.5) { mot('CLAC', fx, fy - s * 3.4 - k * 0.3, Math.max(14, s * 0.9), 1 - (u - 3.0) / 0.5); eclat(fx, fy - s * 0.5, s * 2, (u - 3.0) / 0.5, 8, 0.3); }
+          ctx.restore(); }
+        // la vis et le coulisseau, qui descend jusque sur la pile
+        cerne(() => { ctx.beginPath(); ctx.moveTo(fx + ox * 0.5, haut + oy * 0.5); ctx.lineTo(fx + ox * 0.5, ph + oy * 0.5); }, 1.1, 1, null);
+        ctx.globalAlpha = 1; ctx.strokeStyle = ENC; ctx.lineWidth = LW * 0.5; ctx.beginPath(); for (let yy = haut + s * 0.25; yy < ph - s * 0.1; yy += s * 0.22) { const y2 = yy + oy * 0.5 + ((now * 3 * (pr > 0 && pr < 1 ? 1 : 0)) % 1) * s * 0.22; if (y2 < ph + oy * 0.5) { ctx.moveTo(fx + ox * 0.5 - s * 0.12, y2); ctx.lineTo(fx + ox * 0.5 + s * 0.12, y2 + s * 0.08); } } ctx.stroke();
+        boite(fx - s * 1.25, ph + s * 0.7, s * 2.5, s * 0.7, dz * 0.8);
+        // la traverse, son compteur (×1, ×2, ×3 : la même tâche revient) ; au-dessus, le volant, qui tourne quand la presse descend
+        boite(fx - s * 2.1, haut, s * 4.2, s * 0.6, dz);
+        { const wx = fx + ox * 0.5, wy = haut - s * 1.05 + oy * 0.5, rw = s * 1.1, an = pr * Math.PI * 1.5;
+          cerne(() => { ctx.beginPath(); ctx.moveTo(wx, wy + s * 0.6); ctx.lineTo(wx, wy); }, 0.9, 1, null);
+          cerne(() => { ctx.beginPath(); ctx.ellipse(wx, wy, rw, rw * 0.32, 0, 0, TAU); }, 0.8, 1, null);
+          ctx.globalAlpha = 1; ctx.strokeStyle = ENC; ctx.lineWidth = LW * 0.7; ctx.beginPath(); for (let j = 0; j < 3; j++) { const t = an + j / 3 * TAU; ctx.moveTo(wx, wy); ctx.lineTo(wx + Math.cos(t) * rw, wy + Math.sin(t) * rw * 0.32); } ctx.stroke();
+          const t = an, bx = wx + Math.cos(t) * rw, by = wy + Math.sin(t) * rw * 0.32; cerne(() => { ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx, by - s * 0.45); }, 0.9, 1, null); }
+        if (n && u < 3.3) mot('×' + n, fx, haut - s * 0.3, Math.max(11, s * 0.5), 1);
+        if (u > 3.0 && u < 3.5) { const v = (u - 3.0) / 0.5, fc = Math.max(14, s * 0.9) * (v < 0.2 ? 0.6 + v * 2 : 1 - sm((v - 0.6) / 0.4)); if (fc > 2) mot('CLAC', fx, haut - s * 2.3, fc, 1); eclat(fx, fy - s * 0.5, s * 2, (u - 3.0) / 0.5, 8, 0.3); }
         if (u > 3.3) { const v = sm(c01((u - 3.3) / 1.5)), mx = lerp(fx, C[0] - Rr * k * 0.88 * hx * 0.9, v), my = lerp(fy - s, C[1] - k * 0.1, v) - Math.sin(Math.PI * v) * k * 0.5;
           ctx.save(); ctx.translate(mx, my); ctx.rotate(v * TAU); cerne(() => { ctx.beginPath(); ctx.moveTo(-s * 0.7, -s); ctx.lineTo(s * 0.4, -s); ctx.lineTo(s * 0.7, -s * 0.7); ctx.lineTo(s * 0.7, s); ctx.lineTo(-s * 0.7, s); ctx.closePath(); }, 0.8, 1);
           ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath(); for (let l = 0; l < 3; l++) { ctx.moveTo(-s * 0.45, s * (0.2 + l * 0.22)); ctx.lineTo(s * 0.45, s * (0.2 + l * 0.22)); } ctx.stroke(); ctx.restore(); brille(mx, my, 3, 1 - v * 0.5, true, now, 5); } }
