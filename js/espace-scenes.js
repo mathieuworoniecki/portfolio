@@ -1417,13 +1417,28 @@ S.flotte = (() => {
       const hk = lerp(mt + 0.08, Math.min(B0 - 0.05, top + 0.1), 0.5 + 0.5 * Math.sin(now * 1.3)), Hj = V(mx + Math.cos(ja) * 0.72, mt, mz + Math.sin(ja) * 0.72), H = V(mx + Math.cos(ja) * 0.72, hk, mz + Math.sin(ja) * 0.72);
       trait([Hj, H], false, 0.5, 0.8); boite(H[0] - 6, H[1], 12, 9, 2, 0.8, 1, true);
       }, derriere = V(0.62, B0, -0.25)[2] < V(0, B0, 0)[2]; if (derriere) grue();
+      // (vague 201 de l'audit, « la flotte », originalité) : « si ça rentre, je m'assois ». Un agent quitte l'essaim et se pose sur le 7e étage
+      // tout juste posé ; le 8e arrive sur lui : il le soulève de la tête, toute la tour au-dessus tangue en rythme (« mrrp ») ; puis il se
+      // faufile dehors en s'aplatissant, l'étage retombe en place (« clonk ») et il repart, l'air content
+      const KJ = 6, cI = KJ * 0.55 + 0.25, cH = (KJ + 1) * 0.55, cR = cH + 0.95, chat7 = !reduitMvt() && tas > 0.9 && c > cI && c < cR + 0.6;
+      const lev = !chat7 || c < cH ? 0 : c < cH + 0.15 ? EH * 1.1 * sm((c - cH) / 0.15) : c < cR ? EH * (1.1 + 0.16 * Math.abs(Math.sin((c - cH) * 9))) : EH * 1.1 * (1 - sm((c - cR) / 0.12)) + EH * 0.12 * Math.max(0, Math.sin((c - cR - 0.12) * 18)) * Math.exp(-(c - cR) * 6) * (c > cR + 0.12 ? 1 : 0);
+      const mots7 = [], chat7d = () => {
+          const yB = B0 - (KJ + 1) * EH * tas, eA = sm(c01((c - cI) / 0.3)), eS = sm(c01((c - cR) / 0.45)), P0 = V(0.9, B0 - NE * EH * 0.6, 0.7), fr7 = [[0, 0.15], [0.15, 0], [0, -0.15], [-0.15, 0]].sort((A, B) => V(B[0], yB, B[1])[2] - V(A[0], yB, A[1])[2])[0], Pt = V(fr7[0] + eS * 0.55, yB, fr7[1] + eS * 0.3), p = [lerp(P0[0], Pt[0], eA), lerp(P0[1], Pt[1], eA) - Math.sin(Math.PI * eA) * k * 0.12 - Math.sin(Math.PI * eS) * k * 0.08];
+          const gap = Math.abs(V(0, yB, 0)[1] - V(0, yB - EH * 1.1, 0)[1]), r = Math.max(4, gap * 0.3), ec = c > cH && c < cR ? 1 + 0.12 * Math.sin((c - cH) * 9 * 2) : 1;
+          ctx.save(); ctx.translate(p[0], p[1]); ctx.scale(eS > 0 && eS < 1 ? 1 + 0.35 * Math.sin(Math.PI * eS) : 1, ec * (eS > 0 && eS < 1 ? 1 - 0.3 * Math.sin(Math.PI * eS) : 1));
+          chabot(0, -r * 1.75, r, { now, ph: 71, casque: false, lac: eS > 0 ? 0.7 : 0.1, bras: c > cH && c < cR ? [1.45, 1.45] : [0.3, 0.3], cligne: c > cH + 0.3 && c < cH + 0.5 }); ctx.restore();
+          if (c > cH + 0.2 && c < cH + 0.7) mots7.push(['mrrp', p[0] + r * 2.4, p[1] - r * 1.2, Math.max(10, k * 0.055)]);   // (écrits après la tour : sinon l'étage du dessus les cache)
+          if (c > cR + 0.1 && c < cR + 0.45) mots7.push(['clonk', V(0, yB, 0)[0] - k * 0.2, V(0, yB, 0)[1], Math.max(11, k * 0.065)]); };
       // (une tour en gradins : un socle large, puis elle s'affine tous les quatre étages ; une corniche à chaque retrait)
-      for (let j = 0; j < n; j++) { const y1 = B0 - j * EH * tas, y0 = j === n - 1 && n < NE ? y1 - EH * f * tas : y1 - EH * tas, LW = j === 0 ? 0.3 : j < 5 ? 0.24 : j < 9 ? 0.2 : 0.16;
+      for (let j = 0; j < n; j++) { const lv = j > KJ ? lev : 0, y1 = B0 - j * EH * tas - lv, y0 = (j === n - 1 && n < NE ? y1 - EH * f * tas : y1 - EH * tas), LW = j === 0 ? 0.3 : j < 5 ? 0.24 : j < 9 ? 0.2 : 0.16;
+        if (j === KJ + 1 && chat7) chat7d();   // le chat, entre deux étages (dessiné avant celui du dessus)
         bloc(V, -LW, LW, y1, y0, -LW, LW, 1, 0.75);
         if ((j === 0 || j === 4 || j === 8) && j < n - 1) bloc(V, -LW - 0.02, LW + 0.02, y0 + 0.012, y0, -LW - 0.02, LW + 0.02, 1, 0.6);
         [[-LW, 0, 1, 0], [0, LW, 0, 1], [LW, 0, -1, 0], [0, -LW, 0, -1]].forEach(([fx, fz, ux, uz], s) => (j === 0 ? [-0.55, 0.55] : [-0.6, -0.2, 0.2, 0.6]).forEach((o, w) => {
           const p = V(fx + ux * o * LW, (y0 + y1) / 2, fz + uz * o * LW); if (p[2] < V(0, (y0 + y1) / 2, 0)[2]) return;
           const on = bruit(j * 17 + s * 5 + w + Math.floor(now * 0.8 + j)) > 0.6, fw = Math.max(2, k * (j === 0 ? 0.05 : 0.014) * p[3]), fh = Math.max(3, (V(0, y1, 0)[1] - V(0, y0, 0)[1]) * 0.28); ctx.globalAlpha = 1; ctx.fillStyle = on ? '#ffe9a8' : ENC; ctx.fillRect(p[0] - fw / 2, p[1] - fh / 2, fw, fh); if (on) brille(p[0], p[1], 1.6, 0.6, false, now, j + w); })); }
+      if (chat7 && n <= KJ + 1) chat7d();
+      mots7.forEach(m => mot(m[0], m[1], m[2], m[3], 0.9));
       if (!derriere) grue();
       if (traineeP) trait(traineeP, false, 2.4, 0.95);   // (la traînée de la patrouille, devant la tour)
       Q.filter(q => q.p[2] >= -0.2).forEach(agent);
