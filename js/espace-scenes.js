@@ -2801,10 +2801,31 @@ S.pilotage = (() => {
  });
     ctx.globalAlpha = 1; ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = Math.max(1, vw * 0.018); ctx.lineCap = 'round'; [[0.08, 0.3], [0.2, 0.36]].forEach(([u0, u1]) => { ctx.beginPath(); ctx.moveTo(Wv[3][0] + vw * u0, Wv[3][1] + vh * 0.12); ctx.lineTo(Wv[3][0] + vw * (u0 - 0.06), Wv[3][1] + vh * 0.45); ctx.stroke(); });
     ctx.restore();
+    // (vague 251, design : le grand panneau blanc au-dessus de la vitre était vide) : le joint de caoutchouc de la vitre, la girouette
+    // (un bandeau noir dont les volets basculent d'un mot à l'autre), la tôle du toit rabattue, ses rivets, et une ombre hachurée côté gauche
+    { const Bh = [Q(-w, 0.12, 0), Q(w, 0.12, 0), Q(w, h, 0), Q(-w, h, 0)], jo = Math.max(2, vw * 0.018);
+      ctx.globalAlpha = 1; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.55; boite(Wv[3][0] - jo, Wv[3][1] - jo, vw + jo * 2, vh + jo * 2, jo * 2.2, 0.55, 1); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.55; ctx.stroke();
+      ctx.save(); ctx.beginPath(); Bh.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.clip();
+      const xg = Bh[0][0], lg = (Bh[1][0] - Bh[0][0]) * 0.07, yb = Bh[0][1], yt = Bh[3][1]; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.45; ctx.globalAlpha = 0.55; ctx.beginPath();
+      for (let y = yt - lg; y < yb + lg; y += Math.max(4, lg * 0.45)) { ctx.moveTo(xg, y + lg); ctx.lineTo(xg + lg, y); } ctx.stroke(); ctx.globalAlpha = 1; ctx.restore();
+      const r0 = Q(-w, h - 0.06, 0), r1 = Q(w, h - 0.06, 0); ctx.lineWidth = G.lw * 0.7; ctx.beginPath(); ctx.moveTo(r0[0], r0[1]); ctx.lineTo(r1[0], r1[1]); ctx.stroke();
+      const rv = Math.max(1, vw * 0.009); for (let k = 0; k <= 10; k++) { const p = Q(-w * 0.9 + k * w * 0.18, h - 0.03, 0); ctx.beginPath(); ctx.arc(p[0], p[1], rv, 0, TAU); ctx.fillStyle = ENC; ctx.fill(); }
+      const g0 = Q(-w * 0.6, 1.08, 0), g1 = Q(w * 0.6, 0.93, 0), gw = g1[0] - g0[0], gh = g1[1] - g0[1];
+      boite(g0[0], g0[1], gw, gh, Math.max(2, gh * 0.18), 0.8, 1, true); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.8; ctx.stroke();
+      [-1, 1].forEach(s => { const v = [g0[0] + gw / 2 + s * gw * 0.56, g0[1] + gh / 2]; ctx.beginPath(); ctx.arc(v[0], v[1], rv * 1.4, 0, TAU); ctx.fillStyle = ENC; ctx.fill(); });
+      const MOTS = ['→ PROD', '→ DÉMO', '→ v2', '→ LIVRÉ'], ph = now / 2.6, im = Math.floor(ph) % MOTS.length, uf = ph % 1, bas = uf > 0.88 ? (uf - 0.88) / 0.12 : 0;
+      ctx.save(); ctx.beginPath(); ctx.rect(g0[0] + 2, g0[1] + 2, gw - 4, gh - 4); ctx.clip();
+      const px = Math.max(8, Math.min(gh * 0.62, gw / 5.2)), yc = g0[1] + gh / 2 + 1;
+      ctx.translate(0, yc); ctx.scale(1, Math.max(0.02, Math.abs(Math.cos(bas * Math.PI)))); mot(bas < 0.5 ? MOTS[im] : MOTS[(im + 1) % MOTS.length], g0[0] + gw / 2, 0, px, 1);
+      ctx.restore(); ctx.globalAlpha = 1; ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = Math.max(0.6, G.lw * 0.3); ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.moveTo(g0[0] + 3, g0[1] + gh / 2 + 0.5); ctx.lineTo(g0[0] + gw - 3, g0[1] + gh / 2 + 0.5); ctx.stroke(); ctx.globalAlpha = 1; }
     // (vague 150) : le pare-chocs (une bande noire cernée, ses deux butoirs), la grille du moteur, l'échelle jusqu'au toit, les clignotants
     { const pc = [Q(-w * 1.03, 0.1, -0.05), Q(w * 1.03, 0.1, -0.05), Q(w * 1.03, 0.19, -0.05), Q(-w * 1.03, 0.19, -0.05)];
       cerne(() => { ctx.beginPath(); pc.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); }, 0.9, 1, NUIT);
-      [-0.72, 0.72].forEach(u => { const b0 = Q(w * u - 0.06, 0.1, -0.08), b1 = Q(w * u + 0.06, 0.19, -0.08); cerne(() => { ctx.beginPath(); ctx.rect(b0[0], b1[1], b1[0] - b0[0], b0[1] - b1[1]); }, 0.6, 1); });
+      [-0.72, 0.72].forEach(u => { const b0 = Q(w * u - 0.07, 0.085, -0.08), b1 = Q(w * u + 0.07, 0.205, -0.08), bw = b1[0] - b0[0], bh = b0[1] - b1[1], rr = Math.min(bw, bh) * 0.45;
+        // (vague 251 : les butoirs étaient deux blocs bruts) : deux tampons de caoutchouc arrondis, une rainure et un boulon
+        cerne(() => { ctx.beginPath(); ctx.moveTo(b0[0] + rr, b1[1]); ctx.arcTo(b1[0], b1[1], b1[0], b0[1], rr); ctx.arcTo(b1[0], b0[1], b0[0], b0[1], rr); ctx.arcTo(b0[0], b0[1], b0[0], b1[1], rr); ctx.arcTo(b0[0], b1[1], b1[0], b1[1], rr); ctx.closePath(); }, 0.6, 1);
+        ctx.globalAlpha = 1; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.5; ctx.beginPath(); ctx.moveTo(b0[0] + rr * 0.6, b1[1] + bh * 0.32); ctx.lineTo(b1[0] - rr * 0.6, b1[1] + bh * 0.32); ctx.stroke();
+        ctx.beginPath(); ctx.arc(b0[0] + bw / 2, b1[1] + bh * 0.64, Math.max(1, bh * 0.1), 0, TAU); ctx.fillStyle = ENC; ctx.fill(); });
       ctx.globalAlpha = 1; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.6; for (let k = 0; k < 4; k++) { const y = 0.385 + k * 0.025, a0 = Q(-w * 0.42, y, 0), a1 = Q(w * 0.42, y, 0); ctx.beginPath(); ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a1[0], a1[1]); ctx.stroke(); }
       const e0 = Q(w * 0.86, 0.45, 0), e1 = Q(w * 0.97, h, 0); ctx.lineWidth = G.lw * 0.7; ctx.beginPath(); ctx.moveTo(e0[0], e0[1]); ctx.lineTo(e0[0], e1[1]); ctx.moveTo(e1[0], e0[1]); ctx.lineTo(e1[0], e1[1]); for (let k = 1; k < 6; k++) { const y = lerp(e0[1], e1[1], k / 6); ctx.moveTo(e0[0], y); ctx.lineTo(e1[0], y); } ctx.stroke(); }
     // les feux (rouges : ils brillent au freinage) ; au-dessus, le clignotant ambré du côté où il change de voie
