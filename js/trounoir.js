@@ -389,6 +389,13 @@ function crache() {
     // mouvement réduit (le monde ne bouge pas) : déjà là, chacun à sa place, qui flotte
     if (reduit) { const S = c.sp; S.m = 'derive'; S.sorti = true; S.g = 1; S.anim = pick(DERIVE); c.s = S.s; c.x = rnd(0.15, 0.85) * W; c.y = rnd(0.3, 0.8) * H; c.spin = rnd(-0.6, 0.6); (ANIMS[S.anim] || ANIMS.assis)(c, c.cur, 0); c.tgt.set(c.cur); }
   });
+  // (vague 196 de l'audit, originalité : « l'arrivée dans l'espace ») : le trou blanc se bouche. Le deuxième chat reste coincé dans le goulot,
+  // à moitié sorti, qui gigote et pousse ; les autres s'entassent derrière (le trou gonfle) ; puis PLOP, il saute comme un bouchon de champagne,
+  // et toute la file jaillit d'un coup derrière lui
+  const F = Wd.cats.filter(c => !c.gone && c.sp && c.rare !== 'geant').sort((a, b) => a.sp.dl - b.sp.dl), B = !reduit && F.length >= 3 && F[1];
+  E.bouchon = 0; E.bouchonD = 0;
+  if (B) { const D = 1.4; E.bouchon = D; E.bouchonD = D; B.sp.bouchon = D; let j = 0;
+    Wd.cats.forEach(c => { if (!c.gone && c.sp && c !== B && c.sp.dl > B.sp.dl) c.sp.dl = B.sp.dl + D + 0.04 + (c.rare === 'geant' ? 0.9 : j++ * 0.07); }); }
   E.crache = -1;
 }
 // les cordons du trou blanc (voir boucleEspace)
@@ -488,7 +495,20 @@ function flotte(c, dt, Q, acc) {
   if (S.m === 'crache') {
     if (S.t < S.dl) { c.s = 0.001; return; }
     if (!S.sorti) { S.sorti = true; const [cx, cy] = S.o || centre(); c.x = cx; c.y = cy; E.ondes.push({ x: cx, y: cy, t0: performance.now() / 1000, r: Wd.s0 * 1.2, a: 0.7 }); if (Math.random() < 0.6) apres(0.4, () => say(c, pick(['wiii !', 'mia ?', 'ooh', 'où…', '!', 'c\'est où ?']))); }
-    S.g = sm((S.t - S.dl) / 0.6); c.s = S.s * Math.max(0.02, S.g);
+    if (S.bouchon) { const u = S.t - S.dl, [cx, cy] = S.o || centre(), D = S.bouchon;
+      if (u < D) { // coincé : à moitié sorti, il gigote, pousse, le trou le retient
+        const e = sm(Math.min(1, u / 0.25)), tr = Math.sin(u * 34) * (0.4 + u / D);
+        c.s = S.s * (0.25 + 0.5 * e + 0.06 * Math.sin(u * 17)); c.x = cx + tr * 3 + Math.cos(Math.atan2(S.vy, S.vx)) * Wd.s0 * 0.12 * e; c.y = cy + Math.sin(Math.atan2(S.vy, S.vx)) * Wd.s0 * 0.12 * e;
+        c.spin = Math.sin(u * 23) * 0.35; c.anim = ANIMS.nage ? 'nage' : 'chute'; c.face = Math.cos(u * 5) < 0 ? -1 : 1;
+        if (!S.coince && u > 0.3) { S.coince = true; say(c, pick(['coincé !', 'hnnng', 'ça bloque', 'au secours'])); Wd.fx.push({ k: 'txt', text: pick(['grr', 'hnn', 'gnnn']), x: cx + Wd.s0 * 0.5, y: cy - Wd.s0 * 0.5, t0: Wd.t, life: 0.8, rot: rnd(-0.3, 0.3), size: 15 }); }
+        return; }
+      // PLOP : le bouchon saute, lancé deux fois plus vite, en toupie
+      S.bouchon = 0; E.bouchon = 0; S.dl += D; S.gMin = 0.75; S.vx *= 2.4; S.vy *= 2.4; c.spin = 0; S.w = (Math.random() < 0.5 ? -1 : 1) * rnd(6, 9);
+      Wd.shake = { t0: Wd.t, a: 7 }; E.ondes.push({ x: cx, y: cy, t0: performance.now() / 1000, r: Wd.s0 * 2.4, a: 0.9 });
+      Wd.fx.push({ k: 'txt', text: pick(['PLOP', 'POP', 'PLOC']), x: cx, y: cy - Wd.s0 * 0.7, t0: Wd.t, life: 1, rot: rnd(-0.25, 0.25), size: 30 });
+      apres(0.5, () => say(c, pick(['wouhouu !', 'libre !', 'aaah', 'ouf'])));
+    }
+    S.g = sm((S.t - S.dl) / 0.6); c.s = S.s * Math.max(S.gMin || 0.02, S.g);
     if (S.g >= 1) { S.m = 'derive'; S.next = Wd.t + rnd(1.5, 4); S.anim = pick(DERIVE); }
   } else c.s += (S.s * (X.echelle ? X.echelle(c) : 1) * (X.loin ? X.loin(c) : 1) * (S.vitreK || 1) - c.s) * Math.min(1, dt * (S.vitreK ? 7 : 3));   // (S.vitreK : le chat qui vient s'écraser sur la vitre, plus bas)   // (X.echelle : un module qui les veut plus petits, js/espace-plume.js)
   if (c.held) { c.anim = 'porte'; S.m = 'tenu'; S.ancre = null; return; }
@@ -690,10 +710,10 @@ function boucleEspace(id) {
   fondNoir(1); cielEtoile(1, now);
   X.fond.forEach(f => f(ctx, now));
   // le trou blanc : un anneau qui s'ouvre et des rayons, le temps de recracher tout le monde
-  const u = now - E.flash, [cx, cy] = centre(), n = Wd.cats.filter(c => !c.gone).length, dur = 1 + n * 0.16;
+  const u = now - E.flash, [cx, cy] = centre(), n = Wd.cats.filter(c => !c.gone).length, dur = 1 + n * 0.16 + (E.bouchonD || 0);
   if (u < dur + 0.8) {
     // (il part du point de lumière où le trou noir s'est refermé, grandit, puis se resserre en un point : il ne s'allume ni ne s'éteint)
-    const k = sm(u / 0.3) * (1 - sm((u - dur) / 0.8)), r = Math.min(W, H) * (0.03 + 0.03 * Math.sin(u * 6) * k) * k + 6 * (1 - sm((u - dur) / 0.8));
+    const k = sm(u / 0.3) * (1 - sm((u - dur) / 0.8)), r = (Math.min(W, H) * (0.03 + 0.03 * Math.sin(u * 6) * k) * k + 6 * (1 - sm((u - dur) / 0.8))) * (E.bouchon ? 1.25 + 0.15 * Math.sin(u * 31) : 1);   // (bouché : il gonfle et tremble)
     ctx.save(); ctx.translate(cx, cy); ctx.strokeStyle = '#F4F4EE'; ctx.lineCap = 'round';
     for (let i = 0; i < 12; i++) { const a = i * TAU / 12 + u * 0.8, L = r * (2 + (i % 3) * 0.7); ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(Math.cos(a) * r * 1.3, Math.sin(a) * r * 1.3); ctx.lineTo(Math.cos(a) * L, Math.sin(a) * L); ctx.stroke(); }
     // (vague 159, l'audit : « l'arrivée dans l'espace ») : ce n'était qu'une boule et des rayons. Le trou noir à l'envers a ses bras : quatre
