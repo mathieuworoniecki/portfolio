@@ -1811,6 +1811,26 @@ S.ia = (() => {
       if (c > 3.9 && c < 4.6) { const v = (c - 3.9) / 0.7; brille(lerp(R0[0], ag[0], v), lerp(R0[1] + hr / 2, ag[1] - k * 0.1, v), 3, 1, true, now, 4); }
       rouage(ag[0] + k * 0.22, ag[1] + k * 0.22, k * 0.06, c > 4.5 ? (c - 4.5) * 4 : 0);
       if (c > 5) coche(ag[0] + k * 0.2, ag[1] - k * 0.16, k * 0.05, (c - 5) / 0.4, 1);
+      // (vague 204 de l'audit, « IA et données », originalité) : la source qui n'en est pas une. Un chat-robot dort sur les fiches du nuage, comme un chat
+      // sur les papiers d'un bureau ; la recherche le ramasse avec la meilleure fiche, il fait le voyage jusqu'à l'écran (« wiii ») et s'y installe en renvoi [8] ;
+      // l'agent vérifie ses sources : celle-là n'en est pas une (✗ « source ? »), le renvoi bascule comme une trappe, le chat glisse et retombe dans le nuage
+      if (!reduitMvt()) { const q = Q[PR[0]], nM = PR.length, fs = Math.max(10, k * 0.05), mw0 = Math.min(wr * 0.8 / nM, fs * 1.9), y0 = R0[1] + hr * 0.33, mx = R0[0] - mw0 * (nM - 1) / 2 + nM * mw0, ry = y0 - fs * 0.62,
+          r = Math.max(7, k * 0.045), Sg = [R0[0] - wr * 0.3, R0[1]];
+        let x, y, rot = 0, dort = false, bras = [-0.4, -0.4], mt = null, bx = 0, ouv = 0;
+        if (c < 2.1) { x = q[0]; y = q[1] - k * 0.01; dort = c > 0.4 || c < 0.05; }
+        else if (c < 2.85) { const e = sm(c01((c - 2.1) / 0.75)); x = lerp(q[0], Sg[0], e); y = lerp(q[1], Sg[1], e) - Math.sin(Math.PI * e) * k * 0.3 - k * 0.03; bras = [1.3, 1.3]; mt = en() ? 'wheee' : 'wiii'; rot = Math.sin(c * 9) * 0.3; }
+        else if (c < 3.2) { const e = sm((c - 2.85) / 0.35); x = lerp(Sg[0], mx, e); y = lerp(Sg[1], ry, e) - Math.sin(Math.PI * e) * k * 0.1; bras = [1.1, 1.1]; bx = e; }
+        else if (c < 4.9) { x = mx; y = ry; bx = 1; bras = [0.2, 1.1 + 0.25 * Math.sin(now * 7)]; if (c > 4.3) mt = en() ? 'source?' : 'source ?'; }
+        else if (c < 5.6) { const u = (c - 4.9) / 0.7, e = sm(u); bx = 1; ouv = sm(c01(u / 0.25)); x = lerp(mx, q[0], e) + Math.sin(Math.PI * e) * k * 0.05; y = lerp(ry, q[1], e) - Math.sin(Math.PI * e) * k * 0.18; rot = e * 5; bras = [1.4, 1.4]; if (u < 0.5) mt = 'mrrp ?!'; }
+        else { x = q[0]; y = q[1] - k * 0.01; dort = c > 6.2; ouv = 1 - sm(c01((c - 5.6) / 0.4)); bx = c < 6.6 ? 1 - sm(c01((c - 6.2) / 0.4)) : 0; }
+        if (bx > 0) { ctx.save(); ctx.translate(mx - mw0 * 0.42, y0 + fs * 0.62); ctx.rotate(ouv * 1.3); ctx.scale(bx, bx); ctx.translate(mw0 * 0.42, -fs * 0.62);
+          cerne(() => { ctx.beginPath(); ctx.rect(-mw0 * 0.42, -fs * 0.62, mw0 * 0.84, fs * 1.24); }, 0.45, 1, PAP); ctx.globalAlpha = 1; ctx.fillStyle = ENC; ctx.font = `700 ${fs * 0.8}px "Space Grotesk",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('8', 0, 1); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+          ctx.restore(); }
+        if (c > 4.3 && c < 5.2) { const u = c01((c - 4.3) / 0.25), s0 = fs * 0.7, X = [mx + mw0 * 0.5, y0 - fs * 1.4]; trait([[X[0] - s0, X[1] - s0], [lerp(X[0] - s0, X[0] + s0, u), lerp(X[1] - s0, X[1] + s0, u)]], false, 1.2, 1); if (u >= 1) trait([[X[0] + s0, X[1] - s0], [X[0] - s0, X[1] + s0]], false, 1.2, 1);
+          const v = c01((c - 4.3) / 0.3); if (v < 1) brille(lerp(ag[0], X[0], v), lerp(ag[1] - k * 0.1, X[1], v), 3, 1, true, now, 44); }
+        ctx.save(); ctx.translate(x, y); ctx.rotate(rot); chabot(0, -r * 1.75, r, { now, ph: 47, casque: false, lac: 0.5, bras, cligne: dort, travaille: false }); ctx.restore();
+        if (dort && Math.sin(now * 2) > 0) mot('z', x + r * 1.4, y - r * 3 - Math.sin(now * 2) * r * 0.8, Math.max(8, k * 0.04), 0.7);
+        if (mt) mot(mt, x - r * 2.2, y - r * 3.6, Math.max(10, k * 0.05), 0.9); }
     }
   };
 })();
