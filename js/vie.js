@@ -470,7 +470,8 @@ STEPS.bond = (c, T, dt) => {
     // parti d'un perchoir (le tremplin) : il le quitte, la place est libre
     if (c.perch) { c.perch = null; (c.claims || []).forEach(p => { if (p.busy === c) p.busy = null; }); if (c.claims) c.claims.length = 0; }
     if (T.monte) { T.H = 0; T.dur = clamp(Math.sqrt(2 * Math.max(up, 1) / g), 0.2, 1.2); }
-    else { T.H = Math.max(0, up) * 0.3 + sc(c) * 0.3; const pk = Math.max(0, up) + T.H * 0.7, dn = Math.max(0, pk - up); T.dur = clamp(Math.sqrt(2 * pk / g) + Math.sqrt(2 * dn / g), 0.45, 1.3); }
+    else { T.H = T.Hx != null ? T.Hx : Math.max(0, up) * 0.3 + sc(c) * 0.3;   // (T.Hx : un bond d'une hauteur donnée, le rebond du trampoline de l'arrivée)
+      const pk = Math.max(0, up) + T.H * 0.7, dn = Math.max(0, pk - up); T.dur = clamp(Math.sqrt(2 * pk / g) + Math.sqrt(2 * dn / g), 0.45, 1.3); }
   }
   const u = Math.min(1, T.t / T.dur);
   if (T.monte) { const e = 1 - (1 - u) * (1 - u); c.x = T.x0 + (T.x - T.x0) * u; c.y = T.y0 + (T.y - T.y0) * e; c.anim = u < 0.12 ? 'atterrit' : u > 0.8 ? 'accroche' : 'saut'; }

@@ -58,6 +58,25 @@ function naitre(x, y) {
     L.wob = Wd.t + 0.05 + d / Math.max(300, Wd.W) * 0.9; L.wobA = (lx < x ? -1 : 1) * 0.9; L.hopA = h * (0.34 - 0.18 * Math.min(1, d / Wd.W)); }); }
   if (y != null) { K.dust(x, y, sc(k) * 0.5, 0.9); Wd.fx.push({ k: 'txt', text: 'pop', x: x + sc(k) * 0.5, y: y - sc(k) * 0.6, t0: Wd.t, life: 0.9, rot: 0.15, size: 18 }); }
   K.later(1.3, () => { if (Wd.cats.includes(k)) say(k, pick([L_('tuto.coucou'), '♥'])); });
+  // (vague 194 de l'audit, « l'arrivée », originalité) : le titre est un trampoline. Le chat qui vient de naître retombe sur les lettres :
+  // elles plient sous lui comme une toile tendue (celle du dessous plonge, ses voisines moins, en cuvette), le renvoient en l'air d'un
+  // « boïng » (« wouh ! »), puis il retombe et elles plient encore un peu ; deux rebonds, de moins en moins hauts
+  if (y != null && !reduit) { let n = 0; const t0 = Wd.t, guet = () => {
+if (!Wd.cats.includes(k) || k.held || n > 1) return; const pose = !k.fall && k.task && (k.task.k === 'titre' || k.task.k === 'rebord'); if (!pose) { if (Wd.t - t0 < 4) K.later(0.04, guet); return; }
+      const T = window.Vie && Vie.LETTERS && Vie.LETTERS(), r = T && Vie.RECT(), f = n ? 0.55 : 1;
+      // (au téléphone, il retombe souvent sur « Mode sérieux » : le bouton fait trampoline lui aussi, il plie sous lui et le renvoie)
+      const Bt = [...document.querySelectorAll('.ctas > *')].find(e => { const b = e.getBoundingClientRect(); return b.width && k.x > b.left && k.x < b.right && Math.abs(k.y - b.top) < sc(k) * 0.5; });
+      if (Bt) Bt.animate([{ transform: 'none' }, { transform: `translateY(${(9 * f) | 0}px) scale(1.03, .9)`, offset: 0.35 }, { transform: 'translateY(-3px) scale(.99, 1.03)', offset: 0.7 }, { transform: 'none' }], { duration: 420, easing: 'ease-out', composite: 'add' });
+      else { if (!T || !r || k.y > r.bottom + sc(k) * 0.3) return;
+        const Ls = T.filter(L => !L.st && L.a > 0.8); let i0 = -1, bd = 1e9; Ls.forEach((L, j) => { const d = Math.abs(Vie.lx(L, r) - k.x); if (d < bd) { bd = d; i0 = j; } }); if (i0 < 0 || bd > sc(k) * 1.5) return;
+        Ls.forEach((L, j) => { const d = Math.abs(j - i0); if (d > 4) return; const h = L.y1 - L.y0; L.wob = Wd.t; L.wobA = (j < i0 ? -1 : 1) * 0.6 * f * Math.exp(-d * 0.4); L.hopA = -h * 0.42 * f * Math.exp(-d * 0.55); }); }
+      const row = k.task && k.task.row != null ? k.task.row : 0, suite = Bt ? (() => ({ k: 'rebord', el: Bt, air: true })) : (() => ({ k: 'titre', air: true, row }));
+      n++; K.later(0.11, () => { if (!Wd.cats.includes(k) || k.held || k.fall) return;
+        // il rebondit : un bond sur place (de moins en moins haut), et il retombe sur ce qui l'a renvoyé
+        k.q = [{ k: 'bond', x: k.x + rnd(-0.25, 0.25) * sc(k), y: k.y, air: true, Hx: sc(k) * (n === 1 ? (Bt ? 0.85 : 1.3) : 0.5), then: suite }]; k.task = null;
+        Wd.fx.push({ k: 'txt', text: n === 1 ? 'boïng' : 'boing', x: k.x + sc(k) * 0.6, y: k.y - sc(k) * 0.4, t0: Wd.t, life: 0.9, rot: -0.2, size: n === 1 ? 22 : 16 }); if (n === 1) K.later(0.35, () => { if (Wd.cats.includes(k)) say(k, pick(['wouh !', 'hihi', '!?'])); });
+        const att = () => { if (!Wd.cats.includes(k) || n > 1) return; if (k.task && k.task.k === 'bond') { K.later(0.04, att); return; } guet(); }; K.later(0.15, att); }); };
+    K.later(0.2, guet); }
 }
 // le croquis : une seule ligne continue (comme on dessine un chat sans lever la plume), puis les deux yeux
 let D = null, R = null; const ENVOL = 0.9;
