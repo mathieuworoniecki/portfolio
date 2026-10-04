@@ -1894,10 +1894,13 @@ S.ia = (() => {
       // le nuage : il tourne ; ses liens ; il se remplit
       const Q = Vs.map(([x, y, z]) => V(x * R, y * R, z * R)), nb = Math.max(1, Math.min(Nn, 30 + Math.floor(a * 16)));
       sousLaBarre();   // (vague 60 : le nuage ne passe plus sur la barre des chapitres)
-      for (let i = 0; i < nb; i++) VO[i].forEach(j => { if (j < nb) trait([Q[i], Q[j]], false, 0.35, prof(Q[i][2], 0.35)); });
+      // (vague 238 de l'audit, « IA et données », design : le bas du nuage descendait sous le titre de la scène, des fiches grises derrière les
+      // sous-titres) : en approchant des sous-titres, une fiche rapetisse jusqu'au point, et ses liens s'arrêtent avant
+      const capY = (G.caps || G.bas) - 6, sC = q => c01((capY - q[1]) / (k * 0.1));
+      for (let i = 0; i < nb; i++) VO[i].forEach(j => { if (j < nb && sC(Q[i]) > 0.3 && sC(Q[j]) > 0.3) trait([Q[i], Q[j]], false, 0.35, prof(Q[i][2], 0.35)); });
       // (vague 4 : « un nuage de points trop sage ») : chaque vecteur est une petite fiche de papier ; celles de devant, plus grandes, portent deux lignes d'encre
-      Q.slice(0, nb).map((q, i) => [q, i]).sort((p, r) => p[0][2] - r[0][2]).forEach(([q, i]) => { const al = prof(q[2]); if (q[2] < -0.1) { rond(q[0], q[1], 1.3 + q[3] * 0.9, 0.5, al, true); return; }
-        const w = k * 0.03 * q[3], h = w * 0.72, rt = bruit(i * 3.3) - 0.5; ctx.save(); ctx.translate(q[0], q[1]); ctx.rotate(rt); cerne(() => { ctx.beginPath(); ctx.rect(-w, -h, 2 * w, 2 * h); }, 0.45, al, al < 0.8 ? null : undefined);
+      Q.slice(0, nb).map((q, i) => [q, i]).sort((p, r) => p[0][2] - r[0][2]).forEach(([q, i]) => { const al = prof(q[2]), sc = sC(q); if (sc < 0.08) return; if (q[2] < -0.1 || sc < 0.35) { rond(q[0], q[1], (1.3 + q[3] * 0.9) * Math.max(0.5, sc), 0.5, al, true); return; }
+        const w = k * 0.03 * q[3] * sc, h = w * 0.72, rt = bruit(i * 3.3) - 0.5; ctx.save(); ctx.translate(q[0], q[1]); ctx.rotate(rt); cerne(() => { ctx.beginPath(); ctx.rect(-w, -h, 2 * w, 2 * h); }, 0.45, al, al < 0.8 ? null : undefined);
         if (w > 5 && al >= 0.8) { ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.3; ctx.beginPath(); ctx.moveTo(-w * 0.6, -h * 0.25); ctx.lineTo(w * 0.6, -h * 0.25); ctx.moveTo(-w * 0.6, h * 0.3); ctx.lineTo(w * 0.2, h * 0.3); ctx.stroke(); } ctx.restore(); });
       RAG.t = now;   // (vague 88 : la question cherche aussi dans le vrai site, voir ragUI())
       // (vague 60 de l'audit, « IA et données », immersion) : la souris pose sa propre question au nuage. Ses cinq plus proches voisins s'allument
@@ -1928,7 +1931,13 @@ S.ia = (() => {
       // (vague 144, finition : au bureau, l'écran de la réponse passait sur la planète des chats ; il se range à sa gauche)
       const wr = 0.52 * k, hr = 0.34 * k, R0 = Pk(xa, -0.38); { const pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
         if (pc && R0[0] + wr / 2 > pc.x - pc.r * 1.3 && R0[1] - hr / 2 < pc.y + pc.r * 1.3) R0[0] = Math.min(R0[0], pc.x - pc.r * 1.3 - wr / 2 - 8); } ecran(R0[0] - wr / 2, R0[1] - hr / 2, wr, hr, k * 0.06, 6);
-      const ec = c01((c - 2.6) / 1.2); for (let l = 0; l < 3; l++) { const u = c01(ec * 3 - l); if (u > 0) trait([[R0[0] - wr * 0.38, R0[1] - hr * 0.22 + l * hr * 0.22], [R0[0] - wr * 0.38 + wr * (0.76 - (l === 2 ? 0.3 : 0)) * u, R0[1] - hr * 0.22 + l * hr * 0.22]], false, 0.6, 0.9); }
+      // (vague 238 de l'audit, « IA et données », design : avant la réponse, l'écran n'était qu'un grand rectangle noir) : le curseur y clignote,
+      // et pendant la recherche trois points sautillent, l'agent réfléchit ; quand la réponse s'écrit, le curseur court au bout de la ligne
+      const ec = c01((c - 2.6) / 1.2);
+      { const lx0 = R0[0] - wr * 0.38, l = Math.min(2, Math.floor(ec * 3)), u = c01(ec * 3 - l), cx = ec > 0 ? lx0 + wr * (0.76 - (l === 2 ? 0.3 : 0)) * u + 5 : lx0, cy = R0[1] - hr * 0.22 + l * hr * 0.22, ch = Math.max(8, hr * 0.12);
+        if (c < 2.6 && c > 1.2) for (let d = 0; d < 3; d++) { const sb = Math.max(0, Math.sin(now * 7 - d * 0.9)); ctx.globalAlpha = 1; ctx.fillStyle = `rgb(${BL})`; ctx.beginPath(); ctx.arc(lx0 + 6 + d * ch * 0.9, cy - sb * ch * 0.4, ch * 0.18, 0, TAU); ctx.fill(); }
+        else if (ec < 1 && Math.floor(now * 2.2) % 2 === 0) { ctx.globalAlpha = 1; ctx.fillStyle = `rgb(${BL})`; ctx.fillRect(cx, cy - ch / 2, ch * 0.5, ch); } }
+      for (let l = 0; l < 3; l++) { const u = c01(ec * 3 - l); if (u > 0) trait([[R0[0] - wr * 0.38, R0[1] - hr * 0.22 + l * hr * 0.22], [R0[0] - wr * 0.38 + wr * (0.76 - (l === 2 ? 0.3 : 0)) * u, R0[1] - hr * 0.22 + l * hr * 0.22]], false, 0.6, 0.9); }
       // (29/09, l'audit : « trop sage ») : chaque voisin retrouvé devient une petite fiche de papier qui file, en arc, jusqu'à l'écran de la réponse
       PR.forEach((i, j) => { const v = c01((c - 2.1 - j * 0.09) / 0.75); if (v <= 0 || v >= 1) return; const q = Q[i], e = sm(v), x = lerp(q[0], R0[0] - wr * 0.3, e), y = lerp(q[1], R0[1], e) - Math.sin(Math.PI * e) * k * 0.3, w = k * 0.07, h = k * 0.05;
         ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(v * 9 + j) * 0.4); cerne(() => { ctx.beginPath(); ctx.rect(-w / 2, -h / 2, w, h); }, 0.55, 1); ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.3; ctx.beginPath(); ctx.moveTo(-w * 0.35, -h * 0.1); ctx.lineTo(w * 0.35, -h * 0.1); ctx.moveTo(-w * 0.35, h * 0.18); ctx.lineTo(w * 0.1, h * 0.18); ctx.stroke(); ctx.restore(); });
