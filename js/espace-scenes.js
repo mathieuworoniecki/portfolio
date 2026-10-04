@@ -1153,9 +1153,14 @@ S.agents = (() => {
               if (c >= 0 && e > 0.95) { const d = c01((c - 1.35) / 0.5), u = c01((c - 2.75) / 0.5), sz = k * 0.03;
                 if (d > 0 && d < 1) { const x = lerp(A[0], E[0], d), y = lerp(A[1], E[1], d) + sz; cerne(() => { ctx.beginPath(); ctx.rect(x - sz, y - sz * 0.7, sz * 2, sz * 1.4); }, 0.5, 1); }
                 if (u > 0 && u < 1) { const x = lerp(E[0], A[0], u), y = lerp(E[1], A[1], u); cerne(() => { ctx.beginPath(); ctx.arc(x, y, sz * 0.9, 0, TAU); }, 0.6, 1); coche(x, y, sz * 0.5, 1, 0.5); brille(x, y, 2.2, 0.6, true, now, 77); } } } } } }
+      const F3 = N.filter(q => q.n === 3 && nait(q) > 0).map(q => q.i);
       N.slice().sort((p, q) => pos[p.i][2] - pos[q.i][2]).forEach(q => { const e = nait(q); if (e <= 0) return; const [x, y, z, f] = pos[q.i], pop = e < 1 ? 1 + 0.35 * Math.sin(Math.PI * e) : 1, al = 1;
         if (q.n < 3) robot(x, y, k * [0.14, 0.09, 0.06][q.n] * f * pop * (q.n ? Math.min(1.4, hx * 0.55) : 1), al, Math.sin(now * 1.5 + q.i) > 0.97, { now, ph: q.i, lac: Math.sin(now * 0.6 + q.i * 1.7) * 0.7, travaille: c > 1.3 && c < 2.9 });
-        else { const r = k * 0.028 * f * pop * Math.min(1.6, hx * 0.6); if (r > 5) { chabot(x, y, r * 1.25, { now, ph: q.i, a: al, casque: false, lac: Math.sin(now * 0.8 + q.i) * 0.6, travaille: c > 1.3 && c < 2.9 }); } else rond(x, y, r, 0.8, al, 'nuit'); if (c > 1.3 && c < 2.9) { style(0.6, al); ctx.beginPath(); ctx.arc(x, y, r * 1.9, now * 6 + q.i, now * 6 + q.i + 2); ctx.stroke(); } } });
+        else { let r = k * 0.028 * f * pop * Math.min(1.6, hx * 0.6);
+          // (vague 232 de l'audit, design : aux deux bouts du lustre, la perspective serrait les sous-agents les uns sur les autres en un tas de
+          // casques) : chacun rapetisse assez pour laisser de l'air à son plus proche voisin
+          { let dm = 1e9; F3.forEach(j => { if (j === q.i) return; const d = Math.hypot(pos[j][0] - x, pos[j][1] - y); if (d < dm) dm = d; }); r = Math.min(r, Math.max(3, dm * 0.36)); }
+          if (r > 5) { chabot(x, y, r * 1.25, { now, ph: q.i, a: al, casque: false, lac: Math.sin(now * 0.8 + q.i) * 0.6, travaille: c > 1.3 && c < 2.9 }); } else rond(x, y, r, 0.8, al, 'nuit'); if (c > 1.3 && c < 2.9) { style(0.6, al); ctx.beginPath(); ctx.arc(x, y, r * 1.9, now * 6 + q.i, now * 6 + q.i + 2); ctx.stroke(); } } });
       // (vague 8, l'audit : le dessin doit servir le texte) : chaque sous-agent porte son métier, celui des sous-titres
       const MET = en() ? ['explore', 'code', 'tests', 'review'] : ['exploration', 'code', 'tests', 'revue'];
       const L1 = N.filter(q => q.n === 1), dev = L1.slice().sort((p, q) => pos[q.i][2] - pos[p.i][2]).slice(0, 2);   // (les deux de devant : les autres sont cachés derrière)
