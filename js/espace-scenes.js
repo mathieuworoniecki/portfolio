@@ -1411,7 +1411,7 @@ S.skills = (() => {
 // les autres repartent au garage. Et on relance : ce n'est jamais le même qui gagne
 const PHOTO = { vu: false };
 S.bench = (() => {
-  const NOMS = ['A', 'B', 'C', 'D', 'E'];
+  const NOMS = ['A', 'B', 'C', 'D', 'E'], VIT = {};
   return {
     cles: () => [[-1.2, -0.3], [1.2, -0.3], [-1, 0.6], [1, 0.6]],
     dessin(a, now) {
@@ -1430,6 +1430,17 @@ S.bench = (() => {
       const v = NOMS.map((_, i) => 0.75 + 0.5 * bruit(n * 11 + i * 3.7)), g = v.indexOf(Math.max(...v)), rang = v.map((x, i) => [x, i]).sort((p, q) => q[0] - p[0]).map(q => q[1]);
       // la piste : un anneau relevé (le bord intérieur plus bas), ses lignes de couloir, les traits de vitesse
       const piste = (t, l, y = 0) => { const r = 1 + (l - 2) * 0.07; return V(Math.cos(t) * Rx * r, y - (l - 2) * 0.025, Math.sin(t) * Rz * r); };
+      // (vague 273 de l'audit, « la course », immersion) : on est dans la course, pas devant. Pendant qu'elle suit la tête, tout le ciel file
+      // derrière elle : des traits de vitesse traversent l'écran d'un bord à l'autre, à l'opposé de la fusée de tête, et s'allongent avec sa
+      // vitesse (au départ, des points ; lancés, de longues traînées ; à l'arrivée, ils se ramassent en points et s'arrêtent)
+      if (!reduitMvt()) { const goV = c01((c - 1.1) / 3.4), vit = goV > 0 && c < 4.6 ? Math.sin(Math.PI * Math.min(1, goV * 1.15)) ** 0.6 : 0, dtV = Math.min(0.1, Math.max(0, now - (VIT.t || now))); VIT.t = now;
+        VIT.v = lerp(VIT.v || 0, vit, Math.min(1, dtV * 6)); VIT.acc = (VIT.acc || 0) + dtV * VIT.v * G.s * 2.6;
+        if (VIT.v > 0.02) { const tH = T0b(goV), A = piste(tH, g), B = piste(tH + 0.08, g), dd = Math.hypot(B[0] - A[0], B[1] - A[1]) || 1, ux = (B[0] - A[0]) / dd, uy = (B[1] - A[1]) / dd,
+            W2 = Math.hypot(G.droite - G.gauche, G.bas) * 1.1, cx = (G.gauche + G.droite) / 2, cy = (G.haut + (G.caps || G.bas)) / 2, bdV = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, PcV = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat,
+            ok = q => q[1] > G.haut + 4 && q[1] < (G.caps || G.bas) - 4 && !(bdV && q[1] > bdV.y - 12 && q[1] < bdV.y + bdV.h + 12 && q[0] > bdV.x - 16 && q[0] < bdV.x + bdV.w + 16) && !(PcV && Math.hypot(q[0] - PcV.x, q[1] - PcV.y) < PcV.r * 1.3);
+          for (let j = 0, nV = G.droite - G.gauche > 700 ? 90 : 50; j < nV; j++) { const z = 0.4 + bruit(j * 5.1) * 0.9, al0 = ((bruit(j * 2.3) * W2 - VIT.acc * z) % W2 + W2) % W2 - W2 / 2, b0 = (bruit(j * 3.9) - 0.5) * W2,
+              x = cx + ux * al0 - uy * b0, y = cy + uy * al0 + ux * b0, L = (6 + 190 * z) * VIT.v, Q = [x + ux * L, y + uy * L];
+            if (!ok([x, y]) || !ok(Q)) continue; trait([[x, y], Q], false, 0.5 + z * 0.6, 0.45 + z * 0.4); if (z > 1.1) brille(Q[0], Q[1], 1.8, 0.9, false, now, j); } } }
       [-0.6, 4.6].forEach(l => trait3((() => { const L = []; for (let i = 0; i <= 90; i++) L.push(piste(i / 90 * TAU, l)); return L; })(), l < 0 ? 0.9 : 1.2, 0.9));
       for (let l = 0.5; l < 4.5; l++) { const L = []; for (let i = 0; i <= 90; i++) L.push(piste(i / 90 * TAU, l)); for (let i = 0; i < 90; i += 3) trait([L[i], L[i + 1]], false, 0.35, prof(L[i][2], 0.5)); }
       for (let i = 0; i < 36; i++) { const t = i / 36 * TAU, A = piste(t, -0.6), B = piste(t, 4.6); trait([A, B], false, 0.3, prof(A[2], 0.25)); }
