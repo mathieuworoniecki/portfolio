@@ -945,6 +945,24 @@ S.equipe = (() => {
         const b = [0.6 + Math.sin(now * 7 + f.ph) * 0.45 * ag + ola * 1.1, 0.6 + Math.sin(now * 7.6 + f.ph + 1.3) * 0.45 * ag + ola * 1.1];
         L.push({ z, f: () => chabot(x, y - r * 1.75 - (ola * 0.9 + Math.abs(Math.sin(now * 5 + f.ph)) * 0.12 * ag) * r, r, { bras: b, now, ph: f.id, casque: r > 9, lac: Math.cos(th) * -0.6 + Math.sin(now * 0.5 + f.ph) * 0.3, cligne: Math.sin(now * 1.3 + f.ph * 3) > 0.985 }) });
       });
+      // (vague 269 de l'audit, « un développeur… », immersion) : l'arène ne s'arrête pas aux gradins. Quand il se met à diriger, tout le ciel
+      // derrière s'allume : des dizaines de bras levés au loin, chacun une petite lumière au bout, qui se balancent comme dans un stade la nuit,
+      // jusqu'aux bords de l'écran ; la ola les soulève à leur tour ; au tourbillon, ces lumières filent en spirale avec les agents et rentrent en lui
+      if (!reduitMvt()) { const bdL = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, R4 = P[P.length - 1], ML = G.droite - G.gauche > 700 ? 90 : 46, hL = P.bot * 0.9;
+        for (let j = 0; j < ML; j++) { const ta = 2.3 + bruit(j * 2.3) * 0.9; if (c < ta) continue;
+          const x0 = G.gauche + 6 + bruit(j * 5.7) * (G.droite - G.gauche - 12), y0 = G.haut + 14 + hL + bruit(j * 9.1) * Math.max(10, (G.caps || G.bas) - 12 - G.haut - hL * 2);
+          if (bdL && y0 > bdL.y - 20 && y0 < bdL.y + bdL.h + 14 && x0 > bdL.x - 20 && x0 < bdL.x + bdL.w + 20) continue;
+          if (pc && Math.hypot(x0 - pc.x, y0 - pc.y) < pc.r * 1.35 + 8) continue;
+          const u = ((Math.atan2((y0 - pied[1]) / Math.max(20, R4.ry), (x0 - pied[0]) / Math.max(20, R4.rx)) / TAU) % 1 + 1) % 1, v = ((c - 3.3) / 1.3) % 1, dd = Math.min(Math.abs(u - v), 1 - Math.abs(u - v)),
+            ola = c > 3.3 && c < 5.9 ? Math.exp(-((dd * 7) ** 2)) : 0, nait = sm((c - ta) / 0.35), bal = Math.sin(now * 1.7 + j * 1.3) * 0.35 * nait, lev = ola * hL * 1.4;
+          // (le bras pivote au coude : il naît court et pousse, jamais en fondu)
+          const bx = x0 + Math.sin(bal) * hL * (1 + ola * 0.6), by = y0 - Math.cos(bal) * hL * nait - lev;
+          const tv = 6.0 + (1 - bruit(j * 3.3)) * 1.4, ev = sm((c - tv) / 0.9);
+          if (c < tv) { trait([[x0, y0 + hL * 0.25 - lev * 0.4], [bx, by]], false, 0.5, 0.55); brille(bx, by, (3 + ola * 3) * (0.5 + 0.5 * nait), 1, j % 3 === 0 || ola > 0.4, now, j); continue; }
+          if (ev >= 1) continue;
+          const sg = x0 < coeur[0] ? 1 : -1, dx = bx - coeur[0], dy = by - coeur[1], at = e => { const an = e * 3.8 * sg, rr = 1 - e; return [coeur[0] + (dx * Math.cos(an) - dy * Math.sin(an)) * rr, coeur[1] + (dx * Math.sin(an) + dy * Math.cos(an)) * rr]; };
+          const Lq = [0.16, 0.1, 0.05, 0].map(d => at(Math.max(0, ev - d))).filter(q => q[1] > G.haut + 2 && !(bdL && q[1] > bdL.y - 14 && q[1] < bdL.y + bdL.h + 14 && q[0] > bdL.x - 20 && q[0] < bdL.x + bdL.w + 20));
+          trait(Lq, false, 0.6, 0.6); if (Lq.length) brille(Lq[Lq.length - 1][0], Lq[Lq.length - 1][1], 3 * (1 - ev * 0.6), 1, true, now, j); } }
       derriere.sort((p, q) => p.z - q.z).forEach(d => d.f()); devant.sort((p, q) => p.z - q.z); devant.filter(d => d.z < 90).forEach(d => d.f());
       // lui, debout sur un petit podium de papier au milieu de l'arène (au-dessus de tous) : le projecteur (seul au début, seul à la fin) ;
       // il dirige pendant que tout le monde s'agite ; il grossit de tous ceux qui rentrent
