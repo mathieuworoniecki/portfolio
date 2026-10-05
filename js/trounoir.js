@@ -401,7 +401,7 @@ function entre() {
   if (Wd.espace) return;
   if (!theme0 || (window.THEME && THEME.color !== 'espace')) noir();
   Wd.espace = true; root.classList.add('espace'); taille();
-  E.crache = Wd.t; E.flash = performance.now() / 1000; E.retourG = null; E.ondes.length = 0; E.pops.length = 0;
+  E.crache = Wd.t; E.flash = performance.now() / 1000; E.retourG = null; E.ondes.length = 0; E.pops.length = 0; E.epaves = null; E.neuves = [];
   Wd.props.forEach(it => { it.root.visible = false; });
   const id = ++E.boucle; requestAnimationFrame(() => boucleEspace(id));
   X.entre.forEach(f => f());
@@ -749,6 +749,38 @@ function onde(x, y) {
 }
 
 /* ——— le calque de l'espace : le ciel, le trou blanc qui recrache, les ondes ——— */
+/* (vague 263 de l'audit, immersion : « l'arrivée dans l'espace ») : le trou blanc ne recrache pas que les chats. Ce qu'il a avalé de la page
+   ressort aussi : les lettres du titre et des lambeaux de papier quadrillé. Les uns foncent vers toi en grossissant et passent de chaque côté
+   de l'écran ; les autres filent au loin en rapetissant jusqu'à n'être qu'un point… qui s'allume : ils deviennent des étoiles, et restent
+   dans le ciel tant qu'on est dans l'espace. La page n'a pas disparu, elle est devenue le ciel. */
+function epaves(u, now) {
+  if (reduit) return;
+  if (!E.epaves) { const D = Math.hypot(W, H) * 0.5, tel = W < 760, h1 = document.querySelector('h1'), txt = ((h1 && h1.textContent) || 'Salut, moi c’est Mathieu.').replace(/\s+/g, '');
+    E.epaves = Array.from({ length: tel ? 22 : 40 }, (_, i) => { const a = rnd(0, TAU), toi = i % 5 < 2;
+      return { a, toi, v: toi ? rnd(0.55, 0.9) : rnd(0.35, 0.95), D, dl: 0.15 + rnd(0, 1.3), dur: toi ? rnd(1, 1.5) : rnd(1.6, 2.4), sp: rnd(-6, 6), lettre: i % 2 ? txt[i % txt.length] : null, sz: rnd(0.8, 1.25) * (tel ? 0.8 : 1),
+        bord: Array.from({ length: 16 }, (_, j) => [j / 16 * TAU + rnd(-0.12, 0.12), (j % 2 ? 0.62 : 0.9) + rnd(-0.16, 0.2)]), fait: false }; }); }
+  const [cx, cy] = centre(), hand = getComputedStyle(document.body).getPropertyValue('--hand') || 'serif', haut = HAUT(), bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande;
+  ctx.save(); ctx.lineJoin = ctx.lineCap = 'round';
+  for (const q of E.epaves) {
+    if (q.fait) continue; const e = c01((u - q.dl) / q.dur); if (e <= 0) continue;
+    let x, y, k;
+    if (q.toi) { const f = Math.pow(e, 1.6); k = 0.25 + 4.2 * f * f; const rr = q.D * q.v * (0.15 * e + 1.6 * f * f); x = cx + Math.cos(q.a) * rr; y = cy + Math.sin(q.a) * rr * 0.82;
+      if (e >= 1 || x < -90 * k || x > W + 90 * k || y < -90 * k || y > H + 90 * k) { q.fait = true; continue; } }
+    else { const f = 1 - Math.pow(1 - e, 3); k = Math.max(0, 1.1 * (1 - e) * (1 - e) + 0.3 * (1 - e) * e); const rr = q.D * q.v * f; x = cx + Math.cos(q.a) * rr; y = cy + Math.sin(q.a) * rr * 0.82;
+      // arrivé au loin : un point, qui s'allume en étoile (sauf sous la barre du haut ou sur la bande des sous-titres)
+      if (e >= 1) { q.fait = true; if (y > haut + 10 && !(bd && x > bd.x - 20 && x < bd.x + bd.w + 20 && y > bd.y - 20 && y < bd.y + bd.h + 20)) E.neuves.push({ x: x / W, y: y / H, t0: now, r: rnd(1.6, 3.2), ph: rnd(0, TAU) }); continue; } }
+    ctx.save(); ctx.translate(x, y); ctx.rotate(q.sp * e); ctx.scale(k * q.sz, k * q.sz);
+    if (q.lettre) { ctx.font = `58px ${hand}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 5; ctx.strokeStyle = '#07080C'; ctx.strokeText(q.lettre, 0, 0); ctx.fillStyle = '#F4F4EE'; ctx.fillText(q.lettre, 0, 0); }
+    else { const bord = () => { ctx.beginPath(); q.bord.forEach(([b, m], j) => { const px = Math.cos(b) * 22 * m, py = Math.sin(b) * 22 * m; j ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }); ctx.closePath(); }; bord();
+      ctx.fillStyle = '#D8DAD4'; ctx.fill(); ctx.save(); ctx.clip(); ctx.strokeStyle = 'rgba(34,36,40,0.28)'; ctx.lineWidth = 1;   // (le quadrillage de la page, encore dessus)
+      ctx.beginPath(); for (let g = -24; g <= 24; g += 8) { ctx.moveTo(g, -24); ctx.lineTo(g, 24); ctx.moveTo(-24, g); ctx.lineTo(24, g); } ctx.stroke(); ctx.restore();
+      bord(); ctx.strokeStyle = '#F4F4EE'; ctx.lineWidth = 2 / Math.max(0.3, k); ctx.stroke(); }
+    ctx.restore();
+  }
+  // les étoiles nées de la page : elles s'allument d'un éclat, puis scintillent avec les autres
+  E.neuves.forEach(s => { const a = now - s.t0, ec = Math.max(0, 1 - a / 0.5); brille(ctx, s.x * W, s.y * H, s.r * (1 + 2.5 * ec), 0.75 + 0.25 * Math.sin(now * 2 + s.ph), true, now, s.ph); ctx.globalAlpha = 1; ctx.fillStyle = '#F4F4EE'; ctx.beginPath(); ctx.arc(s.x * W, s.y * H, s.r * 0.45, 0, TAU); ctx.fill(); });
+  ctx.restore(); ctx.globalAlpha = 1;
+}
 function boucleEspace(id) {
   if (id !== E.boucle) return;
   if (!Wd.espace) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); return; }
@@ -788,6 +820,7 @@ function boucleEspace(id) {
       ctx.globalAlpha = 0.7 * (1 - e); ctx.lineWidth = q.s * 0.7; ctx.beginPath(); ctx.moveTo(xt, yt); ctx.lineTo(x, y); ctx.stroke(); brille(ctx, x, y, q.s, 1 - e, q.s > 2, now, q.a); });
     ctx.restore(); }
   else E.gerbe = null;
+  epaves(u, now);
   // (vague 66) et ta souris revient : les grains de craie avalés avec elle ressortent du trou blanc, en spirale inverse,
   // et se rassemblent sur la pointe ; la flèche, encore étirée vers le trou, se rétracte d'un coup, et un petit anneau marque qu'elle est là
   const P = Wd.ptr;
