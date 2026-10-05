@@ -212,6 +212,23 @@ function terre(ctx, now) {
   // (29/09, l'audit : « la Terre, correcte mais passive ») : elle vit. Des villes s'allument le long de l'horizon (la nuit de ce côté) ;
   // un satellite de papier passe au-dessus de l'atmosphère, ses panneaux ; de temps en temps, une petite fusée décolle et monte en arc
   if (tc > 0.5) { const yA = x => T.cy - Math.sqrt(Math.max(0, T.R * T.R - (x - T.cx) ** 2));
+    // (vague 284 de l'audit, « la Terre », immersion) : elle a ses orbites. Trois grandes orbites inclinées en pointillés sortent de l'horizon,
+    // montent dans le ciel et replongent derrière la Terre de l'autre côté ; sur chacune, de petits satellites de papier tournent, passent derrière
+    // le globe (cachés par lui, pas effacés) et en ressortent ; leurs panneaux accrochent le soleil (jamais sur les sous-titres ni sur les commandes)
+    if (!reduit) { const bdO = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, Gp = window.EspacePlume && EspacePlume.M && EspacePlume.M.lay && EspacePlume.M.lay.G, hb = Gp ? Gp.haut - 4 : 0,
+        tel = O.W < 600, hk = clamp(O.H / 900, 0.6, 1.2), ORB = [[0.55, 330, 0.05, 0.08], [0.75, 430, -0.06, -0.06], [0.95, 530, 0.03, 0.045]];
+      ctx.save(); ctx.beginPath(); ctx.rect(0, hb, O.W, O.H - hb); if (bdO) ctx.rect(bdO.x - 14, bdO.y - 10, bdO.w + 28, bdO.h + 20); UIT.L.forEach(b => ctx.rect(b.left - 10, b.top - 8, b.width + 20, b.height + 16)); ctx.clip('evenodd');
+      ctx.beginPath(); ctx.rect(-10, -10, O.W + 20, O.H + 20); ctx.moveTo(T.cx + T.R + 1, T.cy); ctx.arc(T.cx, T.cy, T.R + 1, 0, TAU, true); ctx.clip('evenodd');
+      ORB.forEach(([fx, hp, tilt, w], io) => { const Rx = O.W * fx * (tel ? 0.85 : 1), Ry = T.R + hp * hk * tc, ct = Math.cos(tilt), st = Math.sin(tilt),
+          pt = th => { const ex = Math.cos(th) * Rx, ey = -Math.sin(th) * Ry; return [T.cx + ex * ct - ey * st, T.cy + ex * st + ey * ct]; };
+        ctx.save(); ctx.setLineDash([3, 7]); ctx.lineDashOffset = -now * 5 * Math.sign(w); ctx.strokeStyle = `rgba(${BL},0.6)`; ctx.lineWidth = 1.5; ctx.beginPath();
+        for (let i = 0; i <= 160; i++) { const q = pt(i / 160 * Math.PI); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); } ctx.stroke(); ctx.restore();
+        for (let m = 0; m < 3; m++) { const th = ((now * w + m / 3 + io * 0.21) % 1 + 1) % 1 * TAU, q = pt(th), q2 = pt(th + 0.01), an = Math.atan2(q2[1] - q[1], q2[0] - q[0]), sz = (tel ? 1 : 1.35) * (0.85 + io * 0.15);
+          ctx.save(); ctx.translate(q[0], q[1]); ctx.rotate(an); ctx.scale(sz, sz); ctx.lineWidth = 1.3; ctx.strokeStyle = `rgb(${BL})`; ctx.fillStyle = '#07080C';
+          [-1, 1].forEach(g => { ctx.beginPath(); ctx.rect(g > 0 ? 5 : -14, -2.5, 9, 5); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.moveTo(g > 0 ? 9.5 : -9.5, -2.5); ctx.lineTo(g > 0 ? 9.5 : -9.5, 2.5); ctx.stroke(); });
+          ctx.beginPath(); ctx.rect(-4, -3.5, 8, 7); ctx.fill(); ctx.stroke(); ctx.restore();
+          if (Math.sin(now * 1.7 + m * 2.3 + io) > 0.93) O.brille(ctx, q[0] + Math.cos(an) * 10 * sz, q[1] + Math.sin(an) * 10 * sz, 2.4, tc, true, now, 160 + io * 3 + m); } });
+      ctx.restore(); }
     // (vague 45, l'audit : « la Terre », immersion) : une aurore boréale se lève de temps en temps sur tout l'horizon, d'un bord à l'autre :
     // des rideaux de traits verticaux qui ondulent, se plient, courent le long de la courbe, puis retombent dans l'atmosphère (jamais sur les sous-titres)
     { const cyc = 26, u = ((now + 4) % cyc) / 9; if (u < 1 && !reduit) { const lev = sm(u / 0.25) * (1 - sm((u - 0.72) / 0.28)), bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, Hm = Math.min(130, O.H * 0.17);
