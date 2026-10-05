@@ -468,19 +468,37 @@ X.pas.push(() => {
   if (VI.fait || reduit || !Wd.espace) return;
   if (VI.tCord < 0) { if (Wd.cats.some(c => c.sp && c.sp.cordonFini)) VI.tCord = Wd.t; return; }
   if (Wd.t - VI.tCord < 0.9) return;
-  const c = Wd.cats.filter(c => c.sp && c.sp.sorti && c.sp.m === 'derive' && !c.held && !c.gone && !c.rare).sort((a, b) => Math.abs(a.x - W / 2) - Math.abs(b.x - W / 2))[0]; if (!c) return;
+  // (vague 322) de préférence un chat au-dessus des sous-titres : venu d'en bas, il traversait leur bande, qui le repoussait (il lâchait la vitre)
+  const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, L = Wd.cats.filter(c => c.sp && c.sp.sorti && c.sp.m === 'derive' && !c.held && !c.gone && !c.rare),
+    L2 = bd ? L.filter(c => centreDe(c)[1] + rayon(c) * 1.3 < bd.y) : L;
+  if (!L2.length && Wd.t - VI.tCord < 5) return;
+  const c = (L2.length ? L2 : L).sort((a, b) => Math.abs(a.x - W / 2) - Math.abs(b.x - W / 2))[0]; if (!c) return;
   VI.fait = true; VI.c = c; VI.t0 = Wd.t; VI.x0 = c.x; VI.y0 = c.y; VI.k = clamp(Math.min(W, H) * (W >= 760 ? 0.22 : 0.2) / Math.max(8, rayon(c)), 2.2, 6); c.sp.m = 'vitre'; c.spin = 0; c.sp.vx = c.sp.vy = 0;
+  // (vague 322 de l'audit, « les titres en étoiles » : le chat écrasé couvrait le début du titre) : il vise la vitre sous le titre en étoiles,
+  // jamais dessus ; à plat, il fait à peu près VI.k fois sa taille
+  VI.k = clamp(Math.min(W, H) * 0.14 / Math.max(8, rayon(c)), 2.2, 6); VI.Z = null; cibleVitre();
 });
+// (s'il y a la place à gauche du titre, il s'écrase à côté, à sa hauteur ; sinon en dessous ; au téléphone, sous le titre, c'est la bande
+// des sous-titres : au-dessus) ; le titre n'est pas encore là : la cible se recale dès qu'il paraît, tant que le chat est en route
+function cibleVitre() {
+  const R = Math.min(W, H) * 0.14, Z = window.EspaceNuee && EspaceNuee.zoneTitre && EspaceNuee.zoneTitre();
+  VI.tx = W >= 760 ? W * 0.17 : W * 0.3; VI.ty = H * (W >= 760 ? 0.5 : 0.2); VI.Z = Z;
+  if (Z && Z.x0 > R * 1.6) { VI.tx = Z.x0 - R; VI.ty = clamp((Z.y0 + Z.y1) / 2 + R * 0.3, H * 0.36, H * 0.6); }
+  else if (Z) VI.ty = W >= 760 ? clamp(Z.y1 + R * 1.05, H * 0.3, H * 0.62) : clamp(Z.y0 - R * 1.15, H * 0.16, H * 0.3);
+}
 X.mode.vitre = (c, dt) => {
   // (vague 230 de l'audit, design : écrasé au milieu de l'écran, le chat de la vitre cachait le titre en étoiles puis le dessin de la première scène) :
   // sur grand écran, il s'écrase sur le côté gauche de la vitre, à côté de la scène ; au téléphone, plus petit, en haut à gauche
-  const S = c.sp, u = Wd.t - VI.t0, tx = W >= 760 ? W * 0.17 : W * 0.3, ty = H * (W >= 760 ? 0.5 : 0.24), ap = sm(c01(u / 0.9)), col = u >= 0.9 && u < 2.3, dec = sm(c01((u - 2.3) / 0.9));
+  if (!VI.Z && Wd.t - VI.t0 < 0.8) cibleVitre();
+  const S = c.sp, u = Wd.t - VI.t0, tx = VI.tx, ty = VI.ty, ap = sm(c01(u / 0.9)), col = u >= 0.9 && u < 2.3, dec = sm(c01((u - 2.3) / 0.9));
   S.vitreK = 1 + (VI.k - 1) * ap * (1 - dec);
   c.anim = col ? 'etirement' : (ANIMS.apesanteur ? 'apesanteur' : 'assis'); c.at += dt;
   if (u < 0.9) { c.x = lerp2(VI.x0, tx, ap) + Math.sin(u * 20) * 3 * (1 - ap); c.y = lerp2(VI.y0, ty, ap); c.spin = (c.spin || 0) * 0.9; }
   else if (col) { const g = (u - 0.9) / 1.4; c.x = tx + Math.sin(u * 30) * 1.2; c.y = ty + g * g * H * 0.05; c.spin = 0;
     if (!S.splotch) { S.splotch = true; const r = rayon(c) * 1; VI.prints = [[-0.55, -0.25], [0.55, -0.25], [-0.32, 0.45], [0.32, 0.45]].map(([px, py], i) => ({ x: tx + px * r, y: ty + py * r - rayon(c) * 0.2, r: r * 0.16, t0: Wd.t + i * 0.04, rot: rnd(-0.3, 0.3) }));
       Wd.fx.push({ k: 'txt', text: 'SPLOTCH', x: tx, y: ty - rayon(c) * 1.05, t0: Wd.t, life: 1.2, rot: rnd(-0.12, 0.12), size: 30 }); if (window.Dex && Dex.vu) Dex.vu('splotch');
+      // la vitre vibre sous le choc : les étoiles du titre sautent, une onde part du chat et les traverse, puis elles retombent sur leurs lettres
+      if (window.EspaceNuee && EspaceNuee.choc) EspaceNuee.choc(tx, ty);
       apres(0.8, () => Wd.fx.push({ k: 'txt', text: pick(['iiiiik', 'couiiic', 'fiiiiii']), x: tx + rayon(c) * 0.9, y: ty + rayon(c) * 0.3, t0: Wd.t, life: 1, rot: 0.2, size: 18 })); } }
   else { c.x = tx + (VI.x0 - tx) * dec * 0.5; c.y = ty + H * 0.05 + (H * 0.08) * dec; c.spin = 2.5 * dec;
     if (u > 3.2) { S.vitreK = 0; S.m = 'derive'; S.vx = rnd(-30, 30); S.vy = rnd(-20, 10); S.next = Wd.t + rnd(1.5, 3); S.anim = pick(DERIVE); } }
@@ -529,13 +547,13 @@ function espace(dt) {
     // (accroché, dans un abri : il reste dans l'écran, jamais sous la barre du bas ; s'il y est poussé, il lâche)
     if (!c.held && c.sp.m !== 'crache' && c.sp.m !== 'nyan') { const [bx, by] = centreDe(c), r = rayon(c) * 0.9;
       const ox = bx - r < 0 ? -(bx - r) : bx + r > W ? W - (bx + r) : 0, oy = by - r < HAUT() ? HAUT() - (by - r) : by + r > BAS() ? BAS() - (by + r) : 0;
-      if (ox || oy) { c.x += ox; c.y += oy; if (X.mode[c.sp.m] && Math.abs(ox) + Math.abs(oy) > r * 0.6) { c.sp.m = 'derive'; c.sp.ancre = null; c.sp.corps = null; c.sp.vx = ox * 3; c.sp.vy = oy * 3; } }
+      if (ox || oy) { c.x += ox; c.y += oy; if (X.mode[c.sp.m] && c.sp.m !== 'vitre'   /* (vague 322 : collé à la vitre, il est repoussé mais ne lâche pas ; avant, il lâchait et restait géant) */ && Math.abs(ox) + Math.abs(oy) > r * 0.6) { c.sp.m = 'derive'; c.sp.ancre = null; c.sp.corps = null; c.sp.vx = ox * 3; c.sp.vy = oy * 3; } }
       // (vague 247 de l'audit, « chats en apesanteur », design : un chat mené par une scène, une liane ou la nuée traversait encore les sous-titres,
       // seuls les chats à la dérive y rebondissaient) : la vitre des sous-titres vaut pour tous ; poussé fort contre elle, il lâche et dérive
       const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande;
       if (bd && !['aspire', 'planete', 'cine', 'train'].includes(c.sp.m)) { const [bx2, by2] = centreDe(c), rb = r * (c.rare === 'interminable' ? 2.6 : 1.2);
         if (bx2 + rb > bd.x && bx2 - rb < bd.x + bd.w && by2 + rb > bd.y && by2 - rb < bd.y + bd.h) { const up = by2 + rb - bd.y, dn = bd.y + bd.h - (by2 - rb), py = up < dn ? -up : dn;
-          c.y += py; if (X.mode[c.sp.m] && Math.abs(py) > r * 0.6) { c.sp.m = 'derive'; c.sp.ancre = null; c.sp.corps = null; c.sp.vx = (c.sp.vx || 0) * 0.5; c.sp.vy = Math.sign(py) * 90 * Wd.s0 / 150; } } } } });
+          c.y += py; if (X.mode[c.sp.m] && c.sp.m !== 'vitre' && Math.abs(py) > r * 0.6) { c.sp.m = 'derive'; c.sp.ancre = null; c.sp.corps = null; c.sp.vx = (c.sp.vx || 0) * 0.5; c.sp.vy = Math.sign(py) * 90 * Wd.s0 / 150; } } } } });
   // (après tout le reste : ce qui doit avoir le dernier mot sur la place d'un chat, les murs des dessins)
   X.apres.forEach(f => f(dt, cats));
 }
@@ -559,7 +577,7 @@ function flotte(c, dt, Q, acc) {
     }
     S.g = sm((S.t - S.dl) / 0.6); c.s = S.s * Math.max(S.gMin || 0.02, S.g);
     if (S.g >= 1) { S.m = 'derive'; S.next = Wd.t + rnd(1.5, 4); S.anim = pick(DERIVE); }
-  } else c.s += (S.s * (X.echelle ? X.echelle(c) : 1) * (X.loin ? X.loin(c) : 1) * (S.vitreK || 1) - c.s) * Math.min(1, dt * (S.vitreK ? 7 : 3));   // (S.vitreK : le chat qui vient s'écraser sur la vitre, plus bas)   // (X.echelle : un module qui les veut plus petits, js/espace-plume.js)
+  } else c.s += (S.s * (X.echelle ? X.echelle(c) : 1) * (X.loin ? X.loin(c) : 1) * (S.m === 'vitre' && S.vitreK || 1) - c.s) * Math.min(1, dt * (S.m === 'vitre' && S.vitreK ? 7 : 3));   // (S.vitreK : le chat qui vient s'écraser sur la vitre, plus bas)   // (X.echelle : un module qui les veut plus petits, js/espace-plume.js)
   if (c.held) { c.anim = 'porte'; S.m = 'tenu'; S.ancre = null; return; }
   if (X.mode[S.m]) { X.mode[S.m](c, dt); return; }
   S.ancre = null;

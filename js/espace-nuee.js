@@ -301,7 +301,7 @@ let NID = 0, sauter = false, FIN = null;   // (FIN : où la plume a fini le titr
 /* (vague 268 de l'audit, immersion : « les titres en étoiles ») : le titre ne s'écrit plus à plat contre la vitre. Il s'écrit sur un plan couché
    dans l'espace, qui fuit vers le fond (le haut loin et petit, le bas tout près, comme un texte posé sur le ciel), et ce plan se redresse
    pendant que la plume écrit, jusqu'à nous faire face quand elle signe ; la plume, sa traîne et le paraphe suivent le même plan. */
-const PLAN = { th: 0, cx: 0, cy: 0, D: 900 };
+const PLAN = { th: 0, cx: 0, cy: 0, D: 900 }, SPL = { x: 0, y: 0, t: -99 };
 function planTitre(pts, tl) {
   const lg = pts.lg, x0 = Math.min(...lg.map(l => l.x0)), x1 = Math.max(...lg.map(l => l.x1));
   PLAN.cx = (x0 + x1) / 2; PLAN.cy = (lg[0].y + lg[lg.length - 1].y) / 2; PLAN.D = Math.max(500, (x1 - x0) * 1.2);
@@ -324,6 +324,10 @@ const ecrit = (pts, tl, W, now) => { const M = pts.length; planTitre(pts, tl);
     // (vague 198) le coup de patte : les étoiles que la plume posait à cet instant partent de travers (un trait raté), puis se remettent en place
     const ec = Wd.t - PEN.coup; if (ec < 2.4 && PEN.cid === PEN.id) { const w = Math.max(0, 1 - Math.abs(q[2] - PEN.uc + 0.012) / 0.04); if (w > 0) { const px = pts.px || 40, k = w * Math.exp(-ec * 1.5) * (1 + 0.25 * Math.sin(ec * 14));
       o.x += (r.a - 0.5) * px * 1.1 * k + PEN.dx * px * 0.35 * k; o.y += (r.b - 0.3) * px * 0.9 * k + px * 0.3 * k; } }
+    // (vague 322 de l'audit) le chat qui s'écrase sur la vitre (js/trounoir.js) : une onde part de lui ; chaque étoile saute quand elle passe, s'écarte, puis retombe
+    const ch = Wd.t - SPL.t; if (ch < 2.6 && !reduit) { const dx = q[0] - SPL.x, dy = q[1] - SPL.y, d = Math.hypot(dx, dy) || 1, fr = d / 520 - ch;
+      if (fr < 0.05) { const px = pts.px || 40, k = Math.exp(-Math.max(0, -fr) * 3.2) * Math.exp(-d / 900) * px * 0.55 * Math.sin((ch - d / 520) * 16 + 0.6);
+        o.x += dx / d * k + (r.a - 0.5) * k * 0.6; o.y += dy / d * k - Math.abs(k) * 0.35; } }
     const e = tl - PLUME.d - q[2] * PLUME.v, l = e > 0 ? Math.exp(-e * 5) : 0; o.s = 0.9 + l * 0.6; o.a = (dup ? 0.45 : 1.3) + l * 0.5;
     if (PLAN.th > 0.002) { const [px2, py2] = surPlan(o.x, o.y), f = PLAN.D / (PLAN.D - (o.y - PLAN.cy) * Math.sin(PLAN.th)); o.x = px2; o.y = py2; o.s *= Math.min(1.6, Math.max(0.5, f)); } }; };
 // la plume-comète : une tête blanche, une queue d'étincelles qui retombent derrière elle ; elle file sur chaque ligne, saute à la suivante, puis s'éteint en fin de titre
@@ -566,5 +570,8 @@ X.pas.push((dt, cats) => {
     if (tt > 0.5) c.face = dx < 0 ? 1 : -1;   // ils regardent la grosse tête
     if (souffle > 0) { const v = souffle * Wd.s0 * 1.5 * dt; c.sp.vx += (-dy / d * VENT.rot + dx / d * 0.25) * v; c.sp.vy += (dx / d * VENT.rot + dy / d * 0.25) * v; c.sp.w = (c.sp.w || 0) + VENT.rot * souffle * dt * 3; } });
 });
-return { FORMES, E, CST, get N() { return N; }, get P() { return P; }, fige() { T0 = -1e9; sauter = true; }, vers(t) { T0 = Wd.t - t; } };
+// (vague 322) où est le titre en étoiles (pour que le chat écrasé sur la vitre ne le cache pas), et le choc de ce chat sur la vitre
+const zoneTitre = () => { const P2 = TXT.pts; if (!P2 || !P2.lg || !P2.lg.length) return null; const lg = P2.lg, m = (P2.px || 40) * 0.6;
+  return { x0: Math.min(...lg.map(l => l.x0)) - m, x1: Math.max(...lg.map(l => l.x1)) + m, y0: lg[0].y - m, y1: lg[lg.length - 1].y + m }; };
+return { FORMES, E, CST, zoneTitre, choc(x, y) { SPL.x = x; SPL.y = y; SPL.t = Wd.t; }, get N() { return N; }, get P() { return P; }, fige() { T0 = -1e9; sauter = true; }, vers(t) { T0 = Wd.t - t; } };
 })();
