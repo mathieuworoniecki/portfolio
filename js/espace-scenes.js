@@ -2997,10 +2997,10 @@ S.pilotage = (() => {
   function phares(Pp, bx, zb, now, roul) {
     const kb = G.sw < 500 ? 0.72 : 1, w = 0.56 * kb, Lg = 3.4 * kb, z0 = zb + Lg;
     ctx.save(); ctx.beginPath(); ctx.rect(G.gauche - 60, G.haut + 4, G.droite - G.gauche + 120, G.caps - G.haut - 4); ctx.clip(); ctx.globalAlpha = 1;
-    [-1, 1].forEach(sd => { const A = Pp(bx + sd * w * 0.7, 0.3 * kb, z0), far = 40, B = Pp(bx + sd * w * 0.7 - 3.6, 0, z0 + far), C = Pp(bx + sd * w * 0.7 + 3.6, 0, z0 + far);
+    [-1, 1].forEach(sd => { const A = Pp(bx + sd * w * 0.7, 0.3 * kb, z0), far = 40, sp = G.sw < 500 ? 3.6 : 7.5, B = Pp(bx + sd * w * 0.7 + sd * sp * 0.6 - sp, 0, z0 + far), C = Pp(bx + sd * w * 0.7 + sd * sp * 0.6 + sp, 0, z0 + far);
       ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.lineTo(C[0], C[1]); ctx.closePath(); ctx.save(); ctx.clip();
       ctx.strokeStyle = '#ffe9a8'; ctx.lineWidth = G.lw * 0.6; ctx.globalAlpha = 0.42; ctx.beginPath();
-      for (let k = 0; k < 18; k++) { const u = k / 17, P1 = Pp(bx + sd * w * 0.7 - 3.6 + 7.2 * u, 0, z0 + far); ctx.moveTo(A[0], A[1]); ctx.lineTo(P1[0], P1[1]); } ctx.stroke();
+      for (let k = 0; k < 18; k++) { const u = k / 17, P1 = Pp(bx + sd * w * 0.7 + sd * sp * 0.6 - sp + 2 * sp * u, 0, z0 + far); ctx.moveTo(A[0], A[1]); ctx.lineTo(P1[0], P1[1]); } ctx.stroke();
       for (let k = 0; k < 14; k++) { const z = z0 + ((k * 2.3 - roul * 1.7) % 32 + 32) % 32 + 1, x = bx + sd * w * 0.7 + Math.sin(k * 7.3 + sd) * 2.2 * (z - z0) / far, p = Pp(x, 0.05 + ((k * 0.37) % 0.6), z), t = 0.5 + 0.5 * Math.sin(now * 5 + k * 1.9);
         if (t > 0.35) brille(p[0], p[1], Math.max(1.5, 7 * t / Math.sqrt(z)), 0.9, false, now, k + sd); }
       ctx.restore();
