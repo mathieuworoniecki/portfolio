@@ -880,7 +880,12 @@ function drawFx(S) {
       else { // (vague 43, l'audit : « la tour », finition) : un mot près du bord ne sort jamais de l'écran (« PATATRAS ! » était coupé à droite)
         const w2 = (f.w2 ??= String(f.text).length * f.size * K * 0.3 + 10), x = Math.max(w2 + (Wd.mode === 'large' ? 64 : 8), Math.min(Wd.W - w2 - 8, f.x)), y = (f.yA ??= horsTitre(f, x, w2, K));
         // (vague 153 de l'audit : « les chats ») : les mots des chats ne s'effacent plus en gris : à l'encre, ils rapetissent sur la fin
-        const rp = 1 - sm((u - 0.72) / 0.28); if (rp > 0.04) C.text(f.text, x, y - u * 14, c01(u * 4), { size: f.size * rp, align: 'center', rot: f.rot, a: 0.92 * Wd.a }); }
+        const rp = 1 - sm((u - 0.72) / 0.28);
+        // (correctif du 05/10 : dans l'espace, les bruits des chats se posaient sur les dessins des scènes et s'y mêlaient) : là-haut ils ont
+        // une vraie petite bulle couleur de nuit, cernée d'un trait, qui les détache de tout ce qui est derrière (elle rapetisse avec le mot)
+        if (Wd.espace && rp > 0.04 && C.ctx) { const o = C.ctx, bw = (String(f.text).length * f.size * K * 0.4 + 16) * rp, bh = f.size * K * 1.45 * rp, yy = y - u * 14;
+          o.save(); o.translate(x, yy); o.rotate(f.rot || 0); o.beginPath(); o.roundRect(-bw / 2, -bh / 2 - 1, bw, bh, bh / 2); o.globalAlpha = 1; o.fillStyle = 'rgb(9,11,16)'; o.fill(); o.lineWidth = 1.2; o.strokeStyle = 'rgba(236,240,255,0.85)'; o.stroke(); o.restore(); }
+        if (rp > 0.04) C.text(f.text, x, y - u * 14, c01(u * 4), { size: f.size * rp, align: 'center', rot: f.rot, a: 0.92 * Wd.a }); }
     } else if (f.k === 'z') C.text(u < 0.5 ? 'z' : 'Z', f.x + f.dx * u * 18 + Math.sin(u * 7) * 5, f.y - u * 40, 1, { size: (12 + u * 10) * (1 - sm((u - 0.7) / 0.3)) + 0.5, a: 0.85 * Wd.a });
     else if (f.k === 'dust') { for (let i = -1; i <= 1; i += 2) for (let j = 0; j < 2; j++) { const a0 = f.r * (0.5 + u * 0.8), h = (j + 1) * 5; C.line(f.x + i * a0, f.y - h * 0.4, f.x + i * (a0 + 8 + u * 8), f.y - h, 1, { w: 1.6, a: 0.5 * f.a * (1 - u), seed: f.seed + i + j }); } }
     else if (f.k === 'calage') calage(f, t, K);
