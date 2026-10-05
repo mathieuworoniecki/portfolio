@@ -903,6 +903,7 @@ function drawFil(C) {
   const main = C.ctx, fc = filCv.getContext('2d'); if (!main) return;
   if (filCv.width !== main.canvas.width || filCv.height !== main.canvas.height) { filCv.width = main.canvas.width; filCv.height = main.canvas.height; }
   fc.setTransform(1, 0, 0, 1, 0, 0); fc.clearRect(0, 0, filCv.width, filCv.height); fc.setTransform(main.getTransform());
+  ombresMur(fc);
   // (vague 157 de l'audit : « les chats », design) : chaque chat posé a son ombre, à la plume : trois traits de hachure sous ses pattes,
   // de plus en plus courts (sous les chats et les objets, jamais par-dessus)  (pas d’ombre en plein saut)
   const SH = Wd.cats.filter(c => !c.held && !c.fall && !c.hidden && c.a > 0.5 && Math.abs(c.vy || 0) < 40);
@@ -910,6 +911,37 @@ function drawFil(C) {
     for (let j = 0; j < 3; j++) { const w2 = hw * (1 - j * 0.28), x = c.x + (j - 1) * s * 0.02; if (w2 > 2) C.line(x - w2, y + j * Math.max(1.6, s * 0.016), x + w2, y + j * Math.max(1.6, s * 0.016), 1, { w: 1, a: 0.9 * c.a, seed: c.id * 3 + j, tip: false, amp: 0.25 }); } }); } finally { C.ctx = main; } }
   const L = Wd.props.filter(it => it.trail && it.trail.length >= 2 && it.a > 0.01); if (!L.length) return;
   C.ctx = fc; try { L.forEach(it => C.stroke(it.trail.concat([[it.x, it.y]]), 1, { w: 1.3, a: 0.6 * it.a, amp: 0.4, seed: 7, tip: false })); } finally { C.ctx = main; }
+}
+// (vague 287 de l'audit : « les chats », immersion) : une lumière basse, devant la pièce, projette chaque chat en grand sur le mur du fond,
+// en ombre chinoise hachurée à la plume : corps, tête, oreilles, pattes, queue qui fouette. La lampe tremble comme une bougie et suit
+// un peu la souris : les ombres s'étirent, se croisent et remplissent tout le mur (sous les objets et les chats, jamais sous la barre du haut)
+const OMB = { lx: 0 };
+function ombresMur(fc) {
+  if (Wd.espace || Wd.trou || !Wd.cats.length) return;
+  const W = Wd.W, H = Wd.H, t = Wd.t, tb = document.querySelector('.top'), haut = W < 760 ? Math.max(Wd.ceil || 0, 0) : (tb ? tb.getBoundingClientRect().bottom : 70) + 6, bas = floorAt(1) - 2; if (bas - haut < 40) return;
+  const P = Wd.ptr, vise = P && P.on && t - P.moved < 4 ? (P.x - W / 2) * 0.35 : Math.sin(t * 0.11) * W * 0.12;
+  OMB.lx += (vise - OMB.lx) * Math.min(1, 0.02 * 60 / 60); const fl = 1 + Math.sin(t * 7.3) * 0.012 + Math.sin(t * 11.9) * 0.008;
+  const L = [W / 2 + OMB.lx, H * 1.18], m = (W < 760 ? 1.75 : 2.05) * fl, mx = W < 760 ? m : m * 0.62, pj = p => [L[0] + (p[0] - L[0]) * mx, L[1] + (p[1] - L[1]) * m];
+  const ink = (window.THEME && THEME.ink) || '40,40,40';
+  fc.save(); fc.beginPath(); fc.rect(0, haut, W, bas - haut); fc.clip();
+  const C = Chalk, main = C.ctx; C.ctx = fc;
+  try { Wd.cats.forEach(c => { if (c.hidden || c.gone || !c.hp || c.a < 0.3) return; const k = sc(c), f = c.face || 1, b = Chat.where(c, c.body), h = c.hp;
+    const rx = c.D.a * k * 0.92, ry = Math.max(c.D.h * k * 1.45, c.D.a * k * 0.5), hr = c.b.head[0] * k * 1.2, sol = Math.max(c.y, b[1] + ry);
+    const corps = []; for (let i = 0; i <= 28; i++) { const a = i / 28 * Math.PI * 2; corps.push(pj([b[0] + Math.cos(a) * rx, b[1] + Math.sin(a) * ry])); }
+    const tete = []; for (let i = 0; i <= 30; i++) { const a = -Math.PI / 2 + i / 30 * Math.PI * 2, u = ((a + Math.PI / 2) / (Math.PI * 2) + 1) % 1;
+      const o = Math.max(0, 1 - Math.abs(u - 0.1) / 0.06) + Math.max(0, 1 - Math.abs(u - 0.9) / 0.06); tete.push(pj([h[0] + Math.cos(a) * hr * (1 + o * 0.75), h[1] + Math.sin(a) * hr * (1 + o * 0.75) * 0.92])); }
+    const fo = Math.sin(t * 2.2 + c.id * 1.7) * 0.6, q0 = [b[0] - f * rx * 0.85, b[1] - ry * 0.1], q1 = [b[0] - f * rx * (1.5 + fo * 0.3), b[1] - ry * 1.4], q2 = [b[0] - f * rx * (1.25 - fo * 0.5), b[1] - ry * (2.6 + fo * 0.3)];
+    const queue = []; for (let i = 0; i <= 12; i++) { const u = i / 12, v = 1 - u; queue.push(pj([v * v * q0[0] + 2 * v * u * q1[0] + u * u * q2[0], v * v * q0[1] + 2 * v * u * q1[1] + u * u * q2[1]])); }
+    const pattes = [-0.6, -0.3, 0.35, 0.65].map((x, i) => { const w = Math.sin(t * 9 + i * 1.6) * (Math.abs(c.vx || 0) > 5 ? rx * 0.12 : 0); return [pj([b[0] + x * rx, b[1] + ry * 0.5]), pj([b[0] + x * rx + w, sol])]; });
+    const a0 = (W < 760 ? 0.32 : 0.42) * Math.min(1, c.a), sd = c.id * 13;
+    const forme = new Path2D(); [corps, tete].forEach(Q => { Q.forEach((p, i) => i ? forme.lineTo(p[0], p[1]) : forme.moveTo(p[0], p[1])); forme.closePath(); });
+    fc.save(); fc.clip(forme); fc.strokeStyle = `rgba(${ink},${a0 * 0.55})`; fc.lineWidth = 1;
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; corps.concat(tete).forEach(p => { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); });
+    fc.beginPath(); for (let x = x0 - (y1 - y0); x < x1; x += 8) { fc.moveTo(x, y1); fc.lineTo(x + (y1 - y0), y0); } fc.stroke(); fc.restore();
+    C.stroke(corps, 1, { w: 1.3, a: a0, seed: sd + 1, tip: false, amp: 0.6 }); C.stroke(tete, 1, { w: 1.3, a: a0, seed: sd + 2, tip: false, amp: 0.6 });
+    C.stroke(queue, 1, { w: Math.max(1.6, hr * 0.07 * m), a: a0 * 0.9, seed: sd + 3, tip: false, amp: 0.5 });
+    pattes.forEach((L2, i) => C.line(L2[0][0], L2[0][1], L2[1][0], L2[1][1], 1, { w: Math.max(1.4, hr * 0.06 * m), a: a0 * 0.9, seed: sd + 4 + i, tip: false, amp: 0.4 })); }); }
+  finally { C.ctx = main; fc.restore(); }
 }
 // (vague 26, l'audit : « la tour de cartons ») : les chips de calage. Chaque caisse qui s'ouvre en tombant en crache une poignée :
 // des petits S qui volent, rebondissent sur le sol, glissent et restent là, en bazar, jusqu'à ce que l'équipe du ménage les balaie au passage
