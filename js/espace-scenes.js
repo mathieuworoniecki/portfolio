@@ -1315,6 +1315,26 @@ S.skills = (() => {
         if (INST.q) { const q = it.find(z => z.kind === INST.q.kind && z.l === INST.q.l); if (q) { INST.q.ox = (m.a * q.p[0] + m.c * q.p[1] + m.e) / dp; INST.q.oy = (m.b * q.p[0] + m.d * q.p[1] + m.f) / dp; } INST.vu = now; } }
       // les orbites
       trait3(anneau(V, Rr, 0, 72), 0.6, 0.55); trait3(anneau(V, Rr * 0.72, 0.02, 60), 0.4, 0.3);
+      // (vague 272 de l'audit, « skills », immersion) : la station n'est pas seule au milieu du vide. Autour d'elle, deux grandes ceintures,
+      // plus larges que l'écran, comme les anneaux d'une planète : des centaines de petites fiches d'outils (tout ce qui pourrait le devenir)
+      // y tournent, de plus en plus lentes vers l'extérieur ; celles de devant passent tout près de nous. Les ceintures se tracent à leur
+      // arrivée, les fiches y naissent une à une ; de temps en temps, l'une d'elles décroche et descend en spirale rejoindre l'orbite des modules
+      if (!reduitMvt()) { const bdK = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, PcK = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat,
+          horsK = q => !q || q[1] < G.haut + 6 || q[1] > (G.caps || G.bas) - 6 || (bdK && q[1] > bdK.y - 12 && q[1] < bdK.y + bdK.h + 12 && q[0] > bdK.x - 16 && q[0] < bdK.x + bdK.w + 16) || (PcK && Math.hypot(q[0] - PcK.x, q[1] - PcK.y) < PcK.r * 1.3),
+          carte = (x, y, sz, an, al) => { ctx.save(); ctx.translate(x, y); ctx.rotate(an); ctx.beginPath(); ctx.rect(-sz * 0.6, -sz * 0.8, sz * 1.2, sz * 1.6); ctx.globalAlpha = 1; ctx.fillStyle = NUIT; ctx.fill(); style(0.5, al); ctx.stroke();
+            if (sz > 4) { ctx.beginPath(); ctx.moveTo(-sz * 0.35, -sz * 0.3); ctx.lineTo(sz * 0.35, -sz * 0.3); ctx.moveTo(-sz * 0.35, sz * 0.1); ctx.lineTo(sz * 0.15, sz * 0.1); ctx.stroke(); } ctx.restore(); };
+        [[1.5, 0.06, 0.55, tel ? 34 : 54], [2.05, 0.1, 0.35, tel ? 44 : 70]].forEach(([fR, yR, vR, nR], b) => { const R = Rr * fR, tr = c01((a - 0.4 - b * 0.4) / 1.2), nS = 120;
+          // (la ceinture se trace, segment après segment, en partant de devant)
+          for (let j = 0; j < nS * tr; j++) { const t0 = Math.PI / 2 + (j % 2 ? 1 : -1) * Math.ceil(j / 2) / nS * TAU, t1 = t0 + (j % 2 ? 1 : -1) / nS * TAU, P = V(Math.cos(t0) * R, yR, Math.sin(t0) * R), Q = V(Math.cos(t1) * R, yR, Math.sin(t1) * R);
+            if (P[3] > 2.6 || horsK(P) || horsK(Q)) continue; trait([P, Q], false, 0.45, prof(P[2], 0.32)); }
+          for (let j = 0; j < nR; j++) { const ta = 0.8 + b * 0.4 + bruit(j * 3.7 + b) * 1.4; if (a < ta) continue;
+            const t = j / nR * TAU + bruit(j * 1.9 + b) * 0.3 + rot * vR, rr = R * (0.94 + bruit(j * 5.3 + b) * 0.12), yy = yR + (bruit(j * 7.1 + b) - 0.5) * 0.08, P = V(Math.cos(t) * rr, yy, Math.sin(t) * rr);
+            if (P[3] > 2.6 || horsK(P)) continue; const sz = k * 0.034 * P[3] * (1 + Math.max(0, P[2]) * 0.9) * Math.min(1.3, hx * 0.6) * (0.7 + 0.3 * sm((a - ta) / 0.35)) * (1 + 0.3 * Math.sin(Math.PI * c01((a - ta) / 0.35)));
+            carte(P[0], P[1], sz, Math.sin(now * 0.8 + j) * 0.3, prof(P[2], 0.75)); }
+          // (la fiche qui décroche : un tour de spirale jusqu'à l'orbite des modules, elle rapetisse en rejoignant la station, jamais de fondu)
+          if (a > 3 && b === 1) { const cy = (a - 3) / 3.2, n = Math.floor(cy), u = cy - n; if (u < 0.75) { const e = sm(u / 0.75), t = bruit(n * 9.7) * TAU + rot * vR + e * 3.2, rr = lerp(R, Rr, e), P = V(Math.cos(t) * rr, lerp(yR, 0, e), Math.sin(t) * rr);
+            if (P[3] < 2.6 && !horsK(P)) { const T = []; for (let m = 0; m <= 8; m++) { const e2 = Math.max(0, e - m * 0.03), t2 = bruit(n * 9.7) * TAU + rot * vR + e2 * 3.2, r2 = lerp(R, Rr, e2), Q = V(Math.cos(t2) * r2, lerp(yR, 0, e2), Math.sin(t2) * r2); if (!horsK(Q)) T.push(Q); }
+              ctx.save(); ctx.setLineDash([G.lw * 2, G.lw * 3]); trait(T, false, 0.6, 0.7); ctx.restore(); carte(P[0], P[1], k * 0.03 * P[3] * Math.min(1.3, hx * 0.6), now * 2, 1); brille(P[0], P[1] - k * 0.03, 2.4, 0.9, true, now, n); } } } }); }
       const C = V(0, 0, 0), avant = q => q.p[2] >= 0;
       // les rayons tracteurs (sous les modules)
       it.forEach(q => { if (q.eb > 0.05) { const H = V(0, -0.02, 0); ctx.globalAlpha = q.eb * 0.18; ctx.fillStyle = `rgb(${BL})`; const d = Math.hypot(q.p[0] - H[0], q.p[1] - H[1]) || 1, nx = -(q.p[1] - H[1]) / d, ny = (q.p[0] - H[0]) / d, lw = k * 0.08 * q.p[3];
