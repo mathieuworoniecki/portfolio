@@ -2801,6 +2801,19 @@ S.pilotage = (() => {
       // (vague 149 de l'audit : « le bus ») : portiques et lampadaires ne passent plus sur la planète-chat ni sous la barre du haut
       const horsPlanete = () => { sousLaBarre(); ctx.beginPath(); ctx.rect(G.gauche - 60, G.haut + 4, G.droite - G.gauche + 120, G.caps - G.haut - 4); ctx.clip(); };
       horsPlanete();
+      // (vague 282 de l'audit, « Leadership », immersion) : la feuille de route borde la route. Plus loin que les lampadaires, de grands panneaux
+      // d'arcade en papier se dressent tour à tour à gauche et à droite, chacun avec un savoir-faire du chapitre (tech lead, mentorat, agile…) ;
+      // ils naissent minuscules sur l'horizon, grandissent en fonçant vers nous et sortent par les bords de l'écran, dans un éclat de lumière
+      { const MOTS = en() ? ['Tech lead', 'Management', 'Mentoring', 'Augmented dev', 'Agile', 'ADR', 'Pre-sales'] : ['Tech lead', 'Management', 'Mentorat', 'Dév. augmenté', 'Agile', 'ADR', 'Avant-vente'], PZ = 6.4;
+        E.bb = ((E.bb || 0) + dt * Vv * 1.6) % (PZ * 42);
+        for (let m = Math.floor(E.bb / PZ) + 8; m >= Math.floor(E.bb / PZ); m--) { const z = 2 + m * PZ - E.bb, sd = m % 2 ? 1 : -1; if (z < 1.3 || z > 52) continue;
+          const xp = sd * (tel ? 4.2 : 5.4), lw = 1.9, b = Pp(xp, 0, z), h0 = Pp(xp, 1.25, z), Q = [Pp(xp - lw / 2, 1.25, z), Pp(xp + lw / 2, 1.25, z), Pp(xp + lw / 2, 2.15, z), Pp(xp - lw / 2, 2.15, z)], hp = Q[0][1] - Q[3][1], al = c01(14 / z);
+          cerne(() => { ctx.beginPath(); ctx.moveTo(b[0], b[1]); ctx.lineTo(h0[0], h0[1]); }, Math.max(0.35, 1.1 * al), 1, null);
+          ctx.globalAlpha = 1; ctx.fillStyle = NUIT; ctx.beginPath(); Q.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath(); ctx.fill();
+          cerne(() => { ctx.beginPath(); Q.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath(); }, Math.max(0.4, 1.2 * al), 1);
+          if (hp > 14) { const I = [Pp(xp - lw / 2 + 0.1, 1.33, z), Pp(xp + lw / 2 - 0.1, 2.07, z)]; ctx.save(); ctx.setLineDash([3, 4]); ctx.lineDashOffset = -now * 12; ctx.strokeStyle = `rgb(${BL})`; ctx.globalAlpha = 0.8; ctx.lineWidth = 1; ctx.strokeRect(I[0][0], I[1][1], I[1][0] - I[0][0], I[0][1] - I[1][1]); ctx.restore(); }
+          if (hp > 9) mot(MOTS[((m % 7) + 7) % 7], (Q[0][0] + Q[1][0]) / 2, (Q[0][1] + Q[3][1]) / 2, Math.min(hp * 0.36, (Q[1][0] - Q[0][0]) / 7), 1);
+          if (z < 4) [Q[2], Q[3]].forEach((q, i) => brille(q[0], q[1], 3 + (4 - z), 1, true, now, 140 + i + m)); } }
       for (let j = 13; j >= 0; j--) { const z = 1.7 + j * 3.2 - (E.roul * 1.6) % 3.2, sd = j % 2 ? 1 : -1; if (z < 1.6 || z > 40) continue;
         const b = Pp(sd * 2.5, 0, z), h = Pp(sd * 2.5, 1.5, z), bras = Pp(sd * 2.05, 1.5, z), r = Math.max(2, (b[1] - h[1]) * 0.16), al = c01(9 / z);
         cerne(() => { ctx.beginPath(); ctx.moveTo(b[0], b[1]); ctx.lineTo(h[0], h[1]); ctx.lineTo(bras[0], bras[1]); }, Math.max(0.35, 0.9 * al), 1, null);
