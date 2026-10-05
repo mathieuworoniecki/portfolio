@@ -1718,12 +1718,23 @@ S.gardefous = (() => {
       // (vague 17 de l'audit : « le tapis part du bord gauche, le reste du ciel est vide ») : les changements arrivent de tout le ciel, par dizaines,
       // comme des feuilles de papier qui planent, et se posent au début du tapis
       sousLaBarre();
+      // (vague 275 de l'audit, « la vitesse », immersion) : le contrôle ne s'arrête pas aux portiques. Toutes les six secondes, un balayage de
+      // scanner traverse tout le ciel d'un bord à l'autre : une ligne verticale suivie de son peigne de traits ; ce qu'elle touche est vérifié
+      // (chaque feuille qui plane reçoit sa coche, les étoiles qu'elle croise scintillent) ; elle ne passe jamais sur les sous-titres
+      const scU = reduitMvt() ? -1 : (now % 6) / 1.7, xScan = scU >= 0 && scU < 1 ? lerp(G.gauche - 30, G.droite + 30, sm(scU)) : null;
+      if (xScan !== null) { const bdS = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, yA = G.haut + 2, yB = (G.caps || G.bas) - 4, seg = (x, w, al) => {
+          const cut = bdS && x > bdS.x - 18 && x < bdS.x + bdS.w + 18 ? [bdS.y - 14, bdS.y + bdS.h + 14] : null;
+          if (cut) { if (cut[0] > yA) trait([[x, yA], [x, Math.min(yB, cut[0])]], false, w, al); if (cut[1] < yB) trait([[x, Math.max(yA, cut[1])], [x, yB]], false, w, al); } else trait([[x, yA], [x, yB]], false, w, al); };
+        const sg = 1, pas = Math.max(5, k * 0.025); seg(xScan, 4, 0.12); seg(xScan, 1.6, 1);
+        for (let j = 1; j <= 6; j++) { const x = xScan - sg * j * pas * (1 + j * 0.3); ctx.save(); ctx.setLineDash([G.lw * 2, G.lw * (3 + j)]); seg(x, 0.45, 0.6 - j * 0.07); ctx.restore(); }
+        for (let j = 0; j < 7; j++) { const y = yA + bruit(j * 3.3 + Math.floor(now * 5)) * (yB - yA); if (!(bdS && y > bdS.y - 14 && y < bdS.y + bdS.h + 14 && xScan > bdS.x - 18 && xScan < bdS.x + bdS.w + 18)) brille(xScan, y, 2 + bruit(j) * 2, 1, j % 2 === 0, now, j); } }
       { const A = V(x0 + 0.05, yT - 0.02, 0), Wn = G.droite - G.gauche, n = G.cx * 2 < 700 ? 8 : 16, pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
         for (let j = 0; j < n; j++) { const v = (now * 0.12 + j / n) % 1, cyc = Math.floor(now * 0.12 + j / n), sx = G.gauche + bruit(j * 3.1 + cyc * 7) * Wn, sy = G.haut + 10 + bruit(j * 5.3 + cyc) * (G.caps - G.haut) * 0.35, e = sm(v);
           const x = lerp(sx, A[0], e) + Math.sin(v * 9 + j) * k * 0.06 * (1 - v), y = lerp(sy, A[1], e * e), w = k * lerp(0.05, 0.035, e), h = w * 1.35;
           if (pc && Math.hypot(x - pc.x, y - pc.y) < pc.r * 1.3) continue;
           ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(v * 7 + j * 2) * 0.6 * (1 - e)); cerne(() => { ctx.beginPath(); ctx.rect(-w, -h, 2 * w, 2 * h); }, 0.5, 1);
-          ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.3; ctx.beginPath(); ctx.moveTo(-w * 0.55, -h * 0.4); ctx.lineTo(w * 0.55, -h * 0.4); ctx.moveTo(-w * 0.55, 0); ctx.lineTo(w * 0.3, 0); ctx.stroke(); ctx.restore(); } }
+          ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.3; ctx.beginPath(); ctx.moveTo(-w * 0.55, -h * 0.4); ctx.lineTo(w * 0.55, -h * 0.4); ctx.moveTo(-w * 0.55, 0); ctx.lineTo(w * 0.3, 0); ctx.stroke(); ctx.restore();
+          if (xScan !== null && x < xScan && xScan - x < k * 0.5) coche(x + w * 0.9, y - h * 1.1, Math.max(5, w * 0.7), c01((xScan - x) / (k * 0.08)), 1); } }
       ctx.restore();
       [-0.2, 0.2].forEach(z => trait([V(x0, yT, z), V(xS + 0.1, yT, z)], false, 0.9, prof(z)));
       for (let j = 0; j < 26; j++) { const x = x0 + ((j * 0.13 + aw * vit) % (xS + 0.1 - x0)); trait([V(x, yT, -0.2), V(x, yT, 0.2)], false, 0.35, 0.4); }
