@@ -54,19 +54,23 @@ function bienvenue() {
   const x = L && L.length ? Vie.lx(pick(L.slice(1, -1).length ? L.slice(1, -1) : L), r) : Wd.W / 2;
   // (vague 9, l'audit : la toute première image) : le chat ne tombe plus d'on ne sait où. Une plume le dessine d'abord dans l'air,
   // au-dessus du titre, d'un seul trait (la tête et ses oreilles, le corps, la queue, les yeux) ; le dessin prend vie et tombe sur le titre
-  const top = r ? r.top + (L && L.length ? L[0].y0 : 0) : Wd.H * 0.3, s = Wd.s0 * 0.75, y0 = Math.max(s * 1.4, top - s * 1.5);
+  // (vague 307 de l'audit, « l'arrivée », vers 9,9 en design) : le croquis était un chat passe-partout, deux fois plus grand que le chat
+  // qui en sortait (une puce naissait d'un dessin de gros matou). La plume dessine maintenant le vrai chat qui va naître : sa race est tirée
+  // d'abord, le croquis prend sa taille exacte et ses proportions (le long est long, le gros tout rond, la puce a de grandes oreilles)
+  const here = new Set(Wd.cats.map(c => c.breed)), ids = Chat.IDS.filter(i => !here.has(i)), id = pick(ids.length ? ids : Chat.IDS), b = Chat.TYPES[id], dN = 0.1;
+  const top = r ? r.top + (L && L.length ? L[0].y0 : 0) : Wd.H * 0.3, s = K.sOf(dN) * b.s * 0.8, y0 = Math.max(s * 1.4, top - s * 1.5);
   // (vague 35 de l'audit : « l'arrivée reste au-dessus du titre ») : la plume entre par le bord de l'écran et traverse toute la pièce en arabesques,
   // son trait derrière elle, jusqu'au titre ; elle y dessine le chat ; quand il prend vie, le long trait est ravalé vers lui comme un fil qu'on rembobine
   // (vague 90 de l'audit, « l'arrivée », elle sort d'elle-même) : si la souris est déjà là, la plume fait un détour par elle : elle l'attrape
   // d'un lasso de craie (« toi ! »), puis file dessiner le chat ; en chemin, chaque élément du vrai site qu'elle frôle frissonne
-  if (!reduit && y0 > s) { const P = croquis(x, y0, s), pp = Wd.ptr, la = pp && pp.on && pp.x > 30 && pp.x < Wd.W - 30 && pp.y > 30 && pp.y < Wd.H - 30 && Math.hypot(pp.x - P[0][0], pp.y - P[0][1]) > s * 1.5 ? lasso(pp.x, pp.y, P[0], x < Wd.W / 2 ? 1 : -1, s) : null;
-    D = { x, y: y0, s, t0: Wd.t + ENVOL * (la ? 1.6 : 1), dur: ENVOL * (la ? 1.6 : 1), P, F: la ? la.F : arabesque(P[0], x < Wd.W / 2 ? 1 : -1, s), la };
-    K.later(D.dur + 1.25, () => { R = { F: D.F, t0: Wd.t }; D = null; naitre(x, y0 + s * 0.55); }); }
-  else naitre(x, null);
+  if (!reduit && y0 > s) { const P = croquis(x, y0, s, b), pp = Wd.ptr, la = pp && pp.on && pp.x > 30 && pp.x < Wd.W - 30 && pp.y > 30 && pp.y < Wd.H - 30 && Math.hypot(pp.x - P[0][0], pp.y - P[0][1]) > s * 1.5 ? lasso(pp.x, pp.y, P[0], x < Wd.W / 2 ? 1 : -1, s) : null;
+    D = { x, y: y0, s, b, t0: Wd.t + ENVOL * (la ? 1.6 : 1), dur: ENVOL * (la ? 1.6 : 1), P, F: la ? la.F : arabesque(P[0], x < Wd.W / 2 ? 1 : -1, s), la };
+    K.later(D.dur + 1.25, () => { R = { F: D.F, P: D.P, b: D.b, x: D.x, y: D.y, s: D.s, t0: Wd.t }; D = null; naitre(x, y0 + s * 0.55, id, dN); }); }
+  else naitre(x, null, id, dN);
 }
 const reduit = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
-function naitre(x, y) {
-  const k = hote = K.addCat({ x }); k.y = y ?? -sc(k) * 1.2; k.fall = true; k.vy = y != null ? -sc(k) * 1.5 : 0; k.vx = 0; k.spin = y != null ? 0 : Math.PI; k.stay = rnd(90, 160);
+function naitre(x, y, id, d) {
+  const k = hote = K.addCat({ x, id, d }); k.y = y ?? -sc(k) * 1.2; k.fall = true; k.vy = y != null ? -sc(k) * 1.5 : 0; k.vx = 0; k.spin = y != null ? 0 : Math.PI; k.stay = rnd(90, 160);
   // (vague 108 de l'audit, « l'arrivée » vers 9,9) : le titre sursaute. Quand le dessin prend vie, une onde part de lui dans les lettres :
   // chacune saute à son tour, de plus en plus loin, et se penche en s'écartant, comme une foule qui fait « oh ! »
   if (y != null && !reduit && window.Vie && Vie.LETTERS) { const T = Vie.LETTERS(), r = T && Vie.RECT(); if (T && r) T.forEach(L => { if (L.st || L.a < 0.8) return; const lx = Vie.lx(L, r), d = Math.abs(lx - x), h = L.y1 - L.y0;
@@ -146,19 +150,26 @@ H.draw.push(() => {
     Chalk.line(x - Math.cos(a) * r, y - Math.sin(a) * r, x + Math.cos(a) * r, y + Math.sin(a) * r, 1, { w: 1.6, a: 0.8 * Wd.a, seed: 50 + (i % 4) });
     Chalk.line(x + Math.sin(a) * r, y - Math.cos(a) * r, x - Math.sin(a) * r, y + Math.cos(a) * r, 1, { w: 1.6, a: 0.8 * Wd.a, seed: 54 + (i % 4) }); }
 });
-function croquis(x, y, s) {
-  const P = [], at = (u, v) => P.push([x + u * s, y + v * s]);
+function croquis(x, y, s, b) {
+  // les proportions de sa race (la miche sert d'étalon) : longueur et hauteur du corps, taille de la tête, hauteur des oreilles
+  const bl = b ? Math.min(1.6, b.body[0] / 0.3) : 1, bh = b ? Math.min(1.5, b.body[1] / 0.17) : 1, hk = b ? Math.min(1.35, b.head[0] / 0.18) : 1, ek = b ? Math.min(1.7, b.ear[0] / 0.07) : 1;
+  // (le corps s'allonge vers la queue et monte depuis les pattes ; la tête reste où elle est, posée sur le dos)
+  const P = [], at = (u, v) => P.push([x + (u > -0.05 ? -0.05 + (u + 0.05) * bl : u) * s, y + (0.55 - (0.55 - v) * bh) * s]);
   // la queue, qui remonte en crochet ; le dos ; la tête avec ses deux oreilles ; le poitrail ; les pattes ; retour à la queue
   for (let i = 0; i <= 8; i++) { const t = i / 8; at(0.55 + Math.sin(t * 2.6) * 0.25, 0.55 - t * 0.55 - Math.sin(t * 3.1) * 0.05); }
   for (let i = 0; i <= 10; i++) { const t = i / 10; at(0.5 - t * 0.55, 0.05 - Math.sin(t * Math.PI) * 0.1); }
-  const hx = -0.18, hy = -0.32, hr = 0.3;
-  for (let i = 0; i <= 28; i++) { const a = Math.PI * 0.35 - i / 28 * Math.PI * 2.1; let k = 1; [-1, 1].forEach(sd => { const c = -Math.PI / 2 + sd * 0.62, d = Math.atan2(Math.sin(a - c), Math.cos(a - c)); if (Math.abs(d) < 0.3) k += 0.5 * Math.pow(1 - Math.abs(d) / 0.3, 1.2); }); at(hx + Math.cos(a) * hr * k * 1.1, hy + Math.sin(a) * hr * k); }
+  const hx = -0.18, hy = -0.32 - 0.6 * (bh - 1) - 0.3 * (hk - 1), hr = 0.3 * hk; P.tete = [hx, hy, hk];
+  for (let i = 0; i <= 28; i++) { const a = Math.PI * 0.35 - i / 28 * Math.PI * 2.1; let k = 1; [-1, 1].forEach(sd => { const c = -Math.PI / 2 + sd * 0.62, d = Math.atan2(Math.sin(a - c), Math.cos(a - c)); if (Math.abs(d) < 0.3) k += 0.5 * ek * Math.pow(1 - Math.abs(d) / 0.3, 1.2); }); P.push([x + (hx + Math.cos(a) * hr * k * 1.1) * s, y + (hy + Math.sin(a) * hr * k) * s]); }
   for (let i = 0; i <= 10; i++) { const t = i / 10; at(-0.35 + t * 0.05 - Math.sin(t * Math.PI) * 0.12, -0.05 + t * 0.6); }
   for (let i = 0; i <= 10; i++) { const t = i / 10; at(-0.3 + t * 0.85, 0.55 + Math.sin(t * Math.PI * 3) * 0.03); }
   return P;
 }
 H.draw.push(() => {
   // le fil de l'arabesque, rembobiné vers le chat qui vient de naître
+  // (vague 307) : le croquis ne disparaît plus d'un coup quand le chat naît : son trait se resserre comme un élastique sur le chat vivant
+  // qui bondit, et s'y ravale tout entier (aucun fondu : il rétrécit jusqu'à rien sur lui)
+  if (R && R.P) { const e = Math.min(1, (Wd.t - R.t0) / 0.32), c = vivant(hote) && hote.hp ? [hote.hp[0], hote.hp[1] - sc(hote) * 0.15] : [R.x, R.y], ee = e * e * (3 - 2 * e);
+    if (e >= 1) R.P = null; else Chalk.stroke(R.P.map(([x, y]) => [x + (c[0] - x) * ee, y + (c[1] - y) * ee]), 1, { w: 3 * (1 - ee * 0.6), a: 0.95 * Wd.a, seed: 11, tip: false }); }
   if (R) { const e = Math.min(1, (Wd.t - R.t0) / 0.6), k = Math.floor(e * e * (R.F.length - 1)); if (e >= 1) R = null; else if (R.F.length - k > 1) Chalk.stroke(R.F.slice(k), 1, { w: 2.2, a: 0.8 * Wd.a, seed: 16, tip: false }); }
   if (!D) return;
   if (Wd.t < D.t0) { const v = Math.max(0, 1 - (D.t0 - Wd.t) / D.dur), F = D.F, i = Math.min(F.length - 2, Math.floor(v * (F.length - 1)));
@@ -169,10 +180,11 @@ H.draw.push(() => {
   const u = Math.min(1, (Wd.t - D.t0) / 1.0);
   Chalk.stroke(D.P, u, { w: 3, a: 0.95 * Wd.a, seed: 11, tip: u < 1 });
   if (u < 0.85) { const P = D.P, i = Math.min(P.length - 2, Math.floor(u / 0.85 * (P.length - 1)) || 0); plume(P[i + 1][0], P[i + 1][1], P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1], 0.95 * Wd.a); suit(P[i + 1][0], P[i + 1][1]); }
-  if (u > 0.85) [-1, 1].forEach(sd => Chalk.circle(D.x + (-0.18 + sd * 0.11) * D.s, D.y - 0.3 * D.s, D.s * 0.05, D.s * 0.075, (u - 0.85) / 0.15, { w: 3.4, a: 0.95 * Wd.a, seed: 12 + sd }));
+  const [thx, thy, thk] = D.P.tete || [-0.18, -0.32, 1];
+  if (u > 0.85) [-1, 1].forEach(sd => Chalk.circle(D.x + (thx + sd * 0.11 * thk) * D.s, D.y + (thy + 0.02) * D.s, D.s * 0.05 * thk, D.s * 0.075 * thk, (u - 0.85) / 0.15, { w: 3.4, a: 0.95 * Wd.a, seed: 12 + sd }));
   // (vague 158 de l'audit : « l'arrivée », vers 9,7) : la plume ne disparaît plus d'un coup à la fin du trait : elle pique sur chaque œil
   // (l'un puis l'autre), puis s'envole d'un coup d'aile hors de l'écran, par le haut, du côté opposé au chat ; son sillage la suit
-  if (u >= 0.85) { const ex = sd => [D.x + (-0.18 + sd * 0.11) * D.s, D.y - 0.3 * D.s], fin = D.P[D.P.length - 1];
+  if (u >= 0.85) { const ex = sd => [D.x + (thx + sd * 0.11 * thk) * D.s, D.y + (thy + 0.02) * D.s], fin = D.P[D.P.length - 1];
     if (u < 1) { const g = u < 0.925 ? -1 : 1, e = ex(g), v = ((u - 0.85) / 0.075) % 1, dep = g < 0 ? fin : ex(-1), x = dep[0] + (e[0] - dep[0]) * Math.min(1, v * 2), y = dep[1] + (e[1] - dep[1]) * Math.min(1, v * 2) - Math.sin(Math.PI * Math.min(1, v * 2)) * D.s * 0.2;
       plume(x, y, e[0] - dep[0] || 1, (e[1] - dep[1]) || -1, 0.95 * Wd.a); }
     else { const w = Math.min(1, (Wd.t - D.t0 - 1.0) / 0.22), o = ex(1), sens = D.x < Wd.W / 2 ? 1 : -1, cx = o[0] + sens * D.s * 2.2, cy = o[1] + D.s * 0.6, tx = sens > 0 ? Wd.W + 80 : -80, ty = -80, q = t => [(1 - t) * (1 - t) * o[0] + 2 * (1 - t) * t * cx + t * t * tx, (1 - t) * (1 - t) * o[1] + 2 * (1 - t) * t * cy + t * t * ty];
