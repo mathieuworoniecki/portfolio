@@ -2160,6 +2160,27 @@ S.front = (() => {
       // (vague 15 de l'audit : « un écran plat au milieu du vide ») : tout autour, un univers d'éléments d'interface en papier (interrupteurs,
       // curseurs, cases, boutons, étoiles d'avis, avatars) qui arrivent du fond vers nous sur toute la largeur du ciel, et vivent (ils basculent,
       // glissent, se cochent) ; ils passent derrière l'écran, jamais sur les sous-titres ni sur la planète des chats
+      // (vague 278 de l'audit, « Front et interfaces », immersion) : la grille de mise en page ne reste pas dans l'écran : ses colonnes se
+      // prolongent sur tout le ciel, du haut jusqu'aux sous-titres et d'un bord à l'autre ; douze colonnes en ordinateur, huit en tablette,
+      // quatre en mobile, et quand l'écran change de format le ciel entier se resserre ou s'élargit avec lui. Les deux bords de l'écran
+      // deviennent des repères de point de rupture, avec leur largeur en pixels sur une règle graduée sous la barre du haut
+      { const NC = [12, 8, 4], PX = [1440, 768, 390], n = lerp(NC[A], NC[B], u), pit = 2 * w * k / n, x0 = G.cx - w * k, yT = G.haut + 4, yB = (G.caps || G.bas) - 4,
+          bdF = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, gut = Math.min(pit * 0.18, k * 0.03), cr = b1 ? a : 9, rg = (G.droite - G.gauche) / 2 + 20;
+        const col = (x, al, wl, dash) => { const d = Math.abs(x - G.cx) / rg, e = sm(c01((cr - 0.2 - d * 0.9) / 0.7)); if (e <= 0) return; const ym = Yc, hT = (ym - yT) * e, hB = (yB - ym) * e;
+          ctx.save(); if (dash) { ctx.setLineDash(dash); ctx.lineDashOffset = -now * 8; }
+          if (bdF && x > bdF.x - 10 && x < bdF.x + bdF.w + 10) { trait([[x, ym - hT], [x, Math.min(ym + hB, bdF.y - 10)]], false, wl, al); if (ym + hB > bdF.y + bdF.h + 10) trait([[x, bdF.y + bdF.h + 10], [x, ym + hB]], false, wl, al); }
+          else trait([[x, ym - hT], [x, ym + hB]], false, wl, al); ctx.restore(); };
+        sousLaBarre();
+        for (let j = -Math.ceil((x0 - G.gauche + 20) / pit); x0 + j * pit < G.droite + 20; j++) { const x = x0 + j * pit; if (x < G.gauche - 20) continue;
+          col(x + gut, 0.32, 0.5, [G.lw * 3, G.lw * 5]); col(x + pit - gut, 0.32, 0.5, [G.lw * 3, G.lw * 5]);
+          if (cr > 1) { const tk = Math.abs(j % 4) === 0 ? 9 : 4; trait([[x, yT + 6], [x, yT + 6 + tk]], false, 0.6, 0.7); } }
+        // les deux repères : les bords de l'écran prolongés sur tout le ciel ; une lumière les parcourt
+        [-1, 1].forEach(sg => { const x = G.cx + sg * w * k; col(x, 0.85, 1.1, null);
+          if (cr > 1) { const yy = lerp(yT + 30, yB - 30, (Math.sin(now * 0.7 + sg) + 1) / 2); if (!(bdF && x > bdF.x - 10 && x < bdF.x + bdF.w + 10 && yy > bdF.y - 14 && yy < bdF.y + bdF.h + 14)) brille(x, yy, 3, 1, true, now, 70 + sg); } });
+        if (cr > 1.2) { const px = Math.round(lerp(PX[A], PX[B], u)), fs = Math.max(10, k * 0.05), xr = G.cx + w * k, yL = yT + 26;
+          trait([[G.cx - w * k, yL], [xr, yL]], false, 0.8, 0.85); trait([[G.cx - w * k, yL - 5], [G.cx - w * k, yL + 5]], false, 0.8, 0.85); trait([[xr, yL - 5], [xr, yL + 5]], false, 0.8, 0.85);
+          mot(px + ' px', G.cx, yL - fs * 0.8, fs, 1); if (u > 0 && u < 1) mot('@media', xr + fs * 2.6, yL, fs * 0.85, 0.9); }
+        ctx.restore(); }
       uiNuee(now, b1 ? sm(a / 1.2) : 1);
       INSP.t = now;   // (vague 85 : l'inspecteur est actif tant que cette scène se dessine)
       // (vague 156 de l'audit : « front », immersion) : l'écran n'est plus collé au fond : il pivote doucement en 3D, il regarde la souris
