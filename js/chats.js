@@ -1466,7 +1466,14 @@ function machines(dt) {
         // et s'arrêtent un à un sur 7 7 7 ; au jackpot, des rayons de lumière partent de lui et balaient toute la pièce
         Wd.fx.push({ k: 'jackpot', x: m[0], y: m[1] - g.s * 0.2, t0: Wd.t, life: 2.4, seed: 5 });
         if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) { const n = Wd.mode === 'large' ? 26 : 14; Wd.fx.push({ k: 'grele', x: m[0], y: m[1], t0: Wd.t, life: 3.2, L: Array.from({ length: n }, (_, i) => ({ x: rnd(0.06, 0.94) * Wd.W, y: rnd(0.08, 0.7) * Wd.H, r: rnd(14, 30) * Math.min(1.3, Wd.W / 1100 + 0.3), d: 0.1 + i * 0.045 + rnd(0, 0.05), colle: rnd(0.08, 0.35), vx: rnd(-40, 40), a0: rnd(0, 6.3), w: rnd(-9, 9), s: Math.floor(rnd(0, 99)), mot: i % 4 === 0 ? pick(['tic', 'tac', 'toc', 'tic !']) : null })) }); }
-        for (let i = 0; i < 70 && Wd.kib.length < KIBMAX() + 60; i++) Wd.kib.push({ x: m[0], y: m[1], vx: rnd(-1, 1) * rnd(200, 1500) * k, vy: -rnd(900, 1900) * k, d: rnd(0, 0.5), t0: Wd.t, rest: false, spin: Math.random() * 6 }), F.nk = (F.nk || 0) + 1; }
+        for (let i = 0; i < 70 && Wd.kib.length < KIBMAX() + 60; i++) Wd.kib.push({ x: m[0], y: m[1], vx: rnd(-1, 1) * rnd(200, 1500) * k, vy: -rnd(900, 1900) * k, d: rnd(0, 0.5), t0: Wd.t, rest: false, spin: Math.random() * 6 }), F.nk = (F.nk || 0) + 1;
+        // (vague 258 de l'audit, « le distributeur fou », immersion) : le geyser est monté plus haut que l'écran. Une seconde après, il retombe
+        // partout : une averse de croquettes sur toute la largeur de la pièce, qui tintent sur les lettres du titre (elles sursautent), rebondissent
+        // sur les boutons et les têtes ; les chats lèvent le nez (« il pleut des croquettes ! ») et toute la pièce se met à manger
+        later(1.3, () => { if (Wd.espace || Wd.trou) return; const n = Wd.mode === 'large' ? 60 : 30, br = document.getElementById('brand'), yh = (br ? br.getBoundingClientRect().bottom : 60) + 6;   // (sous la barre du haut, jamais dessus)
+          for (let i = 0; i < n; i++) Wd.kib.push({ x: rnd(0.04, 0.96) * Wd.W, y: yh + rnd(0, 20), vx: rnd(-40, 40) * k, vy: rnd(0, 140) * k, d: rnd(0, 0.9), t0: Wd.t + i * 0.035 + rnd(0, 0.3), rest: false, spin: Math.random() * 6, pluie: true });
+          F.nk = (F.nk || 0) + n; Wd.fx.push({ k: 'txt', text: 'drrrrr', x: Wd.W * 0.5, y: Wd.H * 0.12 + 30, t0: Wd.t, life: 1.2, rot: 0.06, size: 22 });
+          const L = Wd.cats.filter(c => !c.temp && !c.rare && free4(c)).slice(0, 3); L.forEach((c, j) => later(0.3 + j * 0.35, () => { if (!Wd.cats.includes(c) || !free4(c)) return; interrupt(c); c.q = [pose('affut', 0.9, { fx: c => say(c, pick(['il pleut des croquettes !', 'du ciel !!', 'miam ?!'])) })]; })); }); }
       if (Wd.t > F.end) { g.folle = null; g.cour = 0; if (Math.abs(g.fx - F.fx0) > 0.002) g.rentre = { fx0: F.fx0 }; const m = Univers.at(g, [0, 0.8, 0]); dust(m[0], m[1], g.s * 0.3, 1); Wd.fx.push({ k: 'txt', text: 'pfff…', x: m[0], y: m[1] - 20, t0: Wd.t, life: 1.6, rot: -0.1, size: 18 }); g.clk = 0; later(0.9, () => ticket(g, F)); }
     }
   });
@@ -1601,6 +1608,15 @@ function fire(g, who) {
   // les gourmands accourent
   Wd.cats.filter(c => c !== who && free4(c) && !c.temp && Math.random() < 0.6).forEach(c => { interrupt(c); c.q = [pose('affut', rnd(0.4, 1.2))]; });
 }
+let PLB = null, PLBt = -9;
+function pluieTitre(k, dt) {
+  const V = window.Vie, Ls = V && V.LETTERS && V.LETTERS(), r = Ls && V.RECT(), y0 = k.y - k.vy * dt;
+  if (Ls && r && k.y > r.top && y0 < r.bottom) for (const L of Ls) { if (L.st || L.a < 0.8) continue; const lx = V.lx(L, r), top = r.top + L.y0;
+    if (Math.abs(k.x - lx) < (L.x1 - L.x0) / 2 && y0 <= top && k.y > top) { k.y = top; k.vy = -Math.abs(k.vy) * 0.4 - 40; k.vx += rnd(-90, 90); k.tinte = true;
+      L.wob = Wd.t; L.wobA = rnd(-0.8, 0.8); L.hopA = (L.y1 - L.y0) * 0.12; if (Math.random() < 0.25) Wd.fx.push({ k: 'txt', text: pick(['tink', 'ting', 'tic']), x: lx, y: top - 10, t0: Wd.t, life: 0.7, rot: rnd(-0.2, 0.2), size: 13 }); return; } }
+  if (!PLB || Wd.t - PLBt > 0.5) { PLBt = Wd.t; PLB = [...document.querySelectorAll('.ctas > *')].map(e => e.getBoundingClientRect()).filter(b => b.width > 0); }
+  for (const b of PLB) if (k.x > b.left && k.x < b.right && y0 <= b.top && k.y > b.top) { k.y = b.top; k.vy = -Math.abs(k.vy) * 0.35 - 30; k.vx += rnd(-120, 120); k.tinte = true; return; }
+}
 function kibFrame(dt) {
   const g = grav();
   Wd.kib = Wd.kib.filter(k => !k.gone && Wd.t - k.t0 < 45);
@@ -1609,6 +1625,8 @@ function kibFrame(dt) {
     k.vy += g * dt; k.x += k.vx * dt; k.y += k.vy * dt; k.spin += dt * 9;
     if (k.swept) { if (k.x < -20 || k.x > Wd.W + 20) k.gone = true; }
     else if (k.x < 6 || k.x > Wd.W - 6) { k.x = clamp(k.x, 6, Wd.W - 6); k.vx *= -0.5; }
+    // (l'averse du distributeur fou) : elle tinte sur les lettres du titre et rebondit sur les boutons
+    if (k.pluie && k.vy > 0 && !k.tinte) pluieTitre(k, dt);
     // bonk : sur une tête
     if (k.vy > 0) for (const c of Wd.cats) { if (!c.hp || c.hidden) continue; const r = c.b.head[0] * sc(c) * 0.95;
       if (Math.hypot(k.x - c.hp[0], k.y - c.hp[1]) < r) { k.vy = -Math.abs(k.vy) * 0.45 - 60; k.vx += rnd(-80, 80); k.y = c.hp[1] - r;
