@@ -387,6 +387,7 @@ function retour() {
     const s = sOf(it.d); trou(it.fx * Wd.W, floorAt(it.d), clamp(s * 0.5, Wd.s0 * 0.18, Wd.s0 * 1.2), 0.15, 0.6);
     it.lift = 0; it.big = it.big || 1; it.trou = { t0: Wd.t, retour: true, big: it.big, sens: Math.random() < 0.5 ? -1 : 1 }; it.big *= 0.05;
     later(0.25, () => word(pick(['pop !', 'plop', 'tadaa']), it.fx * Wd.W, floorAt(it.d) - s * 0.8, 18));
+    later(0.28, () => recrache(it.fx * Wd.W, floorAt(it.d), s, K.LOURD[it.kind]));
   }));
   // (29/09, l'audit : au retour, la pièce restait vide de chats) : deux chats jaillissent des derniers trous avec les objets, en criant,
   // deux autres rentrent en courant par les côtés
@@ -405,6 +406,23 @@ function retour() {
       const dort = () => { if (c.gone || c.held || !Wd.cats.includes(c)) return; if (c.fall) { later(0.2, dort); return; } interrupt(c); c.q = [pose('dodo', 2.6, { zzz: 1 }), pose('etirement', 1.3, { fx: c => say(c, pick(en() ? ['…is it over?', 'did I miss something?'] : ['…c’était fini ?', 'j’ai raté un truc ?'])) })]; }; later(0.3, dort);
       word('pop…', x, y - s * 0.7, 16); if (window.Dex && Dex.vu) later(2, () => Dex.vu('dormeur')); }); });
   Wd.nextIn = Wd.t + 6 + n * 0.1;
+}
+/* (vague 266 de l'audit, immersion : « le retour du mode sérieux ») : un trou qui recrache ne reste pas dans son coin. Le jet secoue toute
+   la pièce : une secousse court sur le plancher depuis le trou (sans trait dessiné : les ondes au trait s'emmêlaient en gribouillis), et tout ce qu'elle touche le sent passer, de plus en plus faiblement en s'éloignant :
+   les objets déjà revenus tanguent, les croquettes sautillent, les lettres du titre frémissent, les chats sur le sol font un bond (« ouh ! »),
+   et le plancher tremble sous les lourds. Comme les trous s'ouvrent en vague depuis le bouton, les ondes se croisent et la pièce
+   entière remue, de proche en proche, jusqu'au dernier objet. */
+function recrache(x, y, s, lourd) {
+  const R = Wd.W * (lourd ? 0.5 : 0.32), f = lourd ? 1 : 0.6;
+  if (lourd) Wd.shake = { t0: Wd.t, a: 2.5 };
+  const quand = d => 0.05 + d / (Wd.W * 1.6), force = d => f * Math.max(0, 1 - d / R);
+  Wd.props.forEach(p => { if (p.gone || p.ventre || (p.trou && Wd.t - p.trou.t0 < 0.6)) return; const d = Math.abs(p.fx * Wd.W - x), k = force(d); if (k < 0.08) return;
+    later(quand(d), () => { p.wob = Wd.t; p.wobA = 0.25 + 0.6 * k; }); });
+  Wd.kib.forEach(kb => { if (kb.gone || kb.suck || kb.who) return; const d = Math.abs(kb.x - x), k = force(d); if (k < 0.1) return; later(quand(d), () => { if (!kb.gone) { kb.vy = -Wd.s0 * (1.2 + 2.5 * k); kb.rest = false; } }); });
+  const Ls = window.Vie && Vie.LETTERS && Vie.LETTERS(), rt = Ls && Vie.RECT(); if (Ls) Ls.forEach(L => { if (L.st) return; const d = Math.abs(rt.left + L.cx - x), k = force(d); if (k < 0.15) return; later(quand(d), () => { L.wob = Wd.t; L.wobA = 0.4 * k; }); });
+  let dit = 0; Wd.cats.forEach(c => { if (c.gone || c.fall || c.held || c.perch || c.jump || c.dormeur) return; const d = Math.abs(c.x - x), k = force(d); if (k < 0.2) return;
+    later(quand(d), () => { if (c.fall || c.held || c.gone) return; c.fall = true; c.vy = -Math.sqrt(2 * K.grav() * sc(c) * (0.12 + 0.35 * k)); c.vx = (c.x < x ? -1 : 1) * sc(c) * 0.6 * k;
+      if (dit++ < 2 && Math.random() < 0.6) say(c, pick(en() ? ['whoa!', 'ooh!', 'hey!'] : ['ouh !', 'oh !', 'hé !', 'ça bouge !'])); }); });
 }
 /* (vague 101-102 de l'audit, « le retour du mode sérieux » vers 9,9) : le premier chat qui jaillit revient du mode sérieux… en cravate
    (bleue, comme le plan). Il la garde un moment, très fier (« réunion terminée ! »), puis, un peu plus tard, fait sa toilette et l'arrache :
