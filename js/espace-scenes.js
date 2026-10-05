@@ -1545,7 +1545,11 @@ S.bench = (() => {
         if (PARI.i >= 0 && PARI.n === n) { const ord = cour.slice().sort((p, q) => q.d - p.d || rang.indexOf(p.i) - rang.indexOf(q.i)); PARI.rg = go > 0 ? ord.findIndex(q => q.i === PARI.i) + 1 : 0;
           if (fin && PARI.res === null) { PARI.res = PARI.i === g; pariResout(now); } } }
       // 3, 2, 1, go
-      if (c < 1.35) { const w = c < 0.3 ? '3' : c < 0.6 ? '2' : c < 0.9 ? '1' : 'go !', u = c < 0.9 ? (c % 0.3) / 0.3 : (c - 0.9) / 0.45, C = V(0, -0.45, 0); mot(w, C[0], C[1], Math.max(24, k * 0.26) * (1.3 - u * 0.3) * (c < 0.9 ? 1 : 1 - sm((u - 0.55) / 0.45) * 0.95), 1); }
+      // (vague 327 de l'audit, « la course », originalité : on ne savait pas ce qu'on testait) : chaque manche a sa catégorie, celles des sous-titres
+      // (harness, orchestrateurs, plugins) ; elle s'annonce au départ, au-dessus du compte à rebours, et titre le photo-finish
+      const CAT = en() ? ['harnesses', 'orchestrators', 'plugins'] : ['harness', 'orchestrateurs', 'plugins'], cat = CAT[n % CAT.length];
+      if (c < 1.35) { const w = c < 0.3 ? '3' : c < 0.6 ? '2' : c < 0.9 ? '1' : 'go !', u = c < 0.9 ? (c % 0.3) / 0.3 : (c - 0.9) / 0.45, C = V(0, -0.45, 0); mot(w, C[0], C[1], Math.max(24, k * 0.26) * (1.3 - u * 0.3) * (c < 0.9 ? 1 : 1 - sm((u - 0.55) / 0.45) * 0.95), 1);
+        const fc = Math.max(12, k * 0.075) * (c < 1.0 ? 1 : 1 - sm((c - 1.0) / 0.35) * 0.9); if (fc > 2) mot((en() ? 'heat · ' : 'manche · ') + cat, C[0], C[1] - Math.max(24, k * 0.26) * 0.85, fc, 0.95); }
       // le chrono de papier, au milieu de l'anneau : sa couronne, son aiguille
       // (vague 234 de l'audit, « la course », design : le chrono flottait en l'air, un disque plat sur le passage des fusées du fond) : il est posé
       // au centre de la piste sur son socle, un vrai boîtier épais avec ses deux poussoirs ; le temps écoulé se remplit en quartier sur le cadran
@@ -1583,7 +1587,8 @@ S.bench = (() => {
           // les perforations du film, en haut et en bas
           ctx.fillStyle = ENC; ctx.globalAlpha = 1; for (let xx = x0 + 8; xx < x0 + W0 - 8; xx += 12) { ctx.fillRect(xx, y0 + 3, 5, 3); ctx.fillRect(xx, y0 + H0 - 6, 5, 3); }
           ctx.font = `700 ${fs * 0.8}px ui-monospace,Menlo,Consolas,monospace`; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-          ctx.fillText((en0 ? 'PHOTO FINISH · RUN ' : 'PHOTO-FINISH · ESSAI ') + (n + 1), gauche, y0 + fs * 1.15);
+          { let tt = (en0 ? 'PHOTO FINISH · RUN ' : 'PHOTO-FINISH · ESSAI ') + (n + 1) + ' · ' + cat.toUpperCase(); if (ctx.measureText(tt).width > droite - gauche) tt = (en0 ? 'RUN ' : 'ESSAI ') + (n + 1) + ' · ' + cat.toUpperCase();
+            ctx.fillText(tt, gauche, y0 + fs * 1.15); }
           // la règle : un trait tous les centièmes… de dixième en dixième, l'étiquette
           const yb = y0 + H0 - fs * 1.1; ctx.strokeStyle = ENC; ctx.lineWidth = 1;
           for (let t = 0; t * px <= ligne - gauche + 0.5; t += 0.05) { const xx = ligne - t * px, gr = Math.abs(t * 10 - Math.round(t * 10)) < 1e-6; ctx.beginPath(); ctx.moveTo(xx, yb); ctx.lineTo(xx, yb - (gr ? fs * 0.55 : fs * 0.28)); ctx.stroke(); }
