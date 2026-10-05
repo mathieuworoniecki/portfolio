@@ -326,6 +326,22 @@ function planete(ctx, now) {
       // (à côté d'elle, du côté de l'écran : jamais sur le menu des langues en haut)
       const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, ty = Math.max(70, y - r * 0.75); if (!(bd && ty > bd.y - 20 && ty < bd.y + bd.h + 20)) { ctx.translate(Math.max(ctx.measureText(mot).width + 8, x - r * 1.25), ty); ctx.rotate(at >= 1.3 ? -0.12 : -0.05); ctx.fillText(mot, 0, 0); } ctx.restore(); } }
   const ear = trace(1.4, 0.5) * (1 - bai * 0.45) * (1 - pre * 0.35);
+  // (vague 283 de l'audit, « planète chat », immersion) : sa gravité se voit. Autour d'elle, bien au-delà de son disque, la toile de l'espace
+  // est un quadrillage en pointillés qui se creuse vers elle comme un drap sous une balle ; il tourne lentement avec son anneau, se creuse un peu
+  // plus quand elle ronronne, et de la poussière d'étoiles y glisse en spirale jusqu'à elle (jamais sous la barre du haut ni sur les sous-titres)
+  if (z === 0 && t > 0.5 && !reduit) { const Rw = r * 3.6, g = r * 0.42, rot = now * 0.05, cr = Math.cos(rot), sr = Math.sin(rot), creux = 1 + (Hm.k === 'ronron' ? 0.35 * hu : 0) + 0.06 * Math.sin(now * 0.8),
+      bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, Gp = window.EspacePlume && EspacePlume.M && EspacePlume.M.lay && EspacePlume.M.lay.G, hb = Gp ? Gp.haut - 4 : 0, eT = sm(c01((t - 0.5) / 0.5));
+    const tire = (u, v) => { const X = u * cr - v * sr, Y = u * sr + v * cr, d = Math.hypot(X, Y), pl = Math.min(d - r * 0.98, r * r * 0.9 * creux / (d + r * 0.35)), k = d > 1e-6 ? (d - pl) / d : 0; return [x + X * k, y + Y * k * 0.92, d]; };
+    ctx.save(); ctx.beginPath(); ctx.rect(0, hb, O.W, O.H - hb); if (bd) ctx.rect(bd.x - 16, bd.y - 12, bd.w + 32, bd.h + 24); ctx.clip('evenodd');
+    ctx.strokeStyle = `rgba(${BL},0.32)`; ctx.lineWidth = 1; ctx.setLineDash([3, 6]); ctx.lineDashOffset = -now * 4; ctx.beginPath();
+    for (let dir = 0; dir < 2; dir++) for (let j = -Math.floor(Rw / g); j <= Math.floor(Rw / g); j++) { let ouvert = false;
+      for (let i = -40; i <= 40; i++) { const s0 = i / 40 * Rw, u = dir ? s0 : j * g, v = dir ? j * g : s0; if (Math.hypot(u, v) > Rw * eT) { ouvert = false; continue; } const q = tire(u, v);
+        if (q[2] < r * 1.22) { ouvert = false; continue; } if (ouvert) ctx.lineTo(q[0], q[1]); else { ctx.moveTo(q[0], q[1]); ouvert = true; } } }
+    ctx.stroke(); ctx.setLineDash([]);
+    // la poussière qui glisse au fond du puits
+    for (let m = 0; m < 7; m++) { const f = ((now * 0.09 + m / 7) % 1), d = Rw * (1 - f) + r * 1.2 * f, an = m * 2.4 + f * 5.5, q = tire(Math.cos(an) * d, Math.sin(an) * d);
+      ctx.fillStyle = `rgb(${BL})`; ctx.beginPath(); ctx.arc(q[0], q[1], 1.2 + f * 1.4, 0, TAU); ctx.fill(); }
+    ctx.restore(); }
   // un halo, très léger (deux fins traits, comme l'atmosphère de la Terre)
   // (vague 244, design : c'étaient deux cercles qui coupaient les oreilles, comme un calque oublié) : l'atmosphère épouse la tête, oreilles comprises,
   // en pointillés de plus en plus espacés vers l'extérieur
