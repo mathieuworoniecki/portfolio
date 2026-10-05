@@ -2858,6 +2858,23 @@ S.secu = (() => ({
         for (let j = 0; j < 12; j++) { const t = j / 12 * TAU, rr = hr * 3.4; hex(P[0] + Math.cos(t) * rr, P[1] + Math.sin(t) * rr, hr * 0.9, pr * 0.3 * (0.5 + 0.5 * Math.sin(now * 6 - j))); }
         brille(P[0], P[1], 4, pr, true, now, 3);
         if (d < Rs) mot(en() ? 'access denied' : 'accès refusé', Sm.x, Sm.y + k * 0.12, Math.max(12, k * 0.065), 1); } } }
+    // (vague 335 de l'audit, « Sécurité et qualité », originalité : « Privacy by design » ne se voyait nulle part) : une fiche client arrive du bord
+    // gauche vers le dôme. Avant d'entrer, un feutre noir passe sur elle, ligne après ligne : le nom et l'adresse disparaissent sous des bandes
+    // de caviardage, l'adresse IP se change en son empreinte (un hachage) ; « anonymisé ✓ », et la fiche plonge à travers le dôme jusqu'au coffre
+    if (!reduitMvt()) { const u = (now % 8) / 8, w = Math.max(k * 0.36, 116), h = w * 0.75, Top = V(0, -R, 0), Ck = V(0, 0, 0), Hx = Math.max(G.gauche + w * 0.6 + 8, G.cx - k * 0.95), Hy = Math.max(G.haut + h * 0.7 + 8, Top[1] - k * 0.12);
+      if (u < 0.85) { const e1 = sm(c01(u / 0.3)), e2 = sm(c01((u - 0.62) / 0.23)), x = lerp(lerp(G.gauche - w, Hx, e1), Ck[0], e2), y = lerp(lerp(Hy - k * 0.2, Hy, e1) + Math.sin(now * 2) * k * 0.015, Ck[1] - k * 0.05, e2) - Math.sin(Math.PI * e2) * k * 0.15, sc = 1 - 0.75 * e2;
+        const L = en() ? [['name', 'Jane Martin'], ['email', 'jane@mail.fr'], ['IP', '192.168.4.21']] : [['nom', 'Jeanne Martin'], ['mail', 'jeanne@mail.fr'], ['IP', '192.168.4.21']], fs = Math.max(8, w * 0.1);
+        ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(now * 1.3) * 0.05 + e2 * 0.4); ctx.scale(sc, sc); cerne(() => { ctx.beginPath(); ctx.rect(-w / 2, -h / 2, w, h); }, 0.8, 1);
+        ctx.save(); ctx.beginPath(); ctx.rect(-w / 2 + 2, -h / 2 + 2, w - 4, h - 4); ctx.clip(); ctx.globalAlpha = 1; ctx.fillStyle = ENC; ctx.textBaseline = 'middle'; let mk = null;
+        L.forEach(([l, v], i) => { const yy = -h / 2 + h * (0.24 + i * 0.27), x0 = -w / 2 + w * 0.08; ctx.font = `600 ${fs}px "Space Grotesk",system-ui,sans-serif`; ctx.fillText(l + ' :', x0, yy); const lw = ctx.measureText(l + ' : ').width, xv = x0 + lw;
+          ctx.font = `${fs}px "Space Grotesk",system-ui,sans-serif`; const vw = Math.min(ctx.measureText(v).width, w * 0.94 - lw), pr = c01((u - 0.3 - i * 0.09) / 0.08);
+          if (i < 2) { ctx.fillText(v, xv, yy); if (pr > 0) { ctx.fillRect(xv - 2, yy - fs * 0.62, (vw + 4) * pr, fs * 1.24); if (pr < 1) mk = [xv + (vw + 4) * pr, yy]; } }
+          else { const hx = '9f3a·e1c7·b2', n = Math.floor(v.length * pr); ctx.fillText(pr >= 1 ? hx : hx.slice(0, Math.floor(hx.length * pr)) + v.slice(n), xv, yy); if (pr > 0 && pr < 1) mk = [xv + vw * pr, yy]; } });
+        ctx.restore();
+        if (mk) { ctx.save(); ctx.translate(mk[0], mk[1]); ctx.rotate(-0.7); cerne(() => { ctx.beginPath(); ctx.rect(-fs * 0.35, -fs * 3.2, fs * 0.7, fs * 2.5); ctx.moveTo(-fs * 0.35, -fs * 0.7); ctx.lineTo(0, 0); ctx.lineTo(fs * 0.35, -fs * 0.7); }, 0.6, 1); ctx.restore(); }
+        ctx.textBaseline = 'alphabetic'; ctx.restore();
+        if (u > 0.58 && u < 0.7) { mot(en() ? 'anonymized' : 'anonymisé', x, y - h * 0.75, Math.max(10, k * 0.05), 1); coche(x + w * 0.45, y - h * 0.75, k * 0.025, (u - 0.58) / 0.05, 1); } }
+      else if (u < 0.9) brille(Ck[0], Ck[1] - k * 0.05, 5, 1, true, now, 61); }
   }
 }))();
 
