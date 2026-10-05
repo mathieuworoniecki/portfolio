@@ -262,7 +262,7 @@ FORMES.pilotage = (a, now) => {
 let TXT = { cle: '', pts: [] };
 const PLUME = { d: 0.15, v: 1.25 };   // la plume part à 0,15 s et écrit tout le titre en 1,25 s
 const plumeU = tl => c01((tl - PLUME.d) / PLUME.v);
-const plumeXY = (pts, u) => { const lg = pts.lg, n = lg.length, li = Math.min(n - 1, Math.floor(u * n)), g = lg[li], f = u * n - li; return [g.x0 + (g.x1 - g.x0) * c01(f), g.y]; };
+const plumeXY = (pts, u) => { const lg = pts.lg, n = lg.length, li = Math.min(n - 1, Math.floor(u * n)), g = lg[li], f = u * n - li; return surPlan(g.x0 + (g.x1 - g.x0) * c01(f), g.y); };
 const LETTRES = '"Space Grotesk","Barlow",system-ui,sans-serif';
 function titre(txt, W, H, y1, y2) {
   // (vague 6) le titre ne passe plus derrière la planète des chats : il tient entre le bord gauche et elle (sur grand écran, elle est en haut à droite)
@@ -298,7 +298,18 @@ function titre(txt, W, H, y1, y2) {
 let NID = 0, sauter = false, FIN = null;   // (FIN : où la plume a fini le titre, pour l'onde de choc)   // (sauter : pour les captures, js de test : pas de transformation)
 // les étoiles sur les lettres (écran) ; une lueur passe de gauche à droite ; elles frémissent
 // (vague 10) plus de lueur qui balaie : la lueur, c'est la plume ; les étoiles qu'elle vient de poser brillent un instant, puis se posent
-const ecrit = (pts, tl, W, now) => { const M = pts.length;
+/* (vague 268 de l'audit, immersion : « les titres en étoiles ») : le titre ne s'écrit plus à plat contre la vitre. Il s'écrit sur un plan couché
+   dans l'espace, qui fuit vers le fond (le haut loin et petit, le bas tout près, comme un texte posé sur le ciel), et ce plan se redresse
+   pendant que la plume écrit, jusqu'à nous faire face quand elle signe ; la plume, sa traîne et le paraphe suivent le même plan. */
+const PLAN = { th: 0, cx: 0, cy: 0, D: 900 };
+function planTitre(pts, tl) {
+  const lg = pts.lg, x0 = Math.min(...lg.map(l => l.x0)), x1 = Math.max(...lg.map(l => l.x1));
+  PLAN.cx = (x0 + x1) / 2; PLAN.cy = (lg[0].y + lg[lg.length - 1].y) / 2; PLAN.D = Math.max(500, (x1 - x0) * 1.2);
+  PLAN.th = reduit ? 0 : 0.95 * (1 - eio(c01((tl - PLUME.d) / (PLUME.v + PARA.d + 0.35))));
+}
+// un point du titre (à plat) vu sur le plan incliné
+const surPlan = (x, y) => { if (PLAN.th < 0.002) return [x, y]; const dy = y - PLAN.cy, z = -dy * Math.sin(PLAN.th), f = PLAN.D / (PLAN.D + z); return [PLAN.cx + (x - PLAN.cx) * f, PLAN.cy + dy * Math.cos(PLAN.th) * f]; };
+const ecrit = (pts, tl, W, now) => { const M = pts.length; planTitre(pts, tl);
   return (r, o) => { const q = pts[r.i % M], dup = r.i >= M; o.p2 = 1; o.f = 1;
     o.x = q[0] + Math.sin(now * 2.1 + r.a * TAU) * 0.8 + (dup ? r.gx * 1.5 : 0); o.y = q[1] + Math.cos(now * 1.7 + r.b * TAU) * 0.8 + (dup ? r.gy * 1.5 : 0);
     // (vague 52) le titre a de l'épaisseur : chaque étoile a sa profondeur, et le titre pivote un peu quand la souris bouge (parallaxe), comme un hologramme
@@ -311,7 +322,8 @@ const ecrit = (pts, tl, W, now) => { const M = pts.length;
     // (vague 198) le coup de patte : les étoiles que la plume posait à cet instant partent de travers (un trait raté), puis se remettent en place
     const ec = Wd.t - PEN.coup; if (ec < 2.4 && PEN.cid === PEN.id) { const w = Math.max(0, 1 - Math.abs(q[2] - PEN.uc + 0.012) / 0.04); if (w > 0) { const px = pts.px || 40, k = w * Math.exp(-ec * 1.5) * (1 + 0.25 * Math.sin(ec * 14));
       o.x += (r.a - 0.5) * px * 1.1 * k + PEN.dx * px * 0.35 * k; o.y += (r.b - 0.3) * px * 0.9 * k + px * 0.3 * k; } }
-    const e = tl - PLUME.d - q[2] * PLUME.v, l = e > 0 ? Math.exp(-e * 5) : 0; o.s = 0.9 + l * 0.6; o.a = (dup ? 0.45 : 1.3) + l * 0.5; }; };
+    const e = tl - PLUME.d - q[2] * PLUME.v, l = e > 0 ? Math.exp(-e * 5) : 0; o.s = 0.9 + l * 0.6; o.a = (dup ? 0.45 : 1.3) + l * 0.5;
+    if (PLAN.th > 0.002) { const [px2, py2] = surPlan(o.x, o.y), f = PLAN.D / (PLAN.D - (o.y - PLAN.cy) * Math.sin(PLAN.th)); o.x = px2; o.y = py2; o.s *= Math.min(1.6, Math.max(0.5, f)); } }; };
 // la plume-comète : une tête blanche, une queue d'étincelles qui retombent derrière elle ; elle file sur chaque ligne, saute à la suivante, puis s'éteint en fin de titre
 function plume(ctx, pts, tl, now, br) {
   const u = plumeU(tl); if (tl < PLUME.d || u >= 1 && tl > PLUME.d + PLUME.v + PARA.d) return;
@@ -331,7 +343,7 @@ const PARA = { d: 0.08, v: 0.5 };
 function paraphe(pts, s) {   // s de 0 à 1 : de la fin de la dernière ligne, une boucle, puis le trait vers la gauche, sous tout le titre
   const lg = pts.lg, g = lg[lg.length - 1], px = pts.px || 40, xL = Math.min(...lg.map(l => l.x0)) + px * 0.3, xR = g.x1 + px * 0.15, rl = px * 0.26;
   const yb = Math.min(g.y + px * 0.62, (pts.y2 || 1e9) - rl * 1.4 - 4), q = (1 - s) * (1 - s);
-  return [xR - (xR - xL) * s + rl * Math.sin(TAU * s * 2.2) * q * 1.4, yb + rl * (1 - Math.cos(TAU * s * 2.2)) * q * 0.7 - Math.sin(Math.PI * s) * px * 0.1]; }
+  return surPlan(xR - (xR - xL) * s + rl * Math.sin(TAU * s * 2.2) * q * 1.4, yb + rl * (1 - Math.cos(TAU * s * 2.2)) * q * 0.7 - Math.sin(Math.PI * s) * px * 0.1); }
 function signe(ctx, pts, tl, now, br, tFin) {
   const t0 = PLUME.d + PLUME.v + PARA.d, p = c01((tl - t0) / PARA.v); if (p <= 0) return null;
   const pe = eio(p), rap = 1 - sm(c01((tl - (tFin - 0.28)) / 0.26)), n = 70; if (rap <= 0) return paraphe(pts, 1);
