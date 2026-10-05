@@ -1745,6 +1745,24 @@ S.flotte = (() => {
         mot('MARKO', t[0], t[1] - k * 0.38, Math.max(11, k * 0.08), 1);
         feuxDArtifice(now);
         for (let j = 0; j < 4; j++) { const u = ((c - NE * 0.55) * 0.9 + j / 4) % 1, px = t[0] + (bruit(j * 7 + Math.floor((c - NE * 0.55) * 0.9 + j / 4)) - 0.5) * k * 1.6, py = t[1] - k * (0.2 + 0.4 * bruit(j * 3 + 1)); eclat(px, py, k * 0.07, u, 9, j); } }
+      // (vague 328 de l'audit, « la flotte », originalité : Jev, dans les sous-titres, n'était nulle part) : les arbitrages courts. Pendant le
+      // chantier, deux options pendent au-dessus de la tour (A, B) ; une lame « Jev » tombe d'un coup et tranche : elle coupe le fil de l'une,
+      // qui tombe en tournoyant et rapetisse dans le vide, et l'autre, cochée, descend se poser sur le dernier étage. Une décision, pas un texte
+      if (!reduitMvt() && tas > 0.5 && n < NE) { const T = V(0, top, 0), du = 2.6, ph = now / du, u = ph - Math.floor(ph), gauche = bruit(Math.floor(ph) * 5.3) < 0.5,
+          sz = Math.max(G.cx * 2 >= 760 ? 13 : 9, k * 0.07), J = [T[0] + (T[0] > G.cx ? -1 : 1) * k * 0.55, Math.max(G.haut + sz * 5, T[1] - k * 0.32)], ap = sm(c01(u / 0.2)), lame = c01((u - 0.3) / 0.08), apres = c01((u - 0.4) / 0.5);
+        if (J[1] + sz * 3 < (G.caps || G.bas)) {
+          const opt = [-1, 1].map((sd, o) => { const garde = (o === 0) === gauche, x0 = J[0] + sd * sz * 1.6, y0 = J[1] + sz * 1.6;
+            if (lame < 1) return { x: x0, y: y0 + (1 - ap) * -sz, s: ap, garde, an: 0, fil: true };
+            return garde ? { x: lerp(x0, T[0], sm(apres)), y: lerp(y0, T[1] - sz * 0.6, sm(apres)), s: 1 - apres * 0.5, garde, an: 0, fil: apres < 0.05 } : { x: x0 + sd * apres * sz * 2, y: y0 + apres * apres * k * 0.5, s: Math.max(0.05, 1 - apres), garde, an: apres * 6 * sd, fil: false }; });
+          style(0.6, 0.8); trait([[J[0] - sz * 1.6, J[1]], [J[0] + sz * 1.6, J[1]]], false, 0.7, 0.9);
+          opt.forEach((q, o) => { if (q.s <= 0.05) return; if (q.fil) trait([[J[0] + (o ? 1 : -1) * sz * 1.6, J[1]], [q.x, q.y - sz * 0.6 * q.s]], false, 0.5, 0.8);
+            ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.an); ctx.scale(q.s, q.s); cerne(() => { ctx.beginPath(); ctx.rect(-sz * 0.7, -sz * 0.6, sz * 1.4, sz * 1.2); }, 0.6, 1); ctx.restore();
+            mot(o ? 'B' : 'A', q.x, q.y, sz * 0.8 * q.s, 1); if (q.garde && lame >= 1 && q.s > 0.3) coche(q.x + sz * 0.9, q.y - sz * 0.7, sz * 0.45, (u - 0.36) / 0.12, 1); });
+          if (u < 0.3 && ap > 0.6) mot('?', J[0], J[1] - sz * 1.2, sz * 0.9, 0.9);
+          if (lame > 0 && u < 0.62) { const xb = J[0] + (gauche ? 1 : -1) * sz * 1.6, yb = lerp(J[1] - k * 0.35, J[1] + sz * 0.9, lame);
+            cerne(() => { ctx.beginPath(); ctx.moveTo(xb - sz * 0.9, yb - sz * 0.5); ctx.lineTo(xb + sz * 0.9, yb - sz * 0.5); ctx.lineTo(xb + sz * 0.9, yb); ctx.lineTo(xb - sz * 0.9, yb + sz * 0.35); ctx.closePath(); }, 0.7, 1);
+            mot('Jev', xb, yb - sz * 1.05, Math.max(10, sz * 0.75), 1);
+            if (lame >= 1) eclat(xb, J[1] + sz * 0.3, sz * 1.6, c01((u - 0.38) / 0.2), 7, Math.floor(ph)); } } }
       ctx.restore();
     }
   };
