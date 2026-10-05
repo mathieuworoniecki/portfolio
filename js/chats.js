@@ -934,6 +934,7 @@ function ombresMur(fc) {
   // fantômes gris) : leur nuage passe sur le mur en un seul front d'orage hachuré, d'où dépassent leurs oreilles et le bout de leurs queues
   const ruee = NU.length && Wd.cats.some(c => c.rue), CO = Wd.cats.filter(c => !c.rue);
   if (ruee) orage(fc, pj, ink);
+  if (Wd.tower && Wd.tower.boxes) ombreTour(fc, pj, ink);
   try { CO.forEach(c => { if (c.hidden || c.gone || !c.hp || c.a < 0.3) return; const k = sc(c), f = c.face || 1, b = Chat.where(c, c.body), h = c.hp;
     const rx = c.D.a * k * 0.92, ry = Math.max(c.D.h * k * 1.45, c.D.a * k * 0.5), hr = c.b.head[0] * k * 1.2, sol = Math.max(c.y, b[1] + ry);
     const corps = []; for (let i = 0; i <= 28; i++) { const a = i / 28 * Math.PI * 2; corps.push(pj([b[0] + Math.cos(a) * rx, b[1] + Math.sin(a) * ry])); }
@@ -952,6 +953,20 @@ function ombresMur(fc) {
     pattes.forEach((L2, i) => C.line(L2[0][0], L2[0][1], L2[1][0], L2[1][1], 1, { w: Math.max(1.4, hr * 0.06 * m), a: a0 * 0.9, seed: sd + 4 + i, tip: false, amp: 0.4 })); }); }
   finally { C.ctx = main; fc.restore(); }
   ombresLettres(fc, pj, haut, bas, ink);
+}
+// (vague 311 de l'audit, « la tour de cartons ») : la lampe attrape aussi la pile. Elle monte sur le mur en une tour géante qui touche presque
+// le plafond, caisse après caisse ; quand la vraie penche, son ombre géante penche avec elle au-dessus de toute la pièce : on voit venir la chute
+function ombreTour(fc, pj, ink) {
+  const T = Wd.tower, a0 = (Wd.W < 760 ? 0.32 : 0.42) * Wd.a; fc.save(); fc.lineCap = fc.lineJoin = 'round';
+  T.boxes.forEach((b, i) => { if (!b.box || b.a < 0.3 || b.lift > Wd.H * 0.8 || (b.big || 1) > 1.3) return; const s = sOf(b.d) * (b.big || 1), w = b.box.w * s, h = b.box.h * s, x = xOf(b), y = b.y, t = -(b.tilt || 0);
+    const co = Math.cos(t), si = Math.sin(t), Q = [[-w / 2, 0], [w / 2, 0], [w / 2, -h], [-w / 2, -h]].map(([u, v]) => pj([x + u * co - v * si, y + u * si + v * co]));
+    const forme = new Path2D(); Q.forEach((p, j) => j ? forme.lineTo(p[0], p[1]) : forme.moveTo(p[0], p[1])); forme.closePath();
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; Q.forEach(([px, py]) => { x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py); });
+    fc.save(); fc.clip(forme); fc.strokeStyle = `rgba(${ink},${a0 * 0.5})`; fc.lineWidth = 1; const hh = y1 - y0; fc.beginPath(); for (let px = x0 - hh; px < x1; px += 8) { fc.moveTo(px, y1); fc.lineTo(px + hh, y0); } fc.stroke(); fc.restore();
+    Chalk.stroke(Q.concat([Q[0]]), 1, { w: 1.4, a: a0, seed: 170 + i, tip: false, amp: 0.6 });
+    // le ruban adhésif du dessus, en ombre aussi : un trait au milieu du couvercle
+    const c0 = Q[2], c1 = Q[3]; Chalk.line((c0[0] + c1[0]) / 2, (c0[1] + c1[1]) / 2, (Q[0][0] + Q[1][0]) / 2 * 0.15 + (c0[0] + c1[0]) / 2 * 0.85, (Q[0][1] + Q[1][1]) / 2 * 0.15 + (c0[1] + c1[1]) / 2 * 0.85, 1, { w: 1.2, a: a0 * 0.8, seed: 180 + i, tip: false }); });
+  fc.restore();
 }
 function orage(fc, pj, ink) {
   const B = []; NU.forEach(b => { const u = (Wd.t - b.t0) / b.life, k = sm(u / 0.18) * (1 - sm((u - 0.5) / 0.5)); if (k < 0.05) return;
