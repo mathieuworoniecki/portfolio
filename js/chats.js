@@ -938,7 +938,9 @@ function ombresMur(fc) {
   const C = Chalk, main = C.ctx; C.ctx = fc;
   // (vague 310 de l'audit, « la horde ») : pendant la ruée, les coureurs ne font plus chacun leur ombre (le mur devenait un fouillis de
   // fantômes gris) : leur nuage passe sur le mur en un seul front d'orage hachuré, d'où dépassent leurs oreilles et le bout de leurs queues
-  const ruee = NU.length && Wd.cats.some(c => c.rue), CO = Wd.cats.filter(c => !c.rue);
+  // (vague 313 de l'audit, « le distributeur fou », design) : quand la pièce se remplit (le jackpot attire tout le monde), le mur devenait une
+  // forêt de fantômes gris jusque dans le titre ; seuls les six chats les plus proches de la lampe (quatre au téléphone) y projettent leur ombre
+  const ruee = NU.length && Wd.cats.some(c => c.rue), CO = Wd.cats.filter(c => !c.rue && !c.hidden && !c.gone && c.hp).sort((a, b) => Math.abs(a.x - L[0]) - Math.abs(b.x - L[0])).slice(0, W < 760 ? 4 : 6);
   if (ruee) orage(fc, pj, ink);
   if (Wd.tower && Wd.tower.boxes) ombreTour(fc, pj, ink);
   try { CO.forEach(c => { if (c.hidden || c.gone || !c.hp || c.a < 0.3) return; const k = sc(c), f = c.face || 1, b = Chat.where(c, c.body), h = c.hp;
