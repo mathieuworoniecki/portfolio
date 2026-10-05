@@ -849,6 +849,27 @@ function boite3(V, x0, x1, y0, y1, z0, z1, w = 0.9, a = 1) {
   trait(C.map(c => c[1]), true, w, a, true); C.forEach(c => trait(c, false, w, a)); trait(C.map(c => c[0]), true, w, a, true); return C; }
 
 // (vague 14) les scènes étalées sur tout le ciel passent sous la barre des chapitres et derrière la planète des chats
+// (vague 288 de l'audit : « le chat-robot astronaute », immersion) : une sortie dans l'espace. Pendant les trois scènes de méthode,
+// un chat-robot en scaphandre, attaché par un long câble à une petite navette au fond du ciel, traverse tout l'écran : minuscule au loin,
+// il fonce vers nous jusqu'à devenir énorme, fait coucou de la patte, puis repart dans l'autre sens. Son sac à dos crache des bouffées
+// de gaz qui rapetissent (rien ne s'efface) ; le câble ondule sur tout le ciel (sous la barre du haut, au-dessus des sous-titres)
+// (dessinée par-dessus la scène : derrière, les terminaux le cachaient)
+function sortieEVA(now) {
+  const P = 15, n = Math.floor(now / P), u = (now % P) / P, sd = n % 2 ? -1 : 1, W = G.droite - G.gauche, H = G.bas - G.haut; if (W < 50 || H < 80) return;
+  const pr = Math.sin(Math.PI * u), pr2 = pr * pr * pr * pr, rmax = Math.min(W, H * 1.1) * (W < 500 ? 0.13 : 0.17), r = rmax * (0.1 + 0.9 * pr2);
+  const nav = [G.cx - sd * W * 0.36, G.haut + H * 0.12], x = G.cx + sd * W * (u - 0.5) * 1.05, y = G.haut + H * (0.2 + 0.32 * pr) + Math.sin(now * 0.9) * H * 0.03;
+  sousLaBarre();
+  rond(nav[0], nav[1], 5, 1.4, 0.9); trait([[nav[0] - 14, nav[1]], [nav[0] - 5, nav[1]]], false, 1.4, 0.9); trait([[nav[0] + 5, nav[1]], [nav[0] + 14, nav[1]]], false, 1.4, 0.9);
+  rond(nav[0], nav[1], 1.6 + Math.abs(Math.sin(now * 3)) * 1.5, 1, 1, true);
+  const dos = [x - sd * r * 0.7, y + r * 1.6], C = []; for (let i = 0; i <= 40; i++) { const t = i / 40, b = Math.sin(Math.PI * t);
+    C.push([nav[0] + (dos[0] - nav[0]) * t + Math.sin(t * 9 - now * 2.2) * b * W * 0.025, nav[1] + (dos[1] - nav[1]) * t + b * H * (0.18 - 0.1 * pr) + Math.cos(t * 7 - now * 1.7) * b * 8]); }
+  ctx.setLineDash([7, 5]); trait(C, false, 1.2 + 1.4 * pr2, 0.75); ctx.setLineDash([]);
+  for (let i = 1; i <= 7; i++) { const tq = now - i * 0.12, ag = i / 7, q = [dos[0] - sd * r * 0.4 * i - Math.sin(tq * 5) * r * 0.1, dos[1] + r * 0.15 * i + Math.cos(tq * 4) * r * 0.08]; rond(q[0], q[1], Math.max(0.6, r * 0.22 * (1 - ag * 0.85)), 1.2, 0.85); }
+  const coucou = pr > 0.8, bras = coucou ? [sd > 0 ? 2.4 + Math.sin(now * 12) * 0.4 : 0.3, sd > 0 ? 0.3 : 2.4 + Math.sin(now * 12) * 0.4] : [0.9, 0.9];
+  chabot(x, y, r, { now, ph: 288 + n, bras, lac: sd * (0.5 - pr * 0.4) + Math.sin(now * 0.7) * 0.15, casque: true, cligne: Math.sin(now * 1.1) > 0.99 });
+  if (coucou && r > 22) mot('coucou !', x + sd * r * 1.8, y - r * 1.4, Math.max(13, r * 0.28), 0.95);
+  ctx.restore();
+}
 function sousLaBarre() { ctx.save(); ctx.beginPath(); ctx.rect(0, G.haut - 4, G.droite + 40, 1e4);
   const Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat; if (Pc) { ctx.moveTo(Pc.x + Pc.r * 1.25, Pc.y); ctx.arc(Pc.x, Pc.y, Pc.r * 1.25, 0, TAU, true); }
   ctx.clip('evenodd'); }
@@ -3069,5 +3090,5 @@ S.pilotage = (() => {
 S.rag = S.ia;
 
 // la toile, l'écran du ciel, les outils ; puis : une scène existe-t-elle ?
-return { S, vise, VISE, LUI, ENVOL, TH, TMX, FEUX, SURGE, INSP, INST, PARI, GF, RAG, REQ, DEP, ATK, pose(c, g, o) { ctx = c; G = g; O = o; } };
+return { S, vise, VISE, LUI, ENVOL, TH, TMX, FEUX, SURGE, INSP, INST, PARI, GF, RAG, REQ, DEP, ATK, pose(c, g, o) { ctx = c; G = g; O = o; }, apres(cs, now) { if (cs === S.equipe || cs === S.terminaux || cs === S.agents) sortieEVA(now); } };
 })();

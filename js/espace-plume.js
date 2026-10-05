@@ -383,7 +383,7 @@ X.fond.push((ctx, now) => {
     // en bas juste au-dessus des sous-titres, et sur les côtés)
     const joue = (D, a, r) => { if (r <= 0.01) return; const G = L.G, c2 = horsChamp(ctx.canvas), o = c2.getContext('2d');
       o.setTransform(1, 0, 0, 1, 0, 0); o.clearRect(0, 0, c2.width, c2.height); o.setTransform(ctx.getTransform()); o.save();
-      o.beginPath(); o.arc(G.cx, G.cy, r * Math.hypot(L.W, L.H) * 0.7, 0, TAU); o.clip(); EspaceScenes.pose(o, G, O); D.cs.dessin(reduit ? 3 : a, now); o.restore();
+      o.beginPath(); o.arc(G.cx, G.cy, r * Math.hypot(L.W, L.H) * 0.7, 0, TAU); o.clip(); EspaceScenes.pose(o, G, O); D.cs.dessin(reduit ? 3 : a, now); if (EspaceScenes.apres) EspaceScenes.apres(D.cs, now); o.restore();
       o.globalAlpha = 1; o.globalCompositeOperation = 'destination-in';
       const gv = o.createLinearGradient(0, 0, 0, L.H), y1 = c01(G.haut * 0.75 / L.H), y2 = c01((G.bas - 30) / L.H), y3 = c01((G.bas + 4) / L.H);
       gv.addColorStop(0, 'rgba(0,0,0,0)'); gv.addColorStop(y1, '#000'); gv.addColorStop(Math.max(y1, y2), '#000'); gv.addColorStop(Math.max(y1, y3), 'rgba(0,0,0,0)'); gv.addColorStop(1, 'rgba(0,0,0,0)'); o.fillStyle = gv; o.fillRect(0, 0, L.W, L.H);
