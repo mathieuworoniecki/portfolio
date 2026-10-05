@@ -1436,11 +1436,15 @@ S.skills = (() => {
           cerne(() => { ctx.beginPath(); ctx.ellipse(wx, wy, rw, rw * 0.32, 0, 0, TAU); }, 0.8, 1, null);
           ctx.globalAlpha = 1; ctx.strokeStyle = ENC; ctx.lineWidth = LW * 0.7; ctx.beginPath(); for (let j = 0; j < 3; j++) { const t = an + j / 3 * TAU; ctx.moveTo(wx, wy); ctx.lineTo(wx + Math.cos(t) * rw, wy + Math.sin(t) * rw * 0.32); } ctx.stroke();
           const t = an, bx = wx + Math.cos(t) * rw, by = wy + Math.sin(t) * rw * 0.32; cerne(() => { ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx, by - s * 0.45); }, 0.9, 1, null); }
-        if (n && u < 3.3) mot('×' + n, fx, haut - s * 0.3, Math.max(11, s * 0.5), 1);
+        // (vague 326 de l'audit, « skills », originalité : on ne savait pas quelle tâche revenait) : la tâche a un nom, qui change à chaque tour ;
+        // il s'affiche avec son compteur, puis il est écrit sur la cartouche qui sort de la presse : la tâche est devenue un outil
+        const TCH = en() ? ['PR review', 'migration', 'release', 'test plan'] : ['revue de PR', 'migration', 'mise en prod', 'plan de tests'], tch = TCH[Math.floor(now / cy) % TCH.length];
+        if (n && u < 3.3) mot(tch + ' ×' + n, fx, haut - s * 0.3, Math.max(12, s * 0.6), 1);
         if (u > 3.0 && u < 3.5) { const v = (u - 3.0) / 0.5, fc = Math.max(14, s * 0.9) * (v < 0.2 ? 0.6 + v * 2 : 1 - sm((v - 0.6) / 0.4)); if (fc > 2) mot('CLAC', fx, haut - s * 2.3, fc, 1); eclat(fx, fy - s * 0.5, s * 2, (u - 3.0) / 0.5, 8, 0.3); }
         if (u > 3.3) { const v = sm(c01((u - 3.3) / 1.5)), mx = lerp(fx, C[0] - Rr * k * 0.88 * hx * 0.9, v), my = lerp(fy - s, C[1] - k * 0.1, v) - Math.sin(Math.PI * v) * k * 0.5;
           ctx.save(); ctx.translate(mx, my); ctx.rotate(v * TAU); cerne(() => { ctx.beginPath(); ctx.moveTo(-s * 0.7, -s); ctx.lineTo(s * 0.4, -s); ctx.lineTo(s * 0.7, -s * 0.7); ctx.lineTo(s * 0.7, s); ctx.lineTo(-s * 0.7, s); ctx.closePath(); }, 0.8, 1);
-          ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath(); for (let l = 0; l < 3; l++) { ctx.moveTo(-s * 0.45, s * (0.2 + l * 0.22)); ctx.lineTo(s * 0.45, s * (0.2 + l * 0.22)); } ctx.stroke(); ctx.restore(); brille(mx, my, 3, 1 - v * 0.5, true, now, 5); } }
+          ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath(); for (let l = 0; l < 3; l++) { ctx.moveTo(-s * 0.45, s * (0.2 + l * 0.22)); ctx.lineTo(s * 0.45, s * (0.2 + l * 0.22)); } ctx.stroke(); ctx.restore(); brille(mx, my, 3, 1 - v * 0.5, true, now, 5);
+          mot(tch, mx, my - s * 1.5, Math.max(11, s * 0.55), 1); } }
       ctx.restore();
     }
   };
