@@ -2554,6 +2554,21 @@ S.secu = (() => ({
   cles: () => [0, 1, 2, 3, 4, 5].map(i => [Math.cos(i / 6 * TAU) * 0.6, Math.sin(i / 6 * TAU) * 0.6]),
   dessin(a, now) {
     sousLaBarre(); const [k, lx] = large(1.2, 2), V = cam(now * 0.2, -0.42, k, 0, 0.14), R = 0.82, sw = now * 1.3;
+    // (vague 281 de l'audit, « Sécurité et qualité », immersion) : le dôme n'est que le cœur du bouclier. Tout le ciel est tapissé d'un champ de force
+    // en nids d'abeilles, presque invisible ; chaque fois qu'une menace (une sur trois) s'écrase sur le dôme, une onde d'alvéoles allumées part du point
+    // d'impact et traverse tout l'écran jusqu'aux bords : le bouclier entier encaisse le coup
+    { const T0 = 2.4, NQ0 = G.cx * 2 < 700 ? 9 : 14, tel4 = G.sw < 500, hs = tel4 ? 24 : 38, hw = Math.sqrt(3) * hs, yT = G.haut + 4, yB = (G.caps || G.bas) - 4, bdS = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande,
+        ap = sm(c01((a - 0.3) / 1.4)), diag = Math.hypot(G.droite - G.gauche, yB - yT), vit = diag / 1.5, ON = [];
+      if (!reduitMvt()) for (let q = 0; q < NQ0; q += 3) { const tt = a + q * T0 / NQ0, t = tt % T0; let n = Math.floor(tt / T0), dt = t - 1.2; if (dt < 0) { dt += T0; n--; } if (n < 0 || dt > 1.6) continue;
+        const th = bruit(q * 7 + n * 13) * TAU, ph = 0.2 + bruit(q * 3 + n * 5) * 1.1, I = V(Math.cos(th) * Math.cos(ph) * R, -Math.sin(ph) * R, Math.sin(th) * Math.cos(ph) * R); ON.push([I[0], I[1], dt * vit]); }
+      ctx.save(); ctx.beginPath(); ctx.rect(-1e4, yT, 2e4, yB - yT); if (bdS) ctx.rect(bdS.x - 10, bdS.y - 10, bdS.w + 20, bdS.h + 20); ctx.clip('evenodd');
+      const hexa = (x, y, r) => { for (let m = 0; m <= 6; m++) { const an = Math.PI / 6 + m * Math.PI / 3, px = x + Math.cos(an) * r, py = y + Math.sin(an) * r; m ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } };
+      const C = []; for (let j = 0, y = yT - hs; y < yB + hs; j++, y += 1.5 * hs) for (let x = G.gauche - hw + (j % 2) * hw / 2; x < G.droite + hw; x += hw) { if (Math.hypot(x - G.cx, (y - G.cy) * 1.4) > diag * 0.75 * ap) continue; C.push([x, y]); }
+      style(0.35, 0.3); ctx.beginPath(); C.forEach(([x, y]) => hexa(x, y, hs * 0.94)); ctx.stroke();
+      style(1.1, 1); ctx.beginPath(); const Bt = [];
+      C.forEach(([x, y]) => { for (const [ix, iy, rad] of ON) { const d = Math.hypot(x - ix, y - iy); if (Math.abs(d - rad) < hs * 0.85) { hexa(x, y, hs * 0.8); if (Math.abs(d - rad) < hs * 0.3 && bruit(x * 0.13 + y * 0.71) > 0.86) Bt.push([x, y]); break; } } }); ctx.stroke();
+      Bt.forEach(([x, y], i) => brille(x, y, 2.2, 1, false, now, 120 + i));
+      ctx.restore(); }
     // (vague 242 de l'audit, « sécurité », design : la grande orbite passait sous les sous-titres et la barre du bas) : elle s'interrompt au bord
     // de la bande des sous-titres, ses deux bouts finissent par un petit point, comme un trait de plume qu'on lève
     { const yC = (G.caps || G.bas) - 6, P = anneau(V, Math.min(1.8, lx * 0.9), 0, 96); let L = [];
