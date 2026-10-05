@@ -59,10 +59,8 @@ const LISTE = [
   // l'espace (28/09, Mathieu : « des hauts faits sur l'espace, et en créer des spécifiques »)
   ['decollage', 'bronze', '◌', 'Décollage', 'Lift-off', 'Un trou noir s’ouvre quand on entre.', 'A black hole opens when you enter.', () => v('decollage')],
   ['troublanc', 'bronze', '∘', 'Fontaine à chats', 'Cat fountain', 'Là-haut aussi, un clic dans le vide…', 'Up there too, a click on empty space…', () => v('troublanc')],
-  ['astronaute', 'argent', '◍', 'Un petit pas pour un chat', 'One small step for a cat', 'Parfois, quelque chose flotte. Un chat le veut.', 'Sometimes something floats by. A cat wants it.', () => v('astronaute')],
   ['fronde', 'argent', '↺', 'Fronde gravitationnelle', 'Gravity slingshot', 'Trop près d’une planète, on fait un tour.', 'Too close to a planet, you go around.', () => v('fronde')],
   ['petitprince', 'argent', '♁', 'Le Petit Prince', 'The Little Prince', 'Certains restent un moment sur leur planète.', 'Some stay a while on their planet.', () => v('petitprince')],
-  ['recruteur', 'or', '✧', 'Recruteur curieux', 'Curious recruiter', 'Toute la présentation, jusqu’à la dernière étoile.', 'The whole show, to the last star.', () => v('competences')],
   ['astronome', 'or', '⊛', 'Astronome', 'Astronomer', 'Tout ce qui peut arriver dans l’espace.', 'Everything that can happen in space.', () => ESP.length && ESP.every(v)],
   ['foule', 'or', '☷', 'La grande foule', 'The big crowd', 'Douze chats à l’écran en même temps.', 'Twelve cats on screen at once.', () => v('foule')],
   ['chaine', 'or', 'ϟ', 'Réaction en chaîne', 'Chain reaction', 'Une tour de caisses, de l’eau juste à côté, et des chats dessus.', 'A crate tower, water right next to it, and cats on top.', () => v('tourplouf')],
@@ -72,7 +70,6 @@ const LISTE = [
   ['voleur', 'secret', '⚲', 'Main dans le sac', 'Caught red-pawed', 'Pas vu, pas pris.', 'Not seen, not caught.', () => v('vol')],
   ['somnambule', 'secret', 'z', 'Somnambule', 'Sleepwalker', 'Il marche… les yeux fermés ?', 'Walking… with eyes closed?', () => v('manie-reveur')],
   ['lune', 'secret', '✶', 'Décrocher la lune', 'Reach for the moon', 'Vise plus haut.', 'Aim higher.', () => v('plafond')],
-  ['nyanespace', 'secret', '≋', 'Nyan sidéral', 'Sidereal Nyan', 'Un arc-en-ciel, là où il n’y a pas de pluie.', 'A rainbow where there is no rain.', () => v('nyanespace')],
   ['pouf', 'secret', '✺', 'Après la pluie', 'After the rain', 'Tout plat, puis tout gonflé.', 'All flat, then all fluffy.', () => v('regonfle')],
 ];
 const RANG = { bronze: { fr: 'Facile', en: 'Easy', c: '205,127,50' }, argent: { fr: 'Moyen', en: 'Medium', c: '150,160,175' }, or: { fr: 'Difficile', en: 'Hard', c: '226,176,40' }, secret: { fr: 'Secret', en: 'Secret', c: '150,90,200' } };

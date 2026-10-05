@@ -208,7 +208,7 @@ function prop(kind, fx, d, o) {
   it.big = { distrib: 1.5, eau: 1.3, bassin: 1.25, lanceur: 1.15, trappe: 1.1 }[kind] || 1;   // le distributeur et la fontaine, un peu plus grands que nature
   Wd.props.push(it); return it;
 }
-function unprop(it) { Univers.destroy(it); const i = Wd.props.indexOf(it); if (i >= 0) Wd.props.splice(i, 1); Wd.props.forEach(o => { if (o.on === it) o.on = null; if (o.target === it) o.target = null; });
+function unprop(it) { Univers.destroy(it); const i = Wd.props.indexOf(it); if (i >= 0) Wd.props.splice(i, 1); Wd.props.forEach(o => { if (o.on === it) drop(o, 0, 0, 0); if (o.target === it) o.target = null; });
   // (27/09, l'audit : un chat perché sur un objet retiré restait assis sur le vide)
   Wd.cats.forEach(c => { if (c.perch && c.perch.it === it) { c.perch = null; c.task = null; c.q = []; c.fall = true; c.vy = 0; } }); }
 // l'encombrement de chaque objet (en unités) : pour tomber, rebondir, se poser sur une caisse, se laisser attraper
@@ -911,7 +911,6 @@ function drawFil(C) {
   const main = C.ctx, fc = filCv.getContext('2d'); if (!main) return;
   if (filCv.width !== main.canvas.width || filCv.height !== main.canvas.height) { filCv.width = main.canvas.width; filCv.height = main.canvas.height; }
   fc.setTransform(1, 0, 0, 1, 0, 0); fc.clearRect(0, 0, filCv.width, filCv.height); fc.setTransform(main.getTransform());
-  ombresMur(fc);
   // (vague 157 de l'audit : « les chats », design) : chaque chat posé a son ombre, à la plume : trois traits de hachure sous ses pattes,
   // de plus en plus courts (sous les chats et les objets, jamais par-dessus)  (pas d’ombre en plein saut)
   const SH = Wd.cats.filter(c => !c.held && !c.fall && !c.hidden && c.a > 0.5 && Math.abs(c.vy || 0) < 40);
@@ -919,96 +918,6 @@ function drawFil(C) {
     for (let j = 0; j < 3; j++) { const w2 = hw * (1 - j * 0.28), x = c.x + (j - 1) * s * 0.02; if (w2 > 2) C.line(x - w2, y + j * Math.max(1.6, s * 0.016), x + w2, y + j * Math.max(1.6, s * 0.016), 1, { w: 1, a: 0.9 * c.a, seed: c.id * 3 + j, tip: false, amp: 0.25 }); } }); } finally { C.ctx = main; } }
   const L = Wd.props.filter(it => it.trail && it.trail.length >= 2 && it.a > 0.01); if (!L.length) return;
   C.ctx = fc; try { L.forEach(it => C.stroke(it.trail.concat([[it.x, it.y]]), 1, { w: 1.3, a: 0.6 * it.a, amp: 0.4, seed: 7, tip: false })); } finally { C.ctx = main; }
-}
-// (vague 287 de l'audit : « les chats », immersion) : une lumière basse, devant la pièce, projette chaque chat en grand sur le mur du fond,
-// en ombre chinoise hachurée à la plume : corps, tête, oreilles, pattes, queue qui fouette. La lampe tremble comme une bougie et suit
-// un peu la souris : les ombres s'étirent, se croisent et remplissent tout le mur (sous les objets et les chats, jamais sous la barre du haut)
-const OMB = { lx: 0 };
-function ombresMur(fc) {
-  if (Wd.espace || Wd.trou || !Wd.cats.length) return;
-  const W = Wd.W, H = Wd.H, t = Wd.t, tb = document.querySelector('.top'), haut = W < 760 ? Math.max(Wd.ceil || 0, 0) : (tb ? tb.getBoundingClientRect().bottom : 70) + 6, bas = floorAt(1) - 2; if (bas - haut < 40) return;
-  const P = Wd.ptr, vise = P && P.on && t - P.moved < 4 ? (P.x - W / 2) * 0.35 : Math.sin(t * 0.11) * W * 0.12;
-  OMB.lx += (vise - OMB.lx) * Math.min(1, 0.02 * 60 / 60); const fl = 1 + Math.sin(t * 7.3) * 0.012 + Math.sin(t * 11.9) * 0.008;
-  const L = [W / 2 + OMB.lx, H * 1.18], m = (W < 760 ? 1.75 : 2.05) * fl, mx = W < 760 ? m : m * 0.62, pj0 = p => [L[0] + (p[0] - L[0]) * mx, L[1] + (p[1] - L[1]) * m];
-  // (vague 312 de l'audit, « l'aspirateur ») : même les ombres se font aspirer. Tant qu'il balaie, les grandes ombres du mur s'étirent vers sa bouche
-  // comme de la guimauve (plus elles en sont près, plus elles filent), en tremblant ; quand il remonte, elles se relâchent d'un coup et rebondissent en place
-  const V = Wd.vac, vise2 = V && V.ph === 'balaye' ? (V.grand ? 1 : 0.75) : 0; OMB.vk = OMB.vk || 0; OMB.vv = OMB.vv || 0;
-  OMB.vv += ((vise2 - OMB.vk) * 0.06 - OMB.vv * (vise2 ? 0.25 : 0.12)); OMB.vk += OMB.vv; if (V) { OMB.vx = V.x; OMB.vy = V.y; }
-  const vk = OMB.vk, pj = Math.abs(vk) < 0.003 || OMB.vx == null ? pj0 : p => { const q = pj0(p), dx = OMB.vx - q[0], dy = OMB.vy - q[1], d = Math.hypot(dx, dy) || 1, f = Math.max(0, 1 - d / (W * 0.9)), k = vk * f * (0.35 + 0.65 * f) * 0.8, tr = Math.sin(t * 41 + q[1] * 0.05) * 3 * vk * f;
-    return [q[0] + dx * k + tr, q[1] + dy * k]; };
-  const ink = (window.THEME && THEME.ink) || '40,40,40';
-  fc.save(); fc.beginPath(); fc.rect(0, haut, W, bas - haut); fc.clip();
-  const C = Chalk, main = C.ctx; C.ctx = fc;
-  // (vague 310 de l'audit, « la horde ») : pendant la ruée, les coureurs ne font plus chacun leur ombre (le mur devenait un fouillis de
-  // fantômes gris) : leur nuage passe sur le mur en un seul front d'orage hachuré, d'où dépassent leurs oreilles et le bout de leurs queues
-  // (vague 313 de l'audit, « le distributeur fou », design) : quand la pièce se remplit (le jackpot attire tout le monde), le mur devenait une
-  // forêt de fantômes gris jusque dans le titre ; seuls les six chats les plus proches de la lampe (quatre au téléphone) y projettent leur ombre
-  const ruee = NU.length && Wd.cats.some(c => c.rue), CO = Wd.cats.filter(c => !c.rue && !c.hidden && !c.gone && c.hp).sort((a, b) => Math.abs(a.x - L[0]) - Math.abs(b.x - L[0])).slice(0, W < 760 ? 4 : 6);
-  if (ruee) orage(fc, pj, ink);
-  if (Wd.tower && Wd.tower.boxes) ombreTour(fc, pj, ink);
-  try { CO.forEach(c => { if (c.hidden || c.gone || !c.hp || c.a < 0.3) return; const k = sc(c), f = c.face || 1, b = Chat.where(c, c.body), h = c.hp;
-    const rx = c.D.a * k * 0.92, ry = Math.max(c.D.h * k * 1.45, c.D.a * k * 0.5), hr = c.b.head[0] * k * 1.2, sol = Math.max(c.y, b[1] + ry);
-    const corps = []; for (let i = 0; i <= 28; i++) { const a = i / 28 * Math.PI * 2; corps.push(pj([b[0] + Math.cos(a) * rx, b[1] + Math.sin(a) * ry])); }
-    const tete = []; for (let i = 0; i <= 30; i++) { const a = -Math.PI / 2 + i / 30 * Math.PI * 2, u = ((a + Math.PI / 2) / (Math.PI * 2) + 1) % 1;
-      const o = Math.max(0, 1 - Math.abs(u - 0.1) / 0.06) + Math.max(0, 1 - Math.abs(u - 0.9) / 0.06); tete.push(pj([h[0] + Math.cos(a) * hr * (1 + o * 0.75), h[1] + Math.sin(a) * hr * (1 + o * 0.75) * 0.92])); }
-    const fo = Math.sin(t * 2.2 + c.id * 1.7) * 0.6, q0 = [b[0] - f * rx * 0.85, b[1] - ry * 0.1], q1 = [b[0] - f * rx * (1.5 + fo * 0.3), b[1] - ry * 1.4], q2 = [b[0] - f * rx * (1.25 - fo * 0.5), b[1] - ry * (2.6 + fo * 0.3)];
-    const queue = []; for (let i = 0; i <= 12; i++) { const u = i / 12, v = 1 - u; queue.push(pj([v * v * q0[0] + 2 * v * u * q1[0] + u * u * q2[0], v * v * q0[1] + 2 * v * u * q1[1] + u * u * q2[1]])); }
-    const pattes = [-0.6, -0.3, 0.35, 0.65].map((x, i) => { const w = Math.sin(t * 9 + i * 1.6) * (Math.abs(c.vx || 0) > 5 ? rx * 0.12 : 0); return [pj([b[0] + x * rx, b[1] + ry * 0.5]), pj([b[0] + x * rx + w, sol])]; });
-    const a0 = (W < 760 ? 0.32 : 0.42) * Math.min(1, c.a), sd = c.id * 13;
-    const forme = new Path2D(); [corps, tete].forEach(Q => { Q.forEach((p, i) => i ? forme.lineTo(p[0], p[1]) : forme.moveTo(p[0], p[1])); forme.closePath(); });
-    fc.save(); fc.clip(forme); fc.strokeStyle = `rgba(${ink},${a0 * 0.55})`; fc.lineWidth = 1;
-    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; corps.concat(tete).forEach(p => { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); });
-    fc.beginPath(); for (let x = x0 - (y1 - y0); x < x1; x += 8) { fc.moveTo(x, y1); fc.lineTo(x + (y1 - y0), y0); } fc.stroke(); fc.restore();
-    C.stroke(corps, 1, { w: 1.3, a: a0, seed: sd + 1, tip: false, amp: 0.6 }); C.stroke(tete, 1, { w: 1.3, a: a0, seed: sd + 2, tip: false, amp: 0.6 });
-    C.stroke(queue, 1, { w: Math.max(1.6, hr * 0.07 * m), a: a0 * 0.9, seed: sd + 3, tip: false, amp: 0.5 });
-    pattes.forEach((L2, i) => C.line(L2[0][0], L2[0][1], L2[1][0], L2[1][1], 1, { w: Math.max(1.4, hr * 0.06 * m), a: a0 * 0.9, seed: sd + 4 + i, tip: false, amp: 0.4 })); }); }
-  finally { C.ctx = main; fc.restore(); }
-  ombresLettres(fc, pj, haut, bas, ink);
-}
-// (vague 311 de l'audit, « la tour de cartons ») : la lampe attrape aussi la pile. Elle monte sur le mur en une tour géante qui touche presque
-// le plafond, caisse après caisse ; quand la vraie penche, son ombre géante penche avec elle au-dessus de toute la pièce : on voit venir la chute
-function ombreTour(fc, pj, ink) {
-  const T = Wd.tower, a0 = (Wd.W < 760 ? 0.32 : 0.42) * Wd.a; fc.save(); fc.lineCap = fc.lineJoin = 'round';
-  T.boxes.forEach((b, i) => { if (!b.box || b.a < 0.3 || b.lift > Wd.H * 0.8 || (b.big || 1) > 1.3) return; const s = sOf(b.d) * (b.big || 1), w = b.box.w * s, h = b.box.h * s, x = xOf(b), y = b.y, t = -(b.tilt || 0);
-    const co = Math.cos(t), si = Math.sin(t), Q = [[-w / 2, 0], [w / 2, 0], [w / 2, -h], [-w / 2, -h]].map(([u, v]) => pj([x + u * co - v * si, y + u * si + v * co]));
-    const forme = new Path2D(); Q.forEach((p, j) => j ? forme.lineTo(p[0], p[1]) : forme.moveTo(p[0], p[1])); forme.closePath();
-    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; Q.forEach(([px, py]) => { x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py); });
-    fc.save(); fc.clip(forme); fc.strokeStyle = `rgba(${ink},${a0 * 0.5})`; fc.lineWidth = 1; const hh = y1 - y0; fc.beginPath(); for (let px = x0 - hh; px < x1; px += 8) { fc.moveTo(px, y1); fc.lineTo(px + hh, y0); } fc.stroke(); fc.restore();
-    Chalk.stroke(Q.concat([Q[0]]), 1, { w: 1.4, a: a0, seed: 170 + i, tip: false, amp: 0.6 });
-    // le ruban adhésif du dessus, en ombre aussi : un trait au milieu du couvercle
-    const c0 = Q[2], c1 = Q[3]; Chalk.line((c0[0] + c1[0]) / 2, (c0[1] + c1[1]) / 2, (Q[0][0] + Q[1][0]) / 2 * 0.15 + (c0[0] + c1[0]) / 2 * 0.85, (Q[0][1] + Q[1][1]) / 2 * 0.15 + (c0[1] + c1[1]) / 2 * 0.85, 1, { w: 1.2, a: a0 * 0.8, seed: 180 + i, tip: false }); });
-  fc.restore();
-}
-function orage(fc, pj, ink) {
-  const B = []; NU.forEach(b => { const u = (Wd.t - b.t0) / b.life, k = sm(u / 0.18) * (1 - sm((u - 0.5) / 0.5)); if (k < 0.05) return;
-    const R = b.r * k * (1 + u * 0.6), x = b.x + b.vx * u * b.life, y = b.y - R * 0.55 - u * b.r * 0.5, p = pj([x, y]), q = pj([x + R, y]); B.push([p[0], p[1], Math.abs(q[0] - p[0]) * 1.15]); });
-  if (!B.length) return; const a0 = (Wd.W < 760 ? 0.34 : 0.44) * Wd.a, forme = new Path2D(); B.forEach(([x, y, r]) => { forme.moveTo(x + r, y); forme.arc(x, y, r, 0, 6.283); });
-  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; B.forEach(([x, y, r]) => { x0 = Math.min(x0, x - r); x1 = Math.max(x1, x + r); y0 = Math.min(y0, y - r); y1 = Math.max(y1, y + r); });
-  // le corps de l'orage : des hachures serrées dans les deux sens, qui glissent avec lui
-  fc.save(); fc.clip(forme); fc.strokeStyle = `rgba(${ink},${a0 * 0.5})`; fc.lineWidth = 1; const gl = (Wd.t * 40) % 7, hh = y1 - y0;
-  fc.beginPath(); for (let x = x0 - hh - gl; x < x1; x += 7) { fc.moveTo(x, y1); fc.lineTo(x + hh, y0); } fc.stroke();
-  fc.strokeStyle = `rgba(${ink},${a0 * 0.25})`; fc.beginPath(); for (let x = x0 + gl; x < x1 + hh; x += 11) { fc.moveTo(x, y1); fc.lineTo(x - hh, y0); } fc.stroke(); fc.restore();
-  // son bord : l'arc extérieur de chaque bosse (ce qui n'est caché par aucune autre), à la plume
-  fc.save(); fc.strokeStyle = `rgba(${ink},${a0})`; fc.lineWidth = 1.4; fc.lineCap = 'round';
-  B.forEach(([x, y, r], i) => { fc.beginPath(); let on = false; for (let j = 0; j <= 40; j++) { const a = j / 40 * 6.283, px = x + Math.cos(a) * r, py = y + Math.sin(a) * r;
-    const libre = B.every(([x2, y2, r2], i2) => i2 === i || Math.hypot(px - x2, py - y2) > r2 - 0.5); if (libre) { on ? fc.lineTo(px, py) : fc.moveTo(px, py); on = true; } else on = false; } fc.stroke(); });
-  // les oreilles et les queues qui dépassent du front, aux places des coureurs
-  Wd.cats.filter(c => c.rue && !c.gone && c.hp).slice(0, 9).forEach((c, i) => { const h = pj(c.hp), k = sc(c) * 2, f = c.face || 1, top = h[1] - k * 0.32;
-    if (!B.some(([x, y, r]) => Math.abs(h[0] - x) < r * 1.2)) return; const bob = Math.sin(Wd.t * 14 + i) * k * 0.03;
-    fc.beginPath(); [-1, 1].forEach(sd => { const ex = h[0] + sd * k * 0.14; fc.moveTo(ex - k * 0.07, top + k * 0.12 + bob); fc.lineTo(ex + sd * k * 0.02, top - k * 0.06 + bob); fc.lineTo(ex + k * 0.07, top + k * 0.12 + bob); });
-    const qx = h[0] - f * k * 0.9, qw = Math.sin(Wd.t * 9 + i * 2) * k * 0.08; fc.moveTo(qx, top + k * 0.25); fc.quadraticCurveTo(qx - f * k * 0.12, top - k * 0.05 + qw, qx - f * k * 0.02, top - k * 0.2 + qw); fc.stroke(); });
-  fc.restore();
-}
-// (vague 308 de l'audit, « le titre », vers 9,9) : la même lampe attrape les lettres tombées du titre. Chacune, au sol ou en l'air,
-// s'écrit en ombre géante sur le mur, son trait doublé à la plume ; un « o » qui roule fait rouler un grand O de nuit derrière les chats
-function ombresLettres(fc, pj, haut, bas, ink) {
-  const V = window.Vie, Ls = V && V.LETTERS && V.LETTERS(); if (!Ls) return; const r = V.RECT(), D = Ls.filter(L => L.st && L.st !== 'back' && L.a > 0.5 && L.strokes && L.strokes.length); if (!D.length) return;
-  const C = Chalk, main = C.ctx, a0 = (Wd.W < 760 ? 0.3 : 0.4) * Wd.a; fc.save(); fc.beginPath(); fc.rect(0, haut, Wd.W, bas - haut); fc.clip(); C.ctx = fc;
-  try { D.forEach((L, j) => { const cx = r.left + L.cx + L.dx, cy = r.top + L.cy + L.dy, co = Math.cos(L.rot || 0), si = Math.sin(L.rot || 0), w = Math.max(3, (L.y1 - L.y0) * 0.09 * 2);
-    L.strokes.forEach((P, i) => { const Q = P.map(q => { const x = q[0] - L.cx, y = q[1] - L.cy; return pj([cx + x * co - y * si, cy + x * si + y * co]); });
-      if (P.len < 6) { const m = Q[Q.length >> 1]; C.circle(m[0], m[1], w * 0.8, w * 0.8, 1, { w: 1.4, a: a0, seed: 140 + j * 7 + i, tip: false }); return; }
-      C.stroke(Q, 1, { w, a: a0 * 0.45, seed: 120 + j * 7 + i, tip: false, amp: 0.5 }); C.stroke(Q.map(p => [p[0] + w * 0.5, p[1] - w * 0.4]), 1, { w: 1.3, a: a0, seed: 130 + j * 7 + i, tip: false, amp: 0.6 }); }); }); }
-  finally { C.ctx = main; fc.restore(); }
 }
 // (vague 26, l'audit : « la tour de cartons ») : les chips de calage. Chaque caisse qui s'ouvre en tombant en crache une poignée :
 // des petits S qui volent, rebondissent sur le sol, glissent et restent là, en bazar, jusqu'à ce que l'équipe du ménage les balaie au passage
@@ -1366,10 +1275,17 @@ function tower(grand) {
   const cands = [0.2, 0.3, 0.45, 0.55, 0.7, 0.85].filter(f => f > clear && (Wd.mode === 'large' || f > 0.3));
   if (!cands.length && grand) cands.push(0.62, 0.78);
   if (!cands.length) return false;   // pas de place (écran étroit, l'arbre au milieu) : un autre scénario
-  const fx = cands.sort((a, b) => Math.min(...Wd.props.filter(p => !p.run).map(p => Math.abs(p.fx - b))) - Math.min(...Wd.props.filter(p => !p.run).map(p => Math.abs(p.fx - a))))[0];
-  const d = grand ? rnd(0.15, 0.35) : rnd(0.3, 0.6), all = grand ? (Wd.mode === 'large' ? [2, 2, 2, 1, 1, 1, 0, 0, 0, 0] : [1, 1, 1, 0, 0, 0, 0]) : Wd.mode === 'large' ? [2, 2, 1, 1, 0, 0] : [1, 1, 0], H = [0.24, 0.3, 0.34];
-  // pas plus haute que la place libre sous le titre et les boutons (la grande : jusqu'en haut de l'écran)
-  const room = (floorAt(d) - (grand ? Wd.H * 0.07 : ceilY())) / sOf(d) - 0.35; let h = 0; const sizes = all.filter(z => (h += H[z]) < room); if (sizes.length < 2) return false;
+  const d = grand ? rnd(0.15, 0.35) : rnd(0.3, 0.6);
+  // (05/10, Mathieu : « des caisses qui flottent à côté des boutons, des textes qui se chevauchent ») : la pile ne monte jamais sur le titre,
+  // les boutons et leur ligne d'aide, ni sous la barre du haut ; la grande tour va se dresser là où le plafond est le plus haut
+  const plafond = f => { const x0 = f * Wd.W - sOf(d) * 0.75, x1 = f * Wd.W + sOf(d) * 0.75, tb = document.querySelector('.top'), T = window.Vie && Vie.RECT && Vie.RECT();
+    let y = tb && tb.getClientRects().length ? tb.getBoundingClientRect().bottom + 10 : Wd.H * 0.07; if (T && T.width && T.right > x0 && T.left < x1) y = Math.max(y, T.bottom + 10);
+    boutons().forEach(({ r: b }) => { if (b.right > x0 && b.left < x1) y = Math.max(y, b.bottom + 44); }); return y; };
+  const libre = f => Math.min(...Wd.props.filter(p => !p.run).map(p => Math.abs(p.fx - f)));
+  const fx = cands.sort((a, b) => grand ? plafond(a) - plafond(b) || libre(b) - libre(a) : libre(b) - libre(a))[0];
+  const all = grand ? (Wd.mode === 'large' ? [2, 2, 2, 1, 1, 1, 0, 0, 0, 0] : [1, 1, 1, 0, 0, 0, 0]) : Wd.mode === 'large' ? [2, 2, 1, 1, 0, 0] : [1, 1, 0], H = [0.24, 0.3, 0.34];
+  // pas plus haute que la place libre au-dessus d'elle
+  const room = (floorAt(d) - plafond(fx)) / sOf(d) - 0.35; let h = 0; const sizes = all.filter(z => (h += H[z]) < room); if (sizes.length < 2) return false;
   // un escalier en zigzag : chaque caisse déborde d'un côté, et laisse à celle du dessous une marche où poser les pattes
   const z0 = Math.random() < 0.5 ? -1 : 1, offs = sizes.map((_, i) => i ? (i % 2 ? z0 : -z0) * 0.16 : 0);
   const T = Wd.tower = { boxes: [], t: 0, phase: 'pile', w: 0, fx, d, offs, grand: !!grand };
@@ -1399,36 +1315,12 @@ function climbers(T) {
     k.q.push(pose('miaule', 2, { fx: k => say(k, 'miaou !') }));
   });
 }
-// (vague 114 de l'audit, « la tour de cartons », l'inoubliable) : la toise. Comme les traits au crayon sur le chambranle d'une porte, une règle
-// dessinée pousse à côté de la grande tour à mesure qu'elle monte, graduée en chats (« 1 », « 2 »… et en haut « 7 chats ! ») ; quand la tour
-// s'écroule, la toise bascule comme un bâton, claque au sol (« clac ») et rapetisse jusqu'à rien
-const EN = () => !/^fr/.test(document.documentElement.lang || 'fr');
-const TOISE = { T: null, h: 0, n: 0, chute: -1, dir: 1, x: 0, sol: 0, k: 1 };
-H.draw.push(() => {
-  const T = Wd.tower, O = TOISE, C = Chalk; if (!C.ctx || Wd.espace || Wd.trou) return;
-  if (T && T.grand && T !== O.T && T.boxes.length) Object.assign(O, { T, h: 0, n: 0, chute: -1, k: 1, clac: false });
-  if (!O.T) return; const t0 = O.T, b0 = t0.boxes[0];
-  if (O.chute < 0) { if (!b0 || !Wd.props.includes(b0)) { O.T = null; return; }
-    const s = sOf(t0.d), sd = xOf(b0) < Wd.W / 2 ? 1 : -1; O.x = xOf(b0) + sd * (b0.box.w / 2 * s + Math.max(22, s * 0.35)); O.sol = floorAt(t0.d); O.u = s * 0.62;
-    let top = O.sol; t0.boxes.forEach(b => { const posee = (b.on && t0.boxes.includes(b.on)) || (b.y > 0 && Math.abs(b.y - (b.toiseY ?? -1e4)) < 1.5); b.toiseY = b.y; if (posee && Wd.props.includes(b)) top = Math.min(top, b.y - topOf(b)); }); O.h += (O.sol - top - O.h) * 0.12;   // (une caisse posée : elle ne bouge plus d'une image à l'autre)
-    if (t0.phase !== 'pile' && t0.phase !== 'debout') { O.chute = Wd.t; O.dir = t0.dir || 1; } }
-  const u = O.u, n = Math.floor(O.h / u + 0.05); if (n > O.n) { O.n = n; if (n >= 2) Wd.fx.push({ k: 'txt', text: pick(['hop', 'et ' + n + ' !', '+1']), x: O.x + 26, y: O.sol - n * u, t0: Wd.t, life: 0.6, rot: rnd(-0.2, 0.2), size: 14 }); }
-  // la chute : elle pivote sur son pied, de plus en plus vite, claque au sol ; puis rapetisse jusqu'à rien
-  let ang = 0; if (O.chute > 0) { const e = Wd.t - O.chute; ang = O.dir * Math.min(Math.PI / 2, 1.2 * e * e * 3.2);
-    if (Math.abs(ang) >= Math.PI / 2 - 1e-3 && !O.clac) { O.clac = true; Wd.fx.push({ k: 'txt', text: 'clac', x: O.x + O.dir * O.h * 0.8, y: O.sol - 12, t0: Wd.t, life: 0.8, rot: 0, size: 18 }); dust(O.x + O.dir * O.h * 0.7, O.sol, u * 0.6, 0.8); }
-    if (e > 2.2) O.k = Math.max(0, 1 - (e - 2.2) / 0.8); if (O.k <= 0) { O.T = null; return; } }
-  const ctx = C.ctx, a = 0.85 * Wd.a, L = O.h * O.k; if (L < 4) return;
-  ctx.save(); ctx.translate(O.x, O.sol); ctx.rotate(ang); ctx.scale(O.k, O.k);
-  C.line(0, 0, 0, -O.h, 1, { w: 2, a, seed: 501, tip: false }); C.line(5, 0, 5, -O.h, 1, { w: 1.2, a: a * 0.6, seed: 502, tip: false });
-  for (let i = 1; i <= n; i++) { const y = -i * u, big = i === n; C.line(-6, y, big ? 12 : 9, y, 1, { w: big ? 2 : 1.4, a, seed: 510 + i, tip: false });
-    C.text(String(i), -10, y, 1, { size: 13, a, align: 'right' }); }
-  if (n >= 2) C.text(n + (EN() ? ' cats' : ' chats') + (O.chute < 0 && t0.phase === 'debout' ? ' !' : ''), 14, -n * u - 8, 1, { size: 15, a });
-  ctx.restore();
-  if (n >= 6 && window.Dex && Dex.vu) Dex.vu('toise');
-});
 function towerFrame(dt) {
   const T = Wd.tower; if (!T) return; T.t += dt;
   if (!T.boxes || !T.boxes.length) { Wd.tower = null; return; }   // (27/09, l'audit : une tour vidée en route plantait ici)
+  // (05/10, Mathieu : « des caisses qui flottent en l'air ») : une caisse de la pile qui a perdu son appui (celle du dessous emportée, aspirée,
+  // attrapée) ne reste plus suspendue dans le vide : elle tombe
+  T.boxes.forEach(b => { if (Wd.props.includes(b) && !b.on && !b.fall && !b.held && !b.suck && !b.trou && b.lift + low(b) > 4) drop(b, 0, 0, rnd(-1, 1)); });
   if (T.phase === 'debout') {
     // chaque chat perché au-dessus de la deuxième caisse fait pencher la pile
     const up = Wd.cats.filter(k => k.perch && k.perch.it.tower === T && T.boxes.indexOf(k.perch.it) >= 1).length;
@@ -2159,7 +2051,7 @@ function release(c, vx, vy) {
 }
 
 // pour js/vie.js : le monde et ses outils
-const K = { Wd, H, TOISE, porteTout, boutons, rectOf, ANIMS, STEPS, CARAC, SPEED, LOURD, I, sit, lie, blink, rnd, pick, clamp, sgn, sm, c01, lerp, later, sc, front, back, sOf, floorAt, zOf, xOf, grav, inView, groundAt, perchAt, beside,
+const K = { Wd, H, porteTout, boutons, rectOf, ANIMS, STEPS, CARAC, SPEED, LOURD, I, sit, lie, blink, rnd, pick, clamp, sgn, sm, c01, lerp, later, sc, front, back, sOf, floorAt, zOf, xOf, grav, inView, groundAt, perchAt, beside,
   PORTE, SCEN, TK, drawFx, addCat, unCat, free, free4, zoomies, eat, play, climb, push, smash, interrupt, claim, go, pose, hop, fn, say, dust, startle, thud, drop, prop, unprop, kick, residents, leave, enter, catAt, propAt, freeD, stack, topOf, open, unbox, hide, sleep, idle, stroll, press, fire, folle, aspire,
   get MAXC() { return MAXC; } };
 return { K, ANIMS, CARAC, frame, draw, hide: hideAll, click, grab, drag, release, get clicks() { return Wd.clicks; }, get world() { return Wd; }, horde, tower, aspire, folle: () => folle(Wd.P.distrib), ouvre: () => { const b = Wd.props.find(p => p.launched && p.kind === 'caisse' && !p.busy && !p.fall), c = Wd.cats.find(free4); if (b && c) { interrupt(c); open(c, b); } }, fight: () => { const L = Wd.cats.filter(free4).slice(0, 2); if (L.length > 1) fight(L); }, quarrel: () => { const L = Wd.cats.filter(free4); if (L.length > 1) quarrel(L[0], L[1]); } };

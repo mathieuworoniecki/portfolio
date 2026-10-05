@@ -387,16 +387,15 @@ function teinte(c, k) {
 const blanc = c => teinte(c, 1), encre = c => teinte(c, 0);
 const rgb = s => String(s).split(',').map(Number), melange = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',');
 const E = { crache: -1, ondes: [], pops: [], doigt: null, boucle: 0 };
-/* les modules de l'espace (js/espace-*.js : le dessin, la présentation au stylo, les planètes) se branchent ici :
+/* les modules de l'espace (js/espace-planetes.js : la Terre et la planète des chats) se branchent ici :
      pas(dt, chats)       après les chats, à chaque image (forces, chocs avec leurs objets)
      pose(c)              après la pose d'un chat (où il regarde…)
      fond(ctx, now)       sur le calque, derrière les chats          devant(ctx, now)   sur le calque, après les ondes
      grab(x, y)           une clé { mod: { drag(k, x, y), release(k, vx, vy) } } ou rien
-     mode[nom](c, dt)     un chat dans un état à eux (accroché à un trait, dans un abri, pendu à un mot, aspiré…)
+     mode[nom](c, dt)     un chat dans un état à eux (en orbite, posé sur la planète, aspiré…)
      envie(c)             un chat à la dérive se demande quoi faire : vrai si le module l'occupe
-     trace                le doigt dans le vide : { debut(x, y), suite(x, y), fin() → vrai si c'était un dessin }
      entre(), retour()    on arrive dans l'espace, on en repart */
-const X = { pas: [], pose: [], fond: [], devant: [], grab: [], mode: {}, envie: [], entre: [], retour: [], apres: [], trace: null };
+const X = { pas: [], pose: [], fond: [], devant: [], grab: [], mode: {}, envie: [], entre: [], retour: [] };
 // on arrive dans l'espace (après le trou, ou directement par la barre du bas)
 function entre() {
   if (T) fin();
@@ -459,66 +458,10 @@ function cordons(now) {
         for (let i = 1; i < P.length; i++) { ctx.lineWidth = Math.max(0.6, epais * P[i][2] + extra); ctx.beginPath(); ctx.moveTo(P[i - 1][0], P[i - 1][1]); ctx.lineTo(P[i][0], P[i][1]); ctx.stroke(); } } });
     ctx.restore(); });
 }
-/* (vague 136 de l'audit : « l'arrivée dans l'espace », immersion) : SPLOTCH. À l'arrivée, un des chats recrachés, encore sonné, file droit vers
-   nous : il grossit, grossit, et s'écrase contre la vitre de l'écran, les quatre pattes à plat (on voit les coussinets, la buée de son souffle) ;
-   il glisse un peu vers le bas en couinant, se décolle et repart en tournoyant dans l'espace. Ses empreintes restent sur la vitre, puis
-   rapetissent jusqu'à rien (rien ne s'efface). Une fois par voyage. */
-const VI = { c: null, t0: 0, fait: false, k: 1, x0: 0, y0: 0, prints: [], tCord: -1 };
-X.pas.push(() => {
-  if (VI.fait || reduit || !Wd.espace) return;
-  if (VI.tCord < 0) { if (Wd.cats.some(c => c.sp && c.sp.cordonFini)) VI.tCord = Wd.t; return; }
-  if (Wd.t - VI.tCord < 0.9) return;
-  // (vague 322) de préférence un chat au-dessus des sous-titres : venu d'en bas, il traversait leur bande, qui le repoussait (il lâchait la vitre)
-  const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, L = Wd.cats.filter(c => c.sp && c.sp.sorti && c.sp.m === 'derive' && !c.held && !c.gone && !c.rare),
-    L2 = bd ? L.filter(c => centreDe(c)[1] + rayon(c) * 1.3 < bd.y) : L;
-  if (!L2.length && Wd.t - VI.tCord < 5) return;
-  const c = (L2.length ? L2 : L).sort((a, b) => Math.abs(a.x - W / 2) - Math.abs(b.x - W / 2))[0]; if (!c) return;
-  VI.fait = true; VI.c = c; VI.t0 = Wd.t; VI.x0 = c.x; VI.y0 = c.y; VI.k = clamp(Math.min(W, H) * (W >= 760 ? 0.22 : 0.2) / Math.max(8, rayon(c)), 2.2, 6); c.sp.m = 'vitre'; c.spin = 0; c.sp.vx = c.sp.vy = 0;
-  // (vague 322 de l'audit, « les titres en étoiles » : le chat écrasé couvrait le début du titre) : il vise la vitre sous le titre en étoiles,
-  // jamais dessus ; à plat, il fait à peu près VI.k fois sa taille
-  VI.k = clamp(Math.min(W, H) * (W >= 760 ? 0.14 : 0.12) / Math.max(8, rayon(c)), 2.2, 6); VI.Z = null; cibleVitre();
-});
-// (s'il y a la place à gauche du titre, il s'écrase à côté, à sa hauteur ; sinon en dessous ; au téléphone, sous le titre, c'est la bande
-// des sous-titres : au-dessus ; c.y, ce sont ses pieds : tout son corps et sa queue au-dessus, sous la barre du haut) ; le titre n'est pas encore là : la cible se recale dès qu'il paraît, tant que le chat est en route
-function cibleVitre() {
-  const R = Math.min(W, H) * (W >= 760 ? 0.14 : 0.12), Z = window.EspaceNuee && EspaceNuee.zoneTitre && EspaceNuee.zoneTitre();
-  VI.tx = W >= 760 ? W * 0.17 : W * 0.3; VI.ty = H * (W >= 760 ? 0.5 : 0.2); VI.Z = Z;
-  if (Z && Z.x0 > R * 1.6) { VI.tx = Z.x0 - R; VI.ty = clamp((Z.y0 + Z.y1) / 2 + R * 0.3, H * 0.36, H * 0.6); }
-  else if (Z) VI.ty = W >= 760 ? clamp(Z.y1 + R * 1.05, H * 0.3, H * 0.62) : Math.min(H * 0.32, Math.max(H * 0.135 + R * 2.2, Z.y0 - R * 0.3));
-}
-X.mode.vitre = (c, dt) => {
-  // (vague 230 de l'audit, design : écrasé au milieu de l'écran, le chat de la vitre cachait le titre en étoiles puis le dessin de la première scène) :
-  // sur grand écran, il s'écrase sur le côté gauche de la vitre, à côté de la scène ; au téléphone, plus petit, en haut à gauche
-  if (!VI.Z && Wd.t - VI.t0 < 0.8) cibleVitre();
-  const S = c.sp, u = Wd.t - VI.t0, tx = VI.tx, ty = VI.ty, ap = sm(c01(u / 0.9)), col = u >= 0.9 && u < 2.3, dec = sm(c01((u - 2.3) / 0.9));
-  S.vitreK = 1 + (VI.k - 1) * ap * (1 - dec);
-  c.anim = col ? 'etirement' : (ANIMS.apesanteur ? 'apesanteur' : 'assis'); c.at += dt;
-  if (u < 0.9) { c.x = lerp2(VI.x0, tx, ap) + Math.sin(u * 20) * 3 * (1 - ap); c.y = lerp2(VI.y0, ty, ap); c.spin = (c.spin || 0) * 0.9; }
-  else if (col) { const g = (u - 0.9) / 1.4; c.x = tx + Math.sin(u * 30) * 1.2; c.y = ty + g * g * H * 0.05; c.spin = 0;
-    if (!S.splotch) { S.splotch = true; const r = rayon(c) * 1; VI.prints = [[-0.55, -0.25], [0.55, -0.25], [-0.32, 0.45], [0.32, 0.45]].map(([px, py], i) => ({ x: tx + px * r, y: ty + py * r - rayon(c) * 0.2, r: r * 0.16, t0: Wd.t + i * 0.04, rot: rnd(-0.3, 0.3) }));
-      Wd.fx.push({ k: 'txt', text: 'SPLOTCH', x: tx, y: ty - rayon(c) * 1.05, t0: Wd.t, life: 1.2, rot: rnd(-0.12, 0.12), size: 30 }); if (window.Dex && Dex.vu) Dex.vu('splotch');
-      // la vitre vibre sous le choc : les étoiles du titre sautent, une onde part du chat et les traverse, puis elles retombent sur leurs lettres
-      if (window.EspaceNuee && EspaceNuee.choc) EspaceNuee.choc(tx, ty);
-      apres(0.8, () => Wd.fx.push({ k: 'txt', text: pick(['iiiiik', 'couiiic', 'fiiiiii']), x: tx + rayon(c) * 0.9, y: ty + rayon(c) * 0.3, t0: Wd.t, life: 1, rot: 0.2, size: 18 })); } }
-  else { c.x = tx + (VI.x0 - tx) * dec * 0.5; c.y = ty + H * 0.05 + (H * 0.08) * dec; c.spin = 2.5 * dec;
-    if (u > 3.2) { S.vitreK = 0; S.m = 'derive'; S.vx = rnd(-30, 30); S.vy = rnd(-20, 10); S.next = Wd.t + rnd(1.5, 3); S.anim = pick(DERIVE); } }
-};
-const lerp2 = (a, b, t) => a + (b - a) * t;
-// les empreintes sur la vitre : par-dessus tout (le calque de la craie) ; elles rapetissent jusqu'à rien, plus tard
-K.H.draw.push(() => {
-  if (!VI.prints.length || !window.Chalk || !Chalk.ctx) return; const o = Chalk.ctx;
-  VI.prints = VI.prints.filter(p => Wd.t - p.t0 < 6); if (!Wd.espace) { VI.prints = []; return; }
-  VI.prints.forEach(p => { const u = Wd.t - p.t0; if (u < 0) return; const k = Math.min(1, u / 0.08) * (1 - sm(c01((u - 4) / 2))), r = p.r * k; if (r < 0.5) return;
-    o.save(); o.translate(p.x, p.y); o.rotate(p.rot); o.globalAlpha = 0.6; o.fillStyle = '#dfe6f2'; o.strokeStyle = '#F4F4EE'; o.lineWidth = 1.4;
-    // le coussin (un triangle arrondi) et les quatre doigts
-    o.beginPath(); o.ellipse(0, r * 0.55, r * 1.05, r * 0.8, 0, 0, TAU); o.fill(); o.globalAlpha = 0.9; o.stroke();
-    [[-0.95, -0.45], [-0.35, -0.95], [0.35, -0.95], [0.95, -0.45]].forEach(([dx, dy]) => { o.globalAlpha = 0.6; o.beginPath(); o.ellipse(dx * r, dy * r, r * 0.34, r * 0.42, dx * 0.3, 0, TAU); o.fill(); o.globalAlpha = 0.9; o.stroke(); });
-    o.restore(); });
-});
 // le monde de l'espace, une image (dans js/chats.js : le temps du monde)
 // (vague 247 de l'audit, « chats en apesanteur », design : le plafond était fixé à 64 px, au milieu de la barre des chapitres : un chat qui dérivait
-// vers le haut venait se poser sur les noms des chapitres) : le plafond, c'est le bas de la barre du haut, mesuré par les scènes
-const HAUT = () => { const G = window.EspacePlume && EspacePlume.M && EspacePlume.M.lay && EspacePlume.M.lay.G; return Math.max(64, G && G.haut ? G.haut - 2 : 0); }, BAS = () => Wd.floor || H - 70;
+// vers le haut venait se poser sur les noms des chapitres) : le plafond, c'est le bas de la barre du haut
+const HAUT = () => { const tb = document.querySelector('.top'), b = tb && tb.getClientRects().length ? tb.getBoundingClientRect().bottom : 0; return Math.max(64, b + 4); }, BAS = () => Wd.floor || H - 70;
 const centreDe = c => [c.x, c.y - c.D.stand * sc(c)], rayon = c => Math.max(c.D.a, c.D.h) * sc(c) * 0.8;
 const DERIVE = ['apesanteur', 'apesanteur', 'dodo', 'pain', 'donut', 'etirement', 'toilette', 'chute', 'assis', 'ronron'].filter(a => ANIMS[a] || a === 'apesanteur');
 function pointeur() {
@@ -545,17 +488,10 @@ function espace(dt) {
     // accroché ailleurs (un trait, une lettre…) : le module donne le point où vont ses pattes de devant
     else if (c.sp.ancre) { const A = c.sp.ancre(), f = Chat.where(c, c.legs[c.face > 0 ? 'fr' : 'fl'].foot), k = Math.min(1, dt * 12); if (A) { c.x += (A[0] - f[0]) * k; c.y += (A[1] - f[1]) * k; } }
     // (accroché, dans un abri : il reste dans l'écran, jamais sous la barre du bas ; s'il y est poussé, il lâche)
-    if (!c.held && c.sp.m !== 'crache' && c.sp.m !== 'nyan') { const [bx, by] = centreDe(c), r = rayon(c) * 0.9;
+    if (!c.held && c.sp.m !== 'crache') { const [bx, by] = centreDe(c), r = rayon(c) * 0.9;
       const ox = bx - r < 0 ? -(bx - r) : bx + r > W ? W - (bx + r) : 0, oy = by - r < HAUT() ? HAUT() - (by - r) : by + r > BAS() ? BAS() - (by + r) : 0;
-      if (ox || oy) { c.x += ox; c.y += oy; if (X.mode[c.sp.m] && c.sp.m !== 'vitre'   /* (vague 322 : collé à la vitre, il est repoussé mais ne lâche pas ; avant, il lâchait et restait géant) */ && Math.abs(ox) + Math.abs(oy) > r * 0.6) { c.sp.m = 'derive'; c.sp.ancre = null; c.sp.corps = null; c.sp.vx = ox * 3; c.sp.vy = oy * 3; } }
-      // (vague 247 de l'audit, « chats en apesanteur », design : un chat mené par une scène, une liane ou la nuée traversait encore les sous-titres,
-      // seuls les chats à la dérive y rebondissaient) : la vitre des sous-titres vaut pour tous ; poussé fort contre elle, il lâche et dérive
-      const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande;
-      if (bd && !['aspire', 'planete', 'cine', 'train'].includes(c.sp.m)) { const [bx2, by2] = centreDe(c), rb = r * (c.rare === 'interminable' ? 2.6 : 1.2);
-        if (bx2 + rb > bd.x && bx2 - rb < bd.x + bd.w && by2 + rb > bd.y && by2 - rb < bd.y + bd.h) { const up = by2 + rb - bd.y, dn = bd.y + bd.h - (by2 - rb), py = up < dn ? -up : dn;
-          c.y += py; if (X.mode[c.sp.m] && c.sp.m !== 'vitre' && Math.abs(py) > r * 0.6) { c.sp.m = 'derive'; c.sp.ancre = null; c.sp.corps = null; c.sp.vx = (c.sp.vx || 0) * 0.5; c.sp.vy = Math.sign(py) * 90 * Wd.s0 / 150; } } } } });
-  // (après tout le reste : ce qui doit avoir le dernier mot sur la place d'un chat, les murs des dessins)
-  X.apres.forEach(f => f(dt, cats));
+      if (ox || oy) { c.x += ox; c.y += oy; if (X.mode[c.sp.m] && Math.abs(ox) + Math.abs(oy) > r * 0.6) { c.sp.m = 'derive'; c.sp.ancre = null; c.sp.corps = null; c.sp.vx = ox * 3; c.sp.vy = oy * 3; } }
+    } });
 }
 function flotte(c, dt, Q, acc) {
   const S = c.sp, k = sc(c); S.t += dt; c.at += dt;
@@ -577,7 +513,7 @@ function flotte(c, dt, Q, acc) {
     }
     S.g = sm((S.t - S.dl) / 0.6); c.s = S.s * Math.max(S.gMin || 0.02, S.g);
     if (S.g >= 1) { S.m = 'derive'; S.next = Wd.t + rnd(1.5, 4); S.anim = pick(DERIVE); }
-  } else c.s += (S.s * (X.echelle ? X.echelle(c) : 1) * (X.loin ? X.loin(c) : 1) * (S.m === 'vitre' && S.vitreK || 1) - c.s) * Math.min(1, dt * (S.m === 'vitre' && S.vitreK ? 7 : 3));   // (S.vitreK : le chat qui vient s'écraser sur la vitre, plus bas)   // (X.echelle : un module qui les veut plus petits, js/espace-plume.js)
+  } else c.s += (S.s * (X.loin ? X.loin(c) : 1) - c.s) * Math.min(1, dt * 3);   // (X.loin : près de la planète des chats, ils rapetissent, js/espace-planetes.js)
   if (c.held) { c.anim = 'porte'; S.m = 'tenu'; S.ancre = null; return; }
   if (X.mode[S.m]) { X.mode[S.m](c, dt); return; }
   S.ancre = null;
@@ -629,11 +565,6 @@ function flotte(c, dt, Q, acc) {
   if (bx + r > W - 4 && S.vx > 0) { bord(S.vx, [1, 0]); S.vx = -S.vx * 0.8; c.x -= bx + r - W + 4; }
   if (by - r < HAUT() && S.vy < 0) { bord(S.vy, [0, -1]); S.vy = -S.vy * 0.8; c.y += HAUT() - (by - r); }
   if (by + r > BAS() && S.vy > 0) { bord(S.vy, [0, 1]); S.vy = -S.vy * 0.8; c.y -= by + r - BAS(); }
-  // (vague 61 de l'audit : un chat passait sur les sous-titres) : la légende est une vitre ; on y rebondit (« bonk »), on ne la traverse pas
-  { const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande; const rb = r * (c.rare === 'interminable' ? 2.6 : 1.3);   // (le corps dépasse le rayon, surtout chez le chat interminable)
-    if (bd && bx + rb > bd.x && bx - rb < bd.x + bd.w && by + rb > bd.y && by - rb < bd.y + bd.h) {
-      const pen = [[bx + rb - bd.x, -1, 0], [bd.x + bd.w - (bx - rb), 1, 0], [by + rb - bd.y, 0, -1], [bd.y + bd.h - (by - rb), 0, 1]].sort((p, q) => p[0] - q[0])[0], [d, nx, ny] = pen;
-      c.x += nx * d; c.y += ny * d; const vn = S.vx * nx + S.vy * ny; if (vn < 0) { bord(vn, [-nx, -ny]); S.vx -= 1.8 * vn * nx; S.vy -= 1.8 * vn * ny; } } }
   c.z = 8000 + c.id * 3;
 }
 // (vague 81, l'audit : « les chats en apesanteur ») : l'interface est dans l'espace avec eux. Un chat qui rebondit sur un bord de l'écran
@@ -735,8 +666,7 @@ function grab(x, y) {
 }
 function drag(c, x, y) {
   if (c.mod) return c.mod.drag(c, x, y);
-  if (c.doigt) { let D = E.doigt; if (!D) { D = E.doigt = { x: Wd.gx ?? x, y: Wd.gy ?? y, x0: Wd.gx ?? x, y0: Wd.gy ?? y, vx: 0, vy: 0, tl: Wd.t, on: true, loin: false }; if (X.trace) X.trace.debut(D.x0, D.y0); }
-    if (X.trace) X.trace.suite(x, y);
+  if (c.doigt) { let D = E.doigt; if (!D) { D = E.doigt = { x: Wd.gx ?? x, y: Wd.gy ?? y, x0: Wd.gx ?? x, y0: Wd.gy ?? y, vx: 0, vy: 0, tl: Wd.t, on: true, loin: false }; }
     const dt = Math.max(1 / 120, Wd.t - D.tl); D.tl = Wd.t; D.vx += ((x - D.x) / dt - D.vx) * 0.35; D.vy += ((y - D.y) / dt - D.vy) * 0.35; D.x = x; D.y = y; if (Math.hypot(x - D.x0, y - D.y0) > 8) D.loin = true; return; }
   if (!c.sp) return;
   if (!c.held) { if (c.sp.m === 'calin' || c.sp.m === 'agrippe' || X.mode[c.sp.m]) c.sp.m = 'derive'; c.sp.ancre = null; c.held = true; c.sp.m = 'tenu'; c.pend = null; say(c, pick(['mia ?', 'hé !', '…'])); if (K.porteTout) K.porteTout(c); }
@@ -744,7 +674,7 @@ function drag(c, x, y) {
 }
 function release(c, vx, vy) {
   if (c.mod) return c.mod.release(c, vx, vy);
-  if (c.doigt) { const D = E.doigt; E.doigt = null; const fait = D && X.trace ? X.trace.fin() : false; if (!fait && (!D || !D.loin)) { const x = D ? D.x : Wd.gx, y = D ? D.y : Wd.gy; onde(x, y); pop(x, y); } return; }
+  if (c.doigt) { const D = E.doigt; E.doigt = null; if (!D || !D.loin) { const x = D ? D.x : Wd.gx, y = D ? D.y : Wd.gy; onde(x, y); pop(x, y); } return; }
   if (!c.sp) return;
   if (!c.held) { c.sp.w += rnd(6, 10) * (Math.random() < 0.5 ? -1 : 1); c.sp.anim = 'chute'; c.sp.bonk = Wd.t - 1; say(c, pick(['wiii !', '♥', 'encore !', 'mrrr'])); return; }
   c.held = false; const S = c.sp; S.m = 'derive'; S.lache = Wd.t; S.next = Wd.t + rnd(3, 6); S.anim = 'chute';
@@ -779,7 +709,7 @@ function epaves(u, now) {
     E.epaves = Array.from({ length: tel ? 22 : 40 }, (_, i) => { const a = rnd(0, TAU), toi = i % 5 < 2;
       return { a, toi, v: toi ? rnd(0.55, 0.9) : rnd(0.35, 0.95), D, dl: 0.15 + rnd(0, 1.3), dur: toi ? rnd(1, 1.5) : rnd(1.6, 2.4), sp: rnd(-6, 6), lettre: i % 2 ? txt[i % txt.length] : null, sz: rnd(0.8, 1.25) * (tel ? 0.8 : 1),
         bord: Array.from({ length: 16 }, (_, j) => [j / 16 * TAU + rnd(-0.12, 0.12), (j % 2 ? 0.62 : 0.9) + rnd(-0.16, 0.2)]), fait: false }; }); }
-  const [cx, cy] = centre(), hand = getComputedStyle(document.body).getPropertyValue('--hand') || 'serif', haut = HAUT(), bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande;
+  const [cx, cy] = centre(), hand = getComputedStyle(document.body).getPropertyValue('--hand') || 'serif', haut = HAUT();
   ctx.save(); ctx.lineJoin = ctx.lineCap = 'round';
   for (const q of E.epaves) {
     if (q.fait) continue; const e = c01((u - q.dl) / q.dur); if (e <= 0) continue;
@@ -787,8 +717,8 @@ function epaves(u, now) {
     if (q.toi) { const f = Math.pow(e, 1.6); k = 0.25 + 4.2 * f * f; const rr = q.D * q.v * (0.15 * e + 1.6 * f * f); x = cx + Math.cos(q.a) * rr; y = cy + Math.sin(q.a) * rr * 0.82;
       if (e >= 1 || x < -90 * k || x > W + 90 * k || y < -90 * k || y > H + 90 * k) { q.fait = true; continue; } }
     else { const f = 1 - Math.pow(1 - e, 3); k = Math.max(0, 1.1 * (1 - e) * (1 - e) + 0.3 * (1 - e) * e); const rr = q.D * q.v * f; x = cx + Math.cos(q.a) * rr; y = cy + Math.sin(q.a) * rr * 0.82;
-      // arrivé au loin : un point, qui s'allume en étoile (sauf sous la barre du haut ou sur la bande des sous-titres)
-      if (e >= 1) { q.fait = true; if (y > haut + 10 && !(bd && x > bd.x - 20 && x < bd.x + bd.w + 20 && y > bd.y - 20 && y < bd.y + bd.h + 20)) E.neuves.push({ x: x / W, y: y / H, t0: now, r: rnd(1.6, 3.2), ph: rnd(0, TAU) }); continue; } }
+      // arrivé au loin : un point, qui s'allume en étoile (sauf sous la barre du haut)
+      if (e >= 1) { q.fait = true; if (y > haut + 10) E.neuves.push({ x: x / W, y: y / H, t0: now, r: rnd(1.6, 3.2), ph: rnd(0, TAU) }); continue; } }
     dessineEpave(q, x, y, k, q.sp * e, hand);
   }
   // les étoiles nées de la page : elles s'allument d'un éclat, puis scintillent avec les autres
@@ -1035,15 +965,15 @@ Wd.ail = { on: () => !!(Wd.trou || Wd.espace || RV), step: dt => (Wd.trou ? aspi
 /* (vague 286 de l'audit, « les chats en apesanteur », immersion) : le vide n'est pas vide. Tout le ciel baigne dans une fine poussière
    en suspension, de bord à bord ; elle ne bouge presque pas toute seule, mais chaque chat qui nage, dérive ou est lancé la remue : elle
    s'écarte devant lui, tourbillonne dans son sillage et met longtemps à se calmer, en petits traits qui montrent son courant. On voit
-   l'apesanteur partout, même loin des chats (jamais sur les sous-titres ni sous la barre du haut) */
+   l'apesanteur partout, même loin des chats (jamais sous la barre du haut) */
 const POUSS = { L: null, t: null };
 X.fond.push((c2, now) => {
   if (reduit) return;
   const n = W < 600 ? 110 : 220, dt = POUSS.t == null ? 0 : Math.min(0.05, Math.max(0, now - POUSS.t)); POUSS.t = now;
   if (!POUSS.L || POUSS.L.length !== n || POUSS.W !== W || POUSS.H !== H) { POUSS.W = W; POUSS.H = H; POUSS.L = Array.from({ length: n }, () => ({ x: Math.random() * W, y: Math.random() * H, vx: 0, vy: 0, r: 0.7 + Math.random() * 0.9 })); }
   const C = Wd.cats.filter(c => !c.gone && c.sp && c.s > 0.01).map(c => { const [x, y] = centreDe(c); return { x, y, R: rayon(c) * 3.6, vx: c.sp.vx || 0, vy: c.sp.vy || 0 }; });
-  const PL = window.EspacePlume && EspacePlume.M, bd = PL && PL.bande, hb = PL && PL.lay && PL.lay.G ? PL.lay.G.haut - 4 : HAUT();
-  c2.save(); c2.beginPath(); c2.rect(0, hb, W, H - hb); if (bd) c2.rect(bd.x - 12, bd.y - 10, bd.w + 24, bd.h + 20); c2.clip('evenodd');
+  const hb = HAUT();
+  c2.save(); c2.beginPath(); c2.rect(0, hb, W, H - hb); c2.clip();
   { const T = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.terre; if (T) { c2.beginPath(); c2.rect(-10, -10, W + 20, H + 20); c2.moveTo(T.cx + T.R + 2, T.cy); c2.arc(T.cx, T.cy, T.R + 2, 0, TAU, true); c2.clip('evenodd'); } }
   c2.strokeStyle = c2.fillStyle = '#F4F4EE'; c2.lineCap = 'round'; c2.globalAlpha = 0.7;
   POUSS.L.forEach(p => {
@@ -1056,11 +986,7 @@ X.fond.push((c2, now) => {
     else { c2.beginPath(); c2.arc(p.x, p.y, p.r * 0.75, 0, TAU); c2.fill(); } });
   c2.restore(); c2.globalAlpha = 1;
 });
-/* (vague 27, l'audit : « les chats en apesanteur ») : dans le vide, un chat qui nage laisse un sillage de poussière d'étoiles ;
-   et quand des chats flottent près les uns des autres, des pointillés les relient : ils forment une constellation, qui a son nom
-   (à trois ou plus : « la Grande Minette », « Minou Major »…), écrit à la main à côté, tant qu'ils restent ensemble */
-const NOMS_C = () => (window.I18N && I18N.lang && I18N.lang !== 'fr') ? ['Ursa Meow', 'the Great Cat', 'Minor Kitten', 'the Yarn Ball', 'Puss in Boots', 'the Whiskers'] : ['la Grande Minette', 'Minou Major', 'le Petit Matou', 'la Pelote', 'le Chat Botté', 'les Moustaches'];
-const NOM_T = {};   // (quand chaque constellation a pris forme : son nom s'écrit à partir de là)
+/* (vague 27, l'audit : « les chats en apesanteur ») : dans le vide, un chat qui nage laisse un sillage de poussière d'étoiles */
 X.fond.push((c2, now) => {
   if (reduit) return;
   const L = Wd.cats.filter(c => !c.gone && c.sp && c.sp.m !== 'crache' && c.s > 0.01);
@@ -1070,28 +996,6 @@ X.fond.push((c2, now) => {
     if (!h.length || Math.hypot(h[h.length - 1][0] - x, h[h.length - 1][1] - y) > 7) { h.push([x, y, now]); if (h.length > 26) h.shift(); }
     for (let i = h.length - 1; i >= 0; i--) { const u = (now - h[i][2]) / 1.4; if (u >= 1) { h.splice(0, i + 1); break; }
       const r = (1 - u) * 1.8 * (0.6 + 0.4 * Math.sin(i * 2.3 + now * 6)); c2.globalAlpha = 0.55; c2.beginPath(); c2.arc(h[i][0] + Math.sin(i * 1.7) * 3 * u, h[i][1] + Math.cos(i * 2.1) * 3 * u, Math.max(0.3, r), 0, TAU); c2.fill(); } });
-  // les constellations : les paires proches, en pointillés ; les groupes, par voisinage
-  const P = L.map(centreDe), n = L.length, par = L.map((_, i) => i), f = i => par[i] === i ? i : (par[i] = f(par[i]));
-  const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, dansBande = q => bd && q[0] > bd.x - 20 && q[0] < bd.x + bd.w + 20 && q[1] > bd.y - 20 && q[1] < bd.y + bd.h + 20;
-  c2.setLineDash([3, 5]); c2.lineWidth = 1.5;
-  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) { const d = Math.hypot(P[i][0] - P[j][0], P[i][1] - P[j][1]), lim = (rayon(L[i]) + rayon(L[j])) * 3.2; if (d > lim || L[i].rare === 'geant' || L[j].rare === 'geant' || dansBande(P[i]) || dansBande(P[j])) continue;
-    const k = sm((lim - d) / (lim * 0.35));
-    // (vague 48, l'audit : « l'apesanteur », finition) : le pointillé part du bord de chaque chat (plus caché sous lui), et s'accroche à une petite
-    // étoile de chaque côté, comme les traits d'une vraie carte du ciel ; il se tend depuis le milieu quand la paire se forme
-    const ux = (P[j][0] - P[i][0]) / (d || 1), uy = (P[j][1] - P[i][1]) / (d || 1), ri = rayon(L[i]) * 0.85, rj = rayon(L[j]) * 0.85; if (d > ri + rj + 8) {
-      const a0 = [P[i][0] + ux * ri, P[i][1] + uy * ri], a1 = [P[j][0] - ux * rj, P[j][1] - uy * rj], mx = (a0[0] + a1[0]) / 2, my = (a0[1] + a1[1]) / 2, e = Math.min(1, k * 1.4);
-      c2.globalAlpha = 0.75; c2.lineDashOffset = -now * 12; c2.beginPath(); c2.moveTo(mx + (a0[0] - mx) * e, my + (a0[1] - my) * e); c2.lineTo(mx + (a1[0] - mx) * e, my + (a1[1] - my) * e); c2.stroke();
-      if (e >= 1) { c2.setLineDash([]); brille(c2, a0[0], a0[1], 2, 0.9, true, now, i); brille(c2, a1[0], a1[1], 2, 0.9, true, now, j); c2.setLineDash([3, 5]); } }
-    if (k > 0.3) par[f(i)] = f(j); }
-  c2.setLineDash([]);
-  const G2 = {}; for (let i = 0; i < n; i++) (G2[f(i)] = G2[f(i)] || []).push(i);
-  const vus = new Set(); Object.values(G2).filter(g => g.length >= 3).forEach(g => { vus.add(Math.min(...g.map(i => Wd.cats.indexOf(L[i])))); const id = Math.min(...g.map(i => Wd.cats.indexOf(L[i]))), nom = NOMS_C()[id % 6];
-    const cx = g.reduce((s, i) => s + P[i][0], 0) / g.length, cy = Math.min(...g.map(i => P[i][1])) - Math.max(...g.map(i => rayon(L[i]))) * 1.3;
-    if (bd && cy > bd.y - 24 && cx > bd.x - 40 && cx < bd.x + bd.w + 40) return;
-    // (le nom s'écrit, lettre après lettre ; l'étoile s'allume au bout quand il est fini)
-    const T0 = NOM_T[id] ?? (NOM_T[id] = now), vu = Math.min(nom.length, Math.floor((now - T0) * 14)); c2.globalAlpha = 0.75; c2.font = 'italic 15px "Caveat","Segoe Print",cursive'; c2.textAlign = 'left';
-    const wN = c2.measureText(nom).width; c2.fillText(nom.slice(0, vu), cx - wN / 2, cy); c2.textAlign = 'center'; if (vu >= nom.length) brille(c2, cx + c2.measureText(nom).width / 2 + 8, cy - 5, 2.2, 0.8, true, now, id); });
-  Object.keys(NOM_T).forEach(id => { if (!vus.has(+id)) delete NOM_T[id]; });
   c2.restore();
 });
 const outils = { X, E, K, brille, sortie, melange, rgb, centre, centreDe, rayon, apres, onde, lache, say, BLANC, HAUT, BAS, DERIVE, get W() { return W; }, get H() { return H; }, get ctx() { return ctx; } };

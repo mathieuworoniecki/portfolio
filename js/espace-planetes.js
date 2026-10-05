@@ -1,4 +1,4 @@
-/* Dans l'espace (l'écran 2) : dès l'arrivée, pendant que les compétences s'écrivent (js/espace-plume.js), deux planètes se dessinent, au stylo.
+/* Dans l'espace (l'écran 2) : dès l'arrivée, deux planètes se dessinent, au stylo.
    - La Terre, en bas : une tranche, toute la largeur de l'écran, comme une atmosphère toute proche ; ses continents tournent doucement.
      C'est l'écran suivant (plus tard) ; pour l'instant, elle est solide : chats, dessins et lettres rebondissent dessus.
    - La planète des chats, plus loin : une tête de chat ronde (oreilles, moustaches, yeux qui suivent le curseur), un anneau de laine.
@@ -16,9 +16,7 @@ let P = null;   // { t0 (le début du dessin), terre: {cx, cy, R, top}, chat: {x
 function place() {
   const W = O.W, H = O.H, bas = O.BAS(), h = clamp(H * 0.085, 44, 84), R = Math.max(W * 1.15, (W * W / 4) / (2 * h) + h / 2);   // (sur un téléphone : une tranche, pas une boule)
   const r = clamp(Math.min(W, H) * 0.09, 38, 90), large = W >= 760;
-  // (la planète des chats : à la place que lui laissent les constellations des compétences, js/espace-plume.js)
-  const top = bas - h + 18, pl = window.EspacePlume && EspacePlume.planete;
-  const ch = pl ? { x: pl[0], y: pl[1], r } : { x: large ? W * 0.9 : W * 0.8, y: large ? H * 0.2 : H * 0.22, r };
+  const top = bas - h + 18, ch = { x: large ? W * 0.9 : W * 0.8, y: large ? H * 0.2 : H * 0.22, r };
   // (vague 189, finition : au téléphone, l'anneau, l'oreille et les moustaches de droite sortaient de l'écran, coupés net au bord) : la planète
   // garde son anneau entier dans l'écran
   // (vague 244 de l'audit, « planète chat », design : le bout droit de l'anneau de laine, plus large que 1,4 r, touchait encore le bord) : il garde de l'air
@@ -30,14 +28,13 @@ function naissance() { if (P) return; P = Object.assign(place(), { W: O.W, H: O.
 let entreT = null;
 X.entre.push(() => { P = null; entreT = Wd.t; if (reduit) naissance(); });
 X.retour.push(() => { P = null; entreT = null; });
-if (window.EspacePlume) EspacePlume.onFini = () => { naissance(); };
 const trace = (dl, d) => P ? c01((Wd.t - P.t0 - dl) / d) : 0;
 
 /* ——— la physique : la Terre est solide, la planète des chats attire ——— */
 X.pas.push((dt, cats) => {
-  if (!P && entreT != null && Wd.t - entreT > 1.2 && (!window.EspacePlume || EspacePlume.M || Wd.t - entreT > 4)) naissance();
+  if (!P && entreT != null && Wd.t - entreT > 1.2) naissance();
   if (!P) return;
-  // l'écran a changé de taille : elles reprennent leur place (après les constellations, qui se recomposent avant)
+  // l'écran a changé de taille : elles reprennent leur place
   if (P.W !== O.W || P.H !== O.H) Object.assign(P, place(), { W: O.W, H: O.H });
   const T = P.terre, Cp = P.chat, t = trace(0, 1.5);
   if (t > 0.5) {
@@ -102,7 +99,7 @@ X.mode.orbite = (c, dt) => {
 // pour qu'on les voie bien tout autour, comme si la planète était loin ») : la taille d'un chat selon sa distance à la planète des chats
 const LOIN = 0.3;
 X.loin = c => {
-  const S = c.sp; if (!P || !S || S.m === 'aspire' || S.m === 'cine' || trace(0.8, 1.5) < 0.5) return 1; const Cp = P.chat;
+  const S = c.sp; if (!P || !S || S.m === 'aspire' || trace(0.8, 1.5) < 0.5) return 1; const Cp = P.chat;
   if (S.m === 'planete') return LOIN;
   if (S.m === 'orbite' && S.pl === 'chat') { const [x, y] = centreDe(c), dd = Math.hypot(x - Cp.x, y - Cp.y), pr = S.prof || 0, cache = pr < 0 ? c01((dd - Cp.r * 0.8) / (Cp.r * 0.35)) : 1;
     return Math.max(0.004, LOIN * (1 + 0.3 * pr) * cache); }
@@ -212,27 +209,10 @@ function terre(ctx, now) {
   // (29/09, l'audit : « la Terre, correcte mais passive ») : elle vit. Des villes s'allument le long de l'horizon (la nuit de ce côté) ;
   // un satellite de papier passe au-dessus de l'atmosphère, ses panneaux ; de temps en temps, une petite fusée décolle et monte en arc
   if (tc > 0.5) { const yA = x => T.cy - Math.sqrt(Math.max(0, T.R * T.R - (x - T.cx) ** 2));
-    // (vague 284 de l'audit, « la Terre », immersion) : elle a ses orbites. Trois grandes orbites inclinées en pointillés sortent de l'horizon,
-    // montent dans le ciel et replongent derrière la Terre de l'autre côté ; sur chacune, de petits satellites de papier tournent, passent derrière
-    // le globe (cachés par lui, pas effacés) et en ressortent ; leurs panneaux accrochent le soleil (jamais sur les sous-titres ni sur les commandes)
-    if (!reduit) { const bdO = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, Gp = window.EspacePlume && EspacePlume.M && EspacePlume.M.lay && EspacePlume.M.lay.G, hb = Gp ? Gp.haut - 4 : 0,
-        tel = O.W < 600, hk = clamp(O.H / 900, 0.6, 1.2), ORB = [[0.55, 330, 0.05, 0.08], [0.75, 430, -0.06, -0.06], [0.95, 530, 0.03, 0.045]];
-      ctx.save(); ctx.beginPath(); ctx.rect(0, hb, O.W, O.H - hb); if (bdO) ctx.rect(bdO.x - 14, bdO.y - 10, bdO.w + 28, bdO.h + 20); UIT.L.forEach(b => ctx.rect(b.left - 10, b.top - 8, b.width + 20, b.height + 16)); ctx.clip('evenodd');
-      ctx.beginPath(); ctx.rect(-10, -10, O.W + 20, O.H + 20); ctx.moveTo(T.cx + T.R + 1, T.cy); ctx.arc(T.cx, T.cy, T.R + 1, 0, TAU, true); ctx.clip('evenodd');
-      ORB.forEach(([fx, hp, tilt, w], io) => { const Rx = O.W * fx * (tel ? 0.85 : 1), Ry = T.R + hp * hk * tc, ct = Math.cos(tilt), st = Math.sin(tilt),
-          pt = th => { const ex = Math.cos(th) * Rx, ey = -Math.sin(th) * Ry; return [T.cx + ex * ct - ey * st, T.cy + ex * st + ey * ct]; };
-        ctx.save(); ctx.setLineDash([3, 7]); ctx.lineDashOffset = -now * 5 * Math.sign(w); ctx.strokeStyle = `rgba(${BL},0.6)`; ctx.lineWidth = 1.5; ctx.beginPath();
-        for (let i = 0; i <= 160; i++) { const q = pt(i / 160 * Math.PI); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); } ctx.stroke(); ctx.restore();
-        for (let m = 0; m < 3; m++) { const th = ((now * w + m / 3 + io * 0.21) % 1 + 1) % 1 * TAU, q = pt(th), q2 = pt(th + 0.01), an = Math.atan2(q2[1] - q[1], q2[0] - q[0]), sz = (tel ? 1 : 1.35) * (0.85 + io * 0.15);
-          ctx.save(); ctx.translate(q[0], q[1]); ctx.rotate(an); ctx.scale(sz, sz); ctx.lineWidth = 1.3; ctx.strokeStyle = `rgb(${BL})`; ctx.fillStyle = '#07080C';
-          [-1, 1].forEach(g => { ctx.beginPath(); ctx.rect(g > 0 ? 5 : -14, -2.5, 9, 5); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.moveTo(g > 0 ? 9.5 : -9.5, -2.5); ctx.lineTo(g > 0 ? 9.5 : -9.5, 2.5); ctx.stroke(); });
-          ctx.beginPath(); ctx.rect(-4, -3.5, 8, 7); ctx.fill(); ctx.stroke(); ctx.restore();
-          if (Math.sin(now * 1.7 + m * 2.3 + io) > 0.93) O.brille(ctx, q[0] + Math.cos(an) * 10 * sz, q[1] + Math.sin(an) * 10 * sz, 2.4, tc, true, now, 160 + io * 3 + m); } });
-      ctx.restore(); }
     // (vague 45, l'audit : « la Terre », immersion) : une aurore boréale se lève de temps en temps sur tout l'horizon, d'un bord à l'autre :
-    // des rideaux de traits verticaux qui ondulent, se plient, courent le long de la courbe, puis retombent dans l'atmosphère (jamais sur les sous-titres)
-    { const cyc = 26, u = ((now + 4) % cyc) / 9; if (u < 1 && !reduit) { const lev = sm(u / 0.25) * (1 - sm((u - 0.72) / 0.28)), bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, Hm = Math.min(130, O.H * 0.17);
-      ctx.save(); if (bd) { ctx.beginPath(); ctx.rect(0, 0, O.W, O.H); ctx.rect(bd.x - 16, bd.y - 12, bd.w + 32, bd.h + 24); ctx.clip('evenodd'); }
+    // des rideaux de traits verticaux qui ondulent, se plient, courent le long de la courbe, puis retombent dans l'atmosphère
+    { const cyc = 26, u = ((now + 4) % cyc) / 9; if (u < 1 && !reduit) { const lev = sm(u / 0.25) * (1 - sm((u - 0.72) / 0.28)), Hm = Math.min(130, O.H * 0.17);
+      ctx.save();
       ctx.lineCap = 'round'; ctx.lineWidth = 2.2; const n = Math.round(O.W / 7), C3 = ['140,255,200', '150,215,255', '190,165,255'], A3 = [0.42, 0.24, 0.1];
       for (let sg = 0; sg < 3; sg++) { ctx.strokeStyle = `rgba(${C3[sg]},${(A3[sg] * lev).toFixed(3)})`; ctx.beginPath();
         for (let i = 0; i <= n; i++) { const x = i / n * O.W, ph = x / O.W * 9 + now * 0.9, h = Hm * lev * (0.25 + 0.75 * Math.pow(0.5 + 0.5 * Math.sin(ph + Math.sin(ph * 0.37 + now * 0.5) * 1.5), 1.5)), y0 = yA(x) - 12, sw = (Math.sin(x * 0.012 + now * 1.3) * 14 + Math.sin(x * 0.05 - now * 2.1) * 4) * lev;
@@ -263,14 +243,14 @@ function terre(ctx, now) {
       ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 4; ctx.stroke(); ctx.fillStyle = 'rgb(250,248,242)'; ctx.fill(); ctx.strokeStyle = 'rgb(34,36,40)'; ctx.lineWidth = 1.4; ctx.stroke(); ctx.restore(); O.brille(ctx, x - Math.cos(ang) * 9, y - Math.sin(ang) * 9, 2.2, tc, true, now, 98); } 
     // (vague 80, l'audit : « la Terre ») : on pose la souris sur la Terre, on attend : une fusée de papier décolle de ce point-là, fumée qui roule
     // le long de l'horizon ; elle monte droit, s'incline, prend un grand arc à travers tout l'écran et sort par le haut,
-    // sa fumée derrière elle (jamais sur les sous-titres)
-    { const S = Wd.ptr, bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, L = P.lanc || (P.lanc = { h: 0, t: now, f: [] }), dtl = Math.min(0.2, Math.max(0, now - L.t)); L.t = now;
+    // sa fumée derrière elle
+    { const S = Wd.ptr, L = P.lanc || (P.lanc = { h: 0, t: now, f: [] }), dtl = Math.min(0.2, Math.max(0, now - L.t)); L.t = now;
       const vise = S && S.on && !reduit && S.y > yA(S.x) + 4 && S.y < O.H - 64 && Wd.t - S.moved < 6;
       L.h = vise ? L.h + dtl : 0;
       if (L.h > 0.9 && now > (L.cal || 0) && L.f.length < 3) { L.h = 0; L.cal = now + 3; const x0 = S.x, g = x0 > O.W / 2 ? -1 : 1;
         L.f.push({ t0: now, P: [[x0, yA(x0) + 2], [x0 + g * 20, yA(x0) - O.H * 0.45], [x0 + g * O.W * 0.3, -O.H * 0.1], [x0 + g * O.W * 0.55, -O.H * 0.4]] }); }
       L.f = L.f.filter(f => now - f.t0 < 4.2);
-      if (L.f.length) { ctx.save(); if (bd) { ctx.beginPath(); ctx.rect(0, 0, O.W, O.H); ctx.rect(bd.x - 16, bd.y - 12, bd.w + 32, bd.h + 24); ctx.clip('evenodd'); }
+      if (L.f.length) { ctx.save();
         L.f.forEach(f => { const t = now - f.t0, pos = v => { const [A, B, C, D] = f.P, w = 1 - v; return [w * w * w * A[0] + 3 * w * w * v * B[0] + 3 * w * v * v * C[0] + v * v * v * D[0], w * w * w * A[1] + 3 * w * w * v * B[1] + 3 * w * v * v * C[1] + v * v * v * D[1]]; };
           const pre = c01(t / 0.5), u = Math.pow(c01((t - 0.5) / 3.2), 1.6), p0 = f.P[0];
           // le décollage : il tremble sur le pas de tir, un nuage de fumée roule de chaque côté le long de l'horizon
@@ -341,32 +321,16 @@ function planete(ctx, now) {
     if (at >= 1.3 && !Hm.eter) { Hm.eter = Hm.t0; atchoum(x, y, r); } if (Hm.eter !== Hm.t0 && at < 1.3) Hm.eter = 0;
     const mot = at < 0.55 ? 'a…' : at < 1.3 ? 'a… a…' : at < 2.2 ? 'ATCHOUM !' : ''; if (mot) { ctx.save(); ctx.fillStyle = `rgb(${BL})`; ctx.font = `600 ${Math.max(14, r * (at >= 1.3 ? 0.42 : 0.26))}px "Caveat","Segoe Print",cursive`; ctx.textAlign = 'right';
       // (à côté d'elle, du côté de l'écran : jamais sur le menu des langues en haut)
-      const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, ty = Math.max(70, y - r * 0.75); if (!(bd && ty > bd.y - 20 && ty < bd.y + bd.h + 20)) { ctx.translate(Math.max(ctx.measureText(mot).width + 8, x - r * 1.25), ty); ctx.rotate(at >= 1.3 ? -0.12 : -0.05); ctx.fillText(mot, 0, 0); } ctx.restore(); } }
+      const ty = Math.max(70, y - r * 0.75); ctx.translate(Math.max(ctx.measureText(mot).width + 8, x - r * 1.25), ty); ctx.rotate(at >= 1.3 ? -0.12 : -0.05); ctx.fillText(mot, 0, 0); ctx.restore(); } }
   const ear = trace(1.4, 0.5) * (1 - bai * 0.45) * (1 - pre * 0.35);
-  // (vague 283 de l'audit, « planète chat », immersion) : sa gravité se voit. Autour d'elle, bien au-delà de son disque, la toile de l'espace
-  // est un quadrillage en pointillés qui se creuse vers elle comme un drap sous une balle ; il tourne lentement avec son anneau, se creuse un peu
-  // plus quand elle ronronne, et de la poussière d'étoiles y glisse en spirale jusqu'à elle (jamais sous la barre du haut ni sur les sous-titres)
-  if (z === 0 && t > 0.5 && !reduit) { const Rw = r * 3.6, g = r * 0.42, rot = now * 0.05, cr = Math.cos(rot), sr = Math.sin(rot), creux = 1 + (Hm.k === 'ronron' ? 0.35 * hu : 0) + 0.06 * Math.sin(now * 0.8),
-      bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, Gp = window.EspacePlume && EspacePlume.M && EspacePlume.M.lay && EspacePlume.M.lay.G, hb = Gp ? Gp.haut - 4 : 0, eT = sm(c01((t - 0.5) / 0.5));
-    const tire = (u, v) => { const X = u * cr - v * sr, Y = u * sr + v * cr, d = Math.hypot(X, Y), pl = Math.min(d - r * 0.98, r * r * 0.9 * creux / (d + r * 0.35)), k = d > 1e-6 ? (d - pl) / d : 0; return [x + X * k, y + Y * k * 0.92, d]; };
-    ctx.save(); ctx.beginPath(); ctx.rect(0, hb, O.W, O.H - hb); if (bd) ctx.rect(bd.x - 16, bd.y - 12, bd.w + 32, bd.h + 24); ctx.clip('evenodd');
-    ctx.strokeStyle = `rgba(${BL},0.32)`; ctx.lineWidth = 1; ctx.setLineDash([3, 6]); ctx.lineDashOffset = -now * 4; ctx.beginPath();
-    for (let dir = 0; dir < 2; dir++) for (let j = -Math.floor(Rw / g); j <= Math.floor(Rw / g); j++) { let ouvert = false;
-      for (let i = -40; i <= 40; i++) { const s0 = i / 40 * Rw, u = dir ? s0 : j * g, v = dir ? j * g : s0; if (Math.hypot(u, v) > Rw * eT) { ouvert = false; continue; } const q = tire(u, v);
-        if (q[2] < r * 1.22) { ouvert = false; continue; } if (ouvert) ctx.lineTo(q[0], q[1]); else { ctx.moveTo(q[0], q[1]); ouvert = true; } } }
-    ctx.stroke(); ctx.setLineDash([]);
-    // la poussière qui glisse au fond du puits
-    for (let m = 0; m < 7; m++) { const f = ((now * 0.09 + m / 7) % 1), d = Rw * (1 - f) + r * 1.2 * f, an = m * 2.4 + f * 5.5, q = tire(Math.cos(an) * d, Math.sin(an) * d);
-      ctx.fillStyle = `rgb(${BL})`; ctx.beginPath(); ctx.arc(q[0], q[1], 1.2 + f * 1.4, 0, TAU); ctx.fill(); }
-    ctx.restore(); }
   // un halo, très léger (deux fins traits, comme l'atmosphère de la Terre)
   // (vague 244, design : c'étaient deux cercles qui coupaient les oreilles, comme un calque oublié) : l'atmosphère épouse la tête, oreilles comprises,
   // en pointillés de plus en plus espacés vers l'extérieur
   if (z === 0 && t > 0.5) [[1.1, 0.16, [5, 6]], [1.2, 0.08, [3, 10]]].forEach(([k, al, ds]) => { ctx.strokeStyle = `rgba(${BL},${al * t})`; ctx.lineWidth = 1.4; ctx.setLineDash(ds); ctx.lineDashOffset = -now * 6 * k; tete(ctx, x, y + r * 0.02, r * k, ear); ctx.stroke(); ctx.setLineDash([]); });
   // (vague 44, l'audit : « la planète chat », immersion) : elle ronronne. Les yeux mi-clos, « rrrr », et son ronron se voit : des ondes tremblées
-  // partent d'elle et traversent tout l'écran, jusqu'aux bords (jamais sur les sous-titres)
-  if (Hm.k === 'ronron' && z === 0) { const u = now - Hm.t0, M = Math.hypot(O.W, O.H) * 1.1, v = M / 2.2, bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande;
-    ctx.save(); if (bd) { ctx.beginPath(); ctx.rect(0, 0, O.W, O.H); ctx.rect(bd.x - 16, bd.y - 12, bd.w + 32, bd.h + 24); ctx.clip('evenodd'); }
+  // partent d'elle et traversent tout l'écran, jusqu'aux bords
+  if (Hm.k === 'ronron' && z === 0) { const u = now - Hm.t0, M = Math.hypot(O.W, O.H) * 1.1, v = M / 2.2;
+    ctx.save();
     ctx.lineWidth = 1.4;
     for (let i = 0; i < 6; i++) { const rr = r * 1.15 + (u - i * 0.42) * v; if (rr < r * 1.15 || rr > M) continue; const al = 0.34 * (1 - rr / M) * c01(u / 0.3) * c01((Hm.d - u) / 0.5 + (rr / M));
       ctx.strokeStyle = `rgba(${BL},${al.toFixed(3)})`; ctx.beginPath(); for (let k = 0; k <= 120; k++) { const a = k / 120 * TAU, w = rr + Math.sin(a * 11 + now * 26 + i) * (2 + rr * 0.006); k ? ctx.lineTo(x + Math.cos(a) * w, y + Math.sin(a) * w) : ctx.moveTo(x + Math.cos(a) * w, y + Math.sin(a) * w); } ctx.stroke(); }

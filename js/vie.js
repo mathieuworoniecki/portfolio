@@ -327,22 +327,6 @@ H.draw.push(() => {
     const k = Math.max(0.3, 1 - Math.max(0, haut) / (h * 1.5)), hw = Math.max(w, h * 0.5) * 0.6 * k;
     for (let i = 0; i < 3; i++) { const w2 = hw * (1 - i * 0.28); if (w2 > 2) Chalk.line(x - w2 + h * 0.06, fl + 3 + i * 2, x + w2 + h * 0.06, fl + 3 + i * 2, 1, { w: 1, a: 0.85 * Wd.a * L.a, seed: 150 + j * 3 + i, tip: false, amp: 0.25 }); } });
 });
-// (vague 253 de l'audit, « le titre », immersion) : une lettre tombée n'est plus un caillou perdu dans la pièce : un fil de craie la relie
-// à sa place vide là-haut, qui pend en chaînette d'un bout à l'autre de l'écran ; un chat qui passe dessous le pince comme une corde
-// (le fil vibre, « twang ») ; quand la lettre remonte, le fil se raccourcit avec elle, jusqu'à rien
-H.draw.push(() => {
-  const Ls = LETTERS(); if (!Ls || Wd.a < 0.3 || TL.jeu) return; const r = RECT();
-  Ls.filter(L => (L.st === 'sol' || L.st === 'marche' || L.st === 'back' || (L.st === 'fall' && Wd.t - (L.out0 || Wd.t) > 0.15)) && L.a > 0.5).slice(-6).forEach((L, j) => {
-    const h = L.y1 - L.y0, ax = r.left + L.cx, ay = r.top + L.y1 + 2, bx = lx(L, r), by = ly(L, r) - h * 0.5, d = Math.hypot(bx - ax, by - ay); if (d < h * 0.8) return;
-    const g = Math.min(1, (Wd.t - (L.out0 || Wd.t)) / 0.5), sag = Math.min(d * 0.28, Wd.H * 0.12) * (L.st === 'back' ? 0.3 : 1), cx = (ax + bx) / 2, cy = Math.max(ay, by) + sag;
-    // pincé : un chat dont la tête passe tout près du fil le fait vibrer un moment
-    const P = []; for (let i = 0; i <= 18; i++) { const u = i / 18, x = (1 - u) * (1 - u) * ax + 2 * (1 - u) * u * cx + u * u * bx, y = (1 - u) * (1 - u) * ay + 2 * (1 - u) * u * cy + u * u * by; P.push([x, y]); }
-    if (!L.pince || Wd.t - L.pince > 1.2) { const c = Wd.cats.find(c => c.hp && !c.hidden && !c.gone && P.some(p => Math.abs(p[0] - c.hp[0]) < sc(c) * 0.5 && Math.abs(p[1] - c.hp[1]) < sc(c) * 0.5)); if (c && (!L.pinceC || L.pinceC !== c || Wd.t - L.pince > 4)) { L.pince = Wd.t; L.pinceC = c; word(pick(['twang', 'tiiing', 'doïng']), c.hp[0], c.hp[1] - sc(c) * 0.9, 13); } }
-    const v = L.pince ? Math.max(0, 1 - (Wd.t - L.pince) / 1.2) : 0;
-    if (v > 0) P.forEach((p, i) => { const u = i / 18; p[1] += Math.sin(u * Math.PI) * Math.sin((Wd.t - L.pince) * 38) * Math.min(14, d * 0.05) * v; });
-    Chalk.stroke(P, g, { w: 1.3, a: 0.5 * Wd.a, seed: 90 + j, tip: false, dash: [3, 6], amp: 0.4 });
-    Chalk.circle(ax, ay, 2.2, 2.2, g, { w: 1.3, a: 0.6 * Wd.a, seed: 95 + j, tip: false }); });
-});
 let CTAc = null, CTAt = -9, EVb = null, EVt = -9;
 function tumble(L, vx, vy, vr) { if (!L.out0) L.out0 = Wd.t; L.st = 'fall'; L.vx = vx; L.vy = vy; L.vr = vr; L.t = Wd.t; }
 H.pre.push(dt => {
@@ -618,7 +602,8 @@ H.pre.push(dt => {
   const Ls = LETTERS(); if (!Ls) return; const r = RECT();
   const hitL = (x, y, vx, vy, m) => { for (let i = 0; i <= 3; i++) { const u = i / 3, L = lettreAt(x - vx * dt * u, y - vy * dt * u, m); if (L && (!L.st || L.st === 'sol')) return L; } return null; };
   for (const it of Wd.props) {
-    if (!it.fall || it.held || it.suck || it.run || Wd.t - (it.lettreT ?? -9) < 0.4) continue;
+    // (05/10 : les caisses de la tour et celles qui tombent du ciel traversent le titre sans le démolir ni rebondir dessus)
+    if (!it.fall || it.held || it.suck || it.run || it.tower || it.para || Wd.t - (it.lettreT ?? -9) < 0.4) continue;
     const vx = it.vx || 0, vy = -(it.vy || 0), s = sOf(it.d); if (Math.hypot(vx, vy) < s * 1.2) continue;
     const L = hitL(it.x, it.y - it.hull.h * it.s * 0.5, vx, vy, it.hull.w * it.s * 0.3); if (!L) continue;
     it.lettreT = Wd.t; const d = sgn(vx) || 1;

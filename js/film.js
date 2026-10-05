@@ -211,7 +211,7 @@ addEventListener('pointerup', e => {
 /* ——— le clavier, la molette, le geste : la page ne défile jamais ; un cran = un chapitre ——— */
 // l'écran des chats : on n'en sort que par la barre des chapitres ou le bouton « Entrer » (ni molette, ni geste, ni flèches, ni clic)
 const chez = () => SC.some(sc => (sc.id === 'salut' || sc.id === 'espace') && sc.a > 0.5);   // (et dans l'espace, l'écran 2 : pareil)
-function step(dir) { if (window.EspacePlume && EspacePlume.pas && EspacePlume.pas(dir)) return; if (chez()) return; step0(dir); }   // (dans l'espace : la scène suivante de la présentation, js/espace-plume.js)
+function step(dir) { if (chez()) return; step0(dir); }
 function step0(dir) { const s = story(T), ci = chapterAt(s); if (dir > 0 && wait && ci === CH.length - 1) return; toChapter(ci + dir); }
 addEventListener('keydown', e => {
   if (root.classList.contains('locked') || (e.target.closest && e.target.closest('input,select,.tp-panel'))) return;
@@ -250,7 +250,6 @@ addEventListener('touchend', e => {
   const t = touch; touch = null; if (!t || drag.on || drag.t > t.t || e.touches.length) return;
   const c = e.changedTouches[0], dx = c.clientX - t.x, dy = c.clientY - t.y;
   if (Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) * 1.3 && performance.now() - t.t < 900) step(dy < 0 ? 1 : -1);
-  else if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.3 && performance.now() - t.t < 900 && window.EspacePlume && EspacePlume.pas) EspacePlume.pas(dx < 0 ? 1 : -1);
 }, { passive: true });
 
 /* ——— les scènes, à chaque image ——— */

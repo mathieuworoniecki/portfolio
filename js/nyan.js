@@ -182,35 +182,5 @@ H.draw.push(() => {
 // de temps en temps, un seul passe, sans prévenir (à tour de rôle avec les autres scénarios)
 if (K.SCEN) K.SCEN.push(() => { if (Wd.mode !== 'large' && Math.random() < 0.5) return false; return vol() ? undefined : false; });
 
-/* ——— dans l'espace ——— */
-if (window.TrouNoir && TrouNoir.outils) {
-  const O = TrouNoir.outils, { X, centreDe, rayon } = O;
-  const part = (c, passes) => { const S = c.sp; Object.assign(S, { m: 'nyan', dir: S.vx ? sgn(S.vx) : (Math.random() < 0.5 ? 1 : -1), y0: centreDe(c)[1], passes: passes || (Math.random() < 0.5 ? 1 : 2), P: S.P || [], nt: 0 });
-    if (S.y0 < O.HAUT() + 60) S.y0 = O.HAUT() + 60; if (S.y0 > O.BAS() - 60) S.y0 = O.BAS() - 60;
-    // (29/09, 13 h 27 : jamais sur les sous-titres ; il passe dans le haut du ciel)
-    const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande; if (bd && S.y0 > bd.y - 50) S.y0 = Math.max(O.HAUT() + 60, Math.min(bd.y - 50, O.HAUT() + (bd.y - O.HAUT()) * rnd(0.15, 0.45))); say(c, pick(['nyan !', 'nyaaan ✨', 'nya-nya-nyan ♪'])); if (window.Dex && Dex.vu) Dex.vu('nyanespace'); };
-  X.mode.nyan = (c, dt) => {
-    const S = c.sp, s = rayon(c) / 0.8, v = O.W / 3.2; c.anim = ANIMS.nage ? 'nage' : 'chute'; c.face = S.dir; S.nt += dt;
-    const [x, y] = centreDe(c), ty = S.y0 + Math.sin(S.nt * 7) * s * 0.12;
-    c.x += S.dir * v * dt; c.y += ty - y; c.spin = Math.sin(S.nt * 7) * 0.12; S.vx = S.dir * v; S.vy = 0;
-    S.P.push([x - S.dir * s * 0.5, ty - s * 0.1, Wd.t]);
-    // sorti d'un côté : il revient de l'autre (le ruban reste de ce côté-ci et s'efface) ; ses passages faits, il se remet à flotter, au milieu
-    const sort = S.dir > 0 ? x > O.W + s * 1.3 : x < -s * 1.3;
-    if (sort) { S.passes--; (S.vieux || (S.vieux = [])).push(S.P); S.P = []; c.x -= S.dir * (O.W + s * 2.6); const bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande; S.y0 = clamp(S.y0 + rnd(-0.25, 0.25) * O.H, O.HAUT() + 60, bd ? Math.max(O.HAUT() + 60, bd.y - 50) : O.BAS() - 60); }
-    if (S.passes <= 0 && Math.abs(x - O.W / 2) < O.W * 0.2) { S.m = 'derive'; S.next = Wd.t + rnd(2, 4); S.vx = S.dir * v * 0.25; S.w = rnd(-2, 2); S.anim = 'apesanteur'; }
-  };
-  X.envie.push(c => { if (reduit || (window.EspacePlume && EspacePlume.M && EspacePlume.M.sc) || Math.random() > 0.03 || Wd.cats.some(o => o.sp && o.sp.m === 'nyan')) return false; part(c); return true; });
-  // les rubans : derrière les chats ; ils s'effacent même quand le chat a fini (ou qu'on l'a attrapé)
-  X.fond.push((ctx, now) => {
-    const t = Wd.t; Wd.cats.forEach(c => { const S = c.sp; if (!S) return;
-      if (S.P) { coupe(S.P, t); if (S.P.length) ruban(ctx, S.P, Math.max(2.4, rayon(c) * 0.045), t, 1, 1); else if (S.m !== 'nyan') S.P = null; }
-      if (S.vieux) { S.vieux = S.vieux.filter(P => { coupe(P, t); if (P.length) ruban(ctx, P, Math.max(2.4, rayon(c) * 0.045), t, 1, 1); return P.length; }); if (!S.vieux.length) S.vieux = null; } });
-  });
-  X.retour.push(() => Wd.cats.forEach(c => { if (c.sp) { c.sp.P = null; c.sp.vieux = null; } }));
-  // un chat recraché par un petit trou blanc (un clic dans le vide) : une fois sur six, il sort en Nyan Cat
-  X.pas.push(() => { Wd.cats.forEach(c => { const S = c.sp; if (!S || S.nyanVu || S.m !== 'derive' || !S.o) return; S.nyanVu = true; if (Math.random() < 0.17 && !reduit) part(c, 1); }); });
-  var espace = { part };
-}
-
-return { vol, parade, espace, miniNyan, MINI };
+return { vol, parade, miniNyan, MINI };
 })();

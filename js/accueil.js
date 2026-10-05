@@ -22,6 +22,7 @@ function montre(b) {
   courant = b; bulle.textContent = b.txt; bulle.style.minWidth = ''; bulle.hidden = false; bulle.style.minWidth = bulle.offsetWidth + 'px'; taille = null; requestAnimationFrame(() => bulle.classList.add('on'));
 }
 let haut = null; addEventListener('resize', () => { haut = null; });
+let BTc = null, BTt = -9;   // (les boutons, mesurés deux fois par seconde)
 function place() {
   // (vague 225 de l'audit, design : au retour par la planète chat, la bulle suivait le chat qui retombait du haut et se collait sous la barre du haut) :
   // pendant le trou noir et la sortie, elle attend ; et elle ne monte jamais plus haut que le bas du logo
@@ -41,10 +42,14 @@ function place() {
   // (correctif du 05/10 : au téléphone, faute de place à côté de sa tête, la bulle restait en travers du corps du chat de l'arrivée, posé
   // entre le titre et les boutons) : la bulle passe sous les boutons et leur ligne d'aide, dans le vide de la pièce, sans queue
   if (!cote && Wd.W < 760 && x < p[0] + hr * 1.4 && x + w > p[0] - hr * 1.4 && y < p[1] + Wd.s0 * 0.95 && y + h > p[1] - hr) {
-    const bt = document.querySelector('.ctas'), bb = bt && bt.getBoundingClientRect(); if (bb && bb.height) { y = bb.bottom + 26; x = Math.max(12, Math.min(Wd.W - w - 12, (bb.left + bb.right) / 2 - w / 2)); cote = true; } }
+    const bt = document.querySelector('.ctas'), bb = bt && bt.getBoundingClientRect(); if (bb && bb.height) { y = bb.bottom + 58; x = Math.max(12, Math.min(Wd.W - w - 12, (bb.left + bb.right) / 2 - w / 2)); cote = true; } }
   // (vague 308, finition au téléphone) : la carte « Découverte ! » se pose sur le mur, là où la bulle attend sous les boutons ; la bulle descend sous elle le temps qu'elle passe
   if (Wd.W < 760) { const dt = document.querySelector('.dex-toast.go'), db = dt && dt.style.visibility !== 'hidden' ? dt.getBoundingClientRect() : null;
     if (db && db.height && x < db.right && x + w > db.left && y < db.bottom + 8 && y + h > db.top - 8) { y = db.bottom + 12; cote = true; } }
+  // (05/10, Mathieu : « des textes qui se chevauchent ») : la bulle ne se pose jamais sur les boutons ni sur leur ligne d'aide écrite dessous ;
+  // si elle les touche, elle descend sous la ligne d'aide
+  { if (!BTc || Wd.t - BTt > 0.5) { BTt = Wd.t; BTc = [...document.querySelectorAll('.ctas > *')].map(e => e.getBoundingClientRect()).filter(b => b.width); } const B = BTc; if (B.length) { const bas = Math.max(...B.map(b => b.bottom)) + 44, g = Math.min(...B.map(b => b.left)), d = Math.max(...B.map(b => b.right));
+    if (x < d && x + w > g && y < bas && y + h > Math.min(...B.map(b => b.top))) { y = bas + 14; cote = true; } } }
   bulle.classList.toggle('cote', cote);
   bulle.style.transform = `translate(${x | 0}px, ${y | 0}px)`; bulle.style.setProperty('--queue', `${Math.max(14, Math.min(w - 14, p[0] - x)) | 0}px`);
 }

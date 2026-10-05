@@ -54,7 +54,6 @@ const D = {
   boutons: A => [42, 58, 74].map((y, i) => `<rect x="36" y="${y - 7}" width="40" height="14" rx="7" ${i === 1 ? `fill="${A}"` : PAPIER}/><circle cx="45" cy="${y}" r="3" fill="currentColor" stroke="none"/>`).join('')
     + patte(82, 62, 13) + `<path d="M72 44 l4 -4 M80 42 v-6 M86 45 l4 -4" stroke-width="1.8"/>`,
   observateur: A => `<path d="M66 66 L84 84" stroke-width="7"/><circle cx="54" cy="52" r="19" ${PAPIER} stroke-width="3"/><path d="M41 52 Q54 39 67 52 Q54 65 41 52Z" fill="${A}"/><ellipse cx="54" cy="52" rx="2.6" ry="8" fill="currentColor" stroke="none"/><circle cx="57" cy="48" r="1.6" style="fill:var(--bp-hi,#eeeeea)" stroke="none"/><path d="M42 40 q5 -5 11 -6" stroke-width="1.6" opacity=".6"/>`,
-  nuit: A => croissant(60, 30, 86) + tete(56, 62, 10) + ferme(56, 62, 10) + zz(72, 36, 6) + zz(82, 28, 4) + eclat(84, 60, 4, 'none') + eclat(78, 78, 3, 'none'),
   masseur: A => `<path d="M34 84 Q32 62 54 62 L70 62 Q90 62 88 84Z" ${PAPIER}/><path d="M88 80 q6 -2 4 -10" stroke-width="2"/>` + tete(46, 58, 13) + ferme(46, 58, 13) + joues(46, 58, 13)
     + `<path d="M58 50 q9 -6 18 0 M62 42 q7 -5 14 0" stroke-width="1.8"/>` + coeur(84, 38, 9) + coeur(36, 36, 7),
   cheznous: A => `<path d="M32 58 L60 32 L88 58" stroke-width="3"/><path d="M36 56 L60 34 L84 56 L84 88 L36 88Z" ${PAPIER}/><path d="M74 44 V32 H80 V50" fill="${A}"/>`
@@ -83,30 +82,13 @@ const D = {
   // fontaine à chats : un petit rond blanc qui recrache un chat, des rayons
   troublanc: A => `<circle cx="46" cy="72" r="7"/><circle cx="46" cy="72" r="13" stroke-dasharray="3 4" stroke-width="1.6"/><path d="M54 64 L60 58 M42 60 L40 54 M58 76 l6 2" stroke-width="1.6"/>`
     + `<g transform="rotate(20 72 44)">${minou(72, 44, 12)}</g>` + eclat(88, 72, 4, 'none'),
-  // tarzan : une liane qui ondule, un chat pendu par les pattes de devant
-  tarzan: A => `<path d="M26 40 Q44 30 60 40 Q76 50 94 38" stroke-width="2.6"/><path d="M58 40 v8 M64 42 v8" stroke-width="2"/>` + minou(61, 60, 12) + `<path d="M61 72 q-2 8 4 14" stroke-width="1.8"/>` + eclat(34, 76, 4, 'none'),
-  // un petit pas : une empreinte de patte sur un sol de lune (des cratères), le casque au-dessus
-  astronaute: A => `<path d="M26 80 Q60 70 94 80" stroke-width="2"/><ellipse cx="40" cy="84" rx="5" ry="2"/><ellipse cx="80" cy="86" rx="4" ry="1.6"/>` + patte(60, 80, 8)
-    + `<circle cx="60" cy="46" r="15" ${PAPIER}/>` + minou(60, 49, 8) + `<path d="M50 38 Q52 34 56 33" stroke-width="1.4"/><path d="M69 34 L73 27"/><circle cx="74" cy="25" r="1.8" fill="currentColor" stroke="none"/>`,
   // la fronde : une planète, une orbite en pointillés, un chat qui en repart en flèche
   fronde: A => `<circle cx="52" cy="64" r="12"/><path d="M40 60 q12 -4 24 0" stroke-width="1.2"/><path d="M52 44 A20 20 0 1 0 72 64" stroke-dasharray="3 4" stroke-width="1.6"/>`
     + `<path d="M52 44 Q66 36 74 40" stroke-width="1.8"/><path d="M76 30 l-10 -2 M78 38 l-12 2" stroke-width="1.4"/>` + `<g transform="rotate(-20 84 38)">${minou(84, 38, 8)}</g>`,
   // le petit prince : un chat assis sur une toute petite planète, une étoile
   petitprince: A => `<circle cx="60" cy="80" r="18"/><path d="M46 88 q6 -3 12 0 M64 78 q5 -2 9 1" stroke-width="1.2"/>` + minou(60, 52, 11) + `<path d="M52 62 Q50 66 54 62 M68 62 Q70 66 66 62" stroke-width="1.6"/>` + etoile(88, 34, 5, 'none') + eclat(32, 40, 4, 'none'),
-  // zoo spatial : une forme fermée tracée à main levée, un chat dedans qui fait la moue
-  zoo: A => `<path d="M34 48 Q30 30 52 32 Q74 26 86 40 Q94 60 84 78 Q64 90 42 82 Q28 72 34 48Z" stroke-width="2.6"/>` + tete(60, 60, 13) + yeux(60, 60, 13) + `<path d="M56 67 q4 -2 8 0" stroke-width="1.6"/>` + eclat(92, 26, 3, 'none'),
-  // architecte : la même forme, ouverte (deux petits crans), et le bout de mur qui s'envole
-  architecte: A => `<path d="M72 30 Q86 38 88 56 Q88 78 64 84 Q40 88 32 66 Q28 44 46 32" stroke-width="2.6"/><path d="M46 32 l-3 -5 M72 30 l3 -5" stroke-width="1.8"/>`
-    + `<path d="M50 20 Q58 16 66 20" transform="rotate(-18 58 18)" stroke-width="2.4"/>` + minou(60, 62, 11) + `<path d="M58 12 l2 -4 M64 14 l4 -3" stroke-width="1.4"/>`,
-  // recruteur curieux : « IA » écrit à la main au milieu d'une petite constellation
-  recruteur: A => `<text x="60" y="64" text-anchor="middle" font-size="24" style="font-family:var(--hand),serif" fill="currentColor" stroke="none">IA</text>`
-    + [[34, 38], [86, 36], [30, 76], [88, 78], [60, 30]].map(([x, y]) => `<path d="M60 56 L${x} ${y}" stroke-dasharray="2 4" stroke-width="1.2"/>` + eclat(x, y, 4, 'none')).join('') + patte(76, 84, 6),
   // astronome : une lunette, et au bout une planète-chat, un anneau
   astronome: A => `<path d="M30 86 L62 56" stroke-width="7"/><path d="M36 92 L44 78 L52 92" stroke-width="1.8"/>` + `<ellipse cx="80" cy="38" rx="20" ry="5" transform="rotate(-15 80 38)"/>` + minou(80, 38, 11) + eclat(40, 34, 4, 'none') + eclat(92, 70, 3, 'none'),
-  // nyan sidéral : un chat en vol, sa traînée en marches d'escalier, des étoiles
-  nyanespace: A => [0, 6, 12].map(d => `<path d="M24 ${50 + d} h8 v-3 h8 v3 h8 v-3 h8" stroke-width="2"/>`).join('') + `<g transform="translate(6 0)">${minou(70, 58, 12)}</g>` + `<path d="M64 72 l-3 5 M82 72 l3 5" stroke-width="1.6"/>` + eclat(90, 34, 4, 'none') + eclat(36, 84, 3, 'none'),
-  // coupé en deux : une liane coupée net, les ciseaux ouverts, « snip »
-  ciseaux: A => `<path d="M24 64 Q36 56 50 62" stroke-width="2.6"/><path d="M70 58 Q84 52 96 60" stroke-width="2.6"/><circle cx="54" cy="84" r="6"/><circle cx="72" cy="84" r="6"/><path d="M57 79 L70 40 M69 79 L56 40" stroke-width="2"/>` + eclat(60, 60, 5, 'none'),
   foule: A => [[7, 44, [34, 47, 60, 73, 86]], [8.5, 60, [40, 53.5, 67, 80.5]], [10, 77, [44, 60, 76]]].map(([r, y, X]) => X.map((x, i) => minou(x, y, r, (i + y) % 3 === 0 ? A : null)).join('')).join(''),
   chaine: A => `<g transform="translate(2 5) rotate(12 48 86)">${caisse(38, 70, 22, 16)}${caisse(40, 54, 20, 16)}${caisse(42, 38, 17, 16)}${minou(51, 31, 7)}</g>`
     + `<path d="M81 26 L70 50 L78 50 L68 74 L91 44 L82 44 L88 26Z" fill="${A}"/>` + vague(60, 92, 82, 4, EAU) + goutte(66, 72, 4) + goutte(88, 70, 3),
@@ -120,9 +102,6 @@ const D = {
   somnambule: A => tete(60, 66, 19) + ferme(60, 66, 19) + bouche(60, 66, 19) + `<path d="M40 54 Q48 26 74 27 Q88 30 90 44 Q82 36 74 38 Q70 44 80 52 Q60 44 40 54Z" fill="${A}"/><circle cx="90" cy="46" r="4.5" ${PAPIER}/>`
     + zz(28, 34, 7) + zz(38, 26, 4.5),
   lune: A => croissant(74, 28, 62) + `<path d="M40 96 Q40 76 48 62 L60 64 Q54 78 56 96Z" ${PAPIER}/>` + patte(54, 58, 14) + eclat(34, 36, 5, 'none') + eclat(46, 28, 3, 'none') + eclat(88, 72, 4, 'none'),
-  papillon: A => [-1, 1].map(s => `<path d="M${60 + s * 2} 52 Q${60 + s * 26} 26 ${60 + s * 31} 46 Q${60 + s * 30} 62 ${60 + s * 2} 58Z" fill="${A}"/><path d="M${60 + s * 2} 60 Q${60 + s * 22} 68 ${60 + s * 18} 82 Q${60 + s * 8} 84 ${60 + s * 2} 64Z" fill="none"/><circle cx="${60 + s * 18}" cy="47" r="3.5" ${PAPIER}/>`
-    + `<path d="M${60 + s * 1.5} 44 Q${60 + s * 6} 34 ${60 + s * 14} 31" stroke-width="1.6"/><path d="M${60 + s * 5} 37 l${s * 3} -3 M${60 + s * 9} 33.5 l${s * 2} -3.5" stroke-width="1.2"/>`).join('')
-    + `<ellipse cx="60" cy="61" rx="4" ry="15" fill="currentColor"/>`,
   pouf: A => { let d = ''; const n = 18; for (let i = 0; i <= n; i++) { const a = i / n * Math.PI * 2, x = 60 + Math.cos(a) * 22, y = 64 + Math.sin(a) * 21;
       if (!i) { d = `M${f(x)} ${f(y)}`; continue; } const am = (i - 0.5) / n * Math.PI * 2; d += ` Q${f(60 + Math.cos(am) * 29)} ${f(64 + Math.sin(am) * 28)} ${f(x)} ${f(y)}`; }
     return `<path d="M42 46 L40 30 L52 40 M78 46 L80 30 L68 40" ${PAPIER}/><path d="${d}Z" ${PAPIER}/>` + yeux(60, 62, 18) + bouche(60, 62, 18) + joues(60, 62, 18) + goutte(30, 34, 4) + goutte(90, 36, 4) + eclat(88, 84, 5) + eclat(32, 84, 4); },
