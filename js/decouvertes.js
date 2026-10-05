@@ -329,9 +329,37 @@ const panneau = document.createElement('div'); panneau.className = 'dex'; pannea
 panneau.setAttribute('aria-label', T('Carnet de découvertes', 'Discovery notebook')); document.body.appendChild(panneau);
 // (un tampon penché au hasard, mais toujours le même pour une découverte donnée)
 const bruitD = id => { let h = 7; for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) % 9973; return h / 9973; };
-// la date au dos du polaroïd, écrite à la main ; la silhouette d'un chat pas encore croisé : une tête en pointillés et un point d'interrogation
+// la date au dos du polaroïd, écrite à la main ; la silhouette d'un chat pas encore croisé : ombre(), plus bas
 const quand = t => { if (!(t > 1e12)) return ''; const d = new Date(t); return T('vu le ', 'seen ') + d.toLocaleDateString(EN ? 'en-GB' : 'fr-FR', { day: 'numeric', month: 'short' }); };
-const OMBRE = '<svg viewBox="0 0 120 100" aria-hidden="true"><path d="M20 96 C18 70 22 52 30 44 L26 16 L46 34 C54 31 66 31 74 34 L94 16 L90 44 C98 52 102 70 100 96"/><text x="60" y="80">?</text></svg>';
+/* (vague 316 de l'audit, « le carnet ») : les douze cases « ??? » montraient la même tête en pointillés. Chaque chat pas encore croisé
+   a maintenant SA silhouette, à ses vraies proportions (celles de js/chat.js) : le long déborde de la photo, la boule est ronde, la puce
+   a de grandes oreilles, le pompon une queue en plumeau ; chez les raretés, le géant est trop grand pour le cadre (on ne voit que ses pattes
+   et son ventre), l'interminable traverse la photo de part en part, le totem est une pile de trois. Le « ? » est posé dans sa tête. */
+function ombre(id) {
+  const k = id.slice(5), b = TY[k];
+  const un = (x, y, s, b, long) => { const bl = b ? Math.min(long || 1.6, b.body[0] / 0.3) : 1, bh = b ? Math.min(1.6, b.body[1] / 0.17) : 1, hk = b ? Math.min(1.35, b.head[0] / 0.18) : 1, ek = b ? Math.min(1.7, b.ear[0] / 0.07) : 1;
+    const P = [], at = (u, v) => P.push([x + (u > -0.05 ? -0.05 + (u + 0.05) * bl : u) * s, y + (0.55 - (0.55 - v) * bh) * s]), q = b ? Math.min(1.8, 0.6 + b.tail[1] * 20) : 1;
+    for (let i = 0; i <= 8; i++) { const t = i / 8; at(0.55 + Math.sin(t * 2.6) * 0.25 * q, 0.55 - t * 0.55 * q - Math.sin(t * 3.1) * 0.05); }
+    for (let i = 0; i <= 10; i++) { const t = i / 10; at(0.5 - t * 0.55, 0.05 - Math.sin(t * Math.PI) * 0.1); }
+    const hx = -0.18, hy = -0.32 - 0.6 * (bh - 1) - 0.3 * (hk - 1), hr = 0.3 * hk;
+    for (let i = 0; i <= 28; i++) { const a = Math.PI * 0.35 - i / 28 * Math.PI * 2.1; let kk = 1; [-1, 1].forEach(sd => { const c = -Math.PI / 2 + sd * 0.62, d = Math.atan2(Math.sin(a - c), Math.cos(a - c)); if (Math.abs(d) < 0.3) kk += 0.5 * ek * Math.pow(1 - Math.abs(d) / 0.3, 1.2); }); P.push([x + (hx + Math.cos(a) * hr * kk * 1.1) * s, y + (hy + Math.sin(a) * hr * kk) * s]); }
+    for (let i = 0; i <= 10; i++) { const t = i / 10; at(-0.35 + t * 0.05 - Math.sin(t * Math.PI) * 0.12, -0.05 + t * 0.6); }
+    for (let i = 0; i <= 10; i++) { const t = i / 10; at(-0.3 + t * 0.85, 0.55 + Math.sin(t * Math.PI * 3) * 0.03); }
+    return { P, tx: x + hx * s, ty: y + hy * s, ts: 44 * hk * s / 52 }; };
+  // (le géant : deux énormes pattes avant et le poitrail, la tête bien au-dessus du cadre)
+  if (k === 'geant') return '<svg viewBox="0 0 120 100" aria-hidden="true"><path d="M14 -2 C9 30 12 55 20 72 C13 86 22 96 33 95 Q37 90 41 95 Q45 90 49 95 C58 96 61 84 54 73 C58 66 64 66 68 73 C62 84 65 96 74 95 Q78 90 82 95 Q86 90 90 95 C101 96 108 84 100 72 C108 55 111 30 106 -2"/><path d="M30 92 v-5 M38 92 v-5 M76 92 v-5 M84 92 v-5"/><text x="60" y="44" style="font-size:40px">?</text></svg>';
+  let L;
+  if (k === 'totem') { const m = TY.mini; L = [un(0, 0, 30, m), un(0, -30, 30, m), un(0, -60, 30, m)]; }
+  else if (k === 'interminable') L = [un(34, 58, 40, b, 6)];
+  else { const sc = Math.max(0.6, Math.min(1.25, b ? b.s : 1)); L = [un(0, 0, 46 * sc, b)]; }
+  // (le chat entier tient dans la photo, posé en bas, tête comprise ; le géant et l'interminable, eux, débordent exprès)
+  if (k !== 'interminable') { const X = L.flatMap(o => o.P.map(p => p[0])), Y = L.flatMap(o => o.P.map(p => p[1])), x0 = Math.min(...X), x1 = Math.max(...X), y0 = Math.min(...Y), y1 = Math.max(...Y);
+    const f = Math.min(1, 100 / (x1 - x0), 84 / (y1 - y0)), dx = 60 - (x0 + x1) / 2 * f, dy = 95 - y1 * f;
+    L.forEach(o => { o.P = o.P.map(([x, y]) => [x * f + dx, y * f + dy]); o.tx = o.tx * f + dx; o.ty = o.ty * f + dy; o.ts *= f; }); }
+  L.forEach(o => { o.d = 'M' + o.P.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L') + 'Z'; o.ts = Math.max(14, o.ts); });
+  const t = L[L.length - 1];
+  return `<svg viewBox="0 0 120 100" aria-hidden="true">${L.map(o => `<path d="${o.d}"/>`).join('')}<text x="${t.tx.toFixed(1)}" y="${(t.ty + t.ts * 0.35).toFixed(1)}" style="font-size:${t.ts.toFixed(0)}px">?</text></svg>`;
+}
 function ouvre() {
   const total = TOUS.length, k = n();
   panneau.innerHTML = `<div class="dex-page"><header><h2>${T('Carnet de découvertes', 'Discovery notebook')}</h2><p>${k} / ${total}</p>
@@ -339,7 +367,7 @@ function ouvre() {
     ${(() => { let i = 0; return FAM.map(f => { const nh = {}; f.L.forEach(d => { if (!vus[d.id]) nh[d.h] = (nh[d.h] || 0) + 1; }), hc = Object.keys(nh).find(h => nh[h] >= 3);   // (vague 181 de l'audit : « le carnet ») : un indice répété sur chaque case « ??? » ne s'écrit plus qu'une fois, sous le titre de la famille
       return `<section><h3>${f.nom} <small>${f.L.filter(d => vus[d.id]).length}/${f.L.length}</small></h3>${hc ? `<p class="dex-fam-h">${hc}</p>` : ''}<ul>${f.L.map(d => { const hs = hc && d.h === hc ? '' : `<span>${d.h}</span>`; const st = `--i:${Math.min(40, i++)};--r:${((bruitD(d.id) - 0.5) * 16).toFixed(1)}deg`; return vus[d.id]
       ? (photos[d.id] ? `<li class="ok ph" data-id="${d.id}" style="${st}"><figure><img src="${photos[d.id]}" alt=""><figcaption>${quand(vus[d.id])}</figcaption></figure><b>${d.t}</b><span>${d.ok || d.h}</span></li>` : `<li class="ok" data-id="${d.id}" style="${st}"><b>${d.t}</b><span>${d.ok || d.h}</span></li>`)
-      : (/^(race|rare)-/.test(d.id) ? `<li class="ph" style="${st}"><figure class="dex-ombre">${OMBRE}</figure><b>???</b>${hs}</li>` : `<li style="${st}"><b>???</b>${hs}</li>`); }).join('')}</ul></section>`; }).join(''); })()}
+      : (/^(race|rare)-/.test(d.id) ? `<li class="ph" style="${st}"><figure class="dex-ombre">${ombre(d.id)}</figure><b>???</b>${hs}</li>` : `<li style="${st}"><b>???</b>${hs}</li>`); }).join('')}</ul></section>`; }).join(''); })()}
     <footer><button type="button" class="dex-raz">${T('Tout oublier', 'Forget everything')}</button></footer></div>`;
   panneau.hidden = false; panneau.querySelector('.dex-x').focus();
   panneau.querySelector('.dex-x').onclick = ferme; guetteur(); folioscope(); tampons();

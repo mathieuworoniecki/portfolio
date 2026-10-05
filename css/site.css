@@ -398,7 +398,7 @@ html:not(.locked) #gate:not(.open){display:none}
 .dex-page li.ph figcaption{font:400 .9rem/1.5 var(--hand);text-align:center;white-space:nowrap;overflow:hidden}
 .dex-page li.ph:hover figure{rotate:0deg;scale:1.08}
 .dex-page li.ph .dex-ombre{display:grid;place-items:center;padding:10px;background:none;border-style:dashed;border-color:rgba(var(--ink),.4);box-shadow:none}
-.dex-ombre svg{width:78%;fill:none;stroke:rgba(var(--ink),.45);stroke-width:3;stroke-dasharray:7 6;stroke-linecap:round;stroke-linejoin:round}
+.dex-ombre svg{width:100%;overflow:hidden;fill:none;stroke:rgba(var(--ink),.45);stroke-width:3;stroke-dasharray:7 6;stroke-linecap:round;stroke-linejoin:round}
 .dex-ombre text{font:400 44px var(--hand);fill:rgba(var(--ink),.5);stroke:none;text-anchor:middle}
 .dex-page li.ok.ph{padding-right:9px;padding-bottom:34px}
 /* (vague 223) : le tampon d'empreinte se posait sur la fin de la description ; il a maintenant sa place sous le texte */
