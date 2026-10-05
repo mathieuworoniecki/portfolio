@@ -926,7 +926,13 @@ function ombresMur(fc) {
   const W = Wd.W, H = Wd.H, t = Wd.t, tb = document.querySelector('.top'), haut = W < 760 ? Math.max(Wd.ceil || 0, 0) : (tb ? tb.getBoundingClientRect().bottom : 70) + 6, bas = floorAt(1) - 2; if (bas - haut < 40) return;
   const P = Wd.ptr, vise = P && P.on && t - P.moved < 4 ? (P.x - W / 2) * 0.35 : Math.sin(t * 0.11) * W * 0.12;
   OMB.lx += (vise - OMB.lx) * Math.min(1, 0.02 * 60 / 60); const fl = 1 + Math.sin(t * 7.3) * 0.012 + Math.sin(t * 11.9) * 0.008;
-  const L = [W / 2 + OMB.lx, H * 1.18], m = (W < 760 ? 1.75 : 2.05) * fl, mx = W < 760 ? m : m * 0.62, pj = p => [L[0] + (p[0] - L[0]) * mx, L[1] + (p[1] - L[1]) * m];
+  const L = [W / 2 + OMB.lx, H * 1.18], m = (W < 760 ? 1.75 : 2.05) * fl, mx = W < 760 ? m : m * 0.62, pj0 = p => [L[0] + (p[0] - L[0]) * mx, L[1] + (p[1] - L[1]) * m];
+  // (vague 312 de l'audit, « l'aspirateur ») : même les ombres se font aspirer. Tant qu'il balaie, les grandes ombres du mur s'étirent vers sa bouche
+  // comme de la guimauve (plus elles en sont près, plus elles filent), en tremblant ; quand il remonte, elles se relâchent d'un coup et rebondissent en place
+  const V = Wd.vac, vise2 = V && V.ph === 'balaye' ? (V.grand ? 1 : 0.75) : 0; OMB.vk = OMB.vk || 0; OMB.vv = OMB.vv || 0;
+  OMB.vv += ((vise2 - OMB.vk) * 0.06 - OMB.vv * (vise2 ? 0.25 : 0.12)); OMB.vk += OMB.vv; if (V) { OMB.vx = V.x; OMB.vy = V.y; }
+  const vk = OMB.vk, pj = Math.abs(vk) < 0.003 || OMB.vx == null ? pj0 : p => { const q = pj0(p), dx = OMB.vx - q[0], dy = OMB.vy - q[1], d = Math.hypot(dx, dy) || 1, f = Math.max(0, 1 - d / (W * 0.9)), k = vk * f * (0.35 + 0.65 * f) * 0.8, tr = Math.sin(t * 41 + q[1] * 0.05) * 3 * vk * f;
+    return [q[0] + dx * k + tr, q[1] + dy * k]; };
   const ink = (window.THEME && THEME.ink) || '40,40,40';
   fc.save(); fc.beginPath(); fc.rect(0, haut, W, bas - haut); fc.clip();
   const C = Chalk, main = C.ctx; C.ctx = fc;
