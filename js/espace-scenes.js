@@ -1771,6 +1771,7 @@ S.flotte = (() => {
 // la vitesse sans perdre le contrôle : un tapis en perspective ; chaque changement de code passe les portiques (tests, revue CI, scanners), chacun avec
 // son faisceau ; ceux qui échouent sont éjectés (✗) ; les autres arrivent devant l'humain, qui hoche la tête et tamponne : ✓, sur la pile des fusionnés
 const TURBO = { vu: false };
+const BOCAL = { cy: -1, n: 0 };
 S.gardefous = (() => {
   const LAB = () => en() ? ['tests', 'CI review', 'scanners', 'human', 'merged'] : ['tests', 'revue CI', 'scanners', 'humain', 'fusionnés'];
   return {
@@ -1821,6 +1822,29 @@ S.gardefous = (() => {
         const xa = xS - 0.05; if (x < xa) { carte(x, yT - 0.015, 0, 1); continue; }
         const ts = (x - xa) / vit; if (ts < 0.6) { carte(xa, yT - 0.015, 0, 1); tampon = Math.max(tampon, ts < 0.25 ? sm(ts / 0.25) : 1 - sm((ts - 0.3) / 0.3)); if (ts > 0.2) { const c = V(xa, yT - 0.1, 0); coche(c[0], c[1], k * 0.05, (ts - 0.2) / 0.25, 1.1); } continue; }
         const m = sm((ts - 0.6) / 0.8); if (m >= 1) continue; carte(lerp(xa, xP, m), lerp(yT, yT - Math.min(14, pile) * 0.03, m) - Math.sin(Math.PI * m) * 0.3, lerp(0, zP, m), 1); }
+      // (vague 329 de l'audit, « la vitesse », originalité) : ce que trouvent les scanners. Une bestiole voyage cachée dans le tapis : on n'en voit
+      // que deux bouts d'antennes qui dépassent entre les lattes. Sous le faisceau du troisième portique, le tapis devient transparent comme une radio :
+      // à la sortie du portique, le bug apparaît, lumineux, pattes qui gigotent (« bug ! »). Il saute, en cloche, droit dans le bocal de verre posé derrière le portique,
+      // où les bugs déjà pris tournent en rond ; le compte monte
+      if (!reduitMvt()) { const g = xs[2], Jb = V(g + 0.2, yT, -0.55), Jh = V(g + 0.2, yT - 0.26, -0.55), jw = k * 0.07 * Jb[3], jh = Jb[1] - Jh[1], CB = 4.2, ph = now / CB, cy = Math.floor(ph), u = ph - cy;
+        const bete = (x, y, s, an, lum, ph) => { ctx.save(); ctx.translate(x, y); ctx.rotate(an); const gi = Math.sin(now * 22 + ph) * s * 0.12;
+          cerne(() => { ctx.beginPath(); [-1, 0, 1].forEach(j => [-1, 1].forEach(sd => { ctx.moveTo(j * s * 0.4, sd * s * 0.25); ctx.lineTo(j * s * 0.62 + sd * j * gi, sd * s * 0.78 + j * gi); }));
+            ctx.moveTo(s * 0.8, -s * 0.1); ctx.quadraticCurveTo(s * 1.1, -s * 0.2, s * 1.25 + gi, -s * 0.55); ctx.moveTo(s * 0.8, s * 0.1); ctx.quadraticCurveTo(s * 1.1, s * 0.2, s * 1.25 - gi, s * 0.55); }, 0.55, 1, null);
+          cerne(() => { ctx.beginPath(); ctx.ellipse(0, 0, s * 0.62, s * 0.4, 0, 0, TAU); }, 0.7, 1, lum ? '#ffe9a8' : PAP);
+          cerne(() => { ctx.beginPath(); ctx.arc(s * 0.72, 0, s * 0.24, 0, TAU); }, 0.7, 1, lum ? '#ffe9a8' : PAP);
+          ctx.globalAlpha = 1; ctx.fillStyle = ENC; ctx.beginPath(); ctx.arc(s * 0.8, -s * 0.09, Math.max(0.8, s * 0.06), 0, TAU); ctx.arc(s * 0.8, s * 0.09, Math.max(0.8, s * 0.06), 0, TAU); ctx.fill();
+          ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.4; ctx.beginPath(); ctx.moveTo(-s * 0.1, -s * 0.38); ctx.lineTo(-s * 0.1, s * 0.38); ctx.stroke(); ctx.restore(); };
+        if (BOCAL.cy !== cy) { if (BOCAL.cy >= 0 && cy === BOCAL.cy + 1) BOCAL.n++; else if (cy !== BOCAL.cy) BOCAL.n = 0; BOCAL.cy = cy; }
+        const x = u < 0.45 ? lerp(xs[1] + 0.05, g + 0.08, sm(u / 0.45)) : g + 0.08, P = V(x, yT - 0.02, -0.02), s = k * 0.045 * P[3];
+        if (u < 0.42) { const gi = Math.sin(now * 14) * s * 0.15; cerne(() => { ctx.beginPath(); ctx.moveTo(P[0] + s * 0.2, P[1]); ctx.quadraticCurveTo(P[0] + s * 0.5, P[1] - s * 0.5, P[0] + s * 0.9 + gi, P[1] - s * 0.8); ctx.moveTo(P[0] + s * 0.1, P[1]); ctx.quadraticCurveTo(P[0] + s * 0.3, P[1] - s * 0.6, P[0] + s * 0.45 - gi, P[1] - s * 0.95); }, 0.5, 1, null); }
+        else if (u < 0.7) { const lu = sm(c01((u - 0.42) / 0.06)); brille(P[0], P[1], 3 + lu * 5, 1, true, now, cy); bete(P[0], P[1] - s * 0.3 * lu, s * (0.6 + 0.4 * lu), -0.15 + Math.sin(now * 9) * 0.15, true, cy);
+          if (u > 0.48) mot(en() ? 'bug!' : 'bug !', P[0] + s * 1.2, P[1] - s * 2.2, Math.max(12, k * 0.07), 1); }
+        else if (u < 0.86) { const m = (u - 0.7) / 0.16, e = sm(m); bete(lerp(P[0], Jh[0], e), lerp(P[1] - s * 0.3, Jh[1] + jh * 0.3, e) - Math.sin(Math.PI * m) * k * 0.25, s * (1 - 0.35 * e), m * 7, true, cy); }
+        const pris = BOCAL.n + (u >= 0.86 ? 1 : 0);
+        cerne(() => { ctx.beginPath(); ctx.moveTo(Jh[0] - jw, Jh[1] + jh * 0.12); ctx.lineTo(Jb[0] - jw, Jb[1] - jw * 0.3); ctx.quadraticCurveTo(Jb[0], Jb[1] + jw * 0.25, Jb[0] + jw, Jb[1] - jw * 0.3); ctx.lineTo(Jh[0] + jw, Jh[1] + jh * 0.12); }, 0.8, 1, 'rgba(200,225,255,0.22)');
+        for (let i = 0; i < Math.min(6, pris); i++) { const t = now * (0.9 + i * 0.13) + i * 2.1, sb = k * 0.022 * Jb[3]; bete(Jb[0] + Math.sin(t) * jw * 0.55, Jb[1] - jw * 0.35 - (i % 3) * jh * 0.2 - Math.abs(Math.cos(t * 1.3)) * jh * 0.08, sb, Math.cos(t) > 0 ? 0 : Math.PI, false, i); }
+        cerne(() => { ctx.beginPath(); ctx.ellipse(Jh[0], Jh[1] + jh * 0.08, jw * 1.12, jw * 0.3, 0, 0, TAU); }, 0.8, 1);
+        if (pris) mot(`${pris} bug${pris > 1 ? 's' : ''}`, Jh[0], Jh[1] - jw * 0.45, Math.max(10, k * 0.05), 0.9); }
       // (vague 202 de l'audit, « la vitesse », originalité) : un passager clandestin. Un chat-robot s'est endormi sur le tapis, roulé en boule entre
       // deux feuilles ; chaque portique le scanne (le faisceau le hérisse, il sursaute, « bzzt »), il se rendort ; l'humain le tamponne quand même ✓
       // sur le front (« mia ? ») ; le chat bondit au bout du tapis, devant l'humain, et s'y assoit, fier, sa coche sur la tête ; puis il retourne d'un grand saut au début du tapis
@@ -1866,7 +1890,8 @@ S.gardefous = (() => {
           ctx.globalAlpha = 1; ctx.fillStyle = ENC; [-1, 1].forEach(sx => { ctx.beginPath(); ctx.arc(sx * (w / 2 - fl * 0.3), -h / 2 + fl * 0.3, Math.max(1.2, fl * 0.08), 0, TAU); ctx.fill(); });
           ctx.font = f; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lab[i], 0, fl * 0.05); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.restore(); } });
       // le compteur (en haut à gauche du ciel) : un demi-cadran de papier, ses graduations ×1 ×2 ×3, la zone rapide hachurée, l'aiguille
-      { const rg = Math.max(36, Math.min(60, k * 0.18)), gx = Math.max(G.gauche + rg * 1.25, Math.min(90, (G.droite + 16) * 0.1) + rg + 4),   // (vague 163 : hors de la bande estompée du bord, où le cadran virait au gris)
+      // (vague 163 : le cadran se tient hors de la bande estompée du bord, où il virait au gris)
+      { const rg = Math.max(36, Math.min(60, k * 0.18)), gx = Math.max(G.gauche + rg * 1.25, Math.min(90, (G.droite + 16) * 0.1) + rg + 4),
            gy = G.haut + rg * 1.35, A0 = Math.PI, A1 = TAU, an = A0 + (A1 - A0) * (vt - 1) / 2.2;
         cerne(() => { ctx.beginPath(); ctx.arc(gx, gy, rg, A0, A1); ctx.closePath(); }, 0.8, 1);
         ctx.save(); ctx.beginPath(); ctx.arc(gx, gy, rg * 0.92, A0 + (A1 - A0) * 0.62, A1); ctx.arc(gx, gy, rg * 0.66, A1, A0 + (A1 - A0) * 0.62, true); ctx.closePath(); ctx.clip();
