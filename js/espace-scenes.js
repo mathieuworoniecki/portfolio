@@ -2064,6 +2064,19 @@ S.ia = (() => {
           style(0.6, 1); ctx.strokeRect(lerp(A1[0], B[0], sm(v)) - 4 * sv, lerp(A1[1], B[1], sm(v)) - Math.sin(Math.PI * v) * k * 0.2 - 3 * sv, 8 * sv, 6 * sv); } }
       // la question ; ses voisins s'allument et se relient
       const qA = Pk(0.15, -0.78), Qc = V(Qp[0] * R, Qp[1] * R, Qp[2] * R), qu = c01((c - 1) / 0.8), on = c > 1.8 && c < 5.2;
+      // (vague 277 de l'audit, « IA et données », immersion) : la question ne cherche pas que dans le nuage. Dès qu'elle arrive, des rayons de
+      // recherche partent d'elle vers tout le ciel : douze fiches du grand halo, jusqu'aux bords de l'écran, s'allument l'une après l'autre ; un fil
+      // pointillé file de la question jusqu'à chacune, puis leur extrait revient le long du fil en petite lumière ; les fils se rembobinent ensuite
+      if (!reduitMvt() && c > 1.8 && c < 4.6) { const hx = ((G.droite - G.gauche) / 2 * 0.95) / (k * 0.92 * 2.2), bdI = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande,
+          okI = q => q[1] > G.haut + 6 && q[1] < (G.caps || G.bas) - 8 && !(bdI && q[1] > bdI.y - 12 && q[1] < bdI.y + bdI.h + 12 && q[0] > bdI.x - 16 && q[0] < bdI.x + bdI.w + 16);
+        sousLaBarre(); ctx.beginPath(); ctx.rect(-1e4, G.haut - 4, 2e4, (G.caps || G.bas) - G.haut - 4); ctx.clip();
+        for (let m = 0, vu = 0; m < HALO.length && vu < 12; m++) { const i = (m * 37 + Math.floor(a / Cy) * 11) % HALO.length, [x, y, z] = HALO[i], q = V(x, y * 0.55, z); q[0] = G.cx + (q[0] - G.cx) * hx;
+          if (!okI(q) || q[2] < -0.4 || Math.hypot(q[0] - Qc[0], q[1] - Qc[1]) < k * 0.5) continue; vu++;
+          const t0 = 1.9 + vu * 0.08, e = sm(c01((c - t0) / 0.45)), r = 1 - sm(c01((c - 4.0 - vu * 0.03) / 0.5)), u0 = 1 - r, u1 = e; if (u1 <= u0) continue;
+          ctx.save(); ctx.setLineDash([G.lw * 2, G.lw * 4]); ctx.lineDashOffset = -now * 20; trait([[lerp(Qc[0], q[0], u0), lerp(Qc[1], q[1], u0)], [lerp(Qc[0], q[0], u1), lerp(Qc[1], q[1], u1)]], false, 0.6, 0.7); ctx.restore();
+          if (e >= 1) { const w = k * 0.03 * q[3]; brille(q[0], q[1], 3 + 2 * Math.sin(now * 6 + i), 1, true, now, i); ctx.save(); style(1, 0.95); ctx.strokeRect(q[0] - w * 1.3, q[1] - w, w * 2.6, w * 2); ctx.restore();
+            const v = c01((c - t0 - 0.45) / 0.9); if (v > 0 && v < 1) brille(lerp(q[0], Qc[0], sm(v)), lerp(q[1], Qc[1], sm(v)), 2.4, 1, false, now, i + 300); } }
+        ctx.restore(); }
       if (c > 0.6 && c < 2.2) { const e = sm(c01((c - 0.6) / 0.3)) * (1 - sm(c01((c - 1.9) / 0.3))), bw = k * 0.2 * e, bh = k * 0.15 * e;
         if (e > 0.05) { cerne(() => { ctx.beginPath(); ctx.ellipse(qA[0], qA[1], bw, bh, 0, 0, TAU); ctx.moveTo(qA[0] - bw * 0.3, qA[1] + bh * 0.85); ctx.lineTo(qA[0] - bw * 0.55, qA[1] + bh * 1.5); ctx.lineTo(qA[0], qA[1] + bh * 0.95); }, 0.9, 1);
           ctx.globalAlpha = 1; ctx.fillStyle = ENC; ctx.font = `700 ${Math.max(12, bh * 1.2)}px "Space Grotesk",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('?', qA[0], qA[1] + 1); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; } if (qu > 0 && qu < 1) brille(lerp(qA[0], Qc[0], qu), lerp(qA[1], Qc[1], qu), 3.5, 1, true, now, 2); }
