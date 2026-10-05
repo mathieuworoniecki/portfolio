@@ -369,10 +369,20 @@ function retour() {
   if (!F || !F.ouvert) return; if (dernierVu && window.Dex && Dex.vu) { dernierVu = false; later(3, () => Dex.vu('dernier-carreau')); } Wd.nextScen = Wd.t + rnd(20, 30); const o = F.o; F = null; Wd.fuite = false;
   // (29/09, vague 5) les trous s'ouvrent en vague, depuis le bouton (13 h 21, Mathieu : pas de fissures)
   range(); defait();
+  // (vague 320 : la pièce s'arrête pendant le mode sérieux ; les trous du départ étaient donc encore grands ouverts au retour, une vingtaine,
+  // et tapissaient le sol) : ils se referment tout de suite, en rétrécissant, avant que les nouveaux s'ouvrent
+  trous.forEach(T => { const u = Wd.t - T.t0; if (u < T.ouvre + T.ferme) T.t0 = Wd.t - T.ouvre - T.ferme; T.fin = Math.min(T.fin, Wd.t + 0.5); });
   // les lettres : elles ressortent de leur trou et remontent à leur place d'un bond ; les boutons aussi
   const Ls = window.Vie && Vie.LETTERS && Vie.LETTERS(), rt = Ls && Vie.RECT();
-  if (Ls) Ls.forEach((Lt, i) => { if (Lt.st !== 'avale' && Lt.st !== 'trou') return; later(0.2 + i * 0.05, () => { const x = rt.left + Lt.cx, fl = Wd.floor - 2; trou(x, fl, Wd.s0 * 0.16, 0.15, 0.6);
-    Lt.a = 1; Lt.st = 'back'; Lt.t = Wd.t; Lt.from = [0, fl - (rt.top + Lt.cy), 0]; Lt.dx = 0; Lt.dy = Lt.from[1]; Lt.rot = 0; Lt.out0 = 0; }); });
+  // (vague 320 de l'audit, design : un trou par lettre, c'était vingt-cinq ovales en même temps qui tapissaient le sol, illisible) : un trou par MOT.
+  // Il s'ouvre sous le mot, et ses lettres en sortent l'une derrière l'autre, à la file, comme les foulards du chapeau d'un magicien ;
+  // chacune file en arc jusqu'à sa place ; le trou se referme après la dernière
+  if (Ls) { const fl = Wd.floor - 2, dehors = Ls.filter(Lt => Lt.st === 'avale' || Lt.st === 'trou').sort((a, b) => (a.row || 0) - (b.row || 0) || a.x0 - b.x0), mots = [];
+    dehors.forEach(Lt => { const m = mots[mots.length - 1], p = m && m[m.length - 1], w = Lt.x1 - Lt.x0; if (m && (p.row || 0) === (Lt.row || 0) && Lt.x0 - p.x1 < Math.max(4, w * 0.3)) m.push(Lt); else mots.push([Lt]); });
+    mots.forEach((m, k) => { const xa = rt.left + m[0].x0, xb = rt.left + m[m.length - 1].x1, x = (xa + xb) / 2, t0 = 0.2 + k * 0.28;
+      later(t0, () => trou(x, fl, clamp((xb - xa) * 0.32, Wd.s0 * 0.16, Wd.s0 * 0.5), 0.15, 0.25 + m.length * 0.07));
+      m.forEach((Lt, j) => later(t0 + 0.12 + j * 0.07, () => { Lt.a = 1; Lt.st = 'back'; Lt.t = Wd.t; Lt.from = [x - (rt.left + Lt.cx), fl - (rt.top + Lt.cy), (j % 2 ? 1 : -1) * 1.4]; Lt.dx = Lt.from[0]; Lt.dy = Lt.from[1]; Lt.rot = Lt.from[2]; Lt.out0 = 0;
+        if (j === 0 && Math.random() < 0.5) word(pick(['flap', 'zip', 'pfuit']), x, fl - Wd.s0 * 0.3, 14); })); }); }
   ['stay', 'enter'].map(id => document.getElementById(id)).filter(Boolean).forEach((b, i) => sortBouton(b, 350 + i * 180));
   document.querySelectorAll('.evts-list li > button').forEach((b, i) => sortBouton(b, 500 + i * 70));
   { const lp = document.getElementById('lang-pick'); if (lp) sortBouton(lp, 420); }
@@ -387,7 +397,8 @@ function retour() {
     if (!Wd.props.includes(it)) return; it.ventre = false;
     if (it.home && !it.home.on) { it.fx = it.home.fx; it.d = it.home.d; it.dT = it.home.d; }
     it.tilt = 0; it.vx = it.vy = 0; it.fall = false;
-    const s = sOf(it.d); trou(it.fx * Wd.W, floorAt(it.d), clamp(s * 0.5, Wd.s0 * 0.18, Wd.s0 * 1.2), 0.15, 0.6);
+    // (vague 320 : le trou se referme juste après que l'objet en a jailli ; ouverts plus longtemps, ils étaient dix à la fois sur le sol)
+    const s = sOf(it.d); trou(it.fx * Wd.W, floorAt(it.d), clamp(s * 0.5, Wd.s0 * 0.18, Wd.s0 * 1.2), 0.15, 0.3);
     it.lift = 0; it.big = it.big || 1; it.trou = { t0: Wd.t, retour: true, big: it.big, sens: Math.random() < 0.5 ? -1 : 1 }; it.big *= 0.05;
     later(0.25, () => word(pick(['pop !', 'plop', 'tadaa']), it.fx * Wd.W, floorAt(it.d) - s * 0.8, 18));
     later(0.28, () => recrache(it.fx * Wd.W, floorAt(it.d), s, K.LOURD[it.kind]));
