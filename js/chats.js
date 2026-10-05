@@ -947,6 +947,18 @@ function ombresMur(fc) {
     C.stroke(queue, 1, { w: Math.max(1.6, hr * 0.07 * m), a: a0 * 0.9, seed: sd + 3, tip: false, amp: 0.5 });
     pattes.forEach((L2, i) => C.line(L2[0][0], L2[0][1], L2[1][0], L2[1][1], 1, { w: Math.max(1.4, hr * 0.06 * m), a: a0 * 0.9, seed: sd + 4 + i, tip: false, amp: 0.4 })); }); }
   finally { C.ctx = main; fc.restore(); }
+  ombresLettres(fc, pj, haut, bas, ink);
+}
+// (vague 308 de l'audit, « le titre », vers 9,9) : la même lampe attrape les lettres tombées du titre. Chacune, au sol ou en l'air,
+// s'écrit en ombre géante sur le mur, son trait doublé à la plume ; un « o » qui roule fait rouler un grand O de nuit derrière les chats
+function ombresLettres(fc, pj, haut, bas, ink) {
+  const V = window.Vie, Ls = V && V.LETTERS && V.LETTERS(); if (!Ls) return; const r = V.RECT(), D = Ls.filter(L => L.st && L.st !== 'back' && L.a > 0.5 && L.strokes && L.strokes.length); if (!D.length) return;
+  const C = Chalk, main = C.ctx, a0 = (Wd.W < 760 ? 0.3 : 0.4) * Wd.a; fc.save(); fc.beginPath(); fc.rect(0, haut, Wd.W, bas - haut); fc.clip(); C.ctx = fc;
+  try { D.forEach((L, j) => { const cx = r.left + L.cx + L.dx, cy = r.top + L.cy + L.dy, co = Math.cos(L.rot || 0), si = Math.sin(L.rot || 0), w = Math.max(3, (L.y1 - L.y0) * 0.09 * 2);
+    L.strokes.forEach((P, i) => { const Q = P.map(q => { const x = q[0] - L.cx, y = q[1] - L.cy; return pj([cx + x * co - y * si, cy + x * si + y * co]); });
+      if (P.len < 6) { const m = Q[Q.length >> 1]; C.circle(m[0], m[1], w * 0.8, w * 0.8, 1, { w: 1.4, a: a0, seed: 140 + j * 7 + i, tip: false }); return; }
+      C.stroke(Q, 1, { w, a: a0 * 0.45, seed: 120 + j * 7 + i, tip: false, amp: 0.5 }); C.stroke(Q.map(p => [p[0] + w * 0.5, p[1] - w * 0.4]), 1, { w: 1.3, a: a0, seed: 130 + j * 7 + i, tip: false, amp: 0.6 }); }); }); }
+  finally { C.ctx = main; fc.restore(); }
 }
 // (vague 26, l'audit : « la tour de cartons ») : les chips de calage. Chaque caisse qui s'ouvre en tombant en crache une poignée :
 // des petits S qui volent, rebondissent sur le sol, glissent et restent là, en bazar, jusqu'à ce que l'équipe du ménage les balaie au passage

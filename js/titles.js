@@ -388,6 +388,10 @@ function writeTrace(it, ox, oy, p) {
       ctx.strokeStyle = col; ctx.lineWidth = lw;
       if (!moved) return trace(P, n, ox + sx, oy + sy);
       ctx.save(); ctx.globalAlpha = ga * L.a; ctx.translate(ox + L.cx + L.dx, oy + L.cy + L.dy); ctx.rotate(L.rot); const t = trace(P, n, sx - L.cx, sy - L.cy); ctx.restore(); return t; };
+    // (vague 308 de l'audit, « le titre », design) : une lettre tombée n'est plus un trait plat : elle a l'épaisseur d'une lettre découpée,
+    // son flanc dessiné à la plume en quelques traits fins, décalés vers le bas et la droite (la lumière vient de la lampe, devant)
+    for (const P of T.strokes) { const L = P.L; if (!L || !L.st || L.st === 'back' || L.a <= 0.5 || P.len < 6) continue; const ep = (L.y1 - L.y0) * 0.11;
+      for (let k = 4; k >= 1; k--) one(P, P.len, k === 4 ? pw * 0.55 : pw * 0.3, `rgba(${INK},${k === 4 ? 0.55 : 0.13})`, ep * k / 4 * 0.55, ep * k / 4); }
     for (const P of T.strokes) { if (used >= budget) break; tip = one(P, Math.min(P.len, budget - used), pw, `rgba(${INK},0.9)`, 0, 0); used += P.len; }
     used = 0;
     for (const P of T.strokes) { if (used >= budget) break; one(P, Math.min(P.len, budget - used), pw * 0.3, `rgba(${INK},0.25)`, -0.4, -0.5); used += P.len; }

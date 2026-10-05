@@ -320,6 +320,13 @@ H.draw.push(() => {
       Chalk.stroke(Q, g, { w: 1.6, a: 0.55 * Wd.a, seed: 70 + j + (L.x0 | 0) % 50, tip: false, dash: [4, 5], amp: 0.5 }); });
     else Chalk.stroke([[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]], g, { w: 1.5, a: 0.5 * Wd.a, seed: 70 + (L.x0 | 0) % 50, tip: false, dash: [5, 5] }); });
 });
+// (vague 308 de l'audit, « le titre », design) : une lettre au sol a son ombre, comme les chats : trois traits de hachure sous elle
+H.draw.push(() => {
+  const Ls = LETTERS(); if (!Ls || Wd.a < 0.3) return; const r = RECT(), fl = Wd.floor - 2;
+  Ls.forEach((L, j) => { if (!(L.st === 'sol' || L.st === 'marche' || L.st === 'fall') || L.a < 0.5) return; const h = L.y1 - L.y0, w = L.x1 - L.x0, x = lx(L, r), haut = fl - (ly(L, r) + h * 0.5); if (haut > h * 1.5) return;
+    const k = Math.max(0.3, 1 - Math.max(0, haut) / (h * 1.5)), hw = Math.max(w, h * 0.5) * 0.6 * k;
+    for (let i = 0; i < 3; i++) { const w2 = hw * (1 - i * 0.28); if (w2 > 2) Chalk.line(x - w2 + h * 0.06, fl + 3 + i * 2, x + w2 + h * 0.06, fl + 3 + i * 2, 1, { w: 1, a: 0.85 * Wd.a * L.a, seed: 150 + j * 3 + i, tip: false, amp: 0.25 }); } });
+});
 // (vague 253 de l'audit, « le titre », immersion) : une lettre tombée n'est plus un caillou perdu dans la pièce : un fil de craie la relie
 // à sa place vide là-haut, qui pend en chaînette d'un bout à l'autre de l'écran ; un chat qui passe dessous le pince comme une corde
 // (le fil vibre, « twang ») ; quand la lettre remonte, le fil se raccourcit avec elle, jusqu'à rien

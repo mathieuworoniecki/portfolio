@@ -42,6 +42,9 @@ function place() {
   // entre le titre et les boutons) : la bulle passe sous les boutons et leur ligne d'aide, dans le vide de la pièce, sans queue
   if (!cote && Wd.W < 760 && x < p[0] + hr * 1.4 && x + w > p[0] - hr * 1.4 && y < p[1] + Wd.s0 * 0.95 && y + h > p[1] - hr) {
     const bt = document.querySelector('.ctas'), bb = bt && bt.getBoundingClientRect(); if (bb && bb.height) { y = bb.bottom + 26; x = Math.max(12, Math.min(Wd.W - w - 12, (bb.left + bb.right) / 2 - w / 2)); cote = true; } }
+  // (vague 308, finition au téléphone) : la carte « Découverte ! » se pose sur le mur, là où la bulle attend sous les boutons ; la bulle descend sous elle le temps qu'elle passe
+  if (Wd.W < 760) { const dt = document.querySelector('.dex-toast.go'), db = dt && dt.style.visibility !== 'hidden' ? dt.getBoundingClientRect() : null;
+    if (db && db.height && x < db.right && x + w > db.left && y < db.bottom + 8 && y + h > db.top - 8) { y = db.bottom + 12; cote = true; } }
   bulle.classList.toggle('cote', cote);
   bulle.style.transform = `translate(${x | 0}px, ${y | 0}px)`; bulle.style.setProperty('--queue', `${Math.max(14, Math.min(w - 14, p[0] - x)) | 0}px`);
 }
