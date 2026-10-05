@@ -68,6 +68,13 @@ STEPS.nyan = (c, T, dt) => {
   // ce qu'il frôle devient arc-en-ciel, avec une gerbe d'étoiles
   Wd.cats.forEach(o => { if (o === c || o.nyanT > Wd.t || Math.abs(o.x - c.x) > s * 0.6 || Math.abs((o.y - sc(o) * 0.4) - (c.y - s * 0.4)) > s * 0.9) return; o.nyanT = Wd.t + 5; Arc.colore(o, 18); say(o, pick(['ooh ✨', 'wouah', '!?'])); etoiles(o.x, o.y - sc(o) * 0.6, 8); });
   Wd.props.forEach(it => { if (it.nyanT > Wd.t || it.a < 0.5 || Math.abs(it.x - c.x) > s * 0.5 || Math.abs(it.y - c.y) > s * 1.6) return; it.nyanT = Wd.t + 5; Arc.colore(it, 18); etoiles(it.x, it.y - s * 0.3, 6); });
+  // (vague 259 de l'audit, « l'arc-en-ciel », immersion) : toute la pièce le suit des yeux (où qu'ils soient, les chats lèvent la tête vers lui) ;
+  // et ceux qu'il survole bondissent pour attraper son ruban, pattes en l'air (« attrape ! »), trois par passage, chacun une fois
+  if (!T.arche && !reduit) { Wd.mire = { x: c.x, y: c.y - s * 0.4, fin: Wd.t + 0.3 };
+    if ((T.sauts || 0) < 3) { const o = Wd.cats.find(o => o !== c && !o.rare && !(o.sautNyan > Wd.t) && K.free4(o) && !o.perch && T.dir * (o.x - c.x) > s * 0.2 && T.dir * (o.x - c.x) < s * 2.2 && o.y - (c.y - s * 0.4) < sc(o) * 4.5);
+      if (o) { T.sauts = (T.sauts || 0) + 1; o.sautNyan = Wd.t + 12; K.interrupt(o); const h = clamp(o.y - (c.y - s * 0.4) - sc(o) * 0.6, sc(o) * 0.7, sc(o) * 2.4);
+        o.q = [K.hop(() => K.groundAt(K.inView(o.x + T.dir * sc(o) * 0.5), o.d), { h }), K.pose('assis', rnd(0.8, 1.4), { face: T.dir })];
+        later(0.1, () => { if (Wd.cats.includes(o)) say(o, pick(['attrape !', 'hop !', 'je l’ai presque !', 'nyan ?!'])); }); later(0.35, () => { if (Wd.cats.includes(o)) etoiles(o.x, o.y - sc(o) * 1.2, 6); }); } } }
   if (Wd.t > (T.dit || 0)) { T.dit = Wd.t + rnd(1.2, 2); if (Math.random() < 0.6) say(c, pick(['nyan nyan nyan', 'nya-nya-nyan ♪', 'nyaaan ✨', '♪♫'])); }
   return T.dir > 0 ? c.x > Wd.W + s * 1.5 : c.x < -s * 1.5;
 };
