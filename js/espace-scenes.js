@@ -1949,6 +1949,17 @@ S.puce = (() => {
       // ouvertes) : comme sur une vraie vue éclatée, ils courent derrière la pile (dessinés avant les couches, d'après leur place de l'image d'avant) ;
       // seuls le point d'accroche, au coin de sa couche, et le nom restent devant
       if (LB) { const fo = 1 - ferme; LB.EQ.forEach((R, j) => { const ty = LB.TY[j], tx = LB.x, lq = q => [lerp(R[0], q[0], fo), lerp(R[1], q[1], fo)]; trait([R, lq([tx - 16, ty]), lq([tx - 6, ty])], false, 0.45, 0.6); }); }
+      // (vague 276 de l'audit, « la puce », immersion) : une couche de puce n'a pas de bord. Quand la pile s'ouvre, chacune déploie son propre
+      // plan de pistes, à sa hauteur, de part et d'autre, jusqu'aux bords de l'écran et au-delà : six nappes de circuits superposées qui
+      // traversent tout le ciel, leurs paquets de lumière qui courent vers la pile ; la pile se referme, les nappes se rembobinent avec elle
+      if (!reduitMvt() && ec > 0.05) { sousLaBarre(); ctx.beginPath(); ctx.rect(-1e4, G.haut - 4, 2e4, (G.caps || G.bas) - G.haut - 4); ctx.clip();
+        for (let j = 0; j < 6; j++) { const Vj = (x, y, z) => V0(dxs[j] + x * ks, y, dzs[j] + z * ks), s = j === 1 ? 0.62 : 0.54, y = ys[j] + th * 0.5, pousse = sm(c01((ec - 0.2 - j * 0.05) / 0.6)), al = (j === 1 ? 0.6 : 0.42) + lev[j] * 0.4;
+          for (let m = 0; m < 6; m++) { const sg = m < 3 ? 1 : -1, z0 = (-0.6 + (m % 3) * 0.6 + (bruit(j * 7 + m) - 0.5) * 0.3) * s, L = (3 + bruit(j * 3 + m) * 4) * pousse, j1 = 0.4 + bruit(j * 5 + m) * 0.8, dz = (bruit(j * 11 + m) < 0.5 ? -1 : 1) * 0.25;
+            const P3 = [[sg * s, z0], [sg * (s + j1), z0], [sg * (s + j1 + 0.25), z0 + dz], [sg * (s + Math.max(j1 + 0.25, L)), z0 + dz]].filter((q, i) => i < 2 || Math.abs(q[0]) - s <= Math.max(L, 0.01)), S = P3.map(([x, z]) => Vj(x, y, z)).filter(q => q[3] > 0 && q[3] < 3);
+            if (S.length < 2 || pousse < 0.02) continue; trait(S, false, j === 1 ? 0.7 : 0.5, prof(S[0][2], al)); rond(S[0][0], S[0][1], 1.4, 0.5, al, true);
+            const v = fr(now * (0.12 + bruit(j * 13 + m) * 0.1) + bruit(m + j)), xq = sg * (s + Math.max(j1 + 0.25, L) * (1 - v)), q = Vj(Math.abs(xq) > s + j1 + 0.25 ? xq : sg * (s + Math.min(j1, Math.abs(xq) - s)), y, Math.abs(xq) > s + j1 + 0.25 ? z0 + dz : z0);
+            if (Math.abs(xq) - s < L && q[3] > 0) brille(q[0], q[1], 1.4 + q[3] * 0.8, al * 1.6, j === 1, now, j * 9 + m); } }
+        ctx.restore(); }
       for (let j = 5; j >= 0; j--) {
         const V = (x, y, z) => V0(dxs[j] + x * ks, y, dzs[j] + z * ks), s = j === 1 ? 0.62 : 0.54, y = ys[j], al = j === 1 ? 1 : 0.9, T = plaque(V, y, s, th, j === 1 || lev[j] > 0.3 ? 1.35 : 1, al);
         // la couche soulevée : son contour s'illumine, un balayage de lumière traverse son dessus
