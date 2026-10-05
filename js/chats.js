@@ -864,7 +864,7 @@ function thud(it) {
 // (27/09, Mathieu : « trop de texte ») : un chat n'a qu'une bulle à la fois (la nouvelle remplace l'ancienne), et jamais plus de sept bulles à l'écran
 function say(c, text, rot) { const h = Chat.where(c, c.head), vieille = Wd.fx.find(f => f.who === c && Wd.t - f.t0 < f.life);
   if (vieille) { if (Wd.t - vieille.t0 < 0.5) return; vieille.life = 0; } else if (Wd.fx.reduce((n, f) => n + (f.who && Wd.t - f.t0 < f.life ? 1 : 0), 0) >= 7) return;
-  Wd.fx.push({ who: c, k: 'txt', text, x: h[0] + c.face * sc(c) * 0.2, y: h[1] - c.b.head[1] * sc(c) * 1.6, t0: Wd.t, life: 1.6, rot: rot ?? c.face * 0.12, size: clamp(sc(c) * 0.12, 13, 20) }); }
+  Wd.fx.push({ who: c, esp: !!Wd.espace, k: 'txt', text, x: h[0] + c.face * sc(c) * 0.2, y: h[1] - c.b.head[1] * sc(c) * 1.6, t0: Wd.t, life: 1.6, rot: rot ?? c.face * 0.12, size: clamp(sc(c) * 0.12, 13, 20) }); }
 function dust(x, y, r, a) { Wd.fx.push({ k: 'dust', x, y, r, a, t0: Wd.t, life: 0.5, seed: Math.floor(Math.random() * 99) }); }
 function drawFx(S) {
   const C = Chalk, t = Wd.t, K = S.K || 1;
@@ -872,6 +872,9 @@ function drawFx(S) {
   Wd.fx.forEach(f => {
     const u = (t - f.t0) / f.life, fade = (1 - sm((u - 0.6) / 0.4)) * Wd.a;
     if (f.k === 'txt') {
+      // (vague 317 de l'audit, « l'arrivée dans l'espace », finition) : le dernier cri d'un chat aspiré (« NON ») restait suspendu tout seul
+      // dans le noir, loin de son chat recraché ailleurs : un mot dit d'un côté du trou noir ne passe pas de l'autre
+      if (f.who && f.esp !== undefined && f.esp !== !!Wd.espace) { f.life = 0; return; }
       // (vague 110 de l'audit, « la tour », finition) : les petits bruits ne s'empilent plus. Pendant la tour, des dizaines de « tonk », « boing »
       // tombaient au même endroit et faisaient une tache illisible (au téléphone, sur « Mode sérieux ») : un petit bruit qui naît à côté d'un autre,
       // encore jeune, n'est pas écrit ; les mots des chats et les grands mots (PATATRAS, BAM) passent toujours
