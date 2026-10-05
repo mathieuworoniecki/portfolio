@@ -459,6 +459,18 @@ html:not(.locked) #gate:not(.open){display:none}
 .hf-show.go .hf-txt>*{animation:hf-mot .4s ease-out both}
 .hf-show.go .hf-sur{animation-delay:.25s}.hf-show.go h2{animation-delay:.4s}.hf-show.go .hf-rang{animation-delay:.55s}
 .hf-show.part{animation:hf-part .38s ease-in forwards}
+/* (vague 315) : le contour s'écrit au stylo (js : trait()), le rang tombe comme un tampon et la carte encaisse */
+.hf-show.trace{border-color:transparent!important}
+.hf-trait{position:absolute;left:-5.5px;top:-5.5px;width:calc(100% + 11px);height:calc(100% + 11px);overflow:visible;pointer-events:none}
+.hf-trait path{fill:none;stroke:rgb(var(--ink));stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1 1;stroke-dashoffset:0}
+.hf-show.go .hf-trait path{animation:hf-ecrit .75s cubic-bezier(.4,0,.3,1) .15s both}
+@keyframes hf-ecrit{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+.hf-show .hf-rang{rotate:-7deg;color:rgb(var(--c));border:3px double rgb(var(--c));font-weight:700}
+.hf-show.go .hf-rang{animation:hf-tampon .3s cubic-bezier(.55,0,.9,.4) .95s both}
+@keyframes hf-tampon{0%{visibility:hidden;transform:translate(8px,-30px) scale(2.3) rotate(-14deg)}1%{visibility:visible}82%{transform:scale(.9)}100%{transform:none}}
+.hf-show.go{animation:hf-carte .6s cubic-bezier(.2,1.5,.4,1) both,hf-choc .34s ease-out 1.25s both}
+.hf-show.go.part{animation:hf-part .38s ease-in forwards}
+@keyframes hf-choc{0%{translate:0 0}25%{translate:-2px 4px}60%{translate:1px -1px}100%{translate:0 0}}
 /* (vague 222 de l'audit, design) : plus aucun fondu : la carte jaillit (de rien, en tournant), les rayons poussent puis rentrent, les mots s'écrivent de gauche à droite */
 @keyframes hf-carte{0%{transform:translate(30px,-20px) scale(0) rotate(12deg)}60%{transform:scale(1.05) rotate(-1deg)}100%{transform:none}}
 @keyframes hf-part{to{transform:translateX(calc(100% + 40px)) rotate(7deg)}}
@@ -484,7 +496,7 @@ html:not(.locked) #gate:not(.open){display:none}
 .hf-grille li .hf-badge{margin-bottom:2px}
 .hf-grille li i{font:500 .62rem/1 var(--mono);font-style:normal;opacity:.55}
 .hf-grille li.ok{background:none!important;border-color:rgb(var(--ink))!important}
-@media (prefers-reduced-motion:reduce){.hf-show.go,.hf-show.go .hf-rayons,.hf-show.go .hf-badge,.hf-show.part{animation-duration:.01s;animation-fill-mode:both}}
+@media (prefers-reduced-motion:reduce){.hf-show.go,.hf-show.go .hf-rayons,.hf-show.go .hf-badge,.hf-show.part,.hf-show.go .hf-trait path,.hf-show.go .hf-rang{animation-duration:.01s;animation-fill-mode:both}}
 @media (prefers-reduced-motion:reduce){.dex-toast.go{animation:dex-fade 2.3s linear forwards;transform:none}.dex-toast.go span,.dex-toast.plie{animation:none}}
 
 /* ——— le trou noir, puis l'espace (l'écran 2, js/trounoir.js) ——— */

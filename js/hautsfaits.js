@@ -96,7 +96,7 @@ function suivant() {
   scene.style.setProperty('--c', R.c);
   scene.innerHTML = `<div class="hf-rayons"></div>${badge(h, true, 76)}<div class="hf-txt">
     <p class="hf-sur">${T('Haut fait débloqué !', 'Achievement unlocked!')}</p><h2>${h.nom()}</h2><p class="hf-rang">${T(R.fr, R.en)}</p></div>`;
-  scene.hidden = false; scene.classList.remove('go', 'part'); void scene.offsetWidth; scene.classList.add('go');
+  scene.hidden = false; scene.classList.remove('go', 'part'); trait(); void scene.offsetWidth; scene.classList.add('go');
   // quelques confettis qui partent du badge
   const G = window.Scenarios && Scenarios.gerbe; if (G && Wd.W) setTimeout(() => { const r = scene.getBoundingClientRect(); if (r.width) G(r.left + 44, r.top + 46, 14, 300); }, 450);
   // (29/09, l'audit : le déblocage était une carte, pas un moment) : dans la pièce, un chat l'a vu. Il se dresse, lève la tête vers le coin
@@ -125,6 +125,18 @@ function suivant() {
   // du rang (« pan ! »), et les étincelles retombent en pluie sur toute la largeur ; une fusée au bronze, trois aux rangs supérieurs
   if (!Wd.espace && !Wd.trou && !Wd.fuite && !matchMedia('(prefers-reduced-motion: reduce)').matches) feu(h.rang === 'bronze' ? 1 : 3, R.c);
   clearTimeout(finT); finT = setTimeout(ferme, 5000);
+}
+/* (vague 315 de l'audit, design) : la carte n'est plus un cadre tout fait. Son contour s'écrit au stylo, d'un seul trait tremblé qui part
+   du badge et fait le tour (les coins débordent un peu, comme à la main), puis le rang tombe dessus comme un coup de tampon :
+   la carte encaisse le choc, et le tampon reste de travers, à l'encre de la couleur du rang */
+function trait() {
+  const w = scene.offsetWidth, h = scene.offsetHeight; if (!w || !h) return; scene.classList.add('trace');
+  let g = 7; const j = () => ((Math.sin(g++ * 12.9898) * 43758.5453) % 1) * 1.3, r = Math.min(14, h * 0.3), P = [];
+  const bord = (x0, y0, x1, y1) => { for (let k = 1; k < 4; k++) P.push(`L${(x0 + (x1 - x0) * k / 4 + j()).toFixed(1)} ${(y0 + (y1 - y0) * k / 4 + j()).toFixed(1)}`); };
+  P.push(`M${r} ${h + j()}`); bord(r, h, w - r, h); P.push(`Q${w + j()} ${h + j()} ${w + j()} ${h - r}`); bord(w, h - r, w, r);
+  P.push(`Q${w + 1.5} -1.5 ${w - r} ${j()}`); bord(w - r, 0, r, 0); P.push(`Q${-1 + j()} ${j()} ${j()} ${r}`); bord(0, r, 0, h - r);
+  P.push(`Q0 ${h + 1} ${r + 9} ${h + 2.2}`);
+  scene.insertAdjacentHTML('afterbegin', `<svg class="hf-trait" viewBox="-3 -3 ${w + 6} ${h + 6}" aria-hidden="true"><path pathLength="1" d="${P.join(' ')}"/></svg>`);
 }
 const FEU = [];
 function feu(n, col) {
