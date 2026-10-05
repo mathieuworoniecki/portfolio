@@ -2264,7 +2264,8 @@ S.front = (() => {
   return {
     cles: () => [[-1, -0.62], [1, -0.62], [1, 0.62], [-1, 0.62]],
     dessin(a, now) {
-      const [k0, lx] = large(1.2, 1.8), bT = G.haut + 6, bB = (G.caps || G.bas) - 6, k = Math.max(20, Math.min(k0 * 0.84, (bB - bT) / 1.8)), Yc = Math.max(bT + 0.9 * k, Math.min(bB - 0.9 * k, G.cy - 0.16 * k)), Pk = (x, y) => [G.cx + x * k, Yc + y * k], Cy = 12, c = a % Cy, b1 = a < Cy;   // (09:57 : l'écran passait sous les sous-titres : plus petit, remonté)
+      // (09:57 : l'écran passait sous les sous-titres : plus petit, remonté)
+      const [k0, lx] = large(1.2, 1.8), bT = G.haut + 6, bB = (G.caps || G.bas) - 6, k = Math.max(20, Math.min(k0 * 0.84, (bB - bT) / 1.8)), Yc = Math.max(bT + 0.9 * k, Math.min(bB - 0.9 * k, G.cy - 0.16 * k)), Pk = (x, y) => [G.cx + x * k, Yc + y * k], Cy = 12, c = a % Cy, b1 = a < Cy;
       const FO = [[Math.min(1.5, lx * 0.85), 0.66, 3], [0.64, 0.8, 2], [0.36, 0.86, 1]];
       let A = 0, B = 0, u = 0;
       if (c > 4.4 && c < 5.2) [A, B, u] = [0, 1, sm((c - 4.4) / 0.8)]; else if (c >= 5.2 && c < 7.2) A = B = 1; else if (c >= 7.2 && c < 8) [A, B, u] = [1, 2, sm((c - 7.2) / 0.8)]; else if (c >= 8 && c < 10.4) A = B = 2; else if (c >= 10.4 && c < 11.4) [A, B, u] = [2, 0, sm((c - 10.4) / 1)];
@@ -2305,12 +2306,14 @@ S.front = (() => {
           tp = on ? clamp((Sm.y - Yc) / G.s, -1, 1) * 0.1 : Math.sin(now * 0.27) * 0.045, dtf = Math.min(0.1, Math.max(0, now - (PIV.t ?? now))); PIV.t = now;
         PIV.y += (ty - PIV.y) * Math.min(1, dtf * 3); PIV.p += (tp - PIV.p) * Math.min(1, dtf * 3);
         sousLaBarre(); ctx.save(); ctx.translate(G.cx, Yc); ctx.transform(Math.cos(PIV.y), Math.sin(PIV.y) * 0.24, -Math.sin(PIV.p) * 0.2, Math.cos(PIV.p), 0, 0); ctx.translate(-G.cx, -Yc); }
-      const T = Pk(-w, -h); { // (vague 8) le chat-robot assis sur l'écran : quand l'écran se resserre, le bord se dérobe sous lui ; il saute, bras en l'air, et retombe dessus
+      // (vague 8) le chat-robot assis sur l'écran : quand l'écran se resserre, le bord se dérobe sous lui ; il saute, bras en l'air, et retombe dessus
+      const T = Pk(-w, -h); {
         const P = Pk(w * 0.55, -h), r = k * 0.1, sa = u > 0 && u < 1 ? Math.sin(Math.PI * u) : 0;
         chabot(P[0], P[1] - r * 0.55 - Math.abs(Math.sin(now * 2)) * r * 0.15 * (1 - sa) - sa * r * 1.6, r, { now, v: 1, lac: sa ? 0 : Math.sin(now * 0.7) * 0.6, cligne: sa > 0.3, bras: sa ? [1.5, 1.5] : [1.2 + Math.sin(now * 6) * 0.4, -0.4] });
         if (sa > 0.2) mot(A < B ? (en() ? 'whoa' : 'oh là') : 'hop', P[0] + r * 1.4, P[1] - r * 2.6 - sa * r, Math.max(11, k * 0.06), sa); }
       ecran(T[0], T[1], 2 * w * k, 2 * h * k, k * 0.1, k * lerp(0.1, 0.03, large01));
-      if (large01 < 1) { const n = Pk(0, -h + 0.05), q = 1 - large01; boite(n[0] - k * 0.07 * q, n[1] - k * 0.015, k * 0.14 * q, k * 0.03, k * 0.015, 0.7, 1); }   // (vague 156 : l'encoche se rétracte, sans fondu)
+      // (vague 156 : l'encoche se rétracte, sans fondu)
+      if (large01 < 1) { const n = Pk(0, -h + 0.05), q = 1 - large01; boite(n[0] - k * 0.07 * q, n[1] - k * 0.015, k * 0.14 * q, k * 0.03, k * 0.015, 0.7, 1); }
       trait([Pk(-w, -h + 0.16), Pk(w, -h + 0.16)], false, 0.8, 0.9);
       [0, 1, 2].forEach(i => { const p = Pk(-w + 0.09 + i * 0.07, -h + 0.08); if (large01 > 0.02) rond(p[0], p[1], 2.2 * large01, 0.6, 1, true); });
       if (large01 < 1) [0, 1, 2].forEach(i => { const p = Pk(w - 0.14, -h + 0.05 + i * 0.03); trait([[p[0], p[1]], [p[0] + k * 0.07 * (1 - large01), p[1]]], false, 0.7, 1); });
@@ -2343,6 +2346,25 @@ S.front = (() => {
         const cb = Math.max(...CC.map(q => q[1] + q[3])); if (large01 > 0.8 && h - 0.1 - cb > 0.16) { const xl = -w + 0.1, xr = Math.min(bx - bw / 2 - 0.12, -w + 0.1 + w * 1.1);
           trait([Pk(xl, cb + 0.09), Pk(xl + (xr - xl) * 0.85, cb + 0.09)], false, 1.6, 0.9); trait([Pk(xl, cb + 0.16), Pk(xl + (xr - xl) * 0.55, cb + 0.16)], false, 1.6, 0.9);
           [0.23, 0.28].forEach((yy, j) => { if (cb + yy < h - 0.08) trait([Pk(xl, cb + yy), Pk(xl + (xr - xl) * (j ? 0.6 : 0.95), cb + yy)], false, 0.4, 0.65); }); } }
+      // (vague 332 de l'audit, « Front et interfaces », originalité : « animées » ne se voyait que par le mouvement) : l'éditeur de courbes.
+      // À gauche de l'écran, une fiche de papier montre la courbe d'accélération en cours, ses deux poignées de Bézier et son nom à la GSAP ;
+      // un point la parcourt et, dessous, un petit bloc glisse sur son rail en suivant exactement cette courbe (il dépasse et revient avec back.out).
+      // Toutes les trois secondes, les poignées se déplacent et la courbe se change en une autre
+      { const xg = G.cx - FO[0][0] * k, pw = Math.min(k * 0.62, (xg - G.gauche) * 0.62);
+        if (pw > k * 0.36 && !reduitMvt()) { const EZ = [['power2.inOut', 0.45, 0, 0.55, 1], ['back.out(1.7)', 0.34, 1.56, 0.64, 1], ['expo.out', 0.16, 1, 0.3, 1]], ph = now / 3, n0 = Math.floor(ph) % 3, n1 = (n0 + 1) % 3, um = sm(c01((ph % 1 - 0.82) / 0.18)), uc = c01((ph % 1) / 0.6);
+          const cp = [1, 2, 3, 4].map(i => lerp(EZ[n0][i], EZ[n1][i], um)), bz = (t, a1, a2) => 3 * (1 - t) * (1 - t) * t * a1 + 3 * (1 - t) * t * t * a2 + t * t * t;
+          const cx0 = (G.gauche + xg) / 2 - pw / 2, cy0 = Yc - pw * 0.95, gs = pw * 0.7, gx = cx0 + pw * 0.15, gy = cy0 + pw * 0.3, Q = (x, y) => [gx + x * gs, gy + gs - y * gs * 0.8 - gs * 0.1];
+          ctx.save(); ctx.translate(cx0 + pw / 2, cy0 + pw * 0.6); ctx.rotate(-0.04); ctx.translate(-cx0 - pw / 2, -cy0 - pw * 0.6); cerne(() => { ctx.beginPath(); ctx.rect(cx0, cy0, pw, pw * 1.32); }, 0.9, 1);
+          ctx.strokeStyle = ENC; ctx.globalAlpha = 1; ctx.lineWidth = G.lw * 0.35; ctx.beginPath(); const O = Q(0, 0), X1 = Q(1, 0), Y1 = Q(0, 1); ctx.moveTo(Y1[0], Y1[1]); ctx.lineTo(O[0], O[1]); ctx.lineTo(X1[0], X1[1]); ctx.stroke();
+          ctx.setLineDash([G.lw, G.lw * 1.5]); ctx.beginPath(); const Z = Q(1, 1); ctx.moveTo(Y1[0], Y1[1]); ctx.lineTo(Z[0], Z[1]); ctx.stroke(); ctx.setLineDash([]);
+          const H1 = Q(cp[0], cp[1]), H2 = Q(cp[2], cp[3]); ctx.lineWidth = G.lw * 0.4; ctx.beginPath(); ctx.moveTo(O[0], O[1]); ctx.lineTo(H1[0], H1[1]); ctx.moveTo(Z[0], Z[1]); ctx.lineTo(H2[0], H2[1]); ctx.stroke();
+          ctx.lineWidth = G.lw * 0.9; ctx.beginPath(); for (let i = 0; i <= 40; i++) { const t = i / 40, q = Q(bz(t, cp[0], cp[2]), bz(t, cp[1], cp[3])); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); } ctx.stroke();
+          [H1, H2].forEach(H => { ctx.fillStyle = PAP; ctx.beginPath(); ctx.arc(H[0], H[1], Math.max(2.5, pw * 0.035), 0, TAU); ctx.fill(); ctx.stroke(); });
+          const yv = bz(uc, cp[1], cp[3]), D = Q(bz(uc, cp[0], cp[2]), yv); ctx.fillStyle = ENC; ctx.beginPath(); ctx.arc(D[0], D[1], Math.max(2.5, pw * 0.03), 0, TAU); ctx.fill();
+          const fs = Math.max(9, pw * 0.085); ctx.font = `600 ${fs}px "Space Grotesk",system-ui,sans-serif`; ctx.fillText(EZ[um > 0.5 ? n1 : n0][0], cx0 + pw * 0.1, cy0 + pw * 0.16);
+          const ry = cy0 + pw * 1.17, r0 = cx0 + pw * 0.15, r1 = cx0 + pw * 0.85, bs = pw * 0.09; ctx.lineWidth = G.lw * 0.4; ctx.beginPath(); ctx.moveTo(r0, ry); ctx.lineTo(r1, ry); ctx.stroke();
+          for (let g = 1; g <= 4; g++) { const tv = bz(c01(uc - g * 0.07), cp[1], cp[3]), xx = lerp(r0, r1 - bs, tv); ctx.lineWidth = G.lw * 0.3; ctx.strokeRect(xx, ry - bs * 1.1 + g * 0.6, bs, bs * 0.9); }
+          ctx.fillStyle = ENC; ctx.fillRect(lerp(r0, r1 - bs, yv), ry - bs * 1.15, bs, bs); ctx.restore(); } }
       // le curseur : il va au bouton, clique ; l'onde ; le cube jaillit
       // (vague 205 de l'audit, « front », originalité) : une souris, c'est une souris. Pendant que le pointeur monte vers le bouton, il se voit pousser
       // deux oreilles rondes et une queue ; un chat-robot arrive à pas de loup, se ramasse, frétille du derrière et bondit ; le pointeur fait un écart
