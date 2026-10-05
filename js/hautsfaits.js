@@ -120,8 +120,27 @@ function suivant() {
       Wd.cats.forEach(c => { if (vus.has(c) || c.gone || c.held || c.fall || Math.hypot(c.x - x, c.y - K.sc(c) * 0.6 - y) > Rr) return; vus.add(c); if (Math.random() < 0.3 && K.free4(c)) K.say(c, pick2(['!', '✨', 'oh ?'])); });
       if (Rr < Math.hypot(innerWidth, innerHeight) * 1.1) requestAnimationFrame(tic); };
     requestAnimationFrame(tic); }, 420);
+  // (vague 260 de l'audit, « le déblocage », immersion) : la pièce tire un feu d'artifice. Des chats posés au sol allument chacun une fusée
+  // (« feu ! ») : un trait de craie qui monte en sifflant jusqu'au haut de la pièce (jamais sous la barre du haut), éclate en étoiles de la couleur
+  // du rang (« pan ! »), et les étincelles retombent en pluie sur toute la largeur ; une fusée au bronze, trois aux rangs supérieurs
+  if (!Wd.espace && !Wd.trou && !Wd.fuite && !matchMedia('(prefers-reduced-motion: reduce)').matches) feu(h.rang === 'bronze' ? 1 : 3, R.c);
   clearTimeout(finT); finT = setTimeout(ferme, 5000);
 }
+const FEU = [];
+function feu(n, col) {
+  const br = document.getElementById('brand'), haut = (br ? br.getBoundingClientRect().bottom : 60) + 30, L = Wd.cats.filter(c => !c.gone && !c.temp && !c.rare && !c.fall && !c.held && !c.perch && K.free4(c));
+  for (let i = 0; i < n; i++) { const fx = n === 1 ? 0.5 : 0.22 + i * 0.28, c = L.sort((a, b) => Math.abs(a.x - Wd.W * fx) - Math.abs(b.x - Wd.W * fx))[0];
+    setTimeout(() => { const x = c && !c.gone ? c.x + (c.face || 1) * K.sc(c) * 0.6 : Wd.W * fx, y0 = Wd.floor - 4;
+      if (c && !c.gone && K.free4(c)) { c.face = c.x < Wd.W / 2 ? 1 : -1; K.say(c, T(['feu !', 'attention…', 'pshhh'][i % 3], ['fire!', 'watch…', 'pshhh'][i % 3])); }
+      FEU.push({ x0: x, y0, x1: x + (Math.random() - 0.5) * Wd.W * 0.12, y1: haut + Math.random() * Wd.H * 0.12, t0: Wd.t + 0.35, col, pan: false, seed: i * 13 }); }, 900 + i * 450); }
+}
+H.draw.push(() => { if (!FEU.length || !window.Chalk) return; const C = Chalk, D = 0.8;
+  for (let j = FEU.length - 1; j >= 0; j--) { const f = FEU[j], u = (Wd.t - f.t0) / D; if (u < 0) continue;
+    if (u < 1) { const e = 1 - Math.pow(1 - u, 2), x = f.x0 + (f.x1 - f.x0) * e, y = f.y0 + (f.y1 - f.y0) * e, q = Math.max(0, e - 0.25), xq = f.x0 + (f.x1 - f.x0) * q, yq = f.y0 + (f.y1 - f.y0) * q;
+      C.stroke([[xq, yq], [x, y]], 1, { w: 2, a: 0.85 * Wd.a, seed: f.seed, tip: false }); C.circle(x, y, 3, 3, 1, { w: 2, a: 0.9 * Wd.a, seed: f.seed + 1 }); continue; }
+    if (!f.pan) { f.pan = true; for (let i = 0; i < 22; i++) { const a = i / 22 * Math.PI * 2, v = 160 + Math.random() * 160; Wd.fx.push({ k: 'etoile', x: f.x1, y: f.y1, vx: Math.cos(a) * v, vy: Math.sin(a) * v, frein: 1.6, g: 140, r: 3 + Math.random() * 3, tw: 1, t0: Wd.t, life: 1.4 + Math.random() * 0.8, col: f.col }); }
+      Wd.fx.push({ k: 'txt', text: T('pan !', 'bang!'), x: f.x1, y: f.y1 - 26, t0: Wd.t, life: 0.9, rot: -0.1, size: 20 }); }
+    FEU.splice(j, 1); } });
 const pick2 = L => L[Math.floor(Math.random() * L.length)];
 function ferme() { clearTimeout(finT); if (scene.classList.contains('part')) return; vole(); scene.classList.add('part'); setTimeout(() => { scene.classList.remove('go', 'part'); scene.hidden = true; joue = false; setTimeout(suivant, 300); }, 380); }
 // (vague 6, l'audit : « le déblocage ne va nulle part ») : rien ne s'efface. Le badge quitte la carte, file en arc jusqu'au bouton des hauts faits
