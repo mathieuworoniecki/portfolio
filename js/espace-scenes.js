@@ -2426,9 +2426,11 @@ S.back = (() => ({
     sousLaBarre(); const [k, lx] = large(1.5, 2.1), tel = G.sw < 500; let oyB = tel ? -0.42 : -0.26, V = cam(0.42, -0.5, k * (tel ? 1.02 : 0.92), 0, oyB);
     // (vague 166, l'audit : « back-end ») : au bureau, le pied de la passerelle API était tranché net au-dessus des sous-titres ; la scène remonte
     // juste ce qu'il faut pour que tout son socle tienne dans le ciel
+    // (vague 333, téléphone : le mur d'isolation et ses bases montaient sur la planète des chats) : le haut du mur s'arrête sous la planète
     let kB = k * (tel ? 1.02 : 0.92);
     for (let pas = 0; pas < 2; pas++) { const xa = -lx * 0.55, xd = lx * 0.68, bas0 = Math.max(...[[-0.16, -0.56], [0.1, -0.56], [-0.16, 0.5], [0.1, 0.5]].map(([x, z]) => V(xa + x, 0.3, z)[1])) + k * 0.03, lim = (G.caps || G.bas) - 10,
-        som = Math.min(...[-0.45, 0, 0.45].map(z => V(xd, 0.3 - 0.36 - 0.2, z)[1])), hautB = G.haut + 18;
+        som = Math.min(...[-0.45, 0, 0.45].map(z => V(xd, 0.3 - 0.36 - 0.2, z)[1])), pcB = tel && window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat,
+        hautB = Math.max(G.haut + 18, pcB && Math.max(...[-0.45, 0.45].map(z => V(xd, 0, z)[0])) > pcB.x - pcB.r * 1.2 ? pcB.y + pcB.r * 1.1 + k * 0.08 : 0);
       if (bas0 <= lim && som >= hautB) break;
       if (bas0 - som > lim - hautB) kB *= Math.max(0.7, (lim - hautB) / (bas0 - som)); else oyB -= (bas0 > lim ? bas0 - lim : som - hautB) / G.s;
       V = cam(0.42, -0.5, kB, 0, oyB); }
@@ -2478,7 +2480,8 @@ S.back = (() => ({
     // (vague 128 de l'audit : « des bases isolées par client » ne se voyait qu'en deux traits fins) : toutes les sept secondes, une requête masquée
     // (un bandeau de voleur) sort de la base A (ou C) et tente de se glisser chez la voisine ; le mur jaillit vers le ciel, brique par brique,
     // elle s'y cogne (« 403 »), retombe en tournoyant dans sa propre base, et le mur redescend
-    { const n = Math.floor(a / 7), ti = a % 7, sg = n % 2 ? 1 : -1, zw = 0.225 * sg, zA = 0.45 * sg, mh = sm(c01((ti - 0.6) / 0.5)) * (1 - sm(c01((ti - 3.2) / 0.7))), Yb = V(xD, yS - 0.42, zw)[1], dY = Yb - V(xD, yS - 1.42, zw)[1], eMax = Math.max(0.3, Math.min(0.95, (Yb - G.haut - k * 0.2) / Math.max(1, dY))), ext = eMax * mh + Math.sin(c01((ti - 1.55) / 0.5) * Math.PI * 3) * 0.04 * (ti > 1.55 && ti < 2.05 ? 1 : 0);
+    // (vague 333) au téléphone, le mur s'arrête sous la planète des chats au lieu de monter dessus
+    { const n = Math.floor(a / 7), ti = a % 7, sg = n % 2 ? 1 : -1, zw = 0.225 * sg, zA = 0.45 * sg, mh = sm(c01((ti - 0.6) / 0.5)) * (1 - sm(c01((ti - 3.2) / 0.7))), Yb = V(xD, yS - 0.42, zw)[1], dY = Yb - V(xD, yS - 1.42, zw)[1], pcW = G.sw < 500 && window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat, hW = pcW && V(xD + 0.32, yS, zw)[0] > pcW.x - pcW.r * 1.2 ? Math.max(G.haut + k * 0.2, pcW.y + pcW.r * 1.15) : G.haut + k * 0.2, eMax = Math.max(0.3, Math.min(0.95, (Yb - hW) / Math.max(1, dY))), ext = eMax * mh + Math.sin(c01((ti - 1.55) / 0.5) * Math.PI * 3) * 0.04 * (ti > 1.55 && ti < 2.05 ? 1 : 0);
       if (mh > 0.01) { const y0 = yS - 0.42, nb = 9, Q = [V(xD - 0.32, y0, zw), V(xD + 0.32, y0, zw), V(xD + 0.32, y0 - ext, zw), V(xD - 0.32, y0 - ext, zw)];
         cerne(() => { ctx.beginPath(); Q.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); }, 0.9, 1);
         ctx.globalAlpha = 0.8; ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.35; ctx.beginPath();
