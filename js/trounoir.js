@@ -71,7 +71,7 @@ function cielEtoile(a, t) {
    les plus proches forment l'anneau d'Einstein. Quand le trou se referme, le ciel se redresse et reprend sa place. */
 function cielCourbe(u, rh) {
   if (ETO.length === 0 || ETO.W !== W || ETO.H !== H) { etoiles(); ETO.W = W; ETO.H = H; }
-  const t = u * DUREE, [cx, cy] = centre(), tE = rh * 1.7, e2 = tE * tE, ky = 0.82;
+  const t = u * DUREE, [cx, cy] = centre(), tE = rh * (W < 760 ? 2.3 : 1.7), e2 = tE * tE, ky = 0.82;
   if (tE < 1) { cielEtoile(1, t); return; }
   ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = ctx.fillStyle = '#F4F4EE';
   for (const s of ETO) {
@@ -177,7 +177,9 @@ function dessineTrou(u) {
   // la page, en anneaux fins : le centre part d'abord ; chaque anneau tourne et rétrécit vers le trou, sans s'effacer (il passe sous le disque noir)
   const N = W < 760 ? 48 : 64;
   // (chaque anneau est découpé à l'écran entre les rayons où le déroulement envoie ses deux bords : les anneaux se touchent toujours, sans jour entre eux)
-  const eDe = m => easeIn((u - 0.05 - m * 0.5) / 0.4), g = r => { const e = eDe(r / R); return r * Math.pow(1 - e, 1.3); };
+  // (correctif du 05/10 : au téléphone, le ciel courbé par la lentille ne se voyait qu'à la toute fin : le centre libéré restait caché sous le trou) :
+  // sur petit écran la page part plus vite depuis le centre, un anneau de ciel s'ouvre tôt autour du trou et s'élargit jusqu'aux bords
+  const [dM, dE] = W < 760 ? [0.4, 0.32] : [0.5, 0.4], eDe = m => easeIn((u - 0.05 - m * dM) / dE), g = r => { const e = eDe(r / R); return r * Math.pow(1 - e, 1.3); };
   for (let i = N - 1; i >= 0; i--) {
     const ra = R * i / N, rb = R * (i + 1) / N, m = (i + 0.5) / N, e = eDe(m);
     if (e >= 0.999) continue;
