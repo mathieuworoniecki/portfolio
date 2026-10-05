@@ -1077,6 +1077,24 @@ S.terminaux = (() => {
       ctx.save(); ctx.beginPath(); ctx.rect(0, G.haut - 4, G.droite + 40, 1e4);
       { const Pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat; if (Pc) { ctx.moveTo(Pc.x + Pc.r * 1.25, Pc.y); ctx.arc(Pc.x, Pc.y, Pc.r * 1.25, 0, TAU, true); } }
       ctx.clip('evenodd');
+      // (vague 270 de l'audit, « les terminaux », immersion) : un seul mur, c'était une façade. Derrière lui, d'autres murs de terminaux,
+      // parallèles, de plus en plus loin, à perte de vue : une salle des machines sans fond. Chacun défile à sa vitesse (parallaxe), naît du
+      // centre comme le premier, et partout de petits curseurs tapent ; de temps en temps, un terminal du fond coche sa tâche
+      { const bdM = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, dansBd = q => bdM && q[1] > bdM.y - 10 && q[1] < bdM.y + bdM.h + 10 && q[0] > bdM.x - 16 && q[0] < bdM.x + bdM.w + 16;
+        [[-2.2, 0.62, 0.42], [-4.6, 0.4, 0.3], [-8, 0.24, 0.22]].forEach(([zw, vit, al0], ci) => {
+          const offF = a * 0.32 * vit, j0 = Math.floor(offF / GY), frF = offF / GY - j0, crF = cr * (1.2 + ci * 0.5), CW = COL + 6 + ci * 8;
+          for (let r = -16 - ci * 8; r <= 14 + ci * 8; r++) for (let cc = 0; cc < CW; cc++) {
+            const x = (cc - (CW - 1) / 2) * GX, y = (r - frF) * GY, d = Math.hypot(cc - (CW - 1) / 2, r - frF) * 0.8, id = (r + j0) * 97 + cc + ci * 1e4;
+            if (d > crF) continue;
+            const m = p3(x, y, zw, lac, tan, k);
+            if (m[0] < G.gauche - 40 || m[0] > G.droite + 40 || m[1] < G.haut - 30 || m[1] > G.bas + 30 || dansBd(m)) continue;
+            const Q = [[x - W0 / 2, y - H0 / 2], [x + W0 / 2, y - H0 / 2], [x + W0 / 2, y + H0 / 2], [x - W0 / 2, y + H0 / 2]].map(([u, v]) => p3(u, v, zw, lac, tan, k));
+            // (il naît en grandissant depuis son centre, jamais en fondu)
+            const pop = c01((crF - d) / 0.8), Qp = pop < 1 ? Q.map(q => [lerp(m[0], q[0], pop), lerp(m[1], q[1], pop)]) : Q, at = (u, v) => [lerp(lerp(Qp[0][0], Qp[1][0], u), lerp(Qp[3][0], Qp[2][0], u), v), lerp(lerp(Qp[0][1], Qp[1][1], u), lerp(Qp[3][1], Qp[2][1], u), v)];
+            trait(Qp, true, 0.5, al0);
+            const cy = (now * (0.35 + bruit(id) * 0.3) + bruit(id * 3) * 4) % 4, ln = Math.floor(cy), u = cy - ln;
+            for (let l = 0; l <= Math.min(2, ln); l++) { const v = 0.3 + l * 0.22, w = l < ln ? 0.25 + bruit(id + l) * 0.5 : u * (0.25 + bruit(id + l) * 0.5); if (w > 0.02) trait([at(0.1, v), at(0.1 + w, v)], false, 0.5, al0 * 1.2); }
+            if (ln === 3 && u < 0.5 && bruit(id * 7) < 0.35) brille(...at(0.85, 0.78), 1.6 + 1.4 * Math.sin(Math.PI * u * 2), 1, false, now, id); } }); }
       // (vague 29, l'audit : « les terminaux ») : derrière le mur, le graphe Git : entre deux rangées court la branche principale, ses commits
       // défilent ; chaque terminal a sa branche (son worktree) qui en part et y revient quand son agent a fini : un point file et fusionne
       const XR = (COL / 2 + 0.3) * GX, frac = v => v - Math.floor(v);
