@@ -381,7 +381,7 @@ function planete(ctx, now) {
   if (ring > 0 && z < 0.5) { ctx.lineWidth = 1.6; ctx.globalAlpha = 0.85; laine(ctx, x, y, r, Math.PI, TAU, ring, now); ctx.globalAlpha = 1; }
   // le disque (noir : il cache l'anneau et les étoiles derrière), son contour qui se trace
   if (z > 0) { ctx.save(); ctx.globalCompositeOperation = 'destination-out'; tete(ctx, x, y, r, ear); ctx.fill(); ctx.restore();
-    const col = `rgb(${lerpC(BL.split(',').map(Number), O.rgb((window.THEME && THEME.ink) || '34,36,40'), sm(z / 0.45))})`; ctx.strokeStyle = col; ctx.fillStyle = col; }
+    const col = `rgb(${lerpC(BL.split(',').map(Number), O.rgb((window.THEME && THEME.ink) || '34,36,40'), sm(z / 0.14))})`; ctx.strokeStyle = col; ctx.fillStyle = col; }
   else { ctx.fillStyle = '#07080C'; tete(ctx, x, y, r, ear); ctx.fill(); }
   ctx.lineWidth = 3;
   if (t < 1) { ctx.save(); ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, r * 3, -Math.PI / 2, -Math.PI / 2 + TAU * t); ctx.closePath(); ctx.clip(); tete(ctx, x, y, r, ear); ctx.stroke(); ctx.restore(); }
@@ -480,8 +480,10 @@ function constructions(ctx, x, y, r, now) {
 }
 // (vague 225 de l'audit, design : au retour, la planète grossit et passe à l'encre ; ses reflets d'yeux restaient noirs dans un œil gris foncé,
 // deux trous sombres, l'inverse des yeux des chats) : les reflets passent au papier en même temps que l'œil passe à l'encre
+// (vague 318 : la bascule allait trop lentement : quand la planète remplissait déjà l'écran, ses yeux étaient encore deux ovales gris
+// aux reflets noirs ; l'encre et les reflets de papier sont maintenant en place dès qu'elle commence à grossir)
 let PAP = null;
-function reflet(z) { if (!PAP) { const h = getComputedStyle(document.documentElement).getPropertyValue('--bp-hi').trim(), m = /^#([0-9a-f]{6})$/i.exec(h); PAP = m ? [0, 2, 4].map(i => parseInt(m[1].slice(i, i + 2), 16)) : [244, 244, 238]; } return `rgb(${lerpC([7, 8, 12], PAP, sm(z / 0.45))})`; }
+function reflet(z) { if (!PAP) { const h = getComputedStyle(document.documentElement).getPropertyValue('--bp-hi').trim(), m = /^#([0-9a-f]{6})$/i.exec(h); PAP = m ? [0, 2, 4].map(i => parseInt(m[1].slice(i, i + 2), 16)) : [244, 244, 238]; } return `rgb(${lerpC([7, 8, 12], PAP, sm(z / 0.14))})`; }
 X.fond.unshift((ctx, now) => { if (!P) return; terre(ctx, now); if (trace(0.8, 0.1) > 0 && !(P.aspire && P.aspire.zoom > 0)) planete(ctx, now); if (GERBE.length) { ctx.save(); gerbe(ctx, now); ctx.restore(); } });
 // (le zoom final passe devant tout : la planète grossit jusqu'à remplir l'écran)
 X.devant.push((ctx, now) => { if (P && P.aspire && P.aspire.zoom > 0) planete(ctx, now); });
