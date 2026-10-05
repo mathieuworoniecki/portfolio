@@ -402,7 +402,7 @@ X.fond.push((ctx, now) => {
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.strokeStyle = 'rgb(236,240,255)';
   for (let i = 0; i < N; i++) {
     const r = R[i], j = i * 4; o.s = 1; o.a = 1; o.t = 0; o.p2 = 0; f(r, o);
-    let x = P[j], y = P[j + 1], s = 0, al = 0, fz = 1, tl = null;
+    let x = P[j], y = P[j + 1], s = 0, al = 0, fz = 1, tl = null, bokeh = 0;
     if (o.a > 0 && (o.p2 || !V)) { x = o.x; y = o.y; fz = o.f; s = br * o.s * Math.min(2.2, Math.pow(fz, 0.8)); al = o.a * c01(0.3 + fz * 0.8); }
     else if (o.a > 0) { const q = V(o.x, o.y, o.z); if (q[3] > 0) { x = q[0]; y = q[1]; fz = q[3]; s = br * o.s * Math.min(2.2, Math.pow(fz, 0.8)); al = o.a * c01(0.3 + fz * 0.8);
       if (o.t) { const q2 = V(o.tx, o.ty, o.tz); if (q2[3] > 0) tl = [q2[0], q2[1]]; } } }
@@ -414,11 +414,15 @@ X.fond.push((ctx, now) => {
     else if (e < 1) {
       // (vague 26, l'audit : « la nuée ») : le passage d'une forme à l'autre est un vol à travers la nuée : en chemin, chaque étoile vient vers nous
       // (elle grossit, s'écarte du centre), laisse une traînée de vitesse derrière elle, et s'allume en se posant
-      const x0 = F[j], y0 = F[j + 1], x1 = x, y1 = y, vol = ee => { const lx = lerp(x0, x1, ee) - mx, ly = lerp(y0, y1, ee) - my, b = Math.sin(Math.PI * ee), an = b * (0.5 + r.a * 0.7) * rot, gr = 1 + b * (0.2 + 0.6 * r.b * r.b);
+      // (vague 267 de l'audit, immersion) : une étoile sur vingt environ passe tout près de nous : elle fonce vers l'écran, devient un grand disque flou
+      // (un bokeh, comme une poussière devant l'objectif), file au-delà des bords, puis revient se poser dans la forme : on vole dans la nuée, pas devant elle
+      const proche = !pts && r.b > 0.9 && r.a < 0.55 && !reduit;
+      const x0 = F[j], y0 = F[j + 1], x1 = x, y1 = y, vol = ee => { const lx = lerp(x0, x1, ee) - mx, ly = lerp(y0, y1, ee) - my, b = Math.sin(Math.PI * ee), an = b * (0.5 + r.a * 0.7) * rot, gr = 1 + b * (proche ? 1.6 + 3.5 * r.c : 0.2 + 0.6 * r.b * r.b);
         return [mx + (lx * Math.cos(an) - ly * Math.sin(an)) * gr, my + (lx * Math.sin(an) + ly * Math.cos(an)) * gr]; };
       // (vague 138, finition : la traînée de la forme d'arrivée partait de la cible, pas de l'étoile en vol : au début et à la fin d'un vol, de longs traits
       // barraient l'écran pendant quelques images ; en vol, seule la traînée du vol compte)
-      tl = null; [x, y] = vol(e); s = lerp(F[j + 2], s, e) * (1 + Math.sin(Math.PI * e) * 1.3 * r.b * r.b); al = lerp(F[j + 3], al, e);
+      tl = null; [x, y] = vol(e); s = lerp(F[j + 2], s, e) * (1 + Math.sin(Math.PI * e) * (proche ? 5 + 4 * r.c : 1.3 * r.b * r.b)); al = lerp(F[j + 3], al, e);
+      if (proche) bokeh = Math.sin(Math.PI * e);
       // (la traînée : là où l'étoile était un peu plus tôt sur son chemin, pas à l'image d'avant : nette même si l'écran rame)
       if (e > 0.06 && e < 0.9) { const q = vol(e - 0.035), d2 = (q[0] - x) ** 2 + (q[1] - y) ** 2; tl = d2 > 16 && d2 < 14400 ? q : null; }
       if (e > 0.82) al *= 1 + 1.6 * Math.sin(Math.PI * (e - 0.82) / 0.18); }
@@ -434,7 +438,10 @@ X.fond.push((ctx, now) => {
     if (pt) { const dx = x - pt.x, dy = y - pt.y, d2 = dx * dx + dy * dy; if (d2 < RP * RP) { const dd = Math.sqrt(d2) || 1, q = 1 - dd / RP; x += dx / dd * q * q * RP * 0.5; y += dy / dd * q * q * RP * 0.5; al *= 1 + q * 0.8; }
       x -= pax * Math.min(2, fz) * 18; y -= pay * Math.min(2, fz) * 12; }
     P[j] = x; P[j + 1] = y; P[j + 2] = s; P[j + 3] = al;
-    if (al <= 0.01 || x < -30 || x > W + 30 || y < -30 || y > H + 30) continue;
+    if (al <= 0.01 || x < -30 - s * 4 || x > W + 30 + s * 4 || y < -30 - s * 4 || y > H + 30 + s * 4) continue;
+    // le bokeh : un disque au trait fin, à peine rempli, dont le bord est un peu plus clair que le centre (une poussière floue devant l'objectif)
+    if (bokeh > 0.25 && y > haut + s * 3.2 && !(bd && y > bd.y - 20 && y < bd.y + bd.h + 20)) { const rb = s * 3.2; ctx.globalAlpha = Math.min(0.5, al * ap * 0.18 * bokeh); ctx.fillStyle = 'rgb(236,240,255)';
+      ctx.beginPath(); ctx.arc(x, y, rb, 0, TAU); ctx.fill(); ctx.globalAlpha = Math.min(0.6, al * ap * 0.35 * bokeh); ctx.lineWidth = Math.max(0.8, rb * 0.05); ctx.stroke(); continue; }
     // (discrètes derrière les sous-titres et la barre des chapitres ; elles scintillent)
     let k = al * ap * (0.8 + 0.2 * Math.sin(now * (1.2 + r.b * 2) + r.c * TAU));
     if (bd && x > bd.x - 20 && x < bd.x + bd.w + 20 && y > bd.y - 20 && y < bd.y + bd.h + 20) k *= 0.06;
