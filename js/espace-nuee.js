@@ -398,6 +398,7 @@ X.fond.push((ctx, now) => {
   const duree = pts ? 0.95 : 1.4, etale = pts ? 0.35 : 0.6;
   const ap = reduit ? 1 : c01((Wd.t - M.t0) / 2.5), bd = M.bande, haut = L.barre.bas + 8, br = L.L ? 1.6 : 1.3, mx = W / 2, my = G.cy, dt = Wd.t - T0;
   const pp = Wd.ptr, pt = !reduit && pp && pp.on && Wd.t - pp.moved < 4 ? pp : null, RP = L.L ? 130 : 95, pax = pt ? (pt.x - W / 2) / W : 0, pay = pt ? (pt.y - H / 2) / H : 0;
+  const TE = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.terre;
   CST.pts = []; if (!reduit && !pts) constellation(pt); const cg = CST.el && !pts && C && C.cs ? sm(CST.g) : 0;
   // (29/09, 13 h 27, Mathieu : « trop d'effets lumineux ; garde les effets pour les animations utiles ») : une fois le titre écrit et le dessin
   // de la scène arrivé, la nuée se calme : plus pâle, plus petite, sans traînées ; elle reste un ciel, le dessin est le sujet
@@ -451,6 +452,8 @@ X.fond.push((ctx, now) => {
       x -= pax * Math.min(2, fz) * 18; y -= pay * Math.min(2, fz) * 12; }
     P[j] = x; P[j + 1] = y; P[j + 2] = s; P[j + 3] = al;
     if (al <= 0.01 || x < -30 - s * 4 || x > W + 30 + s * 4 || y < -30 - s * 4 || y > H + 30 + s * 4) continue;
+    // (correctif du 05/10 : les étoiles et leurs disques flous passaient devant la Terre) : la Terre est devant, elle cache celles qui passent derrière elle
+    if (TE && (x - TE.cx) ** 2 + (y - TE.cy) ** 2 < (TE.R + (bokeh > 0.25 ? s * 3.2 : s)) ** 2) continue;
     // le bokeh : un disque au trait fin, à peine rempli, dont le bord est un peu plus clair que le centre (une poussière floue devant l'objectif)
     if (bokeh > 0.25 && y > haut + s * 3.2 && !(bd && y > bd.y - 20 && y < bd.y + bd.h + 20)) { const rb = s * 3.2; ctx.globalAlpha = Math.min(0.5, al * ap * 0.18 * bokeh); ctx.fillStyle = 'rgb(236,240,255)';
       ctx.beginPath(); ctx.arc(x, y, rb, 0, TAU); ctx.fill(); ctx.globalAlpha = Math.min(0.6, al * ap * 0.35 * bokeh); ctx.lineWidth = Math.max(0.8, rb * 0.05); ctx.stroke(); continue; }
@@ -477,7 +480,7 @@ X.fond.push((ctx, now) => {
   else if (FIN && C && FIN.id === C.nid && !reduit) { if (!FIN.t) { FIN.t = Wd.t; CHOC.x = FIN.x; CHOC.y = FIN.y; CHOC.t = Wd.t; CHOC.Rm = Math.hypot(Math.max(FIN.x, W - FIN.x), Math.max(FIN.y, H - FIN.y)); CHOC.vus = new Set(); CHOC.dit = false; } const e = Wd.t - FIN.t, Rm = Math.hypot(Math.max(FIN.x, W - FIN.x), Math.max(FIN.y, H - FIN.y));
     if (e > 1.1) FIN = null; else for (let j = 0; j < 2; j++) { const u = c01((e - j * 0.16) / 0.95); if (u <= 0 || u >= 1) continue; const R = Rm * (1 - Math.pow(1 - u, 2.2)), n = 64, rr = br * (5 - j * 1.6) * (1 - u);
       ctx.globalAlpha = 1; for (let i = 0; i < n; i++) { const an = i / n * TAU + j * 0.05 + Math.sin(i * 2.3) * 0.02, x = FIN.x + Math.cos(an) * R, y = FIN.y + Math.sin(an) * R * 0.92;
-        if (x < -rr || x > W + rr || y < -rr || y > H + rr || bd && y > bd.y && y < bd.y + bd.h && x > bd.x && x < bd.x + bd.w) continue; ctx.drawImage(LUEUR, x - rr, y - rr, rr * 2, rr * 2); } } }
+        if (x < -rr || x > W + rr || y < -rr || y > H + rr || bd && y > bd.y && y < bd.y + bd.h && x > bd.x && x < bd.x + bd.w || TE && (x - TE.cx) ** 2 + (y - TE.cy) ** 2 < (TE.R + rr) ** 2) continue; ctx.drawImage(LUEUR, x - rr, y - rr, rr * 2, rr * 2); } } }
   ctx.restore(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
 });
 /* (vague 198 de l'audit, « titres écrits en étoiles », originalité) : la plume-comète, c'est un jouet. Pendant qu'elle écrit, le chat le plus
