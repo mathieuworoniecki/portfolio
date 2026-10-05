@@ -2295,6 +2295,34 @@ S.back = (() => ({
       if (bas0 - som > lim - hautB) kB *= Math.max(0.7, (lim - hautB) / (bas0 - som)); else oyB -= (bas0 > lim ? bas0 - lim : som - hautB) / G.s;
       V = cam(0.42, -0.5, kB, 0, oyB); }
     const xA = -lx * 0.55, xW = lx * 0.05, xD = lx * 0.68, zs = [-0.45, 0, 0.45], yS = 0.3;
+    // (vague 279 de l'audit, « Back-end et données », immersion) : l'isolation ne s'arrête pas aux trois cylindres. Tout le ciel est partagé
+    // en trois territoires, A, B et C, par deux grands murs de briques en pointillés qui montent du haut de l'écran jusqu'aux sous-titres ;
+    // dans chacun, les tables de son client (clients, factures, documents, journaux) flottent en profondeur et s'écrivent ligne après ligne.
+    // Quand la requête masquée se cogne au mur de la scène (« 403 »), une lumière dévale le grand mur du ciel du même côté
+    { const yT = G.haut + 4, yB = (G.caps || G.bas) - 4, W = G.droite - G.gauche, tel2 = G.sw < 500, bdB = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande,
+        NOMT = en() ? ['clients', 'invoices', 'documents', 'logs'] : ['clients', 'factures', 'documents', 'journaux'], ap = c01(a / 1.4);
+      ctx.save(); ctx.beginPath(); ctx.rect(-1e4, yT, 2e4, yB - yT); ctx.clip();
+      const xm = (fr, y) => G.gauche + W * fr + (y - (yT + yB) / 2) * 0.12;
+      // les tables : nées petites au fond, elles montent doucement et grossissent en venant vers nous ; derrière la scène, elles se font petites
+      const nT = tel2 ? 5 : 9;
+      for (let zo = 0; zo < 3; zo++) for (let j = 0; j < nT; j++) { const sd = zo * 31 + j * 7.7, z = bruit(sd), f = 0.35 + z * 0.9, cy = yB + 40 - ((bruit(sd + 2) + now * (0.012 + 0.02 * z)) % 1) * (yB - yT + 160);
+        const fx = (zo + 0.12 + bruit(sd + 4) * 0.76) / 3, cx = xm(fx, cy), dC = Math.hypot((cx - G.cx) / (W * 0.3), (cy - (yT + yB) / 2) / ((yB - yT) * 0.42)), cw = Math.min(k * 0.36, W * 0.12) * f * ap * lerp(0.3, 1, sm(c01(dC - 0.5))), ch = cw * 0.72; if (cw < 4) continue;
+        if (bdB && cy + ch > bdB.y - 8 && cy - ch < bdB.y + bdB.h + 8 && cx + cw > bdB.x && cx - cw < bdB.x + bdB.w) continue;
+        const x0 = cx - cw / 2, y0 = cy - ch / 2; boite(x0, y0, cw, ch, 3, 0.45 + 0.4 * z, 1, true); trait([[x0, y0 + ch * 0.24], [x0 + cw, y0 + ch * 0.24]], false, 0.35 + 0.3 * z, 0.9);
+        if (cw > 26) mot(['A', 'B', 'C'][zo] + ' · ' + NOMT[(j + zo) % 4], x0 + cw * 0.08, y0 + ch * 0.14, Math.max(8, cw * 0.1), 1, 'left');
+        const nl = Math.floor(((now * 0.5 + bruit(sd + 6) * 5) % 5)), pl = (now * 0.5 + bruit(sd + 6) * 5) % 1;
+        for (let l = 0; l <= Math.min(nl, 4); l++) { const yl = y0 + ch * (0.38 + l * 0.14), lg = l === nl ? sm(pl) : 1; trait([[x0 + cw * 0.08, yl], [x0 + cw * (0.08 + 0.78 * lg * (l % 2 ? 0.7 : 1)), yl]], false, 0.3 + 0.2 * z, 0.75);
+          if (l === nl && pl < 0.9 && z > 0.5) brille(x0 + cw * (0.08 + 0.78 * lg * (l % 2 ? 0.7 : 1)), yl, 2, 1, false, now, j + zo * 20); } }
+      // les deux grands murs du ciel
+      const n7 = Math.floor(a / 7), ti7 = a % 7, sg7 = n7 % 2 ? 1 : -1;
+      [1 / 3, 2 / 3].forEach((fr, iw) => { const hM = (yB - yT) * sm(c01((a - 0.4 - iw * 0.3) / 1.2)), yH = yB - hM; if (hM < 2) return;
+        const cut = (Y0, Y1, w, al, dsh) => { ctx.save(); if (dsh) { ctx.setLineDash(dsh); } const seg = (u0, u1) => trait([[xm(fr, u0), u0], [xm(fr, u1), u1]], false, w, al);
+          const xx = xm(fr, (Y0 + Y1) / 2); if (bdB && xx > bdB.x - 12 && xx < bdB.x + bdB.w + 12) { if (Y0 < bdB.y - 10) seg(Y0, Math.min(Y1, bdB.y - 10)); if (Y1 > bdB.y + bdB.h + 10) seg(Math.max(Y0, bdB.y + bdB.h + 10), Y1); } else seg(Y0, Y1); ctx.restore(); };
+        cut(yH, yB, 1.1, 0.8, [G.lw * 5, G.lw * 3]); cut(yH, yB, 0.5, 0.5, null);
+        for (let yy = yB - 18; yy > yH; yy -= 18) { const o = (Math.round((yB - yy) / 18) % 2) * 6, xx = xm(fr, yy); if (bdB && yy > bdB.y - 10 && yy < bdB.y + bdB.h + 10) continue; trait([[xx - 7 + o, yy], [xx + 7 + o, yy]], false, 0.45, 0.6); }
+        // l'éclair du 403 : la lumière dévale le mur du côté de la tentative
+        if ((sg7 > 0) === (iw === 1) && ti7 > 1.6 && ti7 < 2.6) { const v = (ti7 - 1.6) / 1, yv = lerp(yT, yB, sm(v)); if (!(bdB && yv > bdB.y - 14 && yv < bdB.y + bdB.h + 14)) { brille(xm(fr, yv), yv, 4, 1, true, now, 90 + iw); cut(Math.max(yT, yv - 70), yv, 2.2, 1, null); } } });
+      ctx.restore(); }
     // les murs entre les bases
     [-0.225, 0.225].forEach(z => { const Q = [V(xD - 0.32, yS, z), V(xD + 0.32, yS, z), V(xD + 0.32, yS - 0.42, z), V(xD - 0.32, yS - 0.42, z)]; trait(Q, true, 0.7, 0.6);
       for (let j = 1; j < 4; j++) trait([V(xD - 0.32, yS - j * 0.105, z), V(xD + 0.32, yS - j * 0.105, z)], false, 0.35, 0.4); });
