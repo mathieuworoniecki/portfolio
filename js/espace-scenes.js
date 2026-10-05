@@ -1207,6 +1207,23 @@ S.agents = (() => {
               if (c >= 0 && e > 0.95) { const d = c01((c - 1.35) / 0.5), u = c01((c - 2.75) / 0.5), sz = k * 0.03;
                 if (d > 0 && d < 1) { const x = lerp(A[0], E[0], d), y = lerp(A[1], E[1], d) + sz; cerne(() => { ctx.beginPath(); ctx.rect(x - sz, y - sz * 0.7, sz * 2, sz * 1.4); }, 0.5, 1); }
                 if (u > 0 && u < 1) { const x = lerp(E[0], A[0], u), y = lerp(E[1], A[1], u); cerne(() => { ctx.beginPath(); ctx.arc(x, y, sz * 0.9, 0, TAU); }, 0.6, 1); coche(x, y, sz * 0.5, 1, 0.5); brille(x, y, 2.2, 0.6, true, now, 77); } } } } } }
+      // (vague 271 de l'audit, « agents et sous-agents », immersion) : la délégation ne s'arrête pas au bas du lustre. Chaque sous-agent délègue
+      // à son tour : de lui partent deux branches, qui en font deux, puis deux… vers l'extérieur, jusqu'aux bords du ciel et au-delà ; au bout,
+      // de minuscules agents. Les fiches de tâche y descendent en petites lumières, les résultats en remontent : un arbre qu'on ne voit pas finir
+      if (!reduitMvt()) { const bdF = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, PcF = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat,
+          horsF = q => q[1] < G.haut + 4 || (bdF && q[1] > bdF.y - 12 && q[1] < bdF.y + bdF.h + 12 && q[0] > bdF.x - 16 && q[0] < bdF.x + bdF.w + 16) || (PcF && Math.hypot(q[0] - PcF.x, q[1] - PcF.y) < PcF.r * 1.3),
+          cxF = pos[0][0], cyF = (pos[0][1] + pos[N.length - 1][1]) / 2, L0 = Math.max(26, (G.droite - G.gauche) * 0.075), larg = G.droite - G.gauche > 700;
+        N.forEach(q => { if (q.n !== 3 || nait(q) < 1) return; const B = pos[q.i], al = prof(B[2]) * 0.55, a0 = Math.atan2(B[1] - cyF, B[0] - cxF);
+          const pousse = (x, y, an, m, id) => { if (m > (larg ? 3 : 2)) return; const e = sm((a - 2.0 - m * 0.45 - bruit(id) * 0.2) / 0.45); if (e <= 0) return;
+            const L = L0 * Math.pow(0.78, m) * (0.8 + bruit(id * 3) * 0.5), xe = x + Math.cos(an) * L * e, ye = y + Math.sin(an) * L * e;
+            if (horsF([xe, ye])) return; trait([[x, y], [xe, ye]], false, 0.45, al);
+            if (c >= 0) { const d = c01((c - 1.35 - m * 0.25) / 0.3), u = c01((c - 2.7 - (3 - m) * 0.25) / 0.3);
+              if (d > 0 && d < 1 && id % 2) brille(lerp(x, xe, d), lerp(y, ye, d), 1.6, al * 1.4, false, now, id);
+              if (u > 0 && u < 1 && id % 2 === 0) brille(lerp(xe, x, u), lerp(ye, y, u), 1.9, al * 1.6, true, now, id); }
+            if (e < 1) return;
+            if (m === (larg ? 3 : 2)) { rond(xe, ye, 1.6 + bruit(id) * 1.2, 0.6, al * 1.3, true); return; }
+            const sp = 0.32 + bruit(id * 7) * 0.2; pousse(xe, ye, an - sp + Math.sin(now * 0.7 + id) * 0.05, m + 1, id * 2 + 1); pousse(xe, ye, an + sp + Math.sin(now * 0.6 + id) * 0.05, m + 1, id * 2 + 2); };
+          pousse(B[0], B[1], a0 + (bruit(q.i) - 0.5) * 0.4, 0, q.i * 16 + 3); }); }
       const F3 = N.filter(q => q.n === 3 && nait(q) > 0).map(q => q.i);
       N.slice().sort((p, q) => pos[p.i][2] - pos[q.i][2]).forEach(q => { const e = nait(q); if (e <= 0) return; const [x, y, z, f] = pos[q.i], pop = e < 1 ? 1 + 0.35 * Math.sin(Math.PI * e) : 1, al = 1;
         if (q.n < 3) robot(x, y, k * [0.14, 0.09, 0.06][q.n] * f * pop * (q.n ? Math.min(1.4, hx * 0.55) : 1), al, Math.sin(now * 1.5 + q.i) > 0.97, { now, ph: q.i, lac: Math.sin(now * 0.6 + q.i * 1.7) * 0.7, travaille: c > 1.3 && c < 2.9 });
