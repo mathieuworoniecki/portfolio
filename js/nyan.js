@@ -50,7 +50,7 @@ STEPS.nyan = (c, T, dt) => {
     if (T.u <= 1) { const [x, y] = archePt(A, T.u); pt = [x, y]; c.x = x; c.y = y + s * 0.42; const [x2, y2] = archePt(A, T.u + 0.01); c.spin = Math.atan2(y2 - y, (x2 - x) * T.dir) * 0.8; }
     else { if (!A.pret) { A.pret = Wd.t; Wd.shake = { t0: Wd.t, a: 4 }; Wd.fx.push({ k: 'txt', text: 'un pont !!', x: (A.xs + A.xe) / 2, y: A.yp + A.bw * 5 + 24, t0: Wd.t, life: 2, rot: -0.05, size: 30 }); }
       c.x += T.dir * T.v * dt; c.y = A.yb + s * 0.42; c.spin *= Math.exp(-dt * 5); }
-  } else if (T.boucle != null && !T.bf && (T.dir > 0 ? c.x >= T.boucle : c.x <= T.boucle)) { T.bf = { a: 0, cx: c.x, cy: c.y }; T.R = clamp((c.y - s * 0.42 - ((Wd.ceil || Wd.H * 0.3) + s * 0.4)) / 2, s * 0.7, Math.min(T.R, Wd.H * 0.15));  /* (la boucle ne monte pas sur le titre) */ say(c, pick(['wiiii ✨', 'looping !', 'nyaaaan !'])); etoiles(c.x, c.y - s * 0.4, 12); }
+  } else if (T.boucle != null && !T.bf && (T.dir > 0 ? c.x >= T.boucle : c.x <= T.boucle)) { T.bf = { a: 0, cx: c.x, cy: c.y }; const place = (c.y - s * 0.42 - (Math.max(Wd.ceil || Wd.H * 0.3, sousBoutons()) + s * 0.2)) / 2; if (place < s * 0.45) T.bf.a = TAU; else { T.R = Math.min(place, T.R, Wd.H * 0.15); say(c, pick(['wiiii ✨', 'looping !', 'nyaaaan !'])); etoiles(c.x, c.y - s * 0.4, 12); } }  /* (la boucle ne monte ni sur le titre ni sur les boutons ; sans place, pas de looping) */
   if (!T.arche) {
     if (T.bf && T.bf.a < TAU) { const R = T.R, B = T.bf; B.a = Math.min(TAU, B.a + dt * TAU / 1.5); c.x = B.cx + T.dir * R * Math.sin(B.a); c.y = B.cy - R + R * Math.cos(B.a); c.spin = -T.dir * B.a; T.y0 = B.cy; if (B.a >= TAU) c.spin = 0; }
     else { c.x += T.dir * T.v * dt; c.y = T.y0 + Math.sin(T.t * 7) * s * 0.1; c.spin = Math.sin(T.t * 7) * 0.12; }
@@ -83,7 +83,9 @@ function etoiles(x, y, n) { for (let i = 0; i < n; i++) { const a = rnd(0, TAU),
 function vol(o) {
   o = o || {}; if (Wd.cats.filter(c => c.nyan).length > 4) return false;
   const dir = o.dir || (Math.random() < 0.5 ? 1 : -1), c = addCat({ temp: true, d: o.d ?? rnd(0, 0.35), face: dir }), s = sc(c);
-  const bas = floorAt(c.d) - s * 0.3, haut = Math.max((Wd.ceil || Wd.H * 0.25) - s * 0.2, s * 1.4), h = o.h ?? rnd(0.2, 0.8);
+  // (vague 314 de l'audit, design) : au bureau, les rubans passaient en travers des deux boutons et de leur consigne ; ils volent sous eux
+  // (faute de place entre eux et le fond de la pièce, le couloir de vol descend vers le devant, au-dessus du plancher)
+  const sb = sousBoutons(), b0 = floorAt(c.d) - s * 0.3, bas = sb ? Math.min(floorAt(0) - s * 0.45, Math.max(b0, sb + s * 1.3)) : b0, haut0 = Math.max((Wd.ceil || Wd.H * 0.25) - s * 0.2, s * 1.4), haut = sb && bas - (sb + s * 0.35) > s * 0.5 ? Math.max(haut0, sb + s * 0.35) : haut0, h = o.h ?? rnd(0.2, 0.8);
   c.nyan = true; c.x = dir > 0 ? -s * 1.2 : Wd.W + s * 1.2; c.y = bas + (haut - bas) * h; c.stay = 1e9;
   const T = { k: 'nyan', air: true, dir, v: Wd.W / (o.dur || rnd(4.5, 6)) };
   if (o.boucle) { T.boucle = Wd.W * (dir > 0 ? 0.42 : 0.58); T.R = clamp((bas - haut) * 0.42, s * 1.2, Wd.H * 0.2); }
