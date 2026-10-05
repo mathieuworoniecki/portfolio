@@ -311,9 +311,11 @@ function planTitre(pts, tl) {
 const surPlan = (x, y) => { if (PLAN.th < 0.002) return [x, y]; const dy = y - PLAN.cy, z = -dy * Math.sin(PLAN.th), f = PLAN.D / (PLAN.D + z); return [PLAN.cx + (x - PLAN.cx) * f, PLAN.cy + dy * Math.cos(PLAN.th) * f]; };
 const ecrit = (pts, tl, W, now) => { const M = pts.length; planTitre(pts, tl);
   return (r, o) => { const q = pts[r.i % M], dup = r.i >= M; o.p2 = 1; o.f = 1;
-    o.x = q[0] + Math.sin(now * 2.1 + r.a * TAU) * 0.8 + (dup ? r.gx * 1.5 : 0); o.y = q[1] + Math.cos(now * 1.7 + r.b * TAU) * 0.8 + (dup ? r.gy * 1.5 : 0);
+    const gk = Math.min(1, (pts.px || 90) / 90); o.x = q[0] + Math.sin(now * 2.1 + r.a * TAU) * 0.8 * gk + (dup ? r.gx * 1.5 * gk : 0); o.y = q[1] + Math.cos(now * 1.7 + r.b * TAU) * 0.8 * gk + (dup ? r.gy * 1.5 * gk : 0);
     // (vague 52) le titre a de l'épaisseur : chaque étoile a sa profondeur, et le titre pivote un peu quand la souris bouge (parallaxe), comme un hologramme
-    const pz = r.a - 0.5, pp = Wd.ptr; if (pp && pp.on && Wd.t - pp.moved < 4) { o.x += (pp.x / W - 0.5) * pz * 46; o.y += (pp.y / (E.H || 800) - 0.5) * pz * 30; }
+    // (vague 321 de l'audit, « la nuée », finition au téléphone : ce relief faisait dériver chaque étoile de ±5 px, sur des lettres dont le trait
+    // n'en fait que six ; le titre devenait une brume illisible) : le relief est proportionnel à la taille des lettres
+    const pz = (r.a - 0.5) * Math.min(1, (pts.px || 90) / 90), pp = Wd.ptr; if (pp && pp.on && Wd.t - pp.moved < 4) { o.x += (pp.x / W - 0.5) * pz * 46; o.y += (pp.y / (E.H || 800) - 0.5) * pz * 30; }
     o.x += Math.sin(now * 0.8) * pz * 10;
     // (vague 89 de l'audit, « les titres en étoiles ») : les lettres qu'on frôle se défont et tourbillonnent autour du pointeur, comme de la
     // poussière d'étoiles qu'on remue ; la souris s'éloigne : elles retombent sur leur lettre
@@ -467,7 +469,7 @@ X.fond.push((ctx, now) => {
     if (tl) { ctx.globalAlpha = Math.min(1, k * 0.55); ctx.lineWidth = Math.max(0.6, s * 0.9); ctx.beginPath(); ctx.moveTo(tl[0], tl[1]); ctx.lineTo(x, y); ctx.stroke(); }
     // (vague 228 de l'audit, design : posées sur le titre, les lueurs se chevauchaient en une brume grise et les lettres paraissaient floues) :
     // sur un titre, chaque étoile garde une lueur serrée, la lettre se lit comme une constellation nette
-    const rr = pts && pts.length ? s * 2.5 * (k > 1 ? 1 + (k - 1) * 0.3 : 1) : s * (2.6 + 1.4 * calme) * (k > 1 ? 1 + (k - 1) * 0.8 : 1); ctx.globalAlpha = Math.min(1, k); ctx.drawImage(r.c < 0.2 ? BLEUE : r.c > 0.87 ? DOREE : LUEUR, x - rr, y - rr, rr * 2, rr * 2);
+    const rr = pts && pts.length ? s * 2.5 * Math.max(0.62, Math.min(1, (pts.px || 90) / 70)) * (k > 1 ? 1 + (k - 1) * 0.3 : 1) : s * (2.6 + 1.4 * calme) * (k > 1 ? 1 + (k - 1) * 0.8 : 1); ctx.globalAlpha = Math.min(1, k); ctx.drawImage(r.c < 0.2 ? BLEUE : r.c > 0.87 ? DOREE : LUEUR, x - rr, y - rr, rr * 2, rr * 2);
     // (vague 137, finition) : les plus brillantes, une sur soixante-dix, ont leurs aigrettes de diffraction, comme sur une photo du ciel : une croix fine
     // qui tourne très lentement et dont les branches battent un peu ; seulement une fois posées (pas en vol), et plus courtes quand la nuée se calme
     if (r.e > 0.986 && !tl && !pts && k > 0.35 && !reduit) { const lg = rr * (1.6 + 1.2 * calme) * (0.85 + 0.15 * Math.sin(now * 2.1 + r.a * 9)), an = r.a * TAU + now * 0.05 * (r.b < 0.5 ? 1 : -1);
