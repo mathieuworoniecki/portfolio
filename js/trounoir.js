@@ -65,6 +65,38 @@ function cielEtoile(a, t) {
     ctx.globalAlpha = k; ctx.strokeStyle = g; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy); ctx.stroke(); brille(ctx, hx, hy, 3.2, k, true, t, 0); } }
   ctx.restore();
 }
+/* (vague 262 de l'audit, immersion) : le ciel découvert derrière la page n'était qu'un fond plat ; maintenant le trou le courbe tout entier.
+   Chaque étoile est vue par la lentille gravitationnelle : repoussée loin du trou, étirée en arc autour de lui (de plus en plus près, plus long),
+   avec sa seconde image, petite et pâle, de l'autre côté ; tout le ciel est entraîné dans la rotation du trou, plus vite près de lui ;
+   les plus proches forment l'anneau d'Einstein. Quand le trou se referme, le ciel se redresse et reprend sa place. */
+function cielCourbe(u, rh) {
+  if (ETO.length === 0 || ETO.W !== W || ETO.H !== H) { etoiles(); ETO.W = W; ETO.H = H; }
+  const t = u * DUREE, [cx, cy] = centre(), tE = rh * 1.7, e2 = tE * tE, ky = 0.82;
+  if (tE < 1) { cielEtoile(1, t); return; }
+  ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = ctx.fillStyle = '#F4F4EE';
+  for (const s of ETO) {
+    const tw = 0.55 + 0.45 * Math.sin(t * s.v + s.ph), k = tw * (0.35 + 0.65 * s.p);
+    const dx = s.x * W - cx, dy = (s.y * H - cy) / ky, d = Math.max(2, Math.hypot(dx, dy));
+    // l'entraînement : le ciel tourne avec le trou (vite près de lui, à peine au bord de l'écran)
+    const a = Math.atan2(dy, dx) + t * 1.4 * Math.min(1, e2 / (d * d)) * 4, q = Math.sqrt(d * d + 4 * e2);
+    [[(d + q) / 2, a, 1], [(q - d) / 2, a + Math.PI, 0.45]].forEach(([r, b, f], j) => {
+      if (j && r < tE * 0.25) return;
+      // l'arc : sa longueur suit l'agrandissement tangentiel de la lentille
+      const demi = Math.min(1.1, (s.r * 1.6 + 1) * Math.max(1, (j ? 2.2 : 1) * e2 / (d * d) * 6) / r);
+      const x = cx + Math.cos(b) * r, y = cy + Math.sin(b) * r * ky;
+      if (x < -20 || x > W + 20 || y < -20 || y > H + 20) return;
+      ctx.globalAlpha = k * f;
+      if (demi * r < s.r * 2.2 + 1.5) { if (s.r > 2 && !j) brille(ctx, x, y, s.r * 1.4, k, true, t, s.ph); ctx.globalAlpha = k * f; ctx.beginPath(); ctx.arc(x, y, (s.r > 2 ? s.r * 0.45 : s.r) * (j ? 0.7 : 1), 0, TAU); ctx.fill(); return; }
+      if (s.r > 2 && !j) brille(ctx, x, y, s.r * 1.2, k * 0.8, false, t, s.ph);
+      ctx.globalAlpha = k * f; ctx.lineWidth = Math.max(0.7, (s.r > 2 ? s.r * 0.6 : s.r * 1.3) * (j ? 0.7 : 1));
+      ctx.save(); ctx.translate(cx, cy); ctx.scale(1, ky); ctx.beginPath(); ctx.arc(0, 0, r, b - demi, b + demi); ctx.restore(); ctx.stroke();
+    });
+  }
+  // l'anneau d'Einstein : la lumière de tout ce qui est juste derrière le trou, en traits pâles qui tournent
+  ctx.globalAlpha = 0.35 * sm((u - 0.15) / 0.3); ctx.lineWidth = 1.2; ctx.setLineDash([tE * 0.5, tE * 0.22]); ctx.lineDashOffset = -t * tE * 2.2;
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(1, ky); ctx.beginPath(); ctx.arc(0, 0, tE * 1.02, 0, TAU); ctx.restore(); ctx.stroke(); ctx.setLineDash([]);
+  ctx.restore(); ctx.globalAlpha = 1;
+}
 function fondNoir(a) {
   const [cx, cy] = centre(), g = ctx.createRadialGradient(cx, cy * 0.9, 0, cx, cy, Math.hypot(W, H) * 0.6);
   g.addColorStop(0, `rgba(16,19,26,${a})`); g.addColorStop(1, `rgba(0,0,0,${a})`);
@@ -139,7 +171,9 @@ function aspiration(dt) {
 function dessineTrou(u) {
   const { cx, cy, R, snap } = T;
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.clearRect(0, 0, W, H);
-  fondNoir(1); cielEtoile(1, u * DUREE);   // (l'espace est déjà là, derrière la page : on le découvre à mesure qu'elle est avalée)
+  // le trou : il s'ouvre, respire, avale ; à la fin il se referme en un point
+  const R0 = Math.min(W, H) * 0.075, ouvre = sm(u / 0.12), ferme = 1 - sm((u - 0.9) / 0.1), rh = R0 * ouvre * ferme * (1 + 0.5 * sm((u - 0.1) / 0.6)) * (1 + 0.06 * Math.sin(u * 30));
+  fondNoir(1); cielCourbe(u, rh);   // (l'espace est déjà là, derrière la page : on le découvre à mesure qu'elle est avalée)
   // la page, en anneaux fins : le centre part d'abord ; chaque anneau tourne et rétrécit vers le trou, sans s'effacer (il passe sous le disque noir)
   const N = W < 760 ? 48 : 64;
   // (chaque anneau est découpé à l'écran entre les rayons où le déroulement envoie ses deux bords : les anneaux se touchent toujours, sans jour entre eux)
@@ -156,8 +190,6 @@ function dessineTrou(u) {
     if (snap.bord) { ctx.fillStyle = snap.bord; ctx.fill(); }
     ctx.rotate(th); ctx.scale(f, f * ky); ctx.drawImage(snap, -R, -R, 2 * R, 2 * R); ctx.restore();
   }
-  // le trou : il s'ouvre, respire, avale ; à la fin il se referme en un point
-  const R0 = Math.min(W, H) * 0.075, ouvre = sm(u / 0.12), ferme = 1 - sm((u - 0.9) / 0.1), rh = R0 * ouvre * ferme * (1 + 0.5 * sm((u - 0.1) / 0.6)) * (1 + 0.06 * Math.sin(u * 30));
   // (vague 26, l'audit : « le meilleur moment du site » doit aller plus loin) : la page ne fait pas que s'enrouler, elle se déchire ;
   // des lambeaux se détachent juste avant que leur anneau parte, et filent en vrille, plus vite que la page, vers le trou
   lambeaux(u);
