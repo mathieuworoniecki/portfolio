@@ -930,7 +930,11 @@ function ombresMur(fc) {
   const ink = (window.THEME && THEME.ink) || '40,40,40';
   fc.save(); fc.beginPath(); fc.rect(0, haut, W, bas - haut); fc.clip();
   const C = Chalk, main = C.ctx; C.ctx = fc;
-  try { Wd.cats.forEach(c => { if (c.hidden || c.gone || !c.hp || c.a < 0.3) return; const k = sc(c), f = c.face || 1, b = Chat.where(c, c.body), h = c.hp;
+  // (vague 310 de l'audit, « la horde ») : pendant la ruée, les coureurs ne font plus chacun leur ombre (le mur devenait un fouillis de
+  // fantômes gris) : leur nuage passe sur le mur en un seul front d'orage hachuré, d'où dépassent leurs oreilles et le bout de leurs queues
+  const ruee = NU.length && Wd.cats.some(c => c.rue), CO = Wd.cats.filter(c => !c.rue);
+  if (ruee) orage(fc, pj, ink);
+  try { CO.forEach(c => { if (c.hidden || c.gone || !c.hp || c.a < 0.3) return; const k = sc(c), f = c.face || 1, b = Chat.where(c, c.body), h = c.hp;
     const rx = c.D.a * k * 0.92, ry = Math.max(c.D.h * k * 1.45, c.D.a * k * 0.5), hr = c.b.head[0] * k * 1.2, sol = Math.max(c.y, b[1] + ry);
     const corps = []; for (let i = 0; i <= 28; i++) { const a = i / 28 * Math.PI * 2; corps.push(pj([b[0] + Math.cos(a) * rx, b[1] + Math.sin(a) * ry])); }
     const tete = []; for (let i = 0; i <= 30; i++) { const a = -Math.PI / 2 + i / 30 * Math.PI * 2, u = ((a + Math.PI / 2) / (Math.PI * 2) + 1) % 1;
@@ -948,6 +952,26 @@ function ombresMur(fc) {
     pattes.forEach((L2, i) => C.line(L2[0][0], L2[0][1], L2[1][0], L2[1][1], 1, { w: Math.max(1.4, hr * 0.06 * m), a: a0 * 0.9, seed: sd + 4 + i, tip: false, amp: 0.4 })); }); }
   finally { C.ctx = main; fc.restore(); }
   ombresLettres(fc, pj, haut, bas, ink);
+}
+function orage(fc, pj, ink) {
+  const B = []; NU.forEach(b => { const u = (Wd.t - b.t0) / b.life, k = sm(u / 0.18) * (1 - sm((u - 0.5) / 0.5)); if (k < 0.05) return;
+    const R = b.r * k * (1 + u * 0.6), x = b.x + b.vx * u * b.life, y = b.y - R * 0.55 - u * b.r * 0.5, p = pj([x, y]), q = pj([x + R, y]); B.push([p[0], p[1], Math.abs(q[0] - p[0]) * 1.15]); });
+  if (!B.length) return; const a0 = (Wd.W < 760 ? 0.34 : 0.44) * Wd.a, forme = new Path2D(); B.forEach(([x, y, r]) => { forme.moveTo(x + r, y); forme.arc(x, y, r, 0, 6.283); });
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; B.forEach(([x, y, r]) => { x0 = Math.min(x0, x - r); x1 = Math.max(x1, x + r); y0 = Math.min(y0, y - r); y1 = Math.max(y1, y + r); });
+  // le corps de l'orage : des hachures serrées dans les deux sens, qui glissent avec lui
+  fc.save(); fc.clip(forme); fc.strokeStyle = `rgba(${ink},${a0 * 0.5})`; fc.lineWidth = 1; const gl = (Wd.t * 40) % 7, hh = y1 - y0;
+  fc.beginPath(); for (let x = x0 - hh - gl; x < x1; x += 7) { fc.moveTo(x, y1); fc.lineTo(x + hh, y0); } fc.stroke();
+  fc.strokeStyle = `rgba(${ink},${a0 * 0.25})`; fc.beginPath(); for (let x = x0 + gl; x < x1 + hh; x += 11) { fc.moveTo(x, y1); fc.lineTo(x - hh, y0); } fc.stroke(); fc.restore();
+  // son bord : l'arc extérieur de chaque bosse (ce qui n'est caché par aucune autre), à la plume
+  fc.save(); fc.strokeStyle = `rgba(${ink},${a0})`; fc.lineWidth = 1.4; fc.lineCap = 'round';
+  B.forEach(([x, y, r], i) => { fc.beginPath(); let on = false; for (let j = 0; j <= 40; j++) { const a = j / 40 * 6.283, px = x + Math.cos(a) * r, py = y + Math.sin(a) * r;
+    const libre = B.every(([x2, y2, r2], i2) => i2 === i || Math.hypot(px - x2, py - y2) > r2 - 0.5); if (libre) { on ? fc.lineTo(px, py) : fc.moveTo(px, py); on = true; } else on = false; } fc.stroke(); });
+  // les oreilles et les queues qui dépassent du front, aux places des coureurs
+  Wd.cats.filter(c => c.rue && !c.gone && c.hp).slice(0, 9).forEach((c, i) => { const h = pj(c.hp), k = sc(c) * 2, f = c.face || 1, top = h[1] - k * 0.32;
+    if (!B.some(([x, y, r]) => Math.abs(h[0] - x) < r * 1.2)) return; const bob = Math.sin(Wd.t * 14 + i) * k * 0.03;
+    fc.beginPath(); [-1, 1].forEach(sd => { const ex = h[0] + sd * k * 0.14; fc.moveTo(ex - k * 0.07, top + k * 0.12 + bob); fc.lineTo(ex + sd * k * 0.02, top - k * 0.06 + bob); fc.lineTo(ex + k * 0.07, top + k * 0.12 + bob); });
+    const qx = h[0] - f * k * 0.9, qw = Math.sin(Wd.t * 9 + i * 2) * k * 0.08; fc.moveTo(qx, top + k * 0.25); fc.quadraticCurveTo(qx - f * k * 0.12, top - k * 0.05 + qw, qx - f * k * 0.02, top - k * 0.2 + qw); fc.stroke(); });
+  fc.restore();
 }
 // (vague 308 de l'audit, « le titre », vers 9,9) : la même lampe attrape les lettres tombées du titre. Chacune, au sol ou en l'air,
 // s'écrit en ombre géante sur le mur, son trait doublé à la plume ; un « o » qui roule fait rouler un grand O de nuit derrière les chats
