@@ -769,16 +769,49 @@ function epaves(u, now) {
     else { const f = 1 - Math.pow(1 - e, 3); k = Math.max(0, 1.1 * (1 - e) * (1 - e) + 0.3 * (1 - e) * e); const rr = q.D * q.v * f; x = cx + Math.cos(q.a) * rr; y = cy + Math.sin(q.a) * rr * 0.82;
       // arrivé au loin : un point, qui s'allume en étoile (sauf sous la barre du haut ou sur la bande des sous-titres)
       if (e >= 1) { q.fait = true; if (y > haut + 10 && !(bd && x > bd.x - 20 && x < bd.x + bd.w + 20 && y > bd.y - 20 && y < bd.y + bd.h + 20)) E.neuves.push({ x: x / W, y: y / H, t0: now, r: rnd(1.6, 3.2), ph: rnd(0, TAU) }); continue; } }
-    ctx.save(); ctx.translate(x, y); ctx.rotate(q.sp * e); ctx.scale(k * q.sz, k * q.sz);
+    dessineEpave(q, x, y, k, q.sp * e, hand);
+  }
+  // les étoiles nées de la page : elles s'allument d'un éclat, puis scintillent avec les autres
+  E.neuves.forEach(s => { const a = now - s.t0, ec = Math.max(0, 1 - a / 0.5); brille(ctx, s.x * W, s.y * H, s.r * (1 + 2.5 * ec), 0.75 + 0.25 * Math.sin(now * 2 + s.ph), true, now, s.ph); ctx.globalAlpha = 1; ctx.fillStyle = '#F4F4EE'; ctx.beginPath(); ctx.arc(s.x * W, s.y * H, s.r * 0.45, 0, TAU); ctx.fill(); });
+  ctx.restore(); ctx.globalAlpha = 1;
+}
+// une épave de la page : une lettre du titre, ou un lambeau de papier quadrillé aux bords déchirés
+function dessineEpave(q, x, y, k, rot, hand) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(k * q.sz, k * q.sz);
     if (q.lettre) { ctx.font = `58px ${hand}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 5; ctx.strokeStyle = '#07080C'; ctx.strokeText(q.lettre, 0, 0); ctx.fillStyle = '#F4F4EE'; ctx.fillText(q.lettre, 0, 0); }
     else { const bord = () => { ctx.beginPath(); q.bord.forEach(([b, m], j) => { const px = Math.cos(b) * 22 * m, py = Math.sin(b) * 22 * m; j ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }); ctx.closePath(); }; bord();
       ctx.fillStyle = '#D8DAD4'; ctx.fill(); ctx.save(); ctx.clip(); ctx.strokeStyle = 'rgba(34,36,40,0.28)'; ctx.lineWidth = 1;   // (le quadrillage de la page, encore dessus)
       ctx.beginPath(); for (let g = -24; g <= 24; g += 8) { ctx.moveTo(g, -24); ctx.lineTo(g, 24); ctx.moveTo(-24, g); ctx.lineTo(24, g); } ctx.stroke(); ctx.restore();
       bord(); ctx.strokeStyle = '#F4F4EE'; ctx.lineWidth = 2 / Math.max(0.3, k); ctx.stroke(); }
     ctx.restore();
+}
+/* (vague 264 de l'audit, immersion : « le retour par la planète chat ») : la page devenue ciel rentre avec nous. Les étoiles nées de la page
+   à l'arrivée (et, si on n'en a pas vu naître, des étoiles du ciel) sont happées par le passage en spirale, s'étirent en traits ;
+   en franchissant son bord, chacune se redéplie en ce qu'elle était, une lettre du titre ou un lambeau de papier quadrillé, et jaillit
+   au-dessus de la pièce vers toi en grossissant, jusqu'à passer de chaque côté de l'écran. */
+function retourEpaves(u, now) {
+  if (reduit) return;
+  if (!RV.ep) { const tel = W < 760, h1 = document.querySelector('h1'), txt = ((h1 && h1.textContent) || 'Salut, moi c’est Mathieu.').replace(/\s+/g, ''), N = E.neuves && E.neuves.length ? E.neuves : [];
+    const src = N.slice(0, tel ? 18 : 32); while (src.length < (tel ? 14 : 24)) src.push({ x: rnd(0.04, 0.96), y: rnd(0.15, 0.85), r: rnd(1.4, 2.6), ph: rnd(0, TAU) });
+    RV.ep = src.map((s, i) => ({ x0: s.x * W, y0: s.y * H, r: s.r, ph: s.ph, dl: rnd(0.02, 0.3), sp: rnd(-6, 6), sz: rnd(0.8, 1.2) * (tel ? 0.8 : 1), lettre: i % 2 ? txt[i % txt.length] : null,
+      bord: Array.from({ length: 16 }, (_, j) => [j / 16 * TAU + rnd(-0.12, 0.12), (j % 2 ? 0.62 : 0.9) + rnd(-0.16, 0.2)]), fait: false }));
+    if (E.neuves) E.neuves.length = 0; }
+  const hand = getComputedStyle(document.body).getPropertyValue('--hand') || 'serif', rb = Math.min(W, H) * 0.12, D = Math.hypot(W, H) * 0.5;
+  ctx.save(); ctx.lineCap = ctx.lineJoin = 'round';
+  for (const q of RV.ep) {
+    if (q.fait) continue; const e1 = c01((u - q.dl) / 0.32), e2 = c01((u - q.dl - 0.32) / 0.55);
+    const a0 = Math.atan2(q.y0 - RV.cy, q.x0 - RV.cx), r0 = Math.hypot(q.x0 - RV.cx, q.y0 - RV.cy);
+    if (e2 <= 0) {
+      // happée : elle spirale vers le bord du passage en s'étirant en trait
+      const f = easeIn(e1), a = a0 + f * 1.6, r = r0 + (rb - r0) * f, x = RV.cx + Math.cos(a) * r, y = RV.cy + Math.sin(a) * r;
+      const fp = easeIn(Math.max(0, e1 - 0.08)), ap = a0 + fp * 1.6, rp = r0 + (rb - r0) * fp, xp = RV.cx + Math.cos(ap) * rp, yp = RV.cy + Math.sin(ap) * rp;
+      ctx.globalAlpha = 0.9; ctx.strokeStyle = '#F4F4EE'; ctx.lineWidth = q.r * 0.9; ctx.beginPath(); ctx.moveTo(xp, yp); ctx.lineTo(x, y); ctx.stroke();
+      brille(ctx, x, y, q.r * (1 + e1), 0.9, true, now, q.ph); ctx.globalAlpha = 1; continue; }
+    // redépliée : elle jaillit du passage vers toi
+    const f = Math.pow(e2, 1.5), k = 0.2 + 4 * f * f, a = a0 + 1.6 + e2 * 0.5, r = rb + D * (0.15 * e2 + 1.1 * f * f), x = RV.cx + Math.cos(a) * r, y = RV.cy + Math.sin(a) * r;
+    if (e2 >= 1 || x < -90 * k || x > W + 90 * k || y < -90 * k || y > H + 90 * k) { q.fait = true; continue; }
+    dessineEpave(q, x, y, k, q.sp * e2, hand);
   }
-  // les étoiles nées de la page : elles s'allument d'un éclat, puis scintillent avec les autres
-  E.neuves.forEach(s => { const a = now - s.t0, ec = Math.max(0, 1 - a / 0.5); brille(ctx, s.x * W, s.y * H, s.r * (1 + 2.5 * ec), 0.75 + 0.25 * Math.sin(now * 2 + s.ph), true, now, s.ph); ctx.globalAlpha = 1; ctx.fillStyle = '#F4F4EE'; ctx.beginPath(); ctx.arc(s.x * W, s.y * H, s.r * 0.45, 0, TAU); ctx.fill(); });
   ctx.restore(); ctx.globalAlpha = 1;
 }
 function boucleEspace(id) {
@@ -973,6 +1006,7 @@ function boucleSortie(id) {
       ctx.save(); ctx.translate(x, y); ctx.rotate(q.sp * d); ctx.scale(sc2 * Math.cos(d * 4 + q.a), sc2); ctx.beginPath(); q.P.forEach(([b, k], j) => { const px = Math.cos(b) * q.s * k, py = Math.sin(b) * q.s * k; j ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }); ctx.closePath();
       ctx.fillStyle = '#0b0d12'; ctx.fill(); ctx.strokeStyle = '#F4F4EE'; ctx.lineWidth = 1.3 / sc2; ctx.lineJoin = 'round'; ctx.stroke(); brille(ctx, 0, 0, 1.6, 0.9, q.s > 22, now, q.a); ctx.restore(); }); }
   X.devant.forEach(f => f(ctx, now));
+  retourEpaves(u, now);   // (après la planète : son disque découpe le calque, elles passent par-dessus la pièce)
   requestAnimationFrame(() => boucleSortie(id));
 }
 
