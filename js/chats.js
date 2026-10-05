@@ -1696,9 +1696,33 @@ function aspireUI(V) {
   } else if (V.ui && !V.lache) { V.lache = true;
     V.ui.forEach(u => { if (!u.a) return; try { u.a.cancel(); u.e.animate([{ transform: u.T }, { transform: 'translate(0,-6px) scale(1.08)', offset: 0.35 }, { transform: 'translate(0,2px) scale(0.97)', offset: 0.65 }, { transform: 'none' }], { duration: 600, easing: 'ease-out', composite: 'add' }); } catch (x) {} }); }
 }
+// (vague 257 de l'audit, « l'aspirateur », immersion) : il ne nettoie pas qu'autour de lui. Dès qu'il balaie, toute la pièce se met à rouler
+// vers sa bouche : des moutons de poussière sortent de sous chaque meuble, d'un bord à l'autre de l'écran, et roulent au ras du plancher en
+// tourbillonnant, de plus en plus vite ; près de lui ils décollent, tournent autour du tuyau et y entrent. Quand il remonte, les rescapés
+// font demi-tour et se recachent sous leur meuble (ils rapetissent en s'y glissant : rien ne s'efface)
+function moutons(V, dt) {
+  if (!V.mt && V.ph === 'balaye') { V.mt = []; const src = Wd.props.filter(p => !p.mur && !p.run && p.x > 20 && p.x < Wd.W - 20), n = V.grand ? 28 : 16;
+    for (let i = 0; i < n; i++) { const p = src.length ? src[i % src.length] : null, d = p ? clamp(p.d + rnd(-0.05, 0.12), 0, 1) : rnd(0, 1), x0 = p ? p.x + rnd(-0.5, 0.5) * sOf(p.d) : rnd(0.05, 0.95) * Wd.W;
+      V.mt.push({ x: x0, x0, d, r: sOf(d) * rnd(0.07, 0.13), rot: rnd(0, 6.28), t0: Wd.t + i * 0.08 + rnd(0, 0.5), k: 1, vol: 0, seed: (i * 7) % 97 }); } }
+  if (!V.mt) return; const rentre = V.ph === 'remonte';
+  V.mt.forEach(m => { if (m.k <= 0 || Wd.t < m.t0) return; const fy = floorAt(m.d), dx = V.x - m.x, ad = Math.abs(dx);
+    if (rentre) { const e = m.x0 - m.x; m.x += sgn(e) * Math.min(Math.abs(e), Math.max(Wd.s0 * 1.6, Math.abs(e) * 3) * dt); m.rot -= sgn(dx || 1) * dt * 8; m.y = fy - m.r; if (Math.abs(e) < 6) m.k = Math.max(0, m.k - dt * 4); m.vol = 0; return; }
+    const v = Wd.s0 * (0.5 + 4 * Math.max(0, 1 - ad / Wd.W)) * (V.grand ? 1.4 : 1); m.x += sgn(dx) * Math.min(ad, v * dt); m.rot += sgn(dx) * v * dt / Math.max(2, m.r);
+    if (ad < Wd.s0 * 0.9) { m.vol = Math.min(1, m.vol + dt * 2.5); const a = m.vol * Math.PI * 3 + m.seed; m.x = V.x + Math.cos(a) * Wd.s0 * 0.5 * (1 - m.vol); m.y = lerp(fy - m.r, V.y + 6, sm(m.vol)); m.k = 1 - m.vol * 0.6;
+      if (m.vol >= 1) { m.k = 0; if (Math.random() < 0.3) Wd.fx.push({ k: 'txt', text: pick(['flp', 'fft', 'pff']), x: V.x + rnd(-14, 14), y: V.y - 12, t0: Wd.t, life: 0.7, rot: rnd(-0.2, 0.2), size: 13 }); } }
+    else { m.y = fy - m.r - Math.abs(Math.sin(m.rot * 0.5)) * m.r * 0.3; } });
+}
+function drawMoutons() { const V = Wd.vac; if (!V || !V.mt || !window.Chalk || Wd.espace) return;
+  V.mt.forEach(m => { if (m.k <= 0.02 || Wd.t < m.t0 || m.y == null) return; const r = m.r * m.k, P = [];
+    for (let i = 0; i <= 26; i++) { const a = i / 26 * Math.PI * 4.2 + m.rot, rr = r * (0.55 + 0.45 * Math.abs(Math.sin(i * 1.7 + m.seed))); P.push([m.x + Math.cos(a) * rr, m.y + Math.sin(a) * rr * 0.85]); }
+    Chalk.stroke(P, 1, { w: 1.3, a: 0.7 * Wd.a, seed: m.seed, tip: false });
+    for (let j = 0; j < 3; j++) { const a = m.rot + j * 2.1; Chalk.line(m.x + Math.cos(a) * r, m.y + Math.sin(a) * r * 0.85, m.x + Math.cos(a) * r * 1.45, m.y + Math.sin(a) * r * 1.3, 1, { w: 1, a: 0.55 * Wd.a, seed: m.seed + j, tip: false }); } });
+}
+H.draw.push(drawMoutons);
 function vacFrame(dt) {
   if (!Wd.vac) { if (Wd.t > (Wd.vacT || 0)) { Wd.vacT = Wd.t + 1; if (clutter() >= (Wd.mode === 'large' ? 14 : 7) && Wd.t > (Wd.vacCool || 0) && Math.random() < 0.035) aspire(); } return; }   // de temps en temps seulement, pas dès que ça déborde
   const V = Wd.vac, u = Wd.t - V.t0, s0 = Wd.s0, mouthY = Wd.floor - s0 * 1.05;
+  moutons(V, dt);
   V.y = V.ph === 'descend' ? -s0 + (mouthY + s0) * sm(u / 1.3) : V.ph === 'remonte' ? mouthY - (mouthY + s0 * 1.5) * sm((Wd.t - V.tu) / 1.2) : mouthY + Math.sin(u * 5) * 4;
   if (V.ph === 'descend' && u > 1.3) { V.ph = 'balaye'; V.tb = Wd.t; if (window.Rares && Rares.panique) Rares.panique(V.x); Wd.fx.push({ k: 'txt', text: 'VROUUUM', x: V.x, y: mouthY - s0 * 0.9, t0: Wd.t, life: 1.6, rot: -0.1, size: 22 }); }
   if (V.ph === 'balaye') {
