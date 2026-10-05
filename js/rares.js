@@ -191,21 +191,27 @@ H.draw.push(() => {
 });
 
 // la tête du géant qui entre par le bord de l'écran, du côté où il est sorti : la pièce est une maison de poupée, il regarde dedans
-const bouche = (c, f, col) => { if (window.Titles && Titles.bouche) Titles.bouche(c, f, col); };
+const bouche = (c, f, col, bc) => { if (window.Titles && Titles.bouche) Titles.bouche(c, f, col, bc); };
 function tete(ctx, ink, u) {
   const d = OE.dir, W = Wd.W, Hh = Wd.H, R = Math.min(W * 0.2, Hh * 0.36), e = sm(u / 1.1) * (1 - sm((u - OE.dur + 1) / 1)), P = Wd.ptr;
-  const cy = ((Wd.ceil || Hh * 0.3) + Wd.floor) / 2 + R * 0.15, cx = d > 0 ? W + R * (1.25 - e * 1.45) : -R * (1.25 - e * 1.45), pen = Math.sin(u * 0.9) * 0.05 * d;
+  // (vague 309 de l'audit, « le chat géant », design) : par la gauche, sa tête passait par-dessus la colonne des boutons d'événements et les couvrait ;
+  // la colonne est maintenant le coin du mur : il passe la tête de derrière elle, sa joue coupée net au ras des boutons
+  if (OE.gx == null || u < 0.05) { const ev = d < 0 && document.querySelector('.evts'), eb = ev && ev.getClientRects().length ? ev.getBoundingClientRect() : null; OE.gx = eb && eb.width && eb.right < W * 0.3 ? eb.right + 6 : 0;
+    const ch = document.getElementById('chap'), cb = ch && ch.getClientRects().length ? ch.getBoundingClientRect() : null; OE.gb = cb && cb.height && cb.top > Hh * 0.6 ? cb.top - 6 : Hh; }
+  const gx = d < 0 ? OE.gx : 0, cy = ((Wd.ceil || Hh * 0.3) + Wd.floor) / 2 + R * 0.15, cx = d > 0 ? W + R * (1.25 - e * 1.45) : gx - R * (1.25 - e * 1.45), pen = Math.sin(u * 0.9) * 0.05 * d;
   OE.b = { x: cx, y: cy, r: R };
   const vx = P && P.on ? clamp((P.x - cx) / W, -0.6, 0.6) : -d * 0.3, vy = P && P.on ? clamp((P.y - cy) / Hh, -0.5, 0.5) : 0;
   const cl = Wd.t - OE.cl, bl = cl >= 0 && cl < 0.24 ? 1 - Math.abs(cl / 0.12 - 1) : 0; if (cl > 0.3 && Math.random() < 0.004) OE.cl = Wd.t;
   const tr = Wd.t - OE.clic < 0.4 ? Math.sin((Wd.t - OE.clic) * 50) * 5 * (1 - (Wd.t - OE.clic) / 0.4) : 0;
-  ctx.save(); ctx.translate(cx + tr, cy); ctx.rotate(pen); ctx.lineCap = ctx.lineJoin = 'round';
+  // (et jamais sur la barre des chapitres, en bas : sa joue s'arrête au plancher de l'écran) ; le coin du mur se dessine le temps qu'il est là
+  if (gx && e > 0.02) { const k = Math.min(1, e * 1.4), y0 = Wd.ceil || Hh * 0.25; Chalk.line(gx, y0, gx, y0 + (OE.gb - y0) * k, 1, { w: 1.6, a: 0.85 * Wd.a, seed: 61, tip: false, amp: 0.3 }); }
+  ctx.save(); const bc = { m: ctx.getTransform(), r: [gx, 0, W - gx, OE.gb] }; ctx.beginPath(); ctx.rect(gx, 0, W - gx, OE.gb); ctx.clip(); ctx.translate(cx + tr, cy); ctx.rotate(pen); ctx.lineCap = ctx.lineJoin = 'round';
   const papier = (getComputedStyle(document.documentElement).getPropertyValue('--bp').trim() || '#DADBD8');
   // la tête (le même trait que les chats : un contour, deux oreilles), remplie de papier : elle passe devant la pièce
   const crane = c => { c.moveTo(-R, R * 0.1); c.quadraticCurveTo(-R, -R * 0.75, -R * 0.72, -R * 0.86); c.lineTo(-R * 0.62, -R * 1.42); c.lineTo(-R * 0.22, -R * 0.96);
     c.quadraticCurveTo(0, -R * 1.03, R * 0.22, -R * 0.96); c.lineTo(R * 0.62, -R * 1.42); c.lineTo(R * 0.72, -R * 0.86); c.quadraticCurveTo(R, -R * 0.75, R, R * 0.1);
     c.quadraticCurveTo(R, R * 0.92, 0, R * 0.92); c.quadraticCurveTo(-R, R * 0.92, -R, R * 0.1); c.closePath(); };
-  ctx.beginPath(); crane(ctx); ctx.fillStyle = papier; ctx.fill(); bouche(ctx, crane, papier); ctx.strokeStyle = `rgb(${ink})`; ctx.lineWidth = Math.max(3, R * 0.022); ctx.stroke();
+  ctx.beginPath(); crane(ctx); ctx.fillStyle = papier; ctx.fill(); bouche(ctx, crane, papier, bc); ctx.strokeStyle = `rgb(${ink})`; ctx.lineWidth = Math.max(3, R * 0.022); ctx.stroke();
   ctx.lineWidth = Math.max(2, R * 0.014); ctx.globalAlpha = 0.6; [-1, 1].forEach(sd => { ctx.beginPath(); ctx.moveTo(sd * R * 0.6, -R * 0.95); ctx.lineTo(sd * R * 0.58, -R * 1.25); ctx.lineTo(sd * R * 0.36, -R * 1.0); ctx.stroke(); }); ctx.globalAlpha = 1;
   // les yeux : deux grands ovales noirs, deux reflets ; ils suivent la souris ; il cligne
   ctx.fillStyle = `rgb(${ink})`; [-1, 1].forEach(sd => { const ex = sd * R * 0.4 + vx * R * 0.22, ey = -R * 0.05 + vy * R * 0.16, rx = R * 0.15, ry = R * 0.22 * (1 - bl * 0.94);

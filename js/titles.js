@@ -418,7 +418,7 @@ function writeTrace(it, ox, oy, p) {
 // (on voyait les meubles en pointillés à travers la tête du géant) ; un dessin opaque se déclare ici (sa forme, sa couleur), et on
 // rebouche son papier sous l'encre une fois le grain passé : l'encre garde son grain, le papier redevient plein
 let bouches = [];
-function bouche(c, f, col) { if (c === ctx) bouches.push({ m: c.getTransform(), f, col }); }
+function bouche(c, f, col, cl) { if (c === ctx) bouches.push({ m: c.getTransform(), f, col, cl }); }   // cl : { m, r } un rectangle qui borne le rebouchage
 function frame(back, front) {
   bouches = [];
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalCompositeOperation = 'source-over'; ctx.clearRect(0, 0, W, H);
@@ -435,7 +435,7 @@ function frame(back, front) {
   });
   if (front) { ctx.save(); front(ctx); ctx.restore(); ctx.globalAlpha = 1; }
   if (grain) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'destination-out'; ctx.globalAlpha = grainA; ctx.fillStyle = grain; ctx.fillRect(0, 0, cv.width, cv.height); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
-  if (bouches.length) { ctx.save(); ctx.globalCompositeOperation = 'destination-over'; bouches.forEach(b => { ctx.setTransform(b.m); ctx.beginPath(); b.f(ctx); ctx.fillStyle = b.col; ctx.fill(); }); ctx.restore(); bouches = []; }
+  if (bouches.length) { ctx.save(); ctx.globalCompositeOperation = 'destination-over'; bouches.forEach(b => { if (b.cl) { ctx.save(); ctx.setTransform(b.cl.m); ctx.beginPath(); ctx.rect(...b.cl.r); ctx.clip(); } ctx.setTransform(b.m); ctx.beginPath(); b.f(ctx); ctx.fillStyle = b.col; ctx.fill(); if (b.cl) ctx.restore(); }); ctx.restore(); bouches = []; }
 }
 function restart() { t0 = performance.now(); }
 return { init, resize, frame, bouche, restart, progress, traceText, hand, letters, rect, freeze, get _items() { return items; } };
