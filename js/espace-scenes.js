@@ -2137,6 +2137,17 @@ S.ia = (() => {
         ctx.strokeStyle = ENC; ctx.lineWidth = G.lw * 0.5; ctx.beginPath(); ctx.moveTo(0.1 * k, -0.34 * k); ctx.lineTo(0.1 * k, -0.24 * k); ctx.lineTo(0.2 * k, -0.24 * k); ctx.stroke();
         if (!j) { ctx.lineWidth = G.lw * 0.4; ctx.beginPath(); for (let l = 0; l < 7; l++) { ctx.moveTo(-0.13 * k, (-0.2 + l * 0.08) * k); ctx.lineTo((0.13 - (l % 3) * 0.05) * k, (-0.2 + l * 0.08) * k); } ctx.stroke(); } ctx.restore(); });
       const lb = -0.32 + ((now * 0.35) % 1) * 0.6, A0 = Pk(xd - 0.25, lb), A1 = Pk(xd + 0.25, lb); trait([A0, A1], false, 1.1, 1); brille(A1[0], A1[1], 3, 1, false, now, 1);
+      // (vague 331 de l'audit, « IA et données », originalité) : le Document AI pour de vrai. Chaque ligne de la page de devant porte son cadre de
+      // détection en pointillés, comme une sortie d'OCR ; quand le faisceau la franchit, son cadre se serre d'un coup et l'information extraite
+      // en sort : une étiquette (nom, date, montant, LTV…) jaillit du bout de la ligne et vole, en cloche, vers le nuage, où elle se réduit à un point
+      { const TAG = en() ? ['name', 'date', 'amount', 'rate', 'LTV', 'DSCR', 'maturity'] : ['nom', 'date', 'montant', 'taux', 'LTV', 'DSCR', 'échéance'], ph = (now * 0.35) % 1, C0 = Pk(0, 0), fs = Math.max(9, k * 0.042);
+        for (let l = 0; l < 7; l++) { const yl = -0.25 + l * 0.08, x1 = 0.13 - (l % 3) * 0.05, t = (((ph - (yl + 0.32) / 0.6) % 1) + 1) % 1 / 0.35, B0 = Pk(xd - 0.145, yl - 0.028), B1 = Pk(xd + x1 + 0.015, yl + 0.028), fl = t < 0.35 ? 1 - t / 0.35 : 0;
+          ctx.save(); ctx.strokeStyle = ENC; ctx.globalAlpha = 1; ctx.lineWidth = G.lw * (0.35 + fl * 0.6); ctx.setLineDash([G.lw * 1.4, G.lw * 1.6]); const ins = fl * k * 0.008; ctx.strokeRect(B0[0] + ins, B0[1] + ins, B1[0] - B0[0] - 2 * ins, B1[1] - B0[1] - 2 * ins); ctx.restore();
+          if (reduitMvt() || t > 1.15) continue; const m = c01(t / 1.15), e = sm(m), S = Pk(xd + x1 + 0.02, yl), T = [C0[0] + (bruit(l * 3.3) - 0.5) * k * 0.6, C0[1] + (bruit(l * 5.9) - 0.5) * k * 0.5], x = lerp(S[0], T[0], e), y = lerp(S[1], T[1], e) - Math.sin(Math.PI * m) * k * 0.28, sc = 1 - 0.9 * sm(c01((m - 0.55) / 0.45));
+          if (sc < 0.2) { brille(x, y, 3, 1, true, now, 50 + l); continue; }
+          ctx.font = `600 ${fs}px "Space Grotesk",system-ui,sans-serif`; const w = ctx.measureText(TAG[l]).width + fs * 0.9, h = fs * 1.5; ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(m * 5 + l) * 0.2); ctx.scale(sc, sc);
+          cerne(() => { ctx.beginPath(); ctx.moveTo(-w / 2 - h * 0.35, 0); ctx.lineTo(-w / 2, -h / 2); ctx.lineTo(w / 2, -h / 2); ctx.lineTo(w / 2, h / 2); ctx.lineTo(-w / 2, h / 2); ctx.closePath(); }, 0.6, 1);
+          ctx.globalAlpha = 1; ctx.fillStyle = ENC; ctx.beginPath(); ctx.arc(-w / 2 + fs * 0.05, 0, Math.max(1, fs * 0.1), 0, TAU); ctx.fill(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(TAG[l], fs * 0.2, fs * 0.05); ctx.restore(); } }
       // le nuage : il tourne ; ses liens ; il se remplit
       const Q = Vs.map(([x, y, z]) => V(x * R, y * R, z * R)), nb = Math.max(1, Math.min(Nn, 30 + Math.floor(a * 16)));
       sousLaBarre();   // (vague 60 : le nuage ne passe plus sur la barre des chapitres)
