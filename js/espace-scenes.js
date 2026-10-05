@@ -1930,6 +1930,9 @@ S.gardefous = (() => {
 // referme d'un coup (clac) puis se rouvre
 const PAQUET = { vu: false };
 S.puce = (() => {
+  // ce que chaque couche contient, gravé dessus (les mêmes mots que la page des compétences, js/serieux-donnees.js)
+  const GRAV = () => en() ? ['React · Next.js · three.js', 'RAG · MCP · multi-agent', 'FastAPI · PostgreSQL · Celery', 'Docker · GitHub Actions · Grafana', 'CodeQL · Trivy · Playwright', 'tech lead · ADRs · roadmap']
+    : ['React · Next.js · three.js', 'RAG · MCP · multi-agents', 'FastAPI · PostgreSQL · Celery', 'Docker · GitHub Actions · Grafana', 'CodeQL · Trivy · Playwright', 'tech lead · ADR · roadmap'];
   const LAB = () => en() ? ['Front', 'AI', 'Back-end', 'DevOps', 'Security', 'Leadership'] : ['Front', 'IA', 'Back-end', 'DevOps', 'Sécurité', 'Leadership'];
   // une plaque épaisse : ses flancs (du fond vers nous), puis son dessus ; peinte de la nuit, au trait
   function plaque(V, y, s, th, w, a) {
@@ -2061,6 +2064,15 @@ S.puce = (() => {
         for (let i = 0; i < 6; i++) { const z = -s * 0.8 + i * s * 0.32, x0 = -s * 0.85, x1 = -s * 0.3 + bruit(i + j * 7) * s * 0.4, L = [V(x0, y, z), V(x1, y, z), V(x1 + 0.08, y, z + 0.08 * (i % 2 ? 1 : -1))];
           trait(L, false, 0.4, al * 0.55); const v = (now * 0.5 + i * 0.17 + j * 0.3) % 1; if (v < 0.6) { const q = V(lerp(x0, x1, v / 0.6), y, z); brille(q[0], q[1], 1.5, al * 0.8, false, now, i + j * 6); } }
         // les vias qui montent jusqu'à la couche d'au-dessus
+        // (vague 330 de l'audit, « la puce », originalité) : la gravure. Quand une couche se soulève, une tête laser descend au-dessus d'elle
+        // et grave, lettre après lettre, ce qu'elle contient vraiment (tiré de la page des compétences) sur le bord avant de la plaque ; une
+        // étincelle suit la tête. La gravure reste tant que la pile est ouverte ; au « clac », la pile se referme dessus et on repart à neuf
+        if (!reduitMvt() && c >= 1.9 + j * 0.7 && c < 6.5 && ferme < 0.5) { const txt = GRAV()[j], pg = c01((c - 1.9 - j * 0.7) / 0.55), A = V(-s * 0.82, y, s * 0.42), B = V(s * 0.82, y, s * 0.42), D = V(-s * 0.82, y, s * 0.78);
+          ctx.save(); ctx.font = '600 20px "Space Grotesk",system-ui,sans-serif'; const tw = ctx.measureText(txt).width, n = Math.ceil(txt.length * pg), sub = txt.slice(0, n), sw = ctx.measureText(sub).width;
+          ctx.transform((B[0] - A[0]) / tw, (B[1] - A[1]) / tw, (D[0] - A[0]) / 24, (D[1] - A[1]) / 24, A[0], A[1]); ctx.globalAlpha = 0.95; ctx.textBaseline = 'top'; ctx.fillStyle = '#ffe9a8'; ctx.fillText(sub, 0, 0); ctx.restore();
+          if (pg < 1) { const q = [lerp(A[0], B[0], sw / tw) + (D[0] - A[0]) * 0.5, lerp(A[1], B[1], sw / tw) + (D[1] - A[1]) * 0.5], hT = k * 0.16;
+            cerne(() => { ctx.beginPath(); ctx.moveTo(q[0] - 5, q[1] - hT); ctx.lineTo(q[0] + 5, q[1] - hT); ctx.lineTo(q[0] + 2, q[1] - hT + 9); ctx.lineTo(q[0] - 2, q[1] - hT + 9); ctx.closePath(); }, 0.7, 1);
+            style(1.2, 1); ctx.strokeStyle = '#ffe9a8'; ctx.beginPath(); ctx.moveTo(q[0], q[1] - hT + 9); ctx.lineTo(q[0], q[1]); ctx.stroke(); brille(q[0], q[1], 4 + Math.sin(now * 40) * 1.5, 1, true, now, 90 + j); } }
         if (j > 0) VIA.forEach(([x, z], v) => { const A = V(x * s, y, z * s), B = V0(dxs[j - 1] + x * s * ks, ys[j - 1] + th, dzs[j - 1] + z * s * ks); trait([A, B], false, 0.5, 0.5); const u = (now * 0.8 + v * 0.25 + j * 0.13) % 1, w = v % 2 ? u : 1 - u; brille(lerp(A[0], B[0], w), lerp(A[1], B[1], w), 2, 0.9, false, now, v * 7 + j); });
         // l'objet de la couche : il se monte quand la puce est ouverte
         const e = sm(c01((a - 1.2 - (5 - j) * 0.25) / 0.6)) * (1 - ferme); if (e > 0.02) OBJ[j](V, y, s, now, e * (1 + lev[j] * 0.25), al);
