@@ -906,6 +906,18 @@ const S = {};
 // jusqu'au fond ; mains en l'air, une ola passe ; puis tout le monde est aspiré en tourbillon et rentre en lui : ×10 ; et ça recommence
 // (vague 14 de l'audit : « la foule reste une bande au milieu ») : les gradins font maintenant le tour de lui, en arène, sur toute la largeur
 // du ciel : quatre rangs en ellipse, les plus loin plus hauts ; l'arène tourne lentement, la ola en fait le tour ; plus d'une centaine d'agents
+// (vague 289 de l'audit : « toi, dans le style des chats », immersion) : ses ordres partent en ondes. De son pupitre, des anneaux pointillés
+// couchés dans le plan de l'arène s'élargissent sans arrêt, passent sous les gradins et sortent par les bords de l'écran en emportant les
+// consignes qu'il distribue (tests, revue, doc…) ; la scène entière bat à son rythme (sous la barre du haut, au-dessus des sous-titres)
+function ondesLui(a, now, pied, R) {
+  if (!R || !R.rx) return; const W = G.droite - G.gauche, H = G.bas - G.haut, k = R.ry / R.rx, rM = Math.max(W * 0.7, (H * 1.1) / Math.max(0.15, k)) * 1.15, T = 2.6, MOTS = ['tests', 'revue', 'doc', 'API', 'module', 'CI', 'correctif', 'migration'];
+  sousLaBarre(); ctx.setLineDash([3 * G.lw, 8 * G.lw]);
+  for (let j = 0; j < 4; j++) { const t = now / T + j / 4, n = Math.floor(t), u = t - n, e = u * u * (3 - 2 * u) * 0.35 + u * 0.65, rx = R.rx * 0.15 + (rM - R.rx * 0.15) * e, ry = rx * k;
+    ctx.lineDashOffset = -now * 12; ctx.beginPath(); ctx.ellipse(pied[0], pied[1], rx, ry, 0, 0, TAU); style(1.5 - u * 0.6, 0.55); ctx.stroke();
+    for (let m = 0; m < 2; m++) { const th = (n * 2.39 + m * 3.3 + j) % TAU, x = pied[0] + Math.cos(th) * rx, y = pied[1] + Math.sin(th) * ry;
+      if (y > G.haut + 10 && y < G.bas - 10 && x > G.gauche && x < G.droite) mot(MOTS[(n * 3 + m + j) % MOTS.length], x, y, Math.max(10, G.s * 0.035 * (0.6 + u)), 0.8); } }
+  ctx.setLineDash([]); ctx.lineDashOffset = 0; ctx.restore();
+}
 const LIVRE = { vu: false }; const DIX = { vu: false };
 S.equipe = (() => {
   let F = null, cle = '';
@@ -926,6 +938,7 @@ S.equipe = (() => {
     dessin(a, now) {
       const P = places(), c = Math.min(a + 0.3, 9.2), N = P.N, rot = now * 0.06, pied = [G.cx, P.cyA], pc = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat;
       const rr0 = Math.max(18, P.bot * 2.6), podH = P.bot * 1.4, coeur = [pied[0], pied[1] - podH - rr0 * 1.9];
+      ondesLui(a, now, pied, P[P.length - 1]);
       let rentres = 0; const derriere = [], devant = [];
       const Sm = souris(), tW = window.Chats.K.Wd.t, PO = Sm && tW - Sm.moved < 1.5 && c > 1.5 && c < 7.6 ? { u: ((Math.atan2((Sm.y - pied[1]) / Math.max(20, P[P.length - 1].ry), (Sm.x - pied[0]) / Math.max(20, P[P.length - 1].rx)) / TAU) % 1 + 1) % 1, f: c01((1.5 - (tW - Sm.moved)) / 0.5) } : null;
       // (vague 86, l'audit : « l'équipe ») : la ola ne s'arrête pas aux gradins. Quand elle passe du côté d'un élément de l'interface (logo, langue,
