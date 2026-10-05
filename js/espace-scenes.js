@@ -861,8 +861,9 @@ function sortieEVA(now) {
   // (vague 323 de l'audit, « l'équipe », design : au plus près, il passait pile au milieu et cachait Mathieu sur son pupitre) : il arrive
   // lentement, s'écarte du milieu à mesure qu'il grossit, n'est au plus près qu'aux deux tiers de sa traversée, sur le côté ; puis il file au loin, vite
   const wp = u < 0.7 ? u / 0.7 * 0.5 : 0.5 + (u - 0.7) / 0.3 * 0.5, pr = Math.sin(Math.PI * wp), pr2 = pr * pr * pr * pr, rmax = Math.min(W, H * 1.1) * (W < 500 ? 0.13 : 0.17), r = rmax * (0.1 + 0.9 * pr2);
-  // (vague 323 : au téléphone, ses pieds touchaient les sous-titres)
-  const nav = [G.cx - sd * W * 0.36, G.haut + H * 0.12], x = G.cx + sd * W * ((u - 0.5) * 1.05 + 0.15 * pr2), y = Math.min(G.haut + H * (0.2 + 0.32 * pr) + Math.sin(now * 0.9) * H * 0.03, G.bas - r * 1.7);
+  // (vague 323 : au téléphone, ses pieds touchaient les sous-titres ; vague 325 : la bande des sous-titres est dans le ciel, au-dessus de la Terre :
+  // c'est son haut qui borne sa descente)
+  const nav = [G.cx - sd * W * 0.36, G.haut + H * 0.12], x = G.cx + sd * W * ((u - 0.5) * 1.05 + 0.15 * pr2), y = Math.min(G.haut + H * (0.2 + 0.32 * pr) + Math.sin(now * 0.9) * H * 0.03, Math.min(G.bas, (window.EspacePlume && EspacePlume.M && EspacePlume.M.bande ? EspacePlume.M.bande.y - 6 : G.bas)) - r * 1.7);
   sousLaBarre();
   rond(nav[0], nav[1], 5, 1.4, 0.9); trait([[nav[0] - 14, nav[1]], [nav[0] - 5, nav[1]]], false, 1.4, 0.9); trait([[nav[0] + 5, nav[1]], [nav[0] + 14, nav[1]]], false, 1.4, 0.9);
   rond(nav[0], nav[1], 1.6 + Math.abs(Math.sin(now * 3)) * 1.5, 1, 1, true);
