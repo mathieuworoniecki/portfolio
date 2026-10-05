@@ -2907,6 +2907,7 @@ S.pilotage = (() => {
       if (VL) dormeur(VL, Pp, E, zb, D, now, horsPlanete, 'avant');
       if (lv > 0.01) pattes(VL, Pp, E.bx, zb, lv, now);
       if (lv > 0.01) sousLaBarre();
+      if (!saut && !lv) phares(Pp, E.bx, zb, now, E.roul);
       bus(saut || atterrit || lv ? (x, y, z) => Pp(x, y + saut + atterrit + lv, z) : Pp, E.bx, zb, roulis + (saut ? (0.5 - sS) * 0.25 : 0), now, E.bonk, a, camX);
       if (lv > 0.01) ctx.restore();
       if (VL) dormeur(VL, Pp, E, zb, D, now, horsPlanete, 'apres');
@@ -2990,6 +2991,25 @@ S.pilotage = (() => {
       ctx.fillStyle = ENC; ctx.beginPath(); ctx.arc(x - s * 0.18, y - s * 0.35, s * 0.08, 0, TAU); ctx.arc(x + s * 0.18, y - s * 0.35, s * 0.08, 0, TAU); ctx.fill(); }
   }
   // le bus : une vraie boîte en 3D (l'arrière, le toit, le flanc qu'on voit), des fenêtres avec l'équipe ; le chauffeur, c'est lui ; il penche dans les virages
+  // (vague 290 de l'audit : « le bus », immersion) : il roule de nuit. Ses phares ouvrent deux grands cônes hachurés sur la route devant lui,
+  // jusqu'à l'horizon, où la poussière de la route scintille ; derrière, ses feux rouges laissent sur le bitume deux longues traînées
+  // de pose longue qui filent vers nous et sortent par le bas de la route (sous le bus, sous les sous-titres jamais : la route s'arrête avant)
+  function phares(Pp, bx, zb, now, roul) {
+    const kb = G.sw < 500 ? 0.72 : 1, w = 0.56 * kb, Lg = 3.4 * kb, z0 = zb + Lg;
+    ctx.save(); ctx.beginPath(); ctx.rect(G.gauche - 60, G.haut + 4, G.droite - G.gauche + 120, G.caps - G.haut - 4); ctx.clip(); ctx.globalAlpha = 1;
+    [-1, 1].forEach(sd => { const A = Pp(bx + sd * w * 0.7, 0.3 * kb, z0), far = 40, B = Pp(bx + sd * w * 0.7 - 3.6, 0, z0 + far), C = Pp(bx + sd * w * 0.7 + 3.6, 0, z0 + far);
+      ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.lineTo(C[0], C[1]); ctx.closePath(); ctx.save(); ctx.clip();
+      ctx.strokeStyle = '#ffe9a8'; ctx.lineWidth = G.lw * 0.6; ctx.globalAlpha = 0.42; ctx.beginPath();
+      for (let k = 0; k < 18; k++) { const u = k / 17, P1 = Pp(bx + sd * w * 0.7 - 3.6 + 7.2 * u, 0, z0 + far); ctx.moveTo(A[0], A[1]); ctx.lineTo(P1[0], P1[1]); } ctx.stroke();
+      for (let k = 0; k < 14; k++) { const z = z0 + ((k * 2.3 - roul * 1.7) % 32 + 32) % 32 + 1, x = bx + sd * w * 0.7 + Math.sin(k * 7.3 + sd) * 2.2 * (z - z0) / far, p = Pp(x, 0.05 + ((k * 0.37) % 0.6), z), t = 0.5 + 0.5 * Math.sin(now * 5 + k * 1.9);
+        if (t > 0.35) brille(p[0], p[1], Math.max(1.5, 7 * t / Math.sqrt(z)), 0.9, false, now, k + sd); }
+      ctx.restore();
+      ctx.strokeStyle = '#ffe9a8'; ctx.globalAlpha = 0.7; ctx.lineWidth = G.lw * 0.7; ctx.setLineDash([2 * G.lw, 5 * G.lw]); ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.moveTo(A[0], A[1]); ctx.lineTo(C[0], C[1]); ctx.stroke(); ctx.setLineDash([]); });
+    [-1, 1].forEach(sd => { ctx.strokeStyle = '#ff7a6b'; ctx.lineCap = 'round';
+      for (let k = 0; k < 3; k++) { const xo = bx + sd * w * (0.66 + k * 0.08), Pa = Pp(xo, 0.02, zb - 0.05), Pb = Pp(xo + Math.sin(now * 0.7 + k) * 0.15, 0.02, 0.5);
+        ctx.globalAlpha = 0.55 - k * 0.15; ctx.lineWidth = G.lw * (1.6 - k * 0.4); ctx.setLineDash([12 * G.lw, 6 * G.lw]); ctx.lineDashOffset = -roul * 60 * G.lw; ctx.beginPath(); ctx.moveTo(Pa[0], Pa[1]); ctx.lineTo(Pb[0], Pb[1]); ctx.stroke(); } });
+    ctx.setLineDash([]); ctx.lineDashOffset = 0; ctx.restore();
+  }
   function bus(Pp, bx, zb, roulis, now, bonk, a, camX) {
     const kb = G.sw < 500 ? 0.72 : 1, w = 0.56, h = 1.2, Lg = 3.4, sh = now - bonk < 0.35 ? Math.sin((now - bonk) * 60) * 0.03 : 0, bump = Math.abs(Math.sin(now * 9)) * 0.012 + sh;
     const Q = (x, y, z) => { const r = roulis * (y - 0.1); return Pp(bx + (x + r) * kb, (y + bump) * kb, zb + z * kb); };   // (kb : plus petit sur téléphone)
