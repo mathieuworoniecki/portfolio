@@ -38,6 +38,10 @@ function place() {
   if (p[1] - h - 18 < haut || (x < p[0] + hr && x + w > p[0] - hr && y < p[1] + hr && y + h > p[1] - hr)) {
     const dx = Math.max(34, Wd.s0 * 0.62), rd = Wd.W - 12 - (p[0] + dx), rg = p[0] - dx - 12, xs = rd >= w ? p[0] + dx : p[0] - dx - w, ys = Math.max(haut, p[1] - h / 2), r = window.Vie && Vie.RECT && Vie.RECT();
     if (Math.max(rd, rg) >= w && !(r && r.width && xs < r.right && xs + w > r.left && ys < r.bottom && ys + h > r.top)) { cote = true; x = xs; y = ys; } }
+  // (correctif du 05/10 : au téléphone, faute de place à côté de sa tête, la bulle restait en travers du corps du chat de l'arrivée, posé
+  // entre le titre et les boutons) : la bulle passe sous les boutons et leur ligne d'aide, dans le vide de la pièce, sans queue
+  if (!cote && Wd.W < 760 && x < p[0] + hr * 1.4 && x + w > p[0] - hr * 1.4 && y < p[1] + Wd.s0 * 0.95 && y + h > p[1] - hr) {
+    const bt = document.querySelector('.ctas'), bb = bt && bt.getBoundingClientRect(); if (bb && bb.height) { y = bb.bottom + 26; x = Math.max(12, Math.min(Wd.W - w - 12, (bb.left + bb.right) / 2 - w / 2)); cote = true; } }
   bulle.classList.toggle('cote', cote);
   bulle.style.transform = `translate(${x | 0}px, ${y | 0}px)`; bulle.style.setProperty('--queue', `${Math.max(14, Math.min(w - 14, p[0] - x)) | 0}px`);
 }
