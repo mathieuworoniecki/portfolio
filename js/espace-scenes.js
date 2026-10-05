@@ -2453,6 +2453,23 @@ S.devops = (() => ({
     // s'affole (« 500 »), tout le circuit recule d'un coup (« rollback », des flèches qui tournent à l'envers), la boîte fautive est éjectée
     // en tournoyant hors de la boucle, puis tout repart vers l'avant, plus vite, jusqu'à rattraper son retard ; le pouls se calme, une coche
     const tr = a % 10, alerte = tr > 4.6 && tr < 6, rb = 2.4 * sm(c01((tr - 5.2) / 1.3)) - 2.4 * sm(c01((tr - 6.6) / 3)), ejq = 2, ej = c01((tr - 5.3) / 1.6);
+    // (vague 280 de l'audit, « DevOps et cloud », immersion) : l'observabilité couvre tout le ciel. Depuis l'écran de monitoring, un balayage de radar
+    // tourne jusqu'aux coins de l'écran sur de grands cercles de portée en pointillés ; partout dans le ciel, de petits serveurs de papier attendent ;
+    // le faisceau passe, chacun répond (une lumière, une coche). Pendant l'alerte « 500 », le faisceau passe au jaune et les serveurs répondent « ! »
+    if (!reduitMvt()) { const mw = Math.min(0.9, lx * 0.5) * k, mc = [G.cx, G.cy - k * 0.72], bdR = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, yT = G.haut + 8, yB = (G.caps || G.bas) - 6, tel3 = G.sw < 500,
+        Rm = Math.hypot(Math.max(mc[0] - G.gauche, G.droite - mc[0]), Math.max(mc[1] - yT, yB - mc[1])), ang = (now * (alerte ? 2.2 : 1.1)) % TAU, ap = c01(a / 1.5), coul = alerte ? '#ffd34d' : null;
+      ctx.save(); ctx.beginPath(); ctx.rect(-1e4, yT, 2e4, yB - yT); if (bdR) ctx.rect(bdR.x - 12, bdR.y - 12, bdR.w + 24, bdR.h + 24); ctx.clip('evenodd');
+      ctx.save(); ctx.setLineDash([G.lw * 2, G.lw * 6]); ctx.lineDashOffset = -now * 6; for (let j = 1; j <= 4; j++) { const rr = Rm * j / 4 * ap; if (rr < mw) continue; style(0.75, 0.6); ctx.beginPath(); ctx.arc(mc[0], mc[1], rr, 0, TAU); ctx.stroke(); } ctx.restore();
+      const R0 = mw * 0.6, Rf = Rm * ap; [0, 0.05, 0.1, 0.15].forEach((d, j) => { const an = ang - d, w = [2.6, 1.5, 0.9, 0.55][j];
+        ctx.save(); if (coul) { ctx.strokeStyle = coul; ctx.lineWidth = Math.max(1, G.lw * w); ctx.globalAlpha = 1; } else style(w, 1); ctx.beginPath(); ctx.moveTo(mc[0] + Math.cos(an) * R0, mc[1] + Math.sin(an) * R0); ctx.lineTo(mc[0] + Math.cos(an) * Rf, mc[1] + Math.sin(an) * Rf); ctx.stroke(); ctx.restore(); });
+      const nS = tel3 ? 10 : 20;
+      for (let j = 0; j < nS; j++) { const x = G.gauche + 24 + bruit(j * 5.3 + 1) * (G.droite - G.gauche - 48), y = yT + 20 + bruit(j * 2.9 + 7) * (yB - yT - 40), dx = x - mc[0], dy = y - mc[1], dist = Math.hypot(dx, dy);
+        if (dist > Rf || dist < mw * 0.9 || (bdR && y > bdR.y - 20 && y < bdR.y + bdR.h + 20 && x > bdR.x - 20 && x < bdR.x + bdR.w + 20)) continue;
+        if (Math.abs(dy) < k * 0.42 && Math.abs(dx) < sx * k * 1.05) continue;
+        const sz = (tel3 ? 9 : 12) * (0.8 + bruit(j * 1.7) * 0.5), pas = ((ang - Math.atan2(dy, dx)) % TAU + TAU) % TAU;
+        boite(x - sz, y - sz * 0.7, sz * 2, sz * 1.4, 2, 0.6, 1, true); [0, 1].forEach(l => trait([[x - sz * 0.7, y - sz * 0.25 + l * sz * 0.5], [x + sz * 0.3, y - sz * 0.25 + l * sz * 0.5]], false, 0.35, 0.8)); rond(x + sz * 0.62, y - sz * 0.25, 1.4, 0.4, 1, pas < 1.2);
+        if (pas < 1.2) { brille(x + sz, y - sz * 0.7, 2.6 * (1 - pas / 1.2) + 1, 1, true, now, 80 + j); if (alerte) mot('!', x, y - sz * 1.5, sz * 1.1, 1); else coche(x + sz * 1.4, y - sz * 1.1, sz * 0.5, c01(pas / 0.3), 1); } }
+      ctx.restore(); }
     const nC = 12 + Math.round(CHG * 12), conts = []; for (let q = 0; q < nC; q++) conts.push(((now * (0.5 + CHG * 0.4) + q / nC * TAU - rb) % TAU + TAU) % TAU);
     ST.forEach((t, i) => { const p = at(t), [tx, tz] = nor(t), G3 = (u, v, d) => V(p[0] - tz * u + tx * d, p[1] + v, p[2] + tx * u + tz * d);
       const vif = conts.some(u => Math.abs(Math.atan2(Math.sin(u - t), Math.cos(u - t))) < 0.12);
