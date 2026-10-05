@@ -2624,7 +2624,26 @@ S.devops = (() => ({
         cerne(() => { ctx.beginPath(); ctx.moveTo(q[0] - r, q[1]); ctx.lineTo(q[0] - r * 0.25, q[1] + r * 0.75); ctx.lineTo(q[0] + r * 1.1, q[1] - r * 0.9); }, 1.8, e, null); }
       else if (i === 2) { const q = G3(0, -0.34, 0), r = k * 0.05 * q[3] * (1 + e * 0.35);
         cerne(() => { ctx.beginPath(); ctx.arc(q[0] - r * 0.7, q[1], r * 0.55, Math.PI * 0.5, Math.PI * 1.5); ctx.arc(q[0], q[1] - r * 0.35, r * 0.75, Math.PI, 0); ctx.arc(q[0] + r * 0.75, q[1], r * 0.5, Math.PI * 1.5, Math.PI * 0.5); ctx.closePath(); }, 1, 1);
-        if (e > 0.3) mot('↑', q[0], q[1] + r * 0.2, Math.max(10, k * 0.06), e); }
+        if (e > 0.3) mot('↑', q[0], q[1] + r * 0.2, Math.max(10, k * 0.06), e);
+        // (vague 334 de l'audit, « DevOps et cloud », originalité) : le déploiement canari, au pied de la lettre. Toutes les six secondes, un petit
+        // canari jaune sort du nuage du portique avec la nouvelle version, monte en voletant et chante (« cui ! », des notes) : le trafic passe de
+        // 5 % à 100 %, une coche, et il redescend dans son nuage. Si l'alerte « 500 » tombe pendant son vol, il tourne de l'œil (✗) et tombe
+        // dans le nuage : c'est lui qui a prévenu, avant que tout le monde ne reçoive la version fautive
+        if (!reduitMvt()) { const ub = (now % 6) / 6, mo = ub < 0.75 ? sm(c01(ub / 0.15)) * (1 - sm(c01((ub - 0.62) / 0.13))) : 0, s0 = Math.max(7, k * 0.052 * q[3]), hb = k * 0.32;
+          if (mo > 0.01) { const tomb = alerte, bx = q[0] + Math.sin(ub * 9) * k * 0.05 * mo, by = q[1] - r * 0.6 - hb * mo * (tomb ? 0.25 : 1) + (tomb ? 0 : Math.sin(now * 7) * s0 * 0.3), fl = tomb ? 0 : Math.sin(now * 32);
+            ctx.save(); ctx.translate(bx, by); ctx.rotate(tomb ? Math.PI * 0.85 : Math.sin(now * 3) * 0.15);
+            cerne(() => { ctx.beginPath(); ctx.moveTo(-s0 * 0.9, s0 * 0.1); ctx.lineTo(-s0 * 1.5, s0 * 0.45); ctx.lineTo(-s0 * 1.4, -s0 * 0.05); ctx.closePath(); }, 0.6, 1, '#ffd34d');
+            cerne(() => { ctx.beginPath(); ctx.ellipse(0, 0, s0, s0 * 0.72, -0.15, 0, TAU); }, 0.7, 1, '#ffd34d');
+            cerne(() => { ctx.beginPath(); ctx.arc(s0 * 0.75, -s0 * 0.55, s0 * 0.5, 0, TAU); }, 0.7, 1, '#ffd34d');
+            cerne(() => { ctx.beginPath(); ctx.moveTo(s0 * 1.2, -s0 * 0.62); ctx.lineTo(s0 * 1.62, -s0 * 0.5); ctx.lineTo(s0 * 1.2, -s0 * 0.38); ctx.closePath(); }, 0.5, 1, PAP);
+            cerne(() => { ctx.beginPath(); ctx.moveTo(-s0 * 0.3, -s0 * 0.1); ctx.quadraticCurveTo(s0 * 0.1, -s0 * (0.2 + 0.9 * fl), s0 * 0.45, -s0 * 0.05); ctx.closePath(); }, 0.6, 1, '#ffd34d');
+            ctx.strokeStyle = ENC; ctx.fillStyle = ENC; ctx.lineWidth = G.lw * 0.5; ctx.globalAlpha = 1; const ex = s0 * 0.85, ey = -s0 * 0.62, er = s0 * 0.13;
+            if (tomb) { ctx.beginPath(); ctx.moveTo(ex - er, ey - er); ctx.lineTo(ex + er, ey + er); ctx.moveTo(ex + er, ey - er); ctx.lineTo(ex - er, ey + er); ctx.stroke(); } else { ctx.beginPath(); ctx.arc(ex, ey, er, 0, TAU); ctx.fill(); }
+            ctx.restore(); const fs = Math.max(10, k * 0.05);
+            if (tomb) mot(en() ? 'canary down' : 'canari KO', bx, by - s0 * 2.2, fs, 1);
+            else if (ub > 0.15 && ub < 0.62) { const pc = ub < 0.4 ? '5 %' : '100 %'; mot((en() ? 'canary ' : 'canari ') + pc, bx, by - s0 * 2.4, fs, 1);
+              for (let j = 0; j < 3; j++) { const v = ((now * 0.8 + j / 3) % 1); mot(j % 2 ? '♪' : '♫', bx + s0 * 1.6 + v * s0 * 2.5, by - s0 * 0.8 - v * s0 * 3, fs * (1 - v * 0.4), 0.9); }
+              if (ub > 0.45) coche(bx - s0 * 2, by - s0 * 1.2, s0 * 0.7, (ub - 0.45) / 0.08, 1); } } } }
       else if (i === 3) { const q = G3(0, -0.36, 0), r = k * 0.05 * q[3], near = conts.map(u => [u, Math.atan2(Math.sin(u - t), Math.cos(u - t))]).sort((a, b) => Math.abs(a[1]) - Math.abs(b[1]))[0], lo = clamp(-near[1] * 2, -1, 1);
         cerne(() => { ctx.beginPath(); ctx.moveTo(q[0] - r * 1.2, q[1]); ctx.quadraticCurveTo(q[0], q[1] - r * 0.95, q[0] + r * 1.2, q[1]); ctx.quadraticCurveTo(q[0], q[1] + r * 0.95, q[0] - r * 1.2, q[1]); ctx.closePath(); }, 1, 1);
         ctx.fillStyle = ENC; ctx.beginPath(); ctx.arc(q[0] + lo * r * 0.45, q[1], r * 0.32, 0, TAU); ctx.fill(); ctx.fillStyle = PAP; ctx.beginPath(); ctx.arc(q[0] + lo * r * 0.45 - r * 0.1, q[1] - r * 0.1, r * 0.09, 0, TAU); ctx.fill(); }
