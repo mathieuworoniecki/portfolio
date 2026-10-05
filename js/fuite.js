@@ -159,8 +159,8 @@ function planSerieux(W, Hh) {
 function etapes(o, fini) {
   const [W, Hh] = toileE(), T = 48, tu = [], dmax = Math.hypot(Math.max(o.x, W - o.x), Math.max(o.y, Hh - o.y));
   for (let y = 0; y < Hh; y += T) for (let x = 0; x < W; x += T) { const d = Math.hypot(x + T / 2 - o.x, y + T / 2 - o.y); tu.push({ x, y, t: T_TUILES + d / dmax * 1.0 + Math.random() * 0.12 }); }
-  E = { t0: performance.now() / 1000, o, W, Hh, T, tu, pl: planSerieux(W, Hh), fini, fin: T_TUILES + 1.12 + FLIP };
-  if (reduit) { E.t0 -= 99; }
+  E = { t0: performance.now() / 1000, w0: Wd.t, o, W, Hh, T, tu, pl: planSerieux(W, Hh), fini, fin: T_TUILES + 1.12 + FLIP };
+  if (reduit) { E.t0 -= 99; E.w0 -= 99; }
   cvE.style.display = 'block'; requestAnimationFrame(image);
 }
 /* (vague 265 de l'audit, immersion : « le passage au mode sérieux ») : le plan ne reste plus dans ses cadres. Comme sur une table à dessin,
@@ -202,7 +202,10 @@ function plume(c, x, y, ink) {
   c.beginPath(); c.moveTo(-5, -14); c.lineTo(5, -14); c.moveTo(0, -1); c.lineTo(0, -9); c.stroke(); c.restore();
 }
 function image() {
-  if (!E) return; const t = (performance.now() / 1000 - E.t0) * vit, { W, Hh, T } = E, c = xE; c.clearRect(0, 0, W, Hh);
+  // (vague 319 de l'audit, finition) : l'horloge suit celle de la pièce. Sur un appareil qui rame, la pièce (les chats, les lettres du titre
+  // qui tombent dans leurs trous) prenait du retard sur le tracé : le nom en lettres creuses s'écrivait par-dessus « Salut, moi c'est Mathieu. »
+  // encore debout ; le plan attend maintenant la pièce (jusqu'à 2,5 s de retard au plus, il ne reste jamais figé ; sur un appareil qui suit, rien ne change)
+  if (!E) return; const t = Math.max(Wd.t - E.w0, performance.now() / 1000 - E.t0 - 2.5) * vit, { W, Hh, T } = E, c = xE; c.clearRect(0, 0, W, Hh);
   const ink = `rgb(${(window.THEME && THEME.ink) || '34,36,40'})`; c.lineCap = c.lineJoin = 'round';
   // 2. les plumes tracent l'esquisse
   const pointes = []; esquisse(c, t, ink, pointes);
