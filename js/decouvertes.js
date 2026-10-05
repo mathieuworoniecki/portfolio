@@ -380,17 +380,27 @@ function guetteur() {
   panneau.appendChild(el);
   const place = () => { const r = pg.getBoundingClientRect(); G.l = r.left + 70; G.r = r.right - 70; G.top = r.top; if (!G.x) G.x = G.tx = r.left + r.width * 0.3; };
   place(); G.mode = '';
-  panneau.onpointermove = e => { G.tx = e.clientX; G.px = e.clientX; G.py = e.clientY; const li = e.target.closest && e.target.closest('.dex-page li'); G.mode = li ? (li.classList.contains('ok') ? 'ok' : 'q') : '';
-    // (vague 261 de l'audit, « le carnet », immersion) : le carnet parle à la pièce. Le pointeur sur le polaroïd d'un chat qui est là, derrière
-    // la page : ce chat-là se reconnaît, se dresse d'un bond vers le carnet et miaule (« c'est moi ! ») ; on le voit faire, derrière le papier
-    { const id = li && li.classList.contains('ok') && li.dataset.id || '', br = id.startsWith('race-') ? id.slice(5) : '';
-      if (br && br !== G.race) { const c = Wd.cats.find(c => c.breed === br && !c.gone && !c.hidden && !c.held && !c.fall); if (c && !c.perch && !c.jump && !c.temp && !(Wd.t - (c.dexT ?? -9) < 3)) { c.dexT = Wd.t; K.interrupt(c);
+  const reconnait = li => { let ok = false;
+    const id = li && li.classList.contains('ok') && li.dataset.id || '', br = id.startsWith('race-') ? id.slice(5) : '';
+      if (br && br !== G.race) { const c = Wd.cats.find(c => c.breed === br && !c.gone && !c.hidden && !c.held && !c.fall); if (c && (c.perch || c.jump) && !c.temp && !(Wd.t - (c.dexT ?? -9) < 3)) { c.dexT = Wd.t; ok = true; K.later(0.3, () => { if (Wd.cats.includes(c)) K.say(c, T(['c’est moi !', 'moi !', 'présent !'][Math.floor(Math.random() * 3)], ['that’s me!', 'me!', 'here!'][Math.floor(Math.random() * 3)])); }); }   // (perché ou en l'air : il ne saute pas, il répond de là-haut)
+        else if (c && !c.perch && !c.jump && !c.temp && !(Wd.t - (c.dexT ?? -9) < 3)) { c.dexT = Wd.t; ok = true; K.interrupt(c);
           // (derrière la page, on ne le verrait pas : il galope d'abord jusqu'au bord du carnet, du côté le plus proche où il reste de la place)
           const pr = pg.getBoundingClientRect(), m = K.sc(c) * 0.9, gx = pr.left - m > 40 ? pr.left - m : null, dx = pr.right + m < Wd.W - 20 ? pr.right + m : null;
           const tx = c.x > pr.left - m * 0.5 && c.x < pr.right + m * 0.5 ? (gx != null && (dx == null || c.x - gx < dx - c.x) ? gx : dx) : null;
           c.face = tx != null ? (tx < c.x ? 1 : -1) : c.x < Wd.W / 2 ? 1 : -1; c.q = [...(tx != null ? [K.go(K.inView(tx), { g: 'galop' })] : []), K.hop(() => K.groundAt(c.x, c.d), { h: K.sc(c) * 0.7, dur: 0.45 }), K.pose('miaule', 0.9), K.pose('assis', 1.5, { face: c.face })];
           K.later(tx != null ? Math.min(1.6, Math.abs(tx - c.x) / (K.sc(c) * 3)) + 0.25 : 0.25, () => { if (Wd.cats.includes(c)) K.say(c, T(['c’est moi !', 'moi !', 'présent !'][Math.floor(Math.random() * 3)], ['that’s me!', 'me!', 'here!'][Math.floor(Math.random() * 3)])); }); } }
-      G.race = br; }
+      G.race = br; return ok;
+  };
+  // (correctif du 05/10 : au téléphone, pas de survol, et le carnet couvre toute la pièce : on ne voyait jamais le chat se reconnaître) :
+  // toucher le polaroïd d'un chat qui est là le fait réagir aussi, et le carnet se soulève un instant pour montrer la pièce en dessous
+  panneau.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') return; const li = e.target.closest && e.target.closest('.dex-page li'); G.race = '';
+    if (li && reconnait(li) && Wd.W < 760) { const o = { duration: 3400 }, ea = 'cubic-bezier(.3,1.2,.5,1)', pp = panneau.querySelector('.dex-page');
+      if (pp) pp.animate([{ transform: 'translateY(0)', easing: ea }, { transform: 'translateY(-60dvh)', offset: 0.16 }, { transform: 'translateY(-58dvh)', offset: 0.84, easing: 'cubic-bezier(.5,0,.6,1.3)' }, { transform: 'translateY(0)' }], o);
+      panneau.animate([{ backdropFilter: 'blur(3px)' }, { backdropFilter: 'blur(0px)', offset: 0.16 }, { backdropFilter: 'blur(0px)', offset: 0.84 }, { backdropFilter: 'blur(3px)' }], o); } });
+  panneau.onpointermove = e => { G.tx = e.clientX; G.px = e.clientX; G.py = e.clientY; const li = e.target.closest && e.target.closest('.dex-page li'); G.mode = li ? (li.classList.contains('ok') ? 'ok' : 'q') : '';
+    // (vague 261 de l'audit, « le carnet », immersion) : le carnet parle à la pièce. Le pointeur sur le polaroïd d'un chat qui est là, derrière
+    // la page : ce chat-là se reconnaît, se dresse d'un bond vers le carnet et miaule (« c'est moi ! ») ; on le voit faire, derrière le papier
+    reconnait(li);
     // (vague 77) le polaroïd sous le pointeur bascule vers lui, et son reflet suit
     const fg = li && li.classList.contains('ph') ? li.querySelector('figure') : null;
     if (G.fig && G.fig !== fg) { G.fig.style.setProperty('--tx', '0deg'); G.fig.style.setProperty('--ty', '0deg'); G.fig.style.setProperty('--go', '0'); }
