@@ -1603,6 +1603,23 @@ S.flotte = (() => {
       // (vague 29, l'audit : « la flotte ») : autour de la tour, tout un quartier se bâtit en même temps, sur toute la largeur du ciel :
       // les chantiers parallèles du workflow multi-agents ; chacun monte à son rythme, un petit chat-robot sur son toit, ses fenêtres s'allument
       quartier(V, k, a, now, c, Cy);
+      // (vague 274 de l'audit, « la flotte », immersion) : le chantier n'est pas une île. De tous les bords du ciel, des couloirs aériens en
+      // pointillés convergent vers le sommet de la tour, et des chats-robots y arrivent en file, chacun son bloc de papier sous le bras : de près
+      // (grands, ils passent juste devant nous en entrant dans l'écran), puis de plus en plus petits jusqu'au toit, où ils posent. La tour
+      // livrée, on n'en lance plus : les derniers arrivent, les couloirs se vident
+      if (!reduitMvt()) { const bdL = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, PcL = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.chat, Wl = G.droite - G.gauche, hL = (G.caps || G.bas) - G.haut,
+          okL = q => q[1] > G.haut + 6 && q[1] < (G.caps || G.bas) - 6 && !(bdL && q[1] > bdL.y - 14 && q[1] < bdL.y + bdL.h + 14 && q[0] > bdL.x - 18 && q[0] < bdL.x + bdL.w + 18) && !(PcL && Math.hypot(q[0] - PcL.x, q[1] - PcL.y) < PcL.r * 1.35),
+          T = V(0, B0 - NE * EH - 0.08, 0), dur = 4.2, finC = NE * 0.55 + 0.3,
+          D = [[G.gauche - 40, G.haut + hL * 0.18], [G.gauche - 40, G.haut + hL * 0.62], [G.droite + 40, G.haut + hL * 0.1], [G.droite + 40, G.haut + hL * 0.55], [G.cx - Wl * 0.3, G.haut - 30], [G.cx + Wl * 0.18, G.haut - 30]];
+        D.forEach((A, j) => { const M = [(A[0] + T[0]) / 2 + (j % 2 ? 1 : -1) * Wl * 0.08, Math.min(A[1], T[1]) - hL * 0.12], at = u => [lerp(lerp(A[0], M[0], u), lerp(M[0], T[0], u), u), lerp(lerp(A[1], M[1], u), lerp(M[1], T[1], u), u)];
+          const ouv = sm(c01((c - 0.2 - j * 0.12) / 0.8)) * tas; if (ouv <= 0) return;
+          // (le couloir se trace depuis le bord, puis s'enroule vers le chantier quand tout est livré)
+          ctx.save(); ctx.setLineDash([G.lw * 2, G.lw * 5]); ctx.lineDashOffset = -now * 18; const Lc = []; for (let m = 0; m <= 30; m++) { const q = at(m / 30 * ouv); if (okL(q)) Lc.push(q); else if (Lc.length > 1) { trait(Lc, false, 0.5, 0.45); Lc.length = 0; } else Lc.length = 0; } if (Lc.length > 1) trait(Lc, false, 0.5, 0.45); ctx.restore();
+          for (let m = 0; m < 3; m++) { const ph = (now / dur + m / 3 + j * 0.23), u = ph - Math.floor(ph), cL = c - u * dur; if (cL < 0.6 || cL > finC || u > ouv) continue;
+            const P = at(u), P2 = at(Math.min(1, u + 0.02)), r = lerp(k * 0.075, k * 0.026, Math.pow(u, 0.7)) * Math.min(1.2, Wl / 900 + 0.5); if (!okL(P) || P[1] - r * 3 < G.haut) continue;
+            chabot(P[0], P[1], r, { now, ph: j * 7 + m, casque: r > 9, lac: P2[0] > P[0] ? 0.5 : -0.5, bras: [1.2, 0.4] });
+            const bx = P[0] + (P2[0] > P[0] ? 1 : -1) * r * 0.9, by = P[1] - r * 2.1; cerne(() => { ctx.beginPath(); ctx.rect(bx - r * 0.45, by - r * 0.35, r * 0.9, r * 0.7); }, 0.5, 1);
+            if (u > 0.94) eclat(T[0], T[1], k * 0.06, (u - 0.94) / 0.06, 6, j * 3 + m); } }); }
       // (vague 57 : l'essaim, la tour et son drapeau restent entre la barre des chapitres et les sous-titres)
       sousLaBarre(); ctx.beginPath(); ctx.rect(-1e4, G.haut - 4, 2e4, (G.caps || G.bas) - G.haut + 4); ctx.clip();
       // l'essaim : chacun son orbite ; de temps en temps, l'un plonge vers le sommet avec son bloc
