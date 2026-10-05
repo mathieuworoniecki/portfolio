@@ -1012,6 +1012,30 @@ function boucleSortie(id) {
 
 Wd.ail = { on: () => !!(Wd.trou || Wd.espace || RV), step: dt => (Wd.trou ? aspiration(dt) : RV ? sortant(dt) : espace(dt)), draw() {}, click: (x, y) => RV ? true : click(x, y), grab: (x, y) => RV ? null : grab(x, y), drag, release };
 // pour les modules de l'espace
+/* (vague 286 de l'audit, « les chats en apesanteur », immersion) : le vide n'est pas vide. Tout le ciel baigne dans une fine poussière
+   en suspension, de bord à bord ; elle ne bouge presque pas toute seule, mais chaque chat qui nage, dérive ou est lancé la remue : elle
+   s'écarte devant lui, tourbillonne dans son sillage et met longtemps à se calmer, en petits traits qui montrent son courant. On voit
+   l'apesanteur partout, même loin des chats (jamais sur les sous-titres ni sous la barre du haut) */
+const POUSS = { L: null, t: null };
+X.fond.push((c2, now) => {
+  if (reduit) return;
+  const n = W < 600 ? 110 : 220, dt = POUSS.t == null ? 0 : Math.min(0.05, Math.max(0, now - POUSS.t)); POUSS.t = now;
+  if (!POUSS.L || POUSS.L.length !== n || POUSS.W !== W || POUSS.H !== H) { POUSS.W = W; POUSS.H = H; POUSS.L = Array.from({ length: n }, () => ({ x: Math.random() * W, y: Math.random() * H, vx: 0, vy: 0, r: 0.7 + Math.random() * 0.9 })); }
+  const C = Wd.cats.filter(c => !c.gone && c.sp && c.s > 0.01).map(c => { const [x, y] = centreDe(c); return { x, y, R: rayon(c) * 3.6, vx: c.sp.vx || 0, vy: c.sp.vy || 0 }; });
+  const PL = window.EspacePlume && EspacePlume.M, bd = PL && PL.bande, hb = PL && PL.lay && PL.lay.G ? PL.lay.G.haut - 4 : HAUT();
+  c2.save(); c2.beginPath(); c2.rect(0, hb, W, H - hb); if (bd) c2.rect(bd.x - 12, bd.y - 10, bd.w + 24, bd.h + 20); c2.clip('evenodd');
+  { const T = window.EspacePlanetes && EspacePlanetes.P && EspacePlanetes.P.terre; if (T) { c2.beginPath(); c2.rect(-10, -10, W + 20, H + 20); c2.moveTo(T.cx + T.R + 2, T.cy); c2.arc(T.cx, T.cy, T.R + 2, 0, TAU, true); c2.clip('evenodd'); } }
+  c2.strokeStyle = c2.fillStyle = '#F4F4EE'; c2.lineCap = 'round'; c2.globalAlpha = 0.7;
+  POUSS.L.forEach(p => {
+    for (const c of C) { const dx = p.x - c.x, dy = p.y - c.y, d = Math.hypot(dx, dy); if (d > c.R || d < 1) continue; const f = (1 - d / c.R) * dt * 5;
+      p.vx += c.vx * f * 0.6 + dx / d * 60 * f - dy / d * 40 * f; p.vy += c.vy * f * 0.6 + dy / d * 60 * f + dx / d * 40 * f; }
+    const amo = Math.exp(-dt * 0.45); p.vx = p.vx * amo + Math.sin(now * 0.2 + p.r * 9) * dt * 1.5; p.vy = p.vy * amo + Math.cos(now * 0.17 + p.r * 7) * dt * 1.5;
+    p.x += p.vx * dt; p.y += p.vy * dt; if (p.x < -10) p.x += W + 20; else if (p.x > W + 10) p.x -= W + 20; if (p.y < -10) p.y += H + 20; else if (p.y > H + 10) p.y -= H + 20;
+    const v = Math.hypot(p.vx, p.vy);
+    if (v > 5) { const L = Math.min(24, v * 0.14); c2.lineWidth = p.r * 1.1; c2.beginPath(); c2.moveTo(p.x, p.y); c2.lineTo(p.x - p.vx / v * L, p.y - p.vy / v * L); c2.stroke(); }
+    else { c2.beginPath(); c2.arc(p.x, p.y, p.r * 0.75, 0, TAU); c2.fill(); } });
+  c2.restore(); c2.globalAlpha = 1;
+});
 /* (vague 27, l'audit : « les chats en apesanteur ») : dans le vide, un chat qui nage laisse un sillage de poussière d'étoiles ;
    et quand des chats flottent près les uns des autres, des pointillés les relient : ils forment une constellation, qui a son nom
    (à trois ou plus : « la Grande Minette », « Minou Major »…), écrit à la main à côté, tant qu'ils restent ensemble */
