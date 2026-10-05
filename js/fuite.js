@@ -111,7 +111,7 @@ function toileE() {
 // les traits qui passent dessus deviennent blancs : le croquis au crayon devient le plan bleu, puis la vraie page arrive par-dessus.
 function planSerieux(W, Hh) {
   const P = [], sx = W / 1280, sy = Hh / 760, tel = W < 900;
-  const poly = (L, t, d) => P.push({ L, t, d }), rect = (x, y, w, h, t, d) => poly([[x, y], [x + w, y], [x + w, y + h], [x, y + h], [x, y]], t, d);
+  const poly = (L, t, d) => P.push({ L, t, d }), rect = (x, y, w, h, t, d) => { poly([[x, y], [x + w, y], [x + w, y + h], [x, y + h], [x, y]], t, d); P[P.length - 1].R = [x, y, w, h]; };
   const ell = (cx, cy, rx, ry, rot, t, d) => { const L = []; for (let i = 0; i <= 48; i++) { const a = i / 48 * TAU, x = Math.cos(a) * rx, y = Math.sin(a) * ry; L.push([cx + x * Math.cos(rot) - y * Math.sin(rot), cy + x * Math.sin(rot) + y * Math.cos(rot)]); } poly(L, t, d); };
   const ecrit = (x, y, w, t, d) => { const L = [], n = Math.max(8, Math.round(w / 7)); for (let i = 0; i <= n; i++) L.push([x + w * i / n, y + Math.sin(i * 1.9) * 3 + (i % 3 === 0 ? -2 : 0)]); poly(L, t, d); };
   const mot = (s, x, y, fs, t, d) => P.push({ s, x, y, fs, t, d });
@@ -163,8 +163,28 @@ function etapes(o, fini) {
   if (reduit) { E.t0 -= 99; }
   cvE.style.display = 'block'; requestAnimationFrame(image);
 }
+/* (vague 265 de l'audit, immersion : « le passage au mode sérieux ») : le plan ne reste plus dans ses cadres. Comme sur une table à dessin,
+   chaque cadre que les plumes commencent lance ses lignes de construction : de ses coins, des traits fins filent jusqu'aux bords de l'écran,
+   à l'horizontale et à la verticale, et les plus grands reçoivent leur cote (une flèche à chaque bout, la mesure écrite au milieu). Tout l'écran
+   devient la feuille du plan ; quand les carreaux passent au bleu, ces traits deviennent blancs avec le reste. */
+function construction(c, t, col) {
+  const { W, Hh } = E, h0 = 64, h1 = Hh - 8;
+  c.save(); c.strokeStyle = c.fillStyle = col; c.lineWidth = 0.8; c.setLineDash([6, 5]); c.globalAlpha = 0.45;
+  E.pl.forEach(P => { if (!P.R) return; const u = c01((t - T_TRACE - P.t) / 0.35); if (u <= 0) return; const [x, y, w, h] = P.R, e = 1 - Math.pow(1 - u, 3);
+    [[x, y], [x + w, y + h]].forEach(([px, py]) => { c.beginPath();
+      c.moveTo(px, py); c.lineTo(px + (px < W / 2 ? -1 : 1) * (px < W / 2 ? px : W - px) * e, py);
+      if (py > h0 && py < h1) { c.moveTo(px, py); c.lineTo(px, py + (py < Hh / 2 ? h0 - py : h1 - py) * e); }
+      c.stroke(); }); });
+  c.setLineDash([]); c.globalAlpha = 0.7; c.font = `500 11px ${FONTE}`; c.textAlign = 'center';
+  E.pl.forEach(P => { if (!P.R || P.R[2] < 110) return; const u = c01((t - T_TRACE - P.t - 0.15) / 0.3); if (u <= 0) return; const [x, y, w] = P.R, yy = y - 9, m = x + w / 2, hw = w / 2 * u;
+    if (yy < h0) return;
+    c.beginPath(); c.moveTo(m - hw, yy); c.lineTo(m + hw, yy); [-1, 1].forEach(sd => { const ex = m + sd * hw; c.moveTo(ex - sd * 6, yy - 3); c.lineTo(ex, yy); c.lineTo(ex - sd * 6, yy + 3); c.moveTo(ex, yy - 5); c.lineTo(ex, yy + 5); }); c.stroke();
+    if (u >= 1) c.fillText(String(Math.round(w)), m, yy - 4); });
+  c.restore();
+}
 // dessine l'esquisse telle qu'elle est à l'instant t ; renvoie les pointes des plumes qui écrivent encore
 function esquisse(c, t, col, pointes) {
+  construction(c, t, col);
   c.strokeStyle = col; c.lineWidth = 2.2;
   E.pl.forEach(P => { const u = c01((t - T_TRACE - P.t) / P.d); if (u <= 0) return;
     if (P.s) { c.font = `700 ${P.fs}px ${FONTE}`; const w = c.measureText(P.s).width; c.save(); c.beginPath(); c.rect(P.x - 4, P.y - P.fs, (w + 8) * u, P.fs * 1.2); c.clip();
