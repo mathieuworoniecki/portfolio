@@ -6,6 +6,7 @@ window.EspaceCasque = (() => {
 if (!window.TrouNoir || !TrouNoir.outils) return null;
 const O = TrouNoir.outils, { X, K, centreDe, rayon, say } = O, { Wd, rnd, pick, clamp, sgn } = K;
 const TAU = Math.PI * 2, BL = '244,244,238';
+const reduit = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 const en = () => window.I18N && I18N.lang && I18N.lang !== 'fr';
 
 let C = null, prochain = null;   // C : { x, y, vx, vy, rot, w, r, porte (le chat), vise (le chat qui nage vers lui), fin }
@@ -174,6 +175,18 @@ X.devant.push((ctx, now) => {
       ctx.fillStyle = 'rgb(34,36,40)'; [[-0.25, -0.65], [0.25, -0.65], [-0.25, 0.2], [0.25, 0.2]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x * r, y * r, Math.max(0.8, r * 0.06), 0, TAU); ctx.fill(); });
       if (u > 0 && u < 1) [-1, 1].forEach(g => { const L = r * (1.1 + 0.5 * Math.sin(now * 40 + g)); ctx.fillStyle = '#ffd27a'; ctx.strokeStyle = `rgb(${BL})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(g * r * 0.55 - r * 0.3, r * 0.95); ctx.quadraticCurveTo(g * r * 0.55, r * 0.95 + L * 1.6, g * r * 0.55 + r * 0.3, r * 0.95); ctx.closePath(); ctx.fill(); ctx.stroke(); });
       ctx.restore(); } }
+  // (vague 285 de l'audit, « le casque », immersion) : sa radio porte jusqu'aux bords de l'écran. À la dérive, son antenne émet une balise :
+  // un anneau en pointillés part d'elle toutes les quatre secondes et traverse tout le ciel (c'est elle qui appelle les chats) ; porté, il parle
+  // à Houston : trois ondes tremblées partent ensemble, plus serrées, jusqu'aux coins de l'écran (jamais sur les sous-titres ni sous la barre du haut)
+  if (!reduit) { const hp = C.porte ? tete(C.porte) : { x: C.x, y: C.y, r: C.r }, ro = C.porte ? (C.porte.spin || 0) : C.rot, ax = hp.x + Math.cos(ro) * hp.r * 0.64 + Math.sin(ro) * hp.r * 1.36, ay = hp.y + Math.sin(ro) * hp.r * 0.64 - Math.cos(ro) * hp.r * 1.36,
+      M = Math.hypot(Math.max(ax, O.W - ax), Math.max(ay, O.H - ay)), per = C.porte ? 2.8 : 4, u = ((now - (C.t0 || 0)) % per) / per * (C.porte ? 1.1 : 1.6), v = M / 1,
+      bd = window.EspacePlume && EspacePlume.M && EspacePlume.M.bande, Gp = window.EspacePlume && EspacePlume.M && EspacePlume.M.lay && EspacePlume.M.lay.G, hb = Gp ? Gp.haut - 4 : O.HAUT();
+    ctx.save(); ctx.beginPath(); ctx.rect(0, hb, O.W, O.H - hb); if (bd) ctx.rect(bd.x - 14, bd.y - 10, bd.w + 28, bd.h + 20); ctx.moveTo(ax + hp.r * 1.4, ay); ctx.arc(ax, ay, hp.r * 1.4, 0, TAU, true); ctx.clip('evenodd');
+    ctx.strokeStyle = `rgb(${BL})`; ctx.setLineDash(C.porte ? [] : [4, 7]); ctx.lineDashOffset = -now * 10;
+    for (let i = 0; i < (C.porte ? 3 : 1); i++) { const rr = hp.r * 0.3 + (u - i * 0.09) * v; if (rr < hp.r * 0.3 || rr > M) continue; ctx.lineWidth = Math.max(0.6, (C.porte ? 1.6 : 1.3) * (1 - rr / M * 0.6));
+      ctx.beginPath(); for (let k = 0; k <= 140; k++) { const a = k / 140 * TAU, w = rr + (C.porte ? Math.sin(a * 13 + now * 22 + i * 2) * (1.5 + rr * 0.005) : 0); k ? ctx.lineTo(ax + Math.cos(a) * w, ay + Math.sin(a) * w) : ctx.moveTo(ax + Math.cos(a) * w, ay + Math.sin(a) * w); } ctx.stroke(); }
+    ctx.restore();
+    if (C.porte && u < 0.3) { ctx.save(); ctx.fillStyle = `rgb(${BL})`; ctx.font = `600 ${Math.max(12, hp.r * 0.45)}px "Caveat","Segoe Print",cursive`; ctx.textAlign = 'center'; ctx.fillText('bip', ax + hp.r * 0.6, ay - hp.r * 0.35); ctx.restore(); } }
   if (C.porte) { const h = tete(C.porte); dessine(ctx, h.x, h.y, h.r, C.porte.spin || 0, now, C.porte); }
   else dessine(ctx, C.x, C.y, C.r, C.rot, now);
 });
