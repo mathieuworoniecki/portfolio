@@ -1373,6 +1373,13 @@ function towerFrame(dt) {
         later(0.4, () => say(k, pick(['coucou !', 'on m’a oublié ?', 'surprise !', 'j’étais dedans !'])));
         k.q = [pose('assis', 0.8), go(f > 0 ? Wd.W + sc(k) * 2 : -sc(k) * 2, { g: 'galop', v: 1.2 }), fn(k => { k.gone = true; })]; if (window.Dex) Dex.vu('surprise'); } }
       b.wasFall = b.fall; });
+    // (vague 256 de l'audit, « la tour », immersion) : le désastre devient un terrain de jeu. Une fois tout retombé, les chats de la maison
+    // accourent de partout dans la pièce, chacun vers sa caisse (« à moi ! », « celle-là ! ») ; ils sautent dedans et s'y installent, en pain ;
+    // la pièce entière converge vers les débris, puis l'équipe du ménage vient les déloger
+    if (T.grand && !T.aMoi && T.t > 2.2) { T.aMoi = true; const L = T.boxes.filter(b => Wd.props.includes(b) && !b.fall && !b.busy && b.perches && b.perches.length);
+      const libres = Wd.cats.filter(k => !k.temp && !k.rare && free4(k)); let n = 0;
+      L.sort(() => Math.random() - 0.5).forEach(b => { if (n >= 4 || !libres.length) return; libres.sort((a, c) => Math.abs(a.x - xOf(b)) - Math.abs(c.x - xOf(b)));
+        const k = libres.shift(); n++; later(n * 0.25, () => { if (!Wd.props.includes(b) || b.busy || b.fall || !free4(k)) return; interrupt(k); hide(k, b); say(k, pick(['à moi !', 'celle-là !', 'c’est la mienne !', 'ma maison !'])); }); }); }
   } else if (T.phase === 'chute' && T.t > 10) {
     // (vague 3 de l'audit : les caisses ne s'effacent plus) : l'équipe du ménage débarque au galop et les pousse hors de l'écran
     T.phase = 'fin'; T.t = 0; const L = T.boxes.filter(b => Wd.props.includes(b)); L.forEach(b => { b.balaiOK = true; });
