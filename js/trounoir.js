@@ -476,15 +476,15 @@ X.pas.push(() => {
   VI.fait = true; VI.c = c; VI.t0 = Wd.t; VI.x0 = c.x; VI.y0 = c.y; VI.k = clamp(Math.min(W, H) * (W >= 760 ? 0.22 : 0.2) / Math.max(8, rayon(c)), 2.2, 6); c.sp.m = 'vitre'; c.spin = 0; c.sp.vx = c.sp.vy = 0;
   // (vague 322 de l'audit, « les titres en étoiles » : le chat écrasé couvrait le début du titre) : il vise la vitre sous le titre en étoiles,
   // jamais dessus ; à plat, il fait à peu près VI.k fois sa taille
-  VI.k = clamp(Math.min(W, H) * 0.14 / Math.max(8, rayon(c)), 2.2, 6); VI.Z = null; cibleVitre();
+  VI.k = clamp(Math.min(W, H) * (W >= 760 ? 0.14 : 0.12) / Math.max(8, rayon(c)), 2.2, 6); VI.Z = null; cibleVitre();
 });
 // (s'il y a la place à gauche du titre, il s'écrase à côté, à sa hauteur ; sinon en dessous ; au téléphone, sous le titre, c'est la bande
-// des sous-titres : au-dessus) ; le titre n'est pas encore là : la cible se recale dès qu'il paraît, tant que le chat est en route
+// des sous-titres : au-dessus ; c.y, ce sont ses pieds : tout son corps et sa queue au-dessus, sous la barre du haut) ; le titre n'est pas encore là : la cible se recale dès qu'il paraît, tant que le chat est en route
 function cibleVitre() {
-  const R = Math.min(W, H) * 0.14, Z = window.EspaceNuee && EspaceNuee.zoneTitre && EspaceNuee.zoneTitre();
+  const R = Math.min(W, H) * (W >= 760 ? 0.14 : 0.12), Z = window.EspaceNuee && EspaceNuee.zoneTitre && EspaceNuee.zoneTitre();
   VI.tx = W >= 760 ? W * 0.17 : W * 0.3; VI.ty = H * (W >= 760 ? 0.5 : 0.2); VI.Z = Z;
   if (Z && Z.x0 > R * 1.6) { VI.tx = Z.x0 - R; VI.ty = clamp((Z.y0 + Z.y1) / 2 + R * 0.3, H * 0.36, H * 0.6); }
-  else if (Z) VI.ty = W >= 760 ? clamp(Z.y1 + R * 1.05, H * 0.3, H * 0.62) : clamp(Z.y0 - R * 1.15, H * 0.16, H * 0.3);
+  else if (Z) VI.ty = W >= 760 ? clamp(Z.y1 + R * 1.05, H * 0.3, H * 0.62) : Math.min(H * 0.32, Math.max(H * 0.135 + R * 2.2, Z.y0 - R * 0.3));
 }
 X.mode.vitre = (c, dt) => {
   // (vague 230 de l'audit, design : écrasé au milieu de l'écran, le chat de la vitre cachait le titre en étoiles puis le dessin de la première scène) :

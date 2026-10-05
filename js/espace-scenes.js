@@ -573,22 +573,24 @@ function tmux(o, now) {
   o.save(); o.setTransform(dp, 0, 0, dp, 0, 0); o.lineCap = o.lineJoin = 'round';
   // (vague 231 de l'audit, design : le trait vertical traversait la barre des chapitres et la barre d'état se collait tout en haut, au-dessus
   // du logo) : les volets commencent sous la barre du haut, et la barre d'état se pose juste dessous
-  const Ly0 = window.EspacePlume && EspacePlume.M && EspacePlume.M.lay, hautB = Ly0 && Ly0.barre ? Ly0.barre.bas + 4 : 0;
-  o.beginPath(); o.rect(0, 0, W, H); if (hautB) o.rect(0, 0, W, hautB); if (bd) o.rect(bd.x - 16, bd.y - 12, bd.w + 32, bd.h + 24); if (Pc) { o.moveTo(Pc.x + Pc.r * 1.2, Pc.y); o.arc(Pc.x, Pc.y, Pc.r * 1.2, 0, TAU); } o.clip('evenodd');
+  // (vague 324 de l'audit, finition : les traits descendaient jusqu'en bas, à travers la Terre et la barre du bas) : la fenêtre s'arrête
+  // au bord de la Terre, qui lui sert de bas d'écran
+  const Ly0 = window.EspacePlume && EspacePlume.M && EspacePlume.M.lay, hautB = Ly0 && Ly0.barre ? Ly0.barre.bas + 4 : 0, Hb = Ly0 && Ly0.G && Ly0.G.bas > H * 0.4 ? Math.min(H, Ly0.G.bas + 4) : H;
+  o.beginPath(); o.rect(0, 0, W, Hb); if (hautB) o.rect(0, 0, W, hautB); if (bd) o.rect(bd.x - 16, bd.y - 12, bd.w + 32, bd.h + 24); if (Pc) { o.moveTo(Pc.x + Pc.r * 1.2, Pc.y); o.arc(Pc.x, Pc.y, Pc.r * 1.2, 0, TAU); } o.clip('evenodd');
   // (au redécoupage, l'ancien découpage se rétracte vers la souris pendant que le nouveau pousse : jamais d'image vide)
   const tN = now - TMX.t0, R = 0.45; if (TMX.vieux && tN < R) dessineL(TMX.vieux, 99, TMX.k * (1 - sm(tN / R)), false);
   dessineL(TMX.L, TMX.vieux ? tN - R : tN, TMX.k, true);
   o.restore();
   function dessineL(L, t, k, principal) {
   const g = (d, dur) => sm(c01((t - d) / dur)) * k;   // la pousse d'un trait (et sa rétractation, avec k)
-  const panes = [[0, 0, L.x, L.yA], [0, L.yA, L.x, H], [L.x, 0, W, L.yB], [L.x, L.yB, W, H]];
+  const yA = Math.min(L.yA, Hb - 40), yB = Math.min(L.yB, Hb - 40), panes = [[0, 0, L.x, yA], [0, yA, L.x, Hb], [L.x, 0, W, yB], [L.x, yB, W, Hb]];
   const act = P ? panes.findIndex(q => P.x >= q[0] && P.x < q[2] && P.y >= q[1] && P.y < q[3]) : -1; if (principal) TMX.act = act;
   const trait = (x0, y0, x1, y1, f, vert) => { if (f <= 0) return; const mx = lerp(x0, x1, 0.5), my = lerp(y0, y1, 0.5);
     [[NUIT, 4], [`rgba(${BL},0.55)`, 1.2]].forEach(([c, w]) => { o.strokeStyle = c; o.lineWidth = w; o.beginPath(); o.moveTo(lerp(mx, x0, f), lerp(my, y0, f)); o.lineTo(lerp(mx, x1, f), lerp(my, y1, f)); o.stroke(); }); };
   // les traits : le vertical part de la souris, puis les deux horizontaux ; sur le trait, les petits « │ » des bords de volets, comme dans un terminal
   const fV = g(0, 0.5), fA = g(0.35, 0.45), fB = g(0.55, 0.45);
-  { const y0 = P ? clamp(P.y, 0, H) : H / 2; [[NUIT, 4], [`rgba(${BL},0.55)`, 1.2]].forEach(([c, w]) => { o.strokeStyle = c; o.lineWidth = w; o.beginPath(); o.moveTo(L.x, y0 - fV * (y0 + 10)); o.lineTo(L.x, y0 + fV * (H - y0 + 10)); o.stroke(); }); }
-  trait(L.x, L.yA, 0, L.yA, fA * 2 > 1 ? 1 : fA * 2, false); trait(L.x, L.yB, W, L.yB, fB * 2 > 1 ? 1 : fB * 2, false);
+  { const y0 = P ? clamp(P.y, 0, H) : H / 2; [[NUIT, 4], [`rgba(${BL},0.55)`, 1.2]].forEach(([c, w]) => { o.strokeStyle = c; o.lineWidth = w; o.beginPath(); o.moveTo(L.x, y0 - fV * (y0 + 10)); o.lineTo(L.x, y0 + fV * (Hb - y0 + 10)); o.stroke(); }); }
+  trait(L.x, yA, 0, yA, fA * 2 > 1 ? 1 : fA * 2, false); trait(L.x, yB, W, yB, fB * 2 > 1 ? 1 : fB * 2, false);
   o.lineWidth = 1.2; o.strokeStyle = `rgba(${BL},0.55)`;
   // le volet actif : son cadre en vert, qui suit la souris d'un volet à l'autre
   if (act >= 0 && fB > 0.5) { const q = panes[act], m = 3; o.strokeStyle = NUIT; o.lineWidth = 4.5; o.strokeRect(q[0] + m, q[1] + m, q[2] - q[0] - m * 2, q[3] - q[1] - m * 2); o.strokeStyle = `rgba(143,224,160,${0.85 * k})`; o.lineWidth = 1.6; o.strokeRect(q[0] + m, q[1] + m, q[2] - q[0] - m * 2, q[3] - q[1] - m * 2); }
@@ -857,10 +859,10 @@ function boite3(V, x0, x1, y0, y1, z0, z1, w = 0.9, a = 1) {
 function sortieEVA(now) {
   const P = 15, n = Math.floor(now / P), u = (now % P) / P, sd = n % 2 ? -1 : 1, W = G.droite - G.gauche, H = G.bas - G.haut; if (W < 50 || H < 80) return;
   // (vague 323 de l'audit, « l'équipe », design : au plus près, il passait pile au milieu et cachait Mathieu sur son pupitre) : il arrive
-  // lentement et n'est au plus près qu'aux trois quarts de sa traversée, sur le côté ; puis il file au loin, vite
-  const wp = u < 0.78 ? u / 0.78 * 0.5 : 0.5 + (u - 0.78) / 0.22 * 0.5, pr = Math.sin(Math.PI * wp), pr2 = pr * pr * pr * pr, rmax = Math.min(W, H * 1.1) * (W < 500 ? 0.13 : 0.17), r = rmax * (0.1 + 0.9 * pr2);
+  // lentement, s'écarte du milieu à mesure qu'il grossit, n'est au plus près qu'aux deux tiers de sa traversée, sur le côté ; puis il file au loin, vite
+  const wp = u < 0.7 ? u / 0.7 * 0.5 : 0.5 + (u - 0.7) / 0.3 * 0.5, pr = Math.sin(Math.PI * wp), pr2 = pr * pr * pr * pr, rmax = Math.min(W, H * 1.1) * (W < 500 ? 0.13 : 0.17), r = rmax * (0.1 + 0.9 * pr2);
   // (vague 323 : au téléphone, ses pieds touchaient les sous-titres)
-  const nav = [G.cx - sd * W * 0.36, G.haut + H * 0.12], x = G.cx + sd * W * (u - 0.5) * 1.05, y = Math.min(G.haut + H * (0.2 + 0.32 * pr) + Math.sin(now * 0.9) * H * 0.03, G.bas - r * 1.7);
+  const nav = [G.cx - sd * W * 0.36, G.haut + H * 0.12], x = G.cx + sd * W * ((u - 0.5) * 1.05 + 0.15 * pr2), y = Math.min(G.haut + H * (0.2 + 0.32 * pr) + Math.sin(now * 0.9) * H * 0.03, G.bas - r * 1.7);
   sousLaBarre();
   rond(nav[0], nav[1], 5, 1.4, 0.9); trait([[nav[0] - 14, nav[1]], [nav[0] - 5, nav[1]]], false, 1.4, 0.9); trait([[nav[0] + 5, nav[1]], [nav[0] + 14, nav[1]]], false, 1.4, 0.9);
   rond(nav[0], nav[1], 1.6 + Math.abs(Math.sin(now * 3)) * 1.5, 1, 1, true);
