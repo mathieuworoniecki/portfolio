@@ -856,8 +856,10 @@ function boite3(V, x0, x1, y0, y1, z0, z1, w = 0.9, a = 1) {
 // (dessinée par-dessus la scène : derrière, les terminaux le cachaient)
 function sortieEVA(now) {
   const P = 15, n = Math.floor(now / P), u = (now % P) / P, sd = n % 2 ? -1 : 1, W = G.droite - G.gauche, H = G.bas - G.haut; if (W < 50 || H < 80) return;
-  const pr = Math.sin(Math.PI * u), pr2 = pr * pr * pr * pr, rmax = Math.min(W, H * 1.1) * (W < 500 ? 0.13 : 0.17), r = rmax * (0.1 + 0.9 * pr2);
-  const nav = [G.cx - sd * W * 0.36, G.haut + H * 0.12], x = G.cx + sd * W * (u - 0.5) * 1.05, y = G.haut + H * (0.2 + 0.32 * pr) + Math.sin(now * 0.9) * H * 0.03;
+  // (vague 323 de l'audit, « l'équipe », design : au plus près, il passait pile au milieu et cachait Mathieu sur son pupitre) : il arrive
+  // lentement et n'est au plus près qu'aux trois quarts de sa traversée, sur le côté ; puis il file au loin, vite
+  const wp = u < 0.78 ? u / 0.78 * 0.5 : 0.5 + (u - 0.78) / 0.22 * 0.5, pr = Math.sin(Math.PI * wp), pr2 = pr * pr * pr * pr, rmax = Math.min(W, H * 1.1) * (W < 500 ? 0.13 : 0.17), r = rmax * (0.1 + 0.9 * pr2);
+  const nav = [G.cx - sd * W * 0.36, G.haut + H * 0.12], x = G.cx + sd * W * (u - 0.5) * 1.05, y = Math.min(G.haut + H * (0.2 + 0.32 * pr) + Math.sin(now * 0.9) * H * 0.03, G.bas - r * 1.7);   // (vague 323 : au téléphone, ses pieds touchaient les sous-titres)
   sousLaBarre();
   rond(nav[0], nav[1], 5, 1.4, 0.9); trait([[nav[0] - 14, nav[1]], [nav[0] - 5, nav[1]]], false, 1.4, 0.9); trait([[nav[0] + 5, nav[1]], [nav[0] + 14, nav[1]]], false, 1.4, 0.9);
   rond(nav[0], nav[1], 1.6 + Math.abs(Math.sin(now * 3)) * 1.5, 1, 1, true);
@@ -961,8 +963,9 @@ S.equipe = (() => {
         // (ils ne passent ni sur la planète des chats ni hors du ciel)
         if (pc && Math.hypot(x - pc.x, y - r - pc.y) < pc.r * 1.3 + r) return;
         const L = sn < 0 ? derriere : devant, z = sn * (1 + f.i);
+        // (vague 323 : au téléphone, l'arc du saut montait sur la barre des chapitres ; il s'aplatit sous elle)
         if (c < t1 + 0.55) { const e = sm((c - t1) / 0.55), pop = 1 + 0.35 * Math.sin(Math.PI * e);
-          devant.push({ z: 99, f: () => { const q = [lerp(coeur[0], x, e), lerp(coeur[1], y, e) - Math.sin(Math.PI * e) * G.s * 0.45]; chabot(q[0], q[1] - r * 1.75, lerp(r * 0.3, r, e) * pop, { now, ph: f.id, bras: [1.4, 1.4], casque: r > 9 });
+          devant.push({ z: 99, f: () => { const hb = Math.min(G.s * 0.45, Math.max(0, Math.min(coeur[1], y) - G.haut - r * 3.2)), q = [lerp(coeur[0], x, e), lerp(coeur[1], y, e) - Math.sin(Math.PI * e) * hb]; chabot(q[0], q[1] - r * 1.75, lerp(r * 0.3, r, e) * pop, { now, ph: f.id, bras: [1.4, 1.4], casque: r > 9 });
             if (e > 0.8) eclat(q[0], q[1] - r * 1.5, r * 0.7, (e - 0.8) / 0.2, 6, f.id); } });
           return; }
         if (c >= t2) { const e = sm((c - t2) / 0.7); if (e >= 1) { rentres++; return; }
